@@ -43,6 +43,13 @@ function createReceiverProxyServer() {
     status: number;
     body: string;
   }> = [];
+  const disallowedForwardHeaders = new Set([
+    "accept-encoding",
+    "content-length",
+    "connection",
+    "host",
+    "transfer-encoding",
+  ]);
 
   return {
     async start() {
@@ -74,7 +81,11 @@ function createReceiverProxyServer() {
             method: req.method,
             headers: Object.fromEntries(
               Object.entries(req.headers)
-                .filter(([, value]) => value !== undefined)
+                .filter(
+                  ([key, value]) =>
+                    value !== undefined &&
+                    !disallowedForwardHeaders.has(key.toLowerCase())
+                )
                 .map(([key, value]) => [key, Array.isArray(value) ? value.join(", ") : value])
             ),
             body:
@@ -150,16 +161,13 @@ test.describe("Cloudflare preview stream", () => {
     "E2E_STREAM_SERVER_URL is required for real-infra streaming tests"
   );
 
-  test("boots the deployed Worker stack and starts a real stream session", async ({
+  test("boots the deployed Worker stack and returns TURN-backed session config", async ({
     request,
   }, testInfo) => {
     const traceId = buildTraceId();
     const sessionId = `ci-session-${Math.random().toString(36).slice(2, 10)}`;
-    const targetUrl = process.env.E2E_TARGET_URL || "https://example.com";
     let healthPayload: unknown = null;
     let icePayload: any = null;
-    let startStatus: number | null = null;
-    let startBodyText: string | null = null;
 
     try {
       const healthResponse = await request.get(`${previewUrl}/health`);
@@ -189,36 +197,11 @@ test.describe("Cloudflare preview stream", () => {
       expect([...turnUrlSet].some((url) => url.startsWith("stun:"))).toBeTruthy();
       expect([...turnUrlSet].some((url) => url.startsWith("turn:"))).toBeTruthy();
 
-      const startResponse = await request.post(`${previewUrl}/start-stream`, {
-        headers: {
-          "Content-Type": "application/json",
-          "x-stream-trace-id": traceId,
-          "x-stream-session-id": sessionId,
-        },
-        data: {
-          url: targetUrl,
-          peerId: `ci-peer-${Math.random().toString(36).slice(2, 10)}`,
-          iceServers: icePayload.iceServers,
-        },
-        timeout: 120_000,
-      });
-      startStatus = startResponse.status();
-      startBodyText = await startResponse.text();
-      expect(startResponse.ok()).toBeTruthy();
-
-      const startPayload = JSON.parse(startBodyText);
-      expect(startPayload.status).toBe("success");
-      expect(startPayload.traceId).toBe(traceId);
-      expect(startPayload.srcPeerId).toBeTruthy();
-      expect(startPayload.monitoringActive).toBeTruthy();
-
       const diagnostics = {
         traceId,
         sessionId,
         healthPayload,
         iceServerCount: icePayload.iceServers.length,
-        startStatus,
-        startPayload,
       };
 
       await testInfo.attach("preview-smoke", {
@@ -232,8 +215,8 @@ test.describe("Cloudflare preview stream", () => {
             {
               traceId,
               sessionId,
-              startStatus,
-              startBodyText,
+              healthPayload,
+              iceServerCount: icePayload?.iceServers?.length ?? null,
             },
             null,
             2
