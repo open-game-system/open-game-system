@@ -28,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: pnpm turbo run build --filter='./packages/*' --filter='!@open-game-system/app-bridge-react-native' --filter='!@open-game-system/stream-kit-testing'
+        run: pnpm turbo run build --filter='./packages/*'
 
       - name: Typecheck packages
         run: pnpm turbo run typecheck --filter='./packages/*'
