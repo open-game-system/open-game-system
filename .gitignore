@@ -25,3 +25,5 @@ apps/mobile/.expo/
 .env
 .env.local
 .dev.vars
+playwright-report/
+test-results/

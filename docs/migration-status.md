@@ -24,6 +24,7 @@ Tracking the migration from individual repos into the unified `open-game-system`
 - [ ] **Create shared types package (`@open-game-system/types`)** -- deduplicate notification types between `notification-kit-core` and `services/api`
 - [ ] **Set up changesets for package publishing** -- automated versioning and npm publish
 - [ ] **Unify CI/CD** -- separate GitHub Actions workflows per area (packages, mobile, api)
+- [x] **Add stream preview E2E validation** -- PR-scoped Cloudflare preview deploy + cleanup workflows plus Playwright checks for `examples/stream-server-demo`
 - [ ] **Wire up real APNs/FCM providers in services/api** -- currently stubs
 - [ ] **Add stream control-plane endpoints to services/api** -- needed by stream-kit (`/streams/create`, `/streams/:id`, etc.)
 - [ ] **Productize stream-kit SDK packages** -- working example is ahead of the SDK; stabilize APIs
