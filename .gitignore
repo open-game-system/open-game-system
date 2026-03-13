@@ -27,3 +27,7 @@ apps/mobile/.expo/
 .dev.vars
 playwright-report/
 test-results/
+
+# Agent working files
+.swarm/
+.claude/

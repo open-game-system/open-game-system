@@ -1,0 +1,76 @@
+{
+  "name": "@open-game-system/cast-kit",
+  "version": "0.0.0",
+  "description": "Add TV casting to your web games in minutes",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts src/client/index.ts src/react/index.ts src/mock/index.ts src/receiver/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts src/client/index.ts src/react/index.ts src/mock/index.ts src/receiver/index.ts --format cjs,esm --dts --watch",
+    "lint": "biome lint ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check ./src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "type-check": "tsc -p tsconfig.check.json",
+    "type-check:ci": "tsc -p tsconfig.check.json --noEmit",
+    "validate": "pnpm type-check || echo 'Type check failed but continuing...' && pnpm lint || echo 'Lint failed but continuing...' && pnpm test",
+    "validate:ci": "pnpm type-check:ci && pnpm lint && pnpm test",
+    "prepublishOnly": "pnpm build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/open-game-collective/cast-kit.git"
+  },
+  "keywords": [
+    "cast",
+    "chromecast",
+    "tv",
+    "games",
+    "webview",
+    "react",
+    "webrtc"
+  ],
+  "author": "Open Game Collective",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/open-game-collective/cast-kit/issues"
+  },
+  "homepage": "https://github.com/open-game-collective/cast-kit#readme",
+  "devDependencies": {
+    "@biomejs/biome": "1.5.3",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/react-hooks": "^8.0.1",
+    "@testing-library/user-event": "^14.5.1",
+    "@types/node": "^18.15.11",
+    "@types/react": "^18.0.33",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.2.1",
+    "@vitest/ui": "^1.2.1",
+    "happy-dom": "^13.3.1",
+    "jsdom": "^24.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsup": "^6.7.0",
+    "typescript": "^5.0.4",
+    "vite": "^5.0.12",
+    "vitest": "^1.2.1"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0"
+  },
+  "dependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "zod": "^3.21.4"
+  }
+}

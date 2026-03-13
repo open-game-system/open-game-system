@@ -20,6 +20,7 @@
 | `packages/stream-kit-react` | `@open-game-system/stream-kit-react` | React hooks for stream lifecycle | `stream-kit-types`, `stream-kit-web` |
 | `packages/stream-kit-server` | `@open-game-system/stream-kit-server` | Headless browser renderer (Puppeteer + PeerJS) | `stream-kit-types` |
 | `packages/stream-kit-testing` | `@open-game-system/stream-kit-testing` | Test utilities for stream-kit | `stream-kit-types`, `stream-kit-web` |
+| `packages/cast-kit` | `@open-game-system/cast-kit` | TV casting SDK (Google Cast via native bridge) | None (uses its own WebView bridge) |
 
 ### Services (`services/`)
 
@@ -31,7 +32,8 @@
 
 | Path | npm Name | Purpose | Internal Dependencies |
 |------|----------|---------|----------------------|
-| `apps/mobile` | `opengame-app` | Host app (Expo/React Native), WebView + bridge | `app-bridge-native`, `app-bridge-react-native`, `app-bridge-types`, `app-bridge-testing` |
+| `apps/mobile` | `@open-game-system/mobile` | Host app (Expo/React Native), WebView + bridge | `app-bridge-native`, `app-bridge-react-native`, `app-bridge-types`, `app-bridge-testing` |
+| `apps/web` | `@open-game-system/web` | opengame.org marketing website (Vite + React + Tailwind) | None |
 
 ### Examples (`examples/`)
 
