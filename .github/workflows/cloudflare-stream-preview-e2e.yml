@@ -19,6 +19,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_WORKERS_SUBDOMAIN: ${{ vars.CLOUDFLARE_WORKERS_SUBDOMAIN }}
       STREAM_KIT_TURN_API_TOKEN: ${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}
       STREAM_KIT_TURN_KEY_ID: ${{ secrets.CLOUDFLARE_TURN_KEY_ID }}
       STREAM_KIT_DEBUG_STATE_TOKEN: ${{ secrets.DEBUG_STATE_TOKEN }}
@@ -70,8 +71,17 @@ jobs:
         working-directory: examples/stream-server-demo
         run: |
           set -euo pipefail
-          deploy_output=$(npx wrangler deploy --config .wrangler/preview-wrangler.json --name "${{ steps.names.outputs.worker_name }}" 2>&1 | tee /tmp/wrangler-deploy.log)
-          preview_url=$(printf '%s\n' "$deploy_output" | grep -Eo 'https://[A-Za-z0-9._/-]+workers.dev' | tail -n1)
+          if ! npx wrangler deploy --config .wrangler/preview-wrangler.json --name "${{ steps.names.outputs.worker_name }}" > /tmp/wrangler-deploy.log 2>&1; then
+            cat /tmp/wrangler-deploy.log
+            exit 1
+          fi
+
+          cat /tmp/wrangler-deploy.log
+
+          preview_url=$(grep -Eo 'https://[A-Za-z0-9._/-]+workers.dev' /tmp/wrangler-deploy.log | tail -n1 || true)
+          if [ -z "$preview_url" ] && [ -n "${CLOUDFLARE_WORKERS_SUBDOMAIN:-}" ]; then
+            preview_url="https://${{ steps.names.outputs.worker_name }}.${CLOUDFLARE_WORKERS_SUBDOMAIN}.workers.dev"
+          fi
           if [ -z "$preview_url" ]; then
             echo "Failed to parse preview URL from wrangler deploy output"
             exit 1
