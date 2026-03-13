@@ -1,0 +1,39 @@
+name: CI - Packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - ".github/workflows/ci-packages.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - ".github/workflows/ci-packages.yml"
+
+jobs:
+  ci-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      - name: Typecheck packages
+        run: pnpm turbo run typecheck --filter='./packages/*'
+
+      - name: Test packages
+        run: pnpm turbo run test --filter='./packages/*'

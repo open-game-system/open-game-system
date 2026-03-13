@@ -19,6 +19,8 @@ Grade each package/domain. Update after major changes.
 | stream-kit-react | B | passing | Hooks and components tested |
 | stream-kit-server | C | passing | Experimental, private. Router tests exist. |
 | stream-kit-testing | C | passing | Mock client tested, missing publishConfig |
+| cast-kit | C | no tests | No test files yet. Build passes. |
+| apps/web | D | no tests | Marketing site, build only. No test infrastructure. |
 | apps/mobile | B | passing (Jest) | Services tested, Stryker configured. No E2E yet. |
 
 ## Grading Scale
