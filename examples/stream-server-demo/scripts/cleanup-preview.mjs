@@ -47,7 +47,20 @@ try {
 }
 
 const containers = parseJsonFromOutput(
-  runWrangler(["containers", "list", "--config", configPath])
+  (() => {
+    try {
+      return runWrangler(["containers", "list", "--config", configPath]);
+    } catch (error) {
+      const output = `${error.stdout || ""}${error.stderr || ""}`;
+      if (output.includes("Forbidden")) {
+        console.log(
+          `Container cleanup skipped for ${containerName}; token cannot list containers`
+        );
+        process.exit(0);
+      }
+      throw error;
+    }
+  })()
 );
 const matchingContainer = containers.find((container) => container.name === containerName);
 

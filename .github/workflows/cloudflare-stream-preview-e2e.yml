@@ -51,35 +51,10 @@ jobs:
           echo "worker_name=stream-server-demo-pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           echo "container_name=stream-server-demo-pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve base container image
-        id: image
-        working-directory: examples/stream-server-demo
-        run: |
-          container_image=$(node <<'NODE'
-          const { execFileSync } = require("node:child_process");
-          const output = execFileSync("npx", ["wrangler", "containers", "list"], {
-            encoding: "utf8",
-            cwd: process.cwd(),
-          });
-          const match = output.match(/(\[\s*\{[\s\S]*\])\s*$/);
-          if (!match) {
-            throw new Error(`Could not parse wrangler containers list output:\n${output}`);
-          }
-          const containers = JSON.parse(match[1]);
-          const container = containers.find((item) => item.name === "codeflare-containers");
-          if (!container || !container.configuration?.image) {
-            throw new Error("Could not resolve the base codeflare-containers image");
-          }
-          process.stdout.write(container.configuration.image);
-          NODE
-          )
-          echo "container_image=$container_image" >> "$GITHUB_OUTPUT"
-
       - name: Render Wrangler config
         env:
           STREAM_KIT_WORKER_NAME: ${{ steps.names.outputs.worker_name }}
           STREAM_KIT_CONTAINER_NAME: ${{ steps.names.outputs.container_name }}
-          STREAM_KIT_CONTAINER_IMAGE: ${{ steps.image.outputs.container_image }}
           STREAM_KIT_CONFIG_PATH: ${{ github.workspace }}/examples/stream-server-demo/.wrangler/preview-wrangler.json
         run: node examples/stream-server-demo/scripts/render-wrangler-config.mjs
 
