@@ -50,24 +50,27 @@ describe('Notification Kit Core (Bridge-backed)', () => {
 
   describe('onDeviceIdChange', () => {
     it('subscribes to system store changes', () => {
-      let latestId: string | null = null;
-      onDeviceIdChange((id) => { latestId = id; });
-
-      // Trigger update via message
+      // Initialize the store first so subscribe can attach
+      getBridge();
       window.dispatchEvent(new MessageEvent('message', {
         data: JSON.stringify({
-          type: 'STATE_INIT', // First time init
+          type: 'STATE_INIT',
           storeKey: 'system',
           data: { ogsDeviceId: 'id-1' }
         })
       }));
-      expect(latestId).toBe('id-1');
 
+      let latestId: string | null = null;
+      onDeviceIdChange((id) => { latestId = id; });
+
+      // Trigger state update via JSON patch operations
       window.dispatchEvent(new MessageEvent('message', {
         data: JSON.stringify({
           type: 'STATE_UPDATE',
           storeKey: 'system',
-          data: { ogsDeviceId: 'id-2' }
+          operations: [
+            { op: 'replace', path: '/ogsDeviceId', value: 'id-2' }
+          ]
         })
       }));
       expect(latestId).toBe('id-2');
