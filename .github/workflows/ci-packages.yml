@@ -36,5 +36,8 @@ jobs:
       - name: Typecheck packages
         run: pnpm turbo run typecheck --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native" --continue || true
 
+      # Some package tests have pre-existing failures from monorepo migration
+      # (module resolution differences). Using --continue to report all results.
+      # Fix tracked in docs/quality.md per package.
       - name: Test packages
-        run: pnpm turbo run test --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native"
+        run: pnpm turbo run test --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native" --continue
