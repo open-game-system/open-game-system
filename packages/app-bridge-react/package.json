@@ -1,0 +1,57 @@
+{
+  "name": "@open-game-system/app-bridge-react",
+  "version": "0.0.0",
+  "description": "React hooks and components for the app-bridge ecosystem",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "dev": "tsup --config tsup.config.ts --watch",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "node -e \"const fs=require('fs'); const pkgPath='./package.json'; const pkg=JSON.parse(fs.readFileSync(pkgPath)); const deps=pkg.dependencies||{}; const peerDeps=pkg.peerDependencies||{}; const devDeps=pkg.devDependencies||{}; const version='^'+pkg.version.split('-')[0]; /* Use major/minor/patch from current version */ const fix=(obj)=>(Object.fromEntries(Object.entries(obj).map(([k,v])=>[k,v.startsWith('workspace:')?version:v]))); pkg.dependencies=fix(deps); pkg.peerDependencies=fix(peerDeps); pkg.devDependencies=fix(devDeps); fs.writeFileSync(pkgPath,JSON.stringify(pkg,null,2)+'\\n'); console.log('Replaced workspace:* versions in', pkgPath);\""
+  },
+  "dependencies": {
+    "@open-game-system/app-bridge-types": "workspace:*",
+    "@open-game-system/app-bridge-web": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "typescript": ">=4.5.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.0",
+    "@testing-library/react": "^14.1.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitest/coverage-v8": "^2.1.9",
+    "jsdom": "^24.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rimraf": "^5.0.5",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.9"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "typescript",
+    "react",
+    "app-bridge",
+    "hooks"
+  ],
+  "author": "OpenGameSystem",
+  "license": "MIT"
+}

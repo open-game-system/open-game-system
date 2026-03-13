@@ -1,0 +1,56 @@
+{
+  "name": "@open-game-system/stream-kit-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Server-side implementation for OGS Cloud Rendering (Stream Kit)",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsup src/index.ts --format cjs,esm --watch",
+    "build": "rimraf dist && tsc -p tsconfig.build.json --declaration --declarationDir ./dist && tsup src/index.ts --format cjs,esm",
+    "clean": "rimraf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@open-game-system/stream-kit-types": "workspace:*",
+    "fast-json-patch": "^3.1.1",
+    "install": "^0.13.0",
+    "peerjs": "^1.5.5",
+    "puppeteer": "24.20.0",
+    "puppeteer-stream": "3.0.20"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.124",
+    "@types/peerjs": "^1.1.0",
+    "@types/ws": "^8.18.1",
+    "@vitest/coverage-v8": "^1.6.1",
+    "rimraf": "^5.0.10",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^1.6.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "typescript",
+    "server",
+    "stream-kit",
+    "cloud-rendering",
+    "webrtc",
+    "puppeteer",
+    "ogs"
+  ],
+  "author": "OpenGameSystem",
+  "license": "ISC"
+}

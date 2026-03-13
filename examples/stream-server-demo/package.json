@@ -1,0 +1,18 @@
+{
+  "name": "bun-stream-server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "npx --yes vitest@2.1.9 run test/index.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0",
+    "@types/bun": "^1.2.21",
+    "@types/node": "^22.18.1",
+    "wrangler": "4.73.0"
+  }
+}

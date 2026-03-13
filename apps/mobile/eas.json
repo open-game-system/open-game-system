@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 5.9.1"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium",
+        "cache": {
+          "key": "preview-ios-{{allShas}}"
+        }
+      },
+      "android": {
+        "buildType": "apk",
+        "cache": {
+          "key": "preview-android-{{allShas}}"
+        }
+      }
+    },
+    "production": {
+      "ios": {
+        "simulator": false
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+} 

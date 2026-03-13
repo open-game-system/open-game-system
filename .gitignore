@@ -1,0 +1,27 @@
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+coverage/
+.stryker-tmp/
+
+# Expo managed workflow
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/.expo/
+
+# Cloudflare
+.wrangler/
+.dev.vars
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.local
+.dev.vars

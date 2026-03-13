@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Kit - Video Receiver</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007AFF;
+        }
+        
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background: #0056CC;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .disconnect {
+            background: #FF3B30;
+        }
+        
+        .disconnect:hover {
+            background: #CC2E24;
+        }
+        
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        
+        .status.disconnected {
+            background: #FFF3CD;
+            color: #856404;
+            border: 1px solid #FFEAA7;
+        }
+        
+        .status.connecting {
+            background: #CCE5FF;
+            color: #004085;
+            border: 1px solid #99D3FF;
+        }
+        
+        .status.connected {
+            background: #D4EDDA;
+            color: #155724;
+            border: 1px solid #A3D977;
+        }
+        
+        .status.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 1px solid #F5C6CB;
+        }
+        
+        #videoContainer {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        #remoteVideo {
+            width: 100%;
+            max-width: 1200px; /* Reasonable max width */
+            height: auto;
+            aspect-ratio: 16 / 9; /* Force 16:9 aspect ratio to match Puppeteer */
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            background: #000;
+            object-fit: cover; /* Fill the container completely, may crop slightly */
+        }
+        
+        .instructions {
+            background: #E3F2FD;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .instructions code {
+            background: #F5F5F5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Stream Kit Video Receiver</h1>
+        <p class="subtitle">Connect to a Puppeteer-launched stream to receive video</p>
+        
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Start the container server: <code>cd container && bun run src/server.ts</code></li>
+                <li>Enter a URL below that you want to stream</li>
+                <li>Click <strong>Start Stream & Listen</strong> to begin!</li>
+                <li>The page will automatically start the stream and connect you</li>
+                <li>You'll see the live content from the Puppeteer browser!</li>
+            </ol>
+        </div>
+        
+        <div class="form-group">
+            <label for="serverUrlInput">Server URL:</label>
+            <input type="text" id="serverUrlInput" placeholder="https://bun-stream-server.jonathanrmumm.workers.dev" value="https://bun-stream-server.jonathanrmumm.workers.dev">
+        </div>
+
+        <div class="form-group">
+            <label for="urlInput">URL to Stream:</label>
+            <input type="text" id="urlInput" placeholder="https://www.nytimes.com" value="https://www.nytimes.com">
+        </div>
+        
+        <div class="form-group">
+            <label for="receiverIdDisplay">Your Receiver ID:</label>
+            <input type="text" id="receiverIdDisplay" readonly style="background: #f0f0f0;">
+        </div>
+        
+        <div class="form-group">
+            <label for="peerIdInput">OR paste Source Peer ID to connect manually:</label>
+            <input type="text" id="peerIdInput" placeholder="e.g. 9c22319c-b918-45c5-8476-d9cd53e8c603">
+        </div>
+        
+        <button id="startStreamBtn" onclick="startStreamAndListen()">🚀 Start Stream & Listen</button>
+        <button id="startListeningBtn" onclick="startListening()" disabled>Start Listening Only</button>
+        <button id="connectBtn" onclick="connectManually()" disabled>Connect Manually</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled class="disconnect">Disconnect</button>
+        
+        <div id="status" class="status disconnected">
+            Ready - Enter a URL above and click "🚀 Start Stream & Listen" to begin
+        </div>
+        
+        <div id="videoContainer" style="display: none;">
+            <video id="remoteVideo" autoplay playsinline controls></video>
+        </div>
+    </div>
+
+    <!-- PeerJS Library -->
+    <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
+    
+    <script>
+        let peer = null;
+        let currentConnection = null;
+        let receivedCall = null;
+        let isListening = false;
+        let callHandlersBound = false;
+        let currentTraceId = null;
+        const sessionId = 'session-' + Math.random().toString(36).substring(2, 15);
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        const urlInput = document.getElementById('urlInput');
+        const serverUrlInput = document.getElementById('serverUrlInput');
+        const receiverIdDisplay = document.getElementById('receiverIdDisplay');
+        const peerIdInput = document.getElementById('peerIdInput');
+        const startStreamBtn = document.getElementById('startStreamBtn');
+        const startListeningBtn = document.getElementById('startListeningBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const status = document.getElementById('status');
+        const videoContainer = document.getElementById('videoContainer');
+        const remoteVideo = document.getElementById('remoteVideo');
+        
+        // Generate a random receiver ID
+        const receiverId = 'receiver-' + Math.random().toString(36).substring(2, 15);
+        receiverIdDisplay.value = receiverId;
+        
+        function updateStatus(message, type = 'disconnected') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.dataset.status = type;
+            status.dataset.message = message;
+            if (currentTraceId) {
+                status.dataset.traceId = currentTraceId;
+            } else {
+                delete status.dataset.traceId;
+            }
+        }
+
+        async function logPeerConnectionStats(call, label = 'rtc') {
+            const pc = call && (call.peerConnection || call._negotiator?._pc || null);
+            if (!pc || typeof pc.getStats !== 'function') {
+                console.log(`📡 ${label}: peer connection stats unavailable`);
+                return;
+            }
+
+            try {
+                const stats = await pc.getStats();
+                const summary = {
+                    connectionState: pc.connectionState,
+                    iceConnectionState: pc.iceConnectionState,
+                    iceGatheringState: pc.iceGatheringState,
+                    signalingState: pc.signalingState,
+                    inboundVideo: null,
+                    inboundAudio: null,
+                    candidatePair: null
+                };
+
+                stats.forEach((report) => {
+                    if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                        summary.inboundVideo = {
+                            bytesReceived: report.bytesReceived,
+                            framesDecoded: report.framesDecoded,
+                            frameWidth: report.frameWidth,
+                            frameHeight: report.frameHeight,
+                            framesPerSecond: report.framesPerSecond,
+                            packetsLost: report.packetsLost
+                        };
+                    }
+
+                    if (report.type === 'inbound-rtp' && report.kind === 'audio') {
+                        summary.inboundAudio = {
+                            bytesReceived: report.bytesReceived,
+                            packetsLost: report.packetsLost
+                        };
+                    }
+
+                    if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
+                        summary.candidatePair = {
+                            currentRoundTripTime: report.currentRoundTripTime,
+                            availableIncomingBitrate: report.availableIncomingBitrate,
+                            bytesReceived: report.bytesReceived,
+                            bytesSent: report.bytesSent
+                        };
+                    }
+                });
+
+                console.log(`📡 ${label} stats:`, summary);
+            } catch (error) {
+                console.error(`📡 ${label} stats failed:`, error);
+            }
+        }
+
+        function createTraceId() {
+            if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+                return globalThis.crypto.randomUUID();
+            }
+            return 'trace-' + Math.random().toString(36).slice(2) + '-' + Date.now();
+        }
+        
+        async function startStreamAndListen() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                updateStatus('Please enter a valid URL to stream', 'error');
+                return;
+            }
+            
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                updateStatus('URL must start with http:// or https://', 'error');
+                return;
+            }
+            
+            updateStatus('🚀 Starting stream and initializing receiver...', 'connecting');
+            startStreamBtn.disabled = true;
+            startListeningBtn.disabled = true;
+            
+            try {
+                cleanup();
+
+                // Step 1: Load ICE configuration before creating either peer.
+                updateStatus('📡 Requesting stream from container server...', 'connecting');
+                
+                const serverUrl = serverUrlInput.value.trim();
+                const endpoint = serverUrl.endsWith('/') ? `${serverUrl}start-stream` : `${serverUrl}/start-stream`;
+                const iceServersEndpoint = serverUrl.endsWith('/') ? `${serverUrl}ice-servers` : `${serverUrl}/ice-servers`;
+                currentTraceId = createTraceId();
+                console.log('🧭 Stream trace ID:', currentTraceId);
+                
+                const iceResponse = await fetch(iceServersEndpoint, {
+                    method: 'GET',
+                    headers: {
+                        'x-stream-trace-id': currentTraceId,
+                        'x-stream-session-id': sessionId
+                    }
+                });
+                const icePayload = await iceResponse.json();
+                if (!iceResponse.ok) {
+                    throw new Error((icePayload.error || 'Failed to load ICE servers') + ` (trace ${icePayload.traceId || currentTraceId})`);
+                }
+                const iceServers = Array.isArray(icePayload.iceServers) ? icePayload.iceServers : [];
+                console.log('🧊 ICE servers loaded:', iceServers);
+                
+                // Step 2: Start listening with the fetched ICE servers.
+                peer = new Peer(receiverId, {
+                    debug: 3,
+                    config: {
+                        iceServers
+                    }
+                });
+                
+                await new Promise((resolve, reject) => {
+                    peer.on('open', (id) => {
+                        console.log('🎧 Receiver peer opened with ID:', id);
+                        updateStatus('🎧 Receiver ready, starting stream...', 'connecting');
+                        isListening = true;
+                        resolve();
+                    });
+                    
+                    peer.on('error', (error) => {
+                        console.error('❌ Peer error:', error);
+                        reject(error);
+                    });
+                });
+                
+                // Step 3: Start listening for the incoming call before
+                // the container finishes INITIALIZE and dials our peer.
+                setupCallHandlers();
+                
+                // Step 4: Start the stream on the container server.
+                const streamResponse = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-stream-trace-id': currentTraceId,
+                        'x-stream-session-id': sessionId
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        peerId: receiverId,
+                        iceServers
+                    })
+                });
+                
+                const result = await streamResponse.json();
+                const responseTraceId = streamResponse.headers.get('x-stream-trace-id') || result.traceId || currentTraceId;
+                console.log('🧭 Stream response trace ID:', responseTraceId);
+                
+                if (result.status !== 'success') {
+                    throw new Error((result.message || 'Failed to start stream') + ` (trace ${responseTraceId})`);
+                }
+                
+                console.log('✅ Stream started:', result.srcPeerId, 'trace:', responseTraceId);
+                peerIdInput.value = result.srcPeerId || '';
+                updateStatus(`🎯 Stream started! Waiting for connection... Trace: ${responseTraceId}`, 'connecting');
+                
+                // Enable other controls
+                connectBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('❌ Failed to start stream:', error);
+                updateStatus('❌ Failed to start stream: ' + error.message, 'error');
+                cleanup();
+            }
+        }
+        
+        function setupCallHandlers() {
+            if (!peer || callHandlersBound) {
+                return;
+            }
+            
+            callHandlersBound = true;
+            
+            peer.on('call', (call) => {
+                console.log('📞 Receiving call from:', call.peer);
+                updateStatus('📡 Receiving stream from: ' + call.peer, 'connecting');
+                const peerConnection = call.peerConnection || call._negotiator?._pc || null;
+                if (peerConnection) {
+                    console.log('📡 Peer connection object detected');
+                    peerConnection.onconnectionstatechange = () => {
+                        console.log('📡 connectionState:', peerConnection.connectionState);
+                    };
+                    peerConnection.oniceconnectionstatechange = () => {
+                        console.log('📡 iceConnectionState:', peerConnection.iceConnectionState);
+                    };
+                    peerConnection.onicegatheringstatechange = () => {
+                        console.log('📡 iceGatheringState:', peerConnection.iceGatheringState);
+                    };
+                } else {
+                    console.log('📡 Peer connection object not available on call');
+                }
+                
+                // Answer the call without providing our own stream
+                call.answer();
+                receivedCall = call;
+                
+                let streamAttached = false; // Prevent multiple stream attachments
+                
+                call.on('stream', (remoteStream) => {
+                    if (streamAttached) {
+                        console.log('🔄 Additional stream event ignored (already attached)');
+                        return;
+                    }
+                    
+                    console.log('🎥 Received remote stream:', remoteStream);
+                    console.log('🎥 Stream details:', {
+                        id: remoteStream.id,
+                        active: remoteStream.active,
+                        tracks: remoteStream.getTracks().map(track => ({
+                            kind: track.kind,
+                            label: track.label,
+                            enabled: track.enabled,
+                            readyState: track.readyState,
+                            muted: track.muted
+                        }))
+                    });
+                    
+                    updateStatus('✅ Stream connected! Showing video from: ' + call.peer, 'connected');
+                    
+                    // Stop any existing video first
+                    if (remoteVideo.srcObject) {
+                        console.log('🛑 Stopping existing video stream');
+                        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                        remoteVideo.srcObject = null;
+                    }
+                    
+                    // Display the remote stream
+                    console.log('📺 Setting video srcObject to remote stream');
+                    remoteVideo.srcObject = remoteStream;
+                    streamAttached = true;
+                    
+                    // Add video event listeners for debugging
+                    remoteVideo.onloadstart = () => console.log('📺 Video: loadstart event');
+                    remoteVideo.onloadedmetadata = () => {
+                        console.log('📺 Video: loadedmetadata event');
+                        console.log('📺 Video dimensions:', remoteVideo.videoWidth, 'x', remoteVideo.videoHeight);
+                        console.log('📺 Video duration:', remoteVideo.duration);
+                    };
+                    remoteVideo.onloadeddata = () => console.log('📺 Video: loadeddata event');
+                    remoteVideo.oncanplay = () => console.log('📺 Video: canplay event');
+                    remoteVideo.oncanplaythrough = () => console.log('📺 Video: canplaythrough event');
+                    remoteVideo.onplay = () => console.log('📺 Video: play event - playback started');
+                    remoteVideo.onplaying = () => console.log('📺 Video: playing event - playback active');
+                    remoteVideo.onpause = () => console.log('📺 Video: pause event');
+                    remoteVideo.onended = () => console.log('📺 Video: ended event');
+                    remoteVideo.onerror = (e) => {
+                        console.error('📺 Video: error event', e);
+                        console.error('📺 Video error details:', remoteVideo.error);
+                    };
+                    remoteVideo.onstalled = () => console.log('📺 Video: stalled event');
+                    remoteVideo.onwaiting = () => console.log('📺 Video: waiting event');
+                    remoteVideo.onsuspend = () => console.log('📺 Video: suspend event');
+                    
+                    // Show video container first
+                    videoContainer.style.display = 'block';
+                    
+                    // Try multiple approaches to start playback
+                    console.log('🎬 Attempting to start video playback...');
+                    
+                    // Approach 1: Direct play() call
+                    const playPromise = remoteVideo.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            console.log('🎬 ✅ Video playback started successfully via play() promise');
+                        }).catch(error => {
+                            console.error('🎬 ❌ Video play() failed:', error);
+                            console.error('🎬 Error name:', error.name);
+                            console.error('🎬 Error message:', error.message);
+                            
+                            // Approach 2: Try with user interaction
+                            if (error.name === 'NotAllowedError') {
+                                console.log('🎬 🔄 Autoplay blocked, requiring user interaction');
+                                updateStatus('📹 Video ready - click video to play (autoplay blocked)', 'connected');
+                                
+                                // Add click handler to video
+                                const playOnClick = () => {
+                                    console.log('🎬 🖱️ User clicked video, attempting play...');
+                                    remoteVideo.play().then(() => {
+                                        console.log('🎬 ✅ Video playback started after user interaction');
+                                        remoteVideo.removeEventListener('click', playOnClick);
+                                    }).catch(clickError => {
+                                        console.error('🎬 ❌ Video play failed even after user interaction:', clickError);
+                                    });
+                                };
+                                remoteVideo.addEventListener('click', playOnClick);
+                            } else {
+                                updateStatus('📹 Video stream received but playback failed: ' + error.message, 'error');
+                            }
+                        });
+                    } else {
+                        console.log('🎬 ⚠️ play() returned undefined (older browser)');
+                        // For older browsers that don't return a promise
+                        setTimeout(() => {
+                            if (remoteVideo.paused) {
+                                console.log('🎬 🔄 Video still paused after timeout, may need user interaction');
+                                updateStatus('📹 Video ready - click video to play if needed', 'connected');
+                            } else {
+                                console.log('🎬 ✅ Video appears to be playing');
+                            }
+                        }, 1000);
+                    }
+                    
+                    // Approach 3: Force unmute (sometimes needed)
+                    remoteVideo.muted = false;
+                    console.log('🔊 Video muted state:', remoteVideo.muted);
+                    
+                    // Approach 4: Check if stream has video tracks
+                    const videoTracks = remoteStream.getVideoTracks();
+                    const audioTracks = remoteStream.getAudioTracks();
+                    console.log('🎥 Video tracks:', videoTracks.length);
+                    console.log('🔊 Audio tracks:', audioTracks.length);
+                    
+                    if (videoTracks.length === 0) {
+                        console.warn('⚠️ No video tracks in stream!');
+                        updateStatus('⚠️ Stream has no video tracks', 'error');
+                    }
+                    
+                    // Log current video element state
+                    setTimeout(() => {
+                        console.log('📺 Video element state check:');
+                        console.log('  - srcObject set:', !!remoteVideo.srcObject);
+                        console.log('  - readyState:', remoteVideo.readyState);
+                        console.log('  - paused:', remoteVideo.paused);
+                        console.log('  - muted:', remoteVideo.muted);
+                        console.log('  - volume:', remoteVideo.volume);
+                        console.log('  - currentTime:', remoteVideo.currentTime);
+                        console.log('  - duration:', remoteVideo.duration);
+                        console.log('  - videoWidth:', remoteVideo.videoWidth);
+                        console.log('  - videoHeight:', remoteVideo.videoHeight);
+                        console.log('  - networkState:', remoteVideo.networkState);
+                        console.log('  - error:', remoteVideo.error);
+                        logPeerConnectionStats(call, '2s');
+                    }, 2000);
+
+                    setTimeout(() => {
+                        logPeerConnectionStats(call, '5s');
+                    }, 5000);
+                    
+                    disconnectBtn.disabled = false;
+                });
+                
+                call.on('close', () => {
+                    console.log('📵 Call ended');
+                    updateStatus('Stream ended', 'disconnected');
+                    resetToListening();
+                });
+                
+                call.on('error', (error) => {
+                    console.error('❌ Call error:', error);
+                    updateStatus('Call error: ' + error.message, 'error');
+                    resetToListening();
+                });
+            });
+            
+            peer.on('disconnected', () => {
+                console.log('⚠️ Peer disconnected');
+                updateStatus('Disconnected from signaling server', 'error');
+            });
+        }
+        
+        function startListening() {
+            updateStatus('Initializing receiver...', 'connecting');
+            startListeningBtn.disabled = true;
+            isListening = true;
+            
+            // Create our peer with the receiver ID
+            peer = new Peer(receiverId, {
+                debug: 3
+            });
+            
+            peer.on('open', (id) => {
+                console.log('Receiver peer opened with ID:', id);
+                updateStatus(`🎧 Listening for streams as: ${id}`, 'connecting');
+                connectBtn.disabled = false; // Enable manual connect option
+            });
+            
+            setupCallHandlers();
+        }
+        
+        function connectManually() {
+            const sourcePeerId = peerIdInput.value.trim();
+            if (!sourcePeerId) {
+                updateStatus('Please enter a valid Source Peer ID', 'error');
+                return;
+            }
+            
+            if (!peer) {
+                updateStatus('Please start listening first', 'error');
+                return;
+            }
+            
+            updateStatus('Attempting to connect to: ' + sourcePeerId, 'connecting');
+            
+            // Try to call the source peer
+            try {
+                const call = peer.call(sourcePeerId);
+                if (call) {
+                    call.on('stream', (remoteStream) => {
+                        console.log('🎥 Manual connection - received stream');
+                        updateStatus('✅ Manually connected to: ' + sourcePeerId, 'connected');
+                        remoteVideo.srcObject = remoteStream;
+                        videoContainer.style.display = 'block';
+                        disconnectBtn.disabled = false;
+                    });
+                    
+                    call.on('error', (error) => {
+                        console.error('Manual call error:', error);
+                        updateStatus('Manual connection failed: ' + error.message, 'error');
+                    });
+                    
+                    receivedCall = call;
+                } else {
+                    updateStatus('Failed to initiate call to: ' + sourcePeerId, 'error');
+                }
+            } catch (error) {
+                updateStatus('Error calling peer: ' + error.message, 'error');
+            }
+        }
+        
+        function disconnect() {
+            updateStatus('Disconnecting...', 'connecting');
+            
+            if (receivedCall) {
+                receivedCall.close();
+                receivedCall = null;
+            }
+            
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                remoteVideo.srcObject = null;
+            }
+            
+            videoContainer.style.display = 'none';
+            disconnectBtn.disabled = true;
+            
+            if (isListening && peer && !peer.destroyed) {
+                // Go back to listening mode
+                resetToListening();
+            } else {
+                cleanup();
+            }
+        }
+        
+        function resetToListening() {
+            if (receivedCall) {
+                receivedCall.close();
+                receivedCall = null;
+            }
+            
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                remoteVideo.srcObject = null;
+            }
+            
+            videoContainer.style.display = 'none';
+            disconnectBtn.disabled = true;
+            
+            if (peer && !peer.destroyed) {
+                updateStatus(`🎧 Listening for streams as: ${receiverId}`, 'connecting');
+            }
+        }
+        
+        function cleanup() {
+            isListening = false;
+            
+            if (receivedCall) {
+                receivedCall.close();
+                receivedCall = null;
+            }
+            
+            if (peer) {
+                peer.destroy();
+                peer = null;
+            }
+            
+            callHandlersBound = false;
+            currentTraceId = null;
+            
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+                remoteVideo.srcObject = null;
+            }
+            
+            videoContainer.style.display = 'none';
+            startStreamBtn.disabled = false;
+            startListeningBtn.disabled = false;
+            connectBtn.disabled = true;
+            disconnectBtn.disabled = true;
+            updateStatus('Disconnected', 'disconnected');
+        }
+        
+        // Allow Enter key to connect manually
+        peerIdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !connectBtn.disabled) {
+                connectManually();
+            }
+        });
+        
+        // Allow Enter key to start stream
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !startStreamBtn.disabled) {
+                startStreamAndListen();
+            }
+        });
+        
+        // Copy receiver ID to clipboard
+        receiverIdDisplay.addEventListener('click', () => {
+            receiverIdDisplay.select();
+            document.execCommand('copy');
+            updateStatus('✅ Receiver ID copied to clipboard!', 'connected');
+            setTimeout(() => {
+                if (status.textContent.includes('copied to clipboard')) {
+                    updateStatus('Ready - Enter a URL and click "Start Stream & Listen"', 'disconnected');
+                }
+            }, 2000);
+        });
+        
+        console.log('🎥 Stream Kit Receiver ready');
+        console.log('📱 Receiver ID:', receiverId);
+        console.log('🪪 Session ID:', sessionId);
+        console.log('💡 Enter a URL and click "Start Stream & Listen" to begin');
+
+        const initialServerUrl = searchParams.get('serverUrl');
+        if (initialServerUrl) {
+            serverUrlInput.value = initialServerUrl;
+        }
+
+        const initialStreamUrl = searchParams.get('streamUrl');
+        if (initialStreamUrl) {
+            urlInput.value = initialStreamUrl;
+        }
+
+        if (searchParams.get('autostart') === '1') {
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    startStreamAndListen();
+                }, 250);
+            }, { once: true });
+        }
+    </script>
+</body>
+</html> 

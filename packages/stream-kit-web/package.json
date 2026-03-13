@@ -1,0 +1,42 @@
+{
+  "name": "@open-game-system/stream-kit-web",
+  "version": "0.0.0",
+  "description": "Browser client for streaming with PeerJS",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@open-game-system/stream-kit-types": "workspace:*",
+    "peerjs": "^1.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.9"
+  },
+  "keywords": [
+    "webrtc",
+    "peerjs",
+    "streaming",
+    "browser"
+  ],
+  "author": "",
+  "license": "MIT"
+}
