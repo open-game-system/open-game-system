@@ -8,6 +8,7 @@ const projectRoot = path.resolve(scriptDir, "..");
 const workerName = process.env.STREAM_KIT_WORKER_NAME || "bun-stream-server";
 const containerName =
   process.env.STREAM_KIT_CONTAINER_NAME || "codeflare-containers";
+const containerScriptName = process.env.STREAM_KIT_CONTAINER_SCRIPT_NAME || "";
 const outputPath =
   process.env.STREAM_KIT_CONFIG_PATH ||
   path.resolve(projectRoot, ".wrangler/preview-wrangler.json");
@@ -19,6 +20,12 @@ const dockerfilePath = path.relative(
 );
 const imagePath = process.env.STREAM_KIT_CONTAINER_IMAGE || dockerfilePath;
 
+const durableObjectBinding = {
+  name: "STREAM_CONTAINER",
+  class_name: "StreamContainer",
+  ...(containerScriptName ? { script_name: containerScriptName } : {}),
+};
+
 const config = {
   name: workerName,
   main: mainPath,
@@ -27,23 +34,25 @@ const config = {
     "nodejs_compat",
     "nodejs_compat_populate_process_env",
   ],
-  containers: [
+  durable_objects: {
+    bindings: [durableObjectBinding],
+  },
+  observability: {
+    enabled: true,
+    head_sampling_rate: 1,
+  },
+};
+
+if (!containerScriptName) {
+  config.containers = [
     {
       name: containerName,
       image: imagePath,
       class_name: "StreamContainer",
       max_instances: 2,
     },
-  ],
-  durable_objects: {
-    bindings: [
-      {
-        name: "STREAM_CONTAINER",
-        class_name: "StreamContainer",
-      },
-    ],
-  },
-  migrations: [
+  ];
+  config.migrations = [
     {
       tag: "v1",
       new_sqlite_classes: ["MyContainer"],
@@ -53,12 +62,8 @@ const config = {
       new_sqlite_classes: ["StreamContainer"],
       deleted_classes: ["MyContainer"],
     },
-  ],
-  observability: {
-    enabled: true,
-    head_sampling_rate: 1,
-  },
-};
+  ];
+}
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");

@@ -13,7 +13,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       STREAM_KIT_WORKER_NAME: stream-server-demo-pr-${{ github.event.pull_request.number }}
       STREAM_KIT_CONTAINER_NAME: stream-server-demo-pr-${{ github.event.pull_request.number }}
-      STREAM_KIT_CONTAINER_IMAGE: registry.cloudchamber.cfdata.org/codeflare-containers:2aacba09
+      STREAM_KIT_CONTAINER_SCRIPT_NAME: bun-stream-server
       STREAM_KIT_CONFIG_PATH: ${{ github.workspace }}/examples/stream-server-demo/.wrangler/preview-wrangler.json
     steps:
       - uses: actions/checkout@v4
