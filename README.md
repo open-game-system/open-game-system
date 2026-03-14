@@ -10,23 +10,9 @@ The Open Game System (OGS) lets web game developers tap into native mobile capab
 
 Notify your players when it's their turn, when a game starts, or when a friend joins.
 
-```tsx
-// Server-side: send a notification
-import { createNotificationClient } from "@open-game-system/notification-kit-server";
-
-const client = createNotificationClient({ apiKey: "your-api-key" });
-
-await client.sendNotification({
-  deviceId: "player-device-id",
-  notification: {
-    title: "Your turn!",
-    body: "Alex just played. You're up next in Settlers.",
-  },
-});
-```
+**1. Client — detect OGS and register the device**
 
 ```tsx
-// Client-side: detect OGS and read device ID
 import { NotificationProvider, useNotifications } from "@open-game-system/notification-kit-react";
 
 function App() {
@@ -40,10 +26,67 @@ function App() {
 function Game() {
   const { isInOGSApp, deviceId } = useNotifications();
 
-  if (isInOGSApp) {
-    // Send deviceId to your server for push registration
-  }
+  useEffect(() => {
+    if (isInOGSApp && deviceId) {
+      // Send the OGS device ID to your server, along with the logged-in user
+      fetch("/api/devices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userJwt}`,
+        },
+        body: JSON.stringify({ ogsDeviceId: deviceId }),
+      });
+    }
+  }, [isInOGSApp, deviceId]);
 }
+```
+
+**2. Your server — save the device for the user**
+
+```ts
+// POST /api/devices — associate an OGS device with the authenticated user
+app.post("/api/devices", async (req, res) => {
+  const userId = getUserFromJwt(req); // your auth
+  const { ogsDeviceId } = req.body;
+
+  // One user can have multiple devices (phone + tablet)
+  await db.query(
+    `INSERT INTO user_devices (user_id, ogs_device_id)
+     VALUES ($1, $2)
+     ON CONFLICT (ogs_device_id) DO UPDATE SET user_id = $1`,
+    [userId, ogsDeviceId]
+  );
+
+  res.json({ ok: true });
+});
+```
+
+**3. Your server — send a push to all of a user's devices**
+
+```ts
+import { createNotificationClient } from "@open-game-system/notification-kit-server";
+
+const ogs = createNotificationClient({ apiKey: "your-ogs-api-key" });
+
+async function notifyUser(userId: string, title: string, body: string) {
+  // Look up every device the user has registered
+  const devices = await db.query(
+    "SELECT ogs_device_id FROM user_devices WHERE user_id = $1",
+    [userId]
+  );
+
+  // Send to all devices in parallel
+  await ogs.sendBulkNotifications(
+    devices.map((d) => ({
+      deviceId: d.ogs_device_id,
+      notification: { title, body },
+    }))
+  );
+}
+
+// Example: notify a player it's their turn
+await notifyUser(nextPlayerId, "Your turn!", "Alex just played. You're up next in Settlers.");
 ```
 
 ### TV Casting
