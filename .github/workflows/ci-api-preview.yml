@@ -60,8 +60,11 @@ jobs:
           PREVIEW_D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
         run: node services/api/scripts/render-preview-wrangler.mjs
 
-      - name: Seed E2E API key in D1
+      - name: Apply schema and seed E2E data in D1
         run: |
+          npx wrangler d1 execute "opengame-api-db" \
+            --file=services/api/schema.sql \
+            --remote
           npx wrangler d1 execute "opengame-api-db" \
             --command="INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES ('e2e-test-api-key', 'e2e-test-game', 'E2E Test Game')" \
             --remote
