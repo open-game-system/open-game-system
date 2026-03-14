@@ -1,0 +1,37 @@
+name: API Preview Cleanup
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+    paths:
+      - "services/api/**"
+
+jobs:
+  cleanup-preview:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Delete preview Worker
+        run: npx wrangler delete --name "opengame-api-pr-${PR_NUMBER}" --force || true
+
+      - name: Delete preview D1 database
+        run: |
+          DB_NAME="opengame-api-pr-${PR_NUMBER}-db"
+          # Get database ID first
+          DB_ID=$(npx wrangler d1 list --json 2>/dev/null | node -e "
+            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
+            const dbs = JSON.parse(data);
+            const found = dbs.find(db => db.name === '${DB_NAME}');
+            if (found) console.log(found.uuid);
+          " || true)
+
+          if [ -n "$DB_ID" ]; then
+            echo "Deleting database ${DB_NAME} (${DB_ID})..."
+            npx wrangler d1 delete --yes "$DB_ID" || true
+          else
+            echo "Database ${DB_NAME} not found, skipping deletion"
+          fi

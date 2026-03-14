@@ -1,0 +1,144 @@
+name: API Preview Deploy
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - "services/api/**"
+      - "packages/cast-kit-*/**"
+      - ".github/workflows/ci-api-preview.yml"
+
+concurrency:
+  group: api-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm turbo build --filter=@open-game-system/api...
+
+      - name: Run tests
+        run: pnpm --filter @open-game-system/api test
+
+      - name: Create preview D1 database (idempotent)
+        id: d1
+        run: |
+          set -euo pipefail
+          DB_NAME="opengame-api-pr-${PR_NUMBER}-db"
+
+          # Check if database already exists
+          EXISTING=$(npx wrangler d1 list --json 2>/dev/null | node -e "
+            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
+            const dbs = JSON.parse(data);
+            const found = dbs.find(db => db.name === '${DB_NAME}');
+            if (found) console.log(found.uuid);
+          " || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "Database ${DB_NAME} already exists with ID: ${EXISTING}"
+            echo "database_id=${EXISTING}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Creating database ${DB_NAME}..."
+            CREATE_OUTPUT=$(npx wrangler d1 create "$DB_NAME" 2>&1)
+            echo "$CREATE_OUTPUT"
+            DB_ID=$(echo "$CREATE_OUTPUT" | grep -oP '(?<=database_id = ")[^"]+' || true)
+            if [ -z "$DB_ID" ]; then
+              DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1)
+            fi
+            if [ -z "$DB_ID" ]; then
+              echo "Failed to extract database ID from create output"
+              exit 1
+            fi
+            echo "Created database with ID: ${DB_ID}"
+            echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Render preview wrangler config
+        env:
+          PREVIEW_D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
+        run: node services/api/scripts/render-preview-wrangler.mjs
+
+      - name: Apply schema to preview D1
+        run: |
+          npx wrangler d1 execute "opengame-api-pr-${PR_NUMBER}-db" \
+            --file=services/api/schema.sql \
+            --remote
+
+      - name: Deploy preview Worker
+        id: deploy
+        working-directory: services/api
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config .wrangler/preview-wrangler.toml > /tmp/wrangler-deploy.log 2>&1 || {
+            cat /tmp/wrangler-deploy.log
+            exit 1
+          }
+          cat /tmp/wrangler-deploy.log
+
+          PREVIEW_URL=$(grep -Eo 'https://[A-Za-z0-9._/-]+workers.dev' /tmp/wrangler-deploy.log | tail -n1 || true)
+          if [ -z "$PREVIEW_URL" ] && [ -n "${CLOUDFLARE_WORKERS_SUBDOMAIN:-}" ]; then
+            PREVIEW_URL="https://opengame-api-pr-${PR_NUMBER}.${CLOUDFLARE_WORKERS_SUBDOMAIN}.workers.dev"
+          fi
+          echo "preview_url=${PREVIEW_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR with preview URL
+        if: steps.deploy.outputs.preview_url != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `### 🚀 API Preview Deployed
+
+            **URL:** ${process.env.PREVIEW_URL}
+
+            **Worker:** \`opengame-api-pr-${process.env.PR_NUMBER}\`
+            **D1 Database:** \`opengame-api-pr-${process.env.PR_NUMBER}-db\`
+
+            This preview will be automatically cleaned up when the PR is closed.`;
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('API Preview Deployed')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
