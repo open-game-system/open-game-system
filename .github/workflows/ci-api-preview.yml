@@ -43,35 +43,36 @@ jobs:
       - name: Create preview D1 database (idempotent)
         id: d1
         run: |
-          set -euo pipefail
+          set -eo pipefail
           DB_NAME="opengame-api-pr-${PR_NUMBER}-db"
 
-          # Check if database already exists
-          EXISTING=$(npx wrangler d1 list --json 2>/dev/null | node -e "
-            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
-            const dbs = JSON.parse(data);
-            const found = dbs.find(db => db.name === '${DB_NAME}');
-            if (found) console.log(found.uuid);
-          " || true)
-
-          if [ -n "$EXISTING" ]; then
-            echo "Database ${DB_NAME} already exists with ID: ${EXISTING}"
-            echo "database_id=${EXISTING}" >> "$GITHUB_OUTPUT"
-          else
-            echo "Creating database ${DB_NAME}..."
-            CREATE_OUTPUT=$(npx wrangler d1 create "$DB_NAME" 2>&1)
-            echo "$CREATE_OUTPUT"
-            DB_ID=$(echo "$CREATE_OUTPUT" | grep -oP '(?<=database_id = ")[^"]+' || true)
-            if [ -z "$DB_ID" ]; then
-              DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1)
+          # Check if database already exists using wrangler d1 info
+          # This avoids parsing d1 list JSON which includes non-JSON banners
+          if DB_INFO=$(npx wrangler d1 info "$DB_NAME" --json 2>/dev/null); then
+            DB_ID=$(echo "$DB_INFO" | node -e "
+              const d = require('fs').readFileSync('/dev/stdin','utf8');
+              const j = d.slice(d.indexOf('{'));
+              try { console.log(JSON.parse(j).uuid); } catch(e) {}
+            " || true)
+            if [ -n "$DB_ID" ]; then
+              echo "Database ${DB_NAME} already exists with ID: ${DB_ID}"
+              echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
-            if [ -z "$DB_ID" ]; then
-              echo "Failed to extract database ID from create output"
-              exit 1
-            fi
-            echo "Created database with ID: ${DB_ID}"
-            echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "Creating database ${DB_NAME}..."
+          CREATE_OUTPUT=$(npx wrangler d1 create "$DB_NAME" 2>&1)
+          echo "$CREATE_OUTPUT"
+
+          # Extract UUID from create output
+          DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1 || true)
+          if [ -z "$DB_ID" ]; then
+            echo "Failed to extract database ID from create output"
+            exit 1
+          fi
+          echo "Created database with ID: ${DB_ID}"
+          echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Render preview wrangler config
         env:
