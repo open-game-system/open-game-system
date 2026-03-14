@@ -8,7 +8,7 @@ const cast = new Hono<CastEnv>();
 
 /**
  * POST /api/v1/cast/sessions
- * Creates a cast session: provisions a stream-kit container via DO and returns stream details.
+ * Creates a cast session: provisions a stream-kit container and returns stream details.
  */
 cast.post("/sessions", async (c) => {
   let rawBody: unknown;
@@ -44,19 +44,17 @@ cast.post("/sessions", async (c) => {
   const gameId = c.get("gameId");
   const sessionId = crypto.randomUUID();
 
-  // Provision stream-kit container via Durable Object
+  // Provision stream-kit container
+  const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
   let streamSessionId: string;
   let streamUrl: string;
 
   try {
-    const doId = c.env.STREAM_CONTAINER.idFromName(`session-${sessionId}`);
-    const stub = c.env.STREAM_CONTAINER.get(doId);
-
-    const streamRes = await stub.fetch(new Request("https://stream-container/start-stream", {
+    const streamRes = await fetch(`${streamServerUrl}/start-stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: viewUrl }),
-    }));
+    });
 
     if (!streamRes.ok) {
       return c.json(
@@ -130,7 +128,7 @@ cast.get("/sessions/:id", async (c) => {
 
 /**
  * POST /api/v1/cast/sessions/:id/state
- * Pushes a game state update to the stream-kit container via DO.
+ * Pushes a game state update to the stream-kit container.
  */
 cast.post("/sessions/:id/state", async (c) => {
   const sessionId = c.req.param("id");
@@ -176,20 +174,16 @@ cast.post("/sessions/:id/state", async (c) => {
       .run();
   }
 
-  // Forward state to stream container DO (best effort — don't break the response)
-  if (session.stream_session_id) {
-    try {
-      const doId = c.env.STREAM_CONTAINER.idFromName(`session-${sessionId}`);
-      const stub = c.env.STREAM_CONTAINER.get(doId);
-
-      await stub.fetch(new Request(`https://stream-container/sessions/${session.stream_session_id}/state`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
-      }));
-    } catch {
-      // Best effort — state forwarding failure doesn't break the API response
-    }
+  // Forward state to stream-kit container (best effort — don't break the response)
+  const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
+  try {
+    await fetch(`${streamServerUrl}/sessions/${session.stream_session_id}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
+  } catch {
+    // Best effort — state forwarding failure doesn't break the API response
   }
 
   return c.json({ status: "ok" });
@@ -197,7 +191,7 @@ cast.post("/sessions/:id/state", async (c) => {
 
 /**
  * DELETE /api/v1/cast/sessions/:id
- * Ends a cast session and tears down the stream-kit container via DO.
+ * Ends a cast session and tears down the stream-kit container.
  */
 cast.delete("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
@@ -221,18 +215,14 @@ cast.delete("/sessions/:id", async (c) => {
     return c.json({ status: "ended" as const });
   }
 
-  // Tear down stream container via DO
+  // Tear down stream-kit container
+  const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
   if (session.stream_session_id) {
-    try {
-      const doId = c.env.STREAM_CONTAINER.idFromName(`session-${sessionId}`);
-      const stub = c.env.STREAM_CONTAINER.get(doId);
-
-      await stub.fetch(new Request(`https://stream-container/sessions/${session.stream_session_id}`, {
-        method: "DELETE",
-      }));
-    } catch {
+    await fetch(`${streamServerUrl}/sessions/${session.stream_session_id}`, {
+      method: "DELETE",
+    }).catch(() => {
       // Best effort teardown — session is ending regardless
-    }
+    });
   }
 
   // Mark session as ended

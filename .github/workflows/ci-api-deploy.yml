@@ -47,13 +47,5 @@ jobs:
 
       - name: Set secrets
         working-directory: services/api
-        env:
-          TURN_API_TOKEN: ${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}
-          TURN_KEY_ID: ${{ secrets.CLOUDFLARE_TURN_KEY_ID }}
-          DEBUG_TOKEN: ${{ secrets.DEBUG_STATE_TOKEN }}
         run: |
-          printf '%s' "$TURN_API_TOKEN" | npx wrangler secret put CLOUDFLARE_TURN_API_TOKEN || true
-          printf '%s' "$TURN_KEY_ID" | npx wrangler secret put CLOUDFLARE_TURN_KEY_ID || true
-          if [ -n "$DEBUG_TOKEN" ]; then
-            printf '%s' "$DEBUG_TOKEN" | npx wrangler secret put DEBUG_STATE_TOKEN || true
-          fi
+          printf '%s' "https://bun-stream-server.jonathanrmumm.workers.dev" | npx wrangler secret put STREAM_SERVER_URL || true

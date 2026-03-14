@@ -5,20 +5,12 @@ import { OgsErrorSchema } from "../src/schemas";
 
 const VALID_API_KEY = { key: "valid-key", game_id: "trivia-jam", game_name: "Trivia Jam" };
 
-// Mock DO stub for StreamContainer
-const mockStubFetch = vi.fn();
-
-function createMockStreamContainer() {
-  return {
-    idFromName: vi.fn(() => ({ toString: () => "mock-do-id" })),
-    get: vi.fn(() => ({
-      fetch: mockStubFetch,
-    })),
-  };
-}
+// Mock fetch for stream-kit teardown calls
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
 beforeEach(() => {
-  mockStubFetch.mockReset();
+  mockFetch.mockReset();
 });
 
 function minutesAgo(n: number): string {
@@ -67,14 +59,14 @@ function createScheduledMockEnv(opts: {
         }),
       })),
     },
-    STREAM_CONTAINER: createMockStreamContainer(),
+    STREAM_SERVER_URL: "https://stream.test.com",
   };
 
   return { env, updateCalls };
 }
 
 describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
-  describe("active -> idle transition", () => {
+  describe("active → idle transition", () => {
     it("marks active session older than 30 min as idle (container NOT torn down)", async () => {
       const { env, updateCalls } = createScheduledMockEnv({
         activeSessions: [
@@ -96,8 +88,8 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
       );
       expect(idleUpdate).toBeDefined();
 
-      // Should NOT have called DO stub for teardown
-      expect(mockStubFetch).not.toHaveBeenCalled();
+      // Should NOT have called fetch for stream-kit teardown
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it("does not touch active session newer than 30 min", async () => {
@@ -112,11 +104,12 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
     });
   });
 
-  describe("idle -> ended transition", () => {
-    it("marks idle session older than 5 min as ended + calls DO DELETE", async () => {
-      mockStubFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify({ status: "stopped" }), { status: 200 }),
-      );
+  describe("idle → ended transition", () => {
+    it("marks idle session older than 5 min as ended + calls stream-kit DELETE", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ status: "stopped" }),
+      });
 
       const { env, updateCalls } = createScheduledMockEnv({
         idleSessions: [
@@ -137,11 +130,11 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
       );
       expect(endedUpdate).toBeDefined();
 
-      // Should have called DO stub for teardown
-      expect(mockStubFetch).toHaveBeenCalledOnce();
-      const calledRequest = mockStubFetch.mock.calls[0][0] as Request;
-      expect(calledRequest.url).toContain("/sessions/stream-2");
-      expect(calledRequest.method).toBe("DELETE");
+      // Should have called fetch for stream-kit teardown
+      expect(mockFetch).toHaveBeenCalledOnce();
+      const [url, opts] = mockFetch.mock.calls[0];
+      expect(url).toBe("https://stream.test.com/sessions/stream-2");
+      expect(opts.method).toBe("DELETE");
     });
 
     it("does not touch idle session newer than 5 min (grace period)", async () => {
@@ -153,15 +146,16 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
       const endedUpdates = updateCalls.filter((c) => c.sql.includes("'ended'"));
       expect(endedUpdates).toHaveLength(0);
-      expect(mockStubFetch).not.toHaveBeenCalled();
+      expect(mockFetch).not.toHaveBeenCalled();
     });
   });
 
   describe("multiple sessions in one run", () => {
     it("processes multiple active and idle sessions", async () => {
-      mockStubFetch.mockResolvedValue(
-        new Response(JSON.stringify({ status: "stopped" }), { status: 200 }),
-      );
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ status: "stopped" }),
+      });
 
       const { env, updateCalls } = createScheduledMockEnv({
         activeSessions: [
@@ -176,17 +170,17 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
       await handleScheduled(env);
 
-      // 2 active->idle + 2 idle->ended = 4 updates
+      // 2 active→idle + 2 idle→ended = 4 updates
       expect(updateCalls).toHaveLength(4);
 
-      // 2 DO teardowns for ended sessions
-      expect(mockStubFetch).toHaveBeenCalledTimes(2);
+      // 2 stream-kit teardowns for ended sessions
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe("DO teardown failure", () => {
-    it("marks session as ended even when DO DELETE fails", async () => {
-      mockStubFetch.mockRejectedValueOnce(new TypeError("DO fetch failed"));
+  describe("stream-kit teardown failure", () => {
+    it("marks session as ended even when stream-kit DELETE fails", async () => {
+      mockFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
 
       const { env, updateCalls } = createScheduledMockEnv({
         idleSessions: [
@@ -201,7 +195,7 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
       await handleScheduled(env);
 
-      // Should still mark as ended despite DO failure
+      // Should still mark as ended despite fetch failure
       const endedUpdate = updateCalls.find(
         (c) => c.sql.includes("'ended'") && c.bindings.includes("session-3"),
       );
@@ -212,9 +206,10 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
 describe("Resuming an idle session", () => {
   it("reactivates an idle session when state is pushed", async () => {
-    mockStubFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: "ok" }), { status: 200 }),
-    );
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ status: "ok" }),
+    });
 
     const updateRun = vi.fn().mockResolvedValue({ success: true });
 
@@ -261,9 +256,7 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      STREAM_CONTAINER: createMockStreamContainer(),
-      CLOUDFLARE_TURN_API_TOKEN: "test-turn-token",
-      CLOUDFLARE_TURN_KEY_ID: "test-turn-key-id",
+      STREAM_SERVER_URL: "https://stream.test.com",
     };
 
     const res = await app.request(
@@ -286,8 +279,8 @@ describe("Resuming an idle session", () => {
     // Verify that the session was reactivated (UPDATE called with 'active')
     expect(updateRun).toHaveBeenCalled();
 
-    // Verify state was forwarded to DO
-    expect(mockStubFetch).toHaveBeenCalled();
+    // Verify state was forwarded to stream-kit
+    expect(mockFetch).toHaveBeenCalled();
   });
 
   it("still returns 404 for ended session (not resumable)", async () => {
@@ -321,9 +314,7 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      STREAM_CONTAINER: createMockStreamContainer(),
-      CLOUDFLARE_TURN_API_TOKEN: "test-turn-token",
-      CLOUDFLARE_TURN_KEY_ID: "test-turn-key-id",
+      STREAM_SERVER_URL: "https://stream.test.com",
     };
 
     const res = await app.request(

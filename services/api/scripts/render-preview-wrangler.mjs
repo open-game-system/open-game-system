@@ -17,59 +17,43 @@ if (!dbId) {
   process.exit(1);
 }
 
-const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || "ccf4d9a0a3b76ffae0b6ee048de66f07";
+const streamServerUrl = process.env.STREAM_SERVER_URL || "";
+
+// Read the existing wrangler.toml to extract fields
+const wranglerPath = path.join(projectRoot, "wrangler.toml");
+const wranglerContent = fs.readFileSync(wranglerPath, "utf8");
+
+function extractTomlValue(content, key) {
+  const match = content.match(new RegExp(`^${key}\\s*=\\s*"([^"]*)"`, "m"));
+  return match ? match[1] : null;
+}
 
 // main path must be relative to the config file location (.wrangler/)
-const main = "../src/index.ts";
-const compatDate = "2024-12-01";
+const mainFromToml = extractTomlValue(wranglerContent, "main") || "src/index.ts";
+const main = `../${mainFromToml}`;
+const compatDate =
+  extractTomlValue(wranglerContent, "compatibility_date") || "2024-12-01";
+const accountId = extractTomlValue(wranglerContent, "account_id") || "";
 
-// Write preview JSONC
-const outputPath = path.join(projectRoot, ".wrangler", "preview-wrangler.jsonc");
+// Write preview TOML
+const outputPath = path.join(projectRoot, ".wrangler", "preview-wrangler.toml");
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
-const config = {
-  name: `opengame-api-pr-${prNumber}`,
-  main,
-  compatibility_date: compatDate,
-  compatibility_flags: [
-    "nodejs_compat",
-    "nodejs_compat_populate_process_env",
-  ],
-  account_id: accountId,
-  d1_databases: [
-    {
-      binding: "DB",
-      database_name: `opengame-api-pr-${prNumber}-db`,
-      database_id: dbId,
-    },
-  ],
-  containers: [
-    {
-      name: "codeflare-containers",
-      image: "./container/Dockerfile",
-      class_name: "StreamContainer",
-      max_instances: 2,
-    },
-  ],
-  durable_objects: {
-    bindings: [
-      {
-        name: "STREAM_CONTAINER",
-        class_name: "StreamContainer",
-      },
-    ],
-  },
-  migrations: [
-    {
-      tag: "v1",
-      new_sqlite_classes: ["StreamContainer"],
-    },
-  ],
-  observability: {
-    enabled: true,
-    head_sampling_rate: 1,
-  },
-};
+const lines = [
+  `name = "opengame-api-pr-${prNumber}"`,
+  `main = "${main}"`,
+  `compatibility_date = "${compatDate}"`,
+  `account_id = "${accountId}"`,
+  "",
+  "[vars]",
+  `STREAM_SERVER_URL = "${streamServerUrl}"`,
+  "",
+  "[[d1_databases]]",
+  `binding = "DB"`,
+  `database_name = "opengame-api-pr-${prNumber}-db"`,
+  `database_id = "${dbId}"`,
+  "",
+];
 
-fs.writeFileSync(outputPath, JSON.stringify(config, null, "\t"), "utf8");
+fs.writeFileSync(outputPath, lines.join("\n"), "utf8");
 console.log(`Preview wrangler config written to ${outputPath}`);
