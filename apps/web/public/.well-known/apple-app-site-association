@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appID": "TEAM_ID_HERE.org.opengame.app",
+        "appID": "34S957HD77.org.opengame.app",
         "paths": ["/open", "/open/*"]
       }
     ]
