@@ -2,117 +2,52 @@ import {
   BridgedWebView,
   createNativeBridgeContext,
   createNativeBridge,
-  createStore,
   NativeBridge,
 } from "@open-game-system/app-bridge-react-native";
-import type { Producer, State } from "@open-game-system/app-bridge-types";
 import React, { useEffect, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, View, StatusBar as RNStatusBar } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import GoogleCast, {
   CastButton,
-  useCastState,
-  CastState,
   useDevices,
 } from "react-native-google-cast";
 import {
   consumePendingGameUrl,
   subscribeToGameUrl,
 } from "../services/game-url-store";
+import {
+  createCastStore,
+  type CastStores,
+  type CastDevice,
+} from "../services/cast-store";
 
-interface CastKitState extends State {
-  // Connection & Device Discovery
-  castState: CastState;
-  devicesAvailable: boolean;
-
-  // Session Management
-  sessionState?: 'CONNECTED' | 'DISCONNECTED' | 'CONNECTING';
-}
-
-type CastKitEvents =
-  | { type: "CAST_STATE_CHANGED"; payload: CastState }
-  | { type: "DEVICES_DISCOVERED"; payload: boolean }
-  | { type: "SESSION_STARTED" }
-  | { type: "SESSION_ENDED" }
-  | { type: "SESSION_RESUMED" }
-  | { type: 'SHOW_CAST_PICKER' };
-
-type AppStores = {
-  castKit: {
-    state: CastKitState;
-    events: CastKitEvents;
-  };
-};
-
-// Create the bridge instance
-const bridge: NativeBridge<AppStores> = createNativeBridge<AppStores>();
-
-const castKitProducer: Producer<CastKitState, CastKitEvents> = (draft, event) => {
-  switch (event.type) {
-    case "CAST_STATE_CHANGED":
-      draft.castState = event.payload;
-      break;
-    case "DEVICES_DISCOVERED":
-      draft.devicesAvailable = event.payload;
-      break;
-    case "SESSION_STARTED":
-      draft.sessionState = 'CONNECTED';
-      break;
-    case "SESSION_ENDED":
-      draft.sessionState = 'DISCONNECTED';
-      break;
-    case "SESSION_RESUMED":
-      draft.sessionState = 'CONNECTED';
-      break;
-    case 'SHOW_CAST_PICKER':
-      // No state change needed here, handled by 'on' listener
-      break;
-  }
-};
-
-// Create and register the castKit store with 'on' config for side effects
-const castKitStore = createStore<CastKitState, CastKitEvents>({
-  initialState: {
-    castState: CastState.NOT_CONNECTED,
-    devicesAvailable: false,
-    sessionState: undefined,
-  },
-  producer: castKitProducer,
-  on: {
-    SHOW_CAST_PICKER: (event: Extract<CastKitEvents, { type: 'SHOW_CAST_PICKER' }>) => {
-      console.log(`[Native Store Listener] Received ${event.type}`);
-      GoogleCast.showCastDialog();
-    },
-  }
-});
-
-bridge.setStore("castKit", castKitStore);
+// Create the bridge and cast store
+const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
+const castStore = createCastStore();
+bridge.setStore("cast", castStore);
 
 // Create context
-const BridgeContext = createNativeBridgeContext<AppStores>();
-const CastContext = BridgeContext.createNativeStoreContext("castKit");
-
-function getCastStateLabel(state: CastState): string {
-  switch (state) {
-    case CastState.NO_DEVICES_AVAILABLE: return 'NO_DEVICES_AVAILABLE';
-    case CastState.NOT_CONNECTED: return 'NOT_CONNECTED';
-    case CastState.CONNECTING: return 'CONNECTING';
-    case CastState.CONNECTED: return 'CONNECTED';
-    default: return CastState[state] ?? 'UNKNOWN';
-  }
-}
+const BridgeContext = createNativeBridgeContext<CastStores>();
+const CastContext = BridgeContext.createNativeStoreContext("cast");
 
 const CastStatus = () => {
-  const currentCastState = CastContext.useSelector((state) => state.castState);
-  const devicesAvailable = CastContext.useSelector((state) => state.devicesAvailable);
-  const sessionState = CastContext.useSelector((state) => state.sessionState);
+  const isAvailable = CastContext.useSelector((state) => state.isAvailable);
+  const deviceCount = CastContext.useSelector((state) => state.devices.length);
+  const sessionStatus = CastContext.useSelector((state) => state.session.status);
+  const deviceName = CastContext.useSelector((state) => state.session.deviceName);
+  const error = CastContext.useSelector((state) => state.error);
 
   return (
     <View style={styles.castStatusContainer}>
-      <Text style={styles.castStatusText}>Cast State: {getCastStateLabel(currentCastState)}</Text>
-      <Text style={styles.castStatusText}>Devices Available: {devicesAvailable ? 'Yes' : 'No'}</Text>
-      {sessionState && (
-        <Text style={styles.castStatusText}>Session: {sessionState}</Text>
+      <Text style={styles.castStatusText}>
+        Cast: {isAvailable ? `${deviceCount} device(s)` : 'No devices'}
+      </Text>
+      <Text style={styles.castStatusText}>Session: {sessionStatus}</Text>
+      {deviceName && (
+        <Text style={styles.castStatusText}>Device: {deviceName}</Text>
+      )}
+      {error && (
+        <Text style={[styles.castStatusText, { color: '#c00' }]}>Error: {error}</Text>
       )}
     </View>
   );
@@ -120,7 +55,6 @@ const CastStatus = () => {
 
 export default function Index() {
   // --- Hooks for native state updates ---
-  const castState = useCastState();
   const devices = useDevices();
 
   // Track the current URL to load in the WebView
@@ -155,18 +89,20 @@ export default function Index() {
     GoogleCast.showIntroductoryOverlay().catch(() => {});
   }, []);
 
-  // Sync native cast state into bridge store
-  useEffect(() => {
-    if (castState != null) {
-      castKitStore.dispatch({ type: 'CAST_STATE_CHANGED', payload: castState });
-    }
-  }, [castState]);
-
   // Sync device discovery into bridge store
   useEffect(() => {
-    const devicesAvailable = devices.length > 0;
-    if (devicesAvailable !== castKitStore.getSnapshot().devicesAvailable) {
-      castKitStore.dispatch({ type: 'DEVICES_DISCOVERED', payload: devicesAvailable });
+    const castDevices: CastDevice[] = devices.map((d) => ({
+      id: d.deviceId,
+      name: d.friendlyName,
+      type: "chromecast" as const,
+    }));
+
+    const currentDevices = castStore.getSnapshot().devices;
+    const devicesChanged = castDevices.length !== currentDevices.length ||
+      castDevices.some((d, i) => d.id !== currentDevices[i]?.id);
+
+    if (devicesChanged) {
+      castStore.dispatch({ type: "DEVICES_UPDATED", devices: castDevices });
     }
   }, [devices]);
 
@@ -176,13 +112,22 @@ export default function Index() {
 
     const subs = [
       sessionManager.onSessionStarted(() => {
-        castKitStore.dispatch({ type: 'SESSION_STARTED' });
+        // TODO: Call API to create cast session, then dispatch SESSION_CONNECTED with IDs
+        // For now, mark as connecting until API integration is wired
+        const currentDevices = castStore.getSnapshot().devices;
+        if (currentDevices.length > 0) {
+          castStore.dispatch({ type: "START_CASTING", deviceId: currentDevices[0].id });
+        }
       }),
       sessionManager.onSessionEnded(() => {
-        castKitStore.dispatch({ type: 'SESSION_ENDED' });
+        castStore.dispatch({ type: "STOP_CASTING" });
       }),
       sessionManager.onSessionResumed(() => {
-        castKitStore.dispatch({ type: 'SESSION_RESUMED' });
+        // Session resumed — mark as connecting until we verify with API
+        const currentDevices = castStore.getSnapshot().devices;
+        if (currentDevices.length > 0) {
+          castStore.dispatch({ type: "START_CASTING", deviceId: currentDevices[0].id });
+        }
       }),
     ];
 
