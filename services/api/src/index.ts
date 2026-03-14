@@ -5,6 +5,7 @@ import { apiKeyAuth } from "./middleware/auth";
 import devices from "./routes/devices";
 import notifications from "./routes/notifications";
 import cast from "./routes/cast";
+import stream from "./routes/stream";
 import { handleScheduled } from "./scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -28,9 +29,15 @@ app.route("/api/v1/notifications", notifications);
 app.use("/api/v1/cast/*", apiKeyAuth);
 app.route("/api/v1/cast", cast);
 
+// Stream routes (no API key required - called by web games directly)
+app.route("/api/v1/stream", stream);
+
 export default app;
 
 // Cloudflare Workers scheduled event handler — exported for wrangler cron triggers.
-// In production, wrangler.toml wires this via the module's `scheduled` export.
+// In production, wrangler.jsonc wires this via the module's `scheduled` export.
 // Tests import handleScheduled directly from ./scheduled.
 export { handleScheduled };
+
+// Durable Object export — Cloudflare requires DO classes exported from the entry point.
+export { StreamContainer } from "./stream-container";

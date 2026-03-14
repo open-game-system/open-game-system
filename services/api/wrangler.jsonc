@@ -1,0 +1,54 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "open-game-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-03-14",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"nodejs_compat_populate_process_env"
+	],
+	"account_id": "ccf4d9a0a3b76ffae0b6ee048de66f07",
+
+	"triggers": {
+		"crons": ["*/5 * * * *"]
+	},
+
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "opengame-api-db",
+			"database_id": "cec599e8-e064-4034-b035-3d97ed3b222c"
+		}
+	],
+
+	"containers": [
+		{
+			"class_name": "StreamContainer",
+			"image": "./container/Dockerfile",
+			"max_instances": 2
+		}
+	],
+
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "STREAM_CONTAINER",
+				"class_name": "StreamContainer"
+			}
+		]
+	},
+
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"StreamContainer"
+			]
+		}
+	],
+
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	}
+}
