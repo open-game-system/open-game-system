@@ -24,6 +24,9 @@ Persistent project knowledge. Review at the start of each task.
 - **notification-kit bulk send**: Currently sends N individual requests via `Promise.allSettled()`. Needs a batch API endpoint.
 - **D1 mocking**: Mock the `prepare().bind().run()`/`.first()` chain with `vi.fn()`. Inspect the SQL string to route different queries to different return values.
 - **Observable store pattern (mobile)**: Decouples URL sources from WebView consumer without adding Redux/Zustand.
+- **Cast-kit standalone bridge was a mistake**: Building a separate bridge (WebViewBridge, HttpBridge) duplicated app-bridge and caused architecture mismatch in trivia-jam. Casting state is just another app-bridge store. Follow the notification-kit pattern.
+- **TV rendering: stream-kit, not browser-on-TV**: Chromecast's built-in browser is slow and limited. Server-side rendering via stream-kit + WebRTC video streaming gives consistent quality. The TV receiver is just a `<video>` element.
+- **SDK components should be headless**: Styled components (CastButton, etc.) belong in the consuming app, not the SDK. SDKs export hooks and types; apps compose the UI.
 
 ## Testing
 

@@ -56,8 +56,39 @@ export const DeviceTokenPayloadSchema = z.object({
   iss: z.literal("ogs-api"),
 });
 
+// Cast session schemas
+
+export const CreateCastSessionSchema = z.object({
+  deviceId: z.string().check(z.minLength(1)),
+  viewUrl: z.string().check(z.url()).check(z.startsWith("https://")),
+});
+
+export const CastStateUpdateSchema = z.object({
+  state: z.record(z.string(), z.unknown()),
+});
+
+export const CreateCastSessionResponseSchema = z.object({
+  sessionId: z.string().check(z.uuid()),
+  streamSessionId: z.string(),
+  streamUrl: z.string(),
+  status: z.literal("active"),
+});
+
+export const CastSessionStatusResponseSchema = z.object({
+  sessionId: z.string(),
+  status: z.enum(["pending", "active", "ended"]),
+  streamSessionId: z.string().nullable(),
+  streamUrl: z.string().nullable(),
+});
+
+export const CastSessionEndedResponseSchema = z.object({
+  status: z.literal("ended"),
+});
+
 // Type exports
 
 export type RegisterDeviceInput = z.infer<typeof RegisterDeviceSchema>;
 export type SendNotificationInput = z.infer<typeof SendNotificationSchema>;
 export type DeviceTokenPayload = z.infer<typeof DeviceTokenPayloadSchema>;
+export type CreateCastSessionInput = z.infer<typeof CreateCastSessionSchema>;
+export type CastStateUpdateInput = z.infer<typeof CastStateUpdateSchema>;

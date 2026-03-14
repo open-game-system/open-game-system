@@ -62,6 +62,8 @@ The Open Game System (OGS) is a platform that lets web games use native mobile c
 | Stream Kit React | `packages/stream-kit-react/` | React hooks/components for streaming | stream-kit-web, stream-kit-types |
 | Stream Kit Server | `packages/stream-kit-server/` | Server-side rendering abstractions | stream-kit-types, Puppeteer |
 | Stream Kit Testing | `packages/stream-kit-testing/` | Mock stream client for tests | stream-kit-types |
+| Cast Kit Core | `packages/cast-kit-core/` | Cast store types, Zod schemas, app-bridge helpers | app-bridge-web |
+| Cast Kit React | `packages/cast-kit-react/` | Headless React hooks for cast state/dispatch | cast-kit-core, app-bridge-react |
 
 ## Package Dependency Graph
 
@@ -82,6 +84,9 @@ stream-kit-types  (leaf -- no OGS deps)
   │     ├── stream-kit-react
   │     └── stream-kit-testing
   └── stream-kit-server
+
+cast-kit-core  (depends on app-bridge-web)
+  └── cast-kit-react  (also depends on app-bridge-react)
 
 services/api  (standalone -- no workspace deps, uses Hono)
 apps/mobile   (depends on app-bridge-native, -react-native, -types, -testing)
@@ -121,7 +126,7 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`
 
 ## Database Schema (D1/SQLite)
 
@@ -129,6 +134,7 @@ Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `in
 |-------|-------------|---------|-------|
 | `devices` | `ogs_device_id` | platform, push_token, created_at, updated_at | Upsert on register |
 | `api_keys` | `key` | game_id, game_name, created_at | Manual inserts for now |
+| `cast_sessions` | `session_id` | game_id, device_id, view_url, stream_session_id, stream_url, status, created_at, updated_at | Status: pending/active/ended |
 
 Canonical schema: `services/api/schema.sql`
 
@@ -172,22 +178,34 @@ Game Server                     services/api                   D1           APNs
     │◄──────────────────────────────│                           │               │
 ```
 
-### Streaming (Planned)
+### Cast Session (TV Casting via Stream-Kit)
 
 ```
-Game Client                     services/api              CF Container        Display
+OGS Native App                 services/api              CF Container        TV (Chromecast)
     │                               │                         │                  │
-    │  POST /streams/create         │                         │                  │
-    │  { game_url, session_id }     │                         │                  │
+    │  POST /cast/sessions          │                         │                  │
+    │  { deviceId, viewUrl }        │                         │                  │
     │──────────────────────────────►│                         │                  │
-    │                               │  Spin up container      │                  │
-    │                               │  with Puppeteer         │                  │
+    │                               │  POST /start-stream     │                  │
+    │                               │  to stream server       │                  │
     │                               │────────────────────────►│                  │
-    │           stream_id           │                         │  Load game_url   │
-    │◄──────────────────────────────│                         │  in headless     │
-    │                               │                         │  Chrome          │
-    │  WebRTC signaling via PeerJS  │                         │                  │
-    │◄─────────────────────────────────────────────────────►  │                  │
-    │                               │                         │  WebRTC stream   │
+    │                               │                         │  Load viewUrl    │
+    │                               │                         │  in headless     │
+    │           201 Created         │                         │  Chrome          │
+    │  { sessionId, streamUrl }     │                         │                  │
+    │◄──────────────────────────────│                         │                  │
+    │                               │                         │                  │
+    │  Send streamUrl to TV         │                         │  WebRTC stream   │
+    │  via Cast SDK                 │                         │─────────────────►│
+    │───────────────────────────────────────────────────────────────────────────►│
+    │                               │                         │                  │
+    │  POST /cast/sessions/:id/state│                         │                  │
+    │  { state: { round: 3 } }     │                         │                  │
+    │──────────────────────────────►│  Relay to container     │                  │
+    │                               │────────────────────────►│  Re-render       │
     │                               │                         │─────────────────►│
+    │                               │                         │                  │
+    │  DELETE /cast/sessions/:id    │                         │                  │
+    │──────────────────────────────►│  Tear down container    │                  │
+    │                               │────────────────────────►│                  │
 ```

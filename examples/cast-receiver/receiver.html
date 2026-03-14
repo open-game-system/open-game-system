@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OGS Cast Receiver</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #video-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    #status-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+      background: #000;
+      transition: opacity 0.3s ease;
+    }
+
+    #status-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-text {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="video-container">
+    <video id="stream-video" autoplay playsinline muted></video>
+  </div>
+
+  <div id="status-overlay">
+    <div class="spinner" id="spinner"></div>
+    <div class="status-text" id="status-text">Connecting to game stream...</div>
+  </div>
+
+  <script>
+    /**
+     * OGS Cast Receiver
+     *
+     * Minimal receiver page for Chromecast/AirPlay.
+     * Connects to a WebRTC stream from a stream-kit container
+     * and displays the video full-screen.
+     *
+     * Launch params (URL query string):
+     *   streamUrl  — WebSocket URL for WebRTC signaling
+     *   iceServers — JSON-encoded array of ICE server configs (optional)
+     */
+
+    const CONNECTION_TIMEOUT_MS = 15000;
+    const RECONNECT_TIMEOUT_MS = 10000;
+
+    // DOM elements
+    const video = document.getElementById('stream-video');
+    const overlay = document.getElementById('status-overlay');
+    const statusText = document.getElementById('status-text');
+    const spinner = document.getElementById('spinner');
+
+    // State
+    let peerConnection = null;
+    let signalingSocket = null;
+    let connectionTimer = null;
+    let reconnectTimer = null;
+    let isConnected = false;
+
+    // Parse launch params
+    function getLaunchParams() {
+      const params = new URLSearchParams(window.location.search);
+      const streamUrl = params.get('streamUrl');
+      let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
+
+      const iceParam = params.get('iceServers');
+      if (iceParam) {
+        try {
+          iceServers = JSON.parse(iceParam);
+        } catch (e) {
+          console.warn('[Receiver] Failed to parse iceServers param:', e);
+        }
+      }
+
+      return { streamUrl, iceServers };
+    }
+
+    function setStatus(text, showSpinner) {
+      statusText.textContent = text;
+      spinner.style.display = showSpinner ? 'block' : 'none';
+      overlay.classList.remove('hidden');
+    }
+
+    function hideOverlay() {
+      overlay.classList.add('hidden');
+    }
+
+    function startConnectionTimeout() {
+      connectionTimer = setTimeout(() => {
+        if (!isConnected) {
+          setStatus('Connection timed out', false);
+          cleanup();
+        }
+      }, CONNECTION_TIMEOUT_MS);
+    }
+
+    function clearConnectionTimeout() {
+      if (connectionTimer) {
+        clearTimeout(connectionTimer);
+        connectionTimer = null;
+      }
+    }
+
+    function cleanup() {
+      clearConnectionTimeout();
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      if (signalingSocket) {
+        signalingSocket.close();
+        signalingSocket = null;
+      }
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+    }
+
+    async function attemptIceRestart() {
+      if (!peerConnection || !signalingSocket) return;
+
+      setStatus('Reconnecting...', true);
+
+      reconnectTimer = setTimeout(() => {
+        setStatus('Connection lost', false);
+        cleanup();
+      }, RECONNECT_TIMEOUT_MS);
+
+      try {
+        const offer = await peerConnection.createOffer({ iceRestart: true });
+        await peerConnection.setLocalDescription(offer);
+        signalingSocket.send(JSON.stringify({
+          type: 'offer',
+          sdp: peerConnection.localDescription,
+        }));
+      } catch (e) {
+        console.error('[Receiver] ICE restart failed:', e);
+        setStatus('Connection lost', false);
+        cleanup();
+      }
+    }
+
+    async function connect(streamUrl, iceServers) {
+      setStatus('Connecting to game stream...', true);
+      startConnectionTimeout();
+
+      // Create peer connection
+      peerConnection = new RTCPeerConnection({ iceServers });
+
+      // Receive video track
+      peerConnection.addTransceiver('video', { direction: 'recvonly' });
+
+      peerConnection.ontrack = (event) => {
+        if (event.track.kind === 'video') {
+          video.srcObject = event.streams[0];
+          video.play().catch((e) => {
+            console.warn('[Receiver] Autoplay blocked:', e);
+          });
+        }
+      };
+
+      // Connection state changes
+      peerConnection.onconnectionstatechange = () => {
+        const state = peerConnection.connectionState;
+        console.log('[Receiver] Connection state:', state);
+
+        switch (state) {
+          case 'connected':
+            isConnected = true;
+            clearConnectionTimeout();
+            if (reconnectTimer) {
+              clearTimeout(reconnectTimer);
+              reconnectTimer = null;
+            }
+            hideOverlay();
+            break;
+
+          case 'disconnected':
+          case 'failed':
+            if (isConnected) {
+              isConnected = false;
+              attemptIceRestart();
+            }
+            break;
+
+          case 'closed':
+            isConnected = false;
+            setStatus('Cast session ended', false);
+            cleanup();
+            break;
+        }
+      };
+
+      // ICE candidate handling
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
+          signalingSocket.send(JSON.stringify({
+            type: 'ice-candidate',
+            candidate: event.candidate,
+          }));
+        }
+      };
+
+      // Connect signaling WebSocket
+      try {
+        signalingSocket = new WebSocket(streamUrl);
+      } catch (e) {
+        setStatus('Unable to connect to game stream', false);
+        cleanup();
+        return;
+      }
+
+      signalingSocket.onopen = () => {
+        console.log('[Receiver] Signaling connected');
+      };
+
+      signalingSocket.onmessage = async (event) => {
+        let message;
+        try {
+          message = JSON.parse(event.data);
+        } catch (e) {
+          console.warn('[Receiver] Invalid signaling message:', e);
+          return;
+        }
+
+        if (message.type === 'offer') {
+          await peerConnection.setRemoteDescription(
+            new RTCSessionDescription(message.sdp)
+          );
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          signalingSocket.send(JSON.stringify({
+            type: 'answer',
+            sdp: peerConnection.localDescription,
+          }));
+        }
+
+        if (message.type === 'ice-candidate' && message.candidate) {
+          await peerConnection.addIceCandidate(
+            new RTCIceCandidate(message.candidate)
+          );
+        }
+      };
+
+      signalingSocket.onerror = (error) => {
+        console.error('[Receiver] Signaling error:', error);
+        if (!isConnected) {
+          setStatus('Unable to connect to game stream', false);
+          cleanup();
+        }
+      };
+
+      signalingSocket.onclose = () => {
+        console.log('[Receiver] Signaling closed');
+        if (!isConnected) {
+          setStatus('Unable to connect to game stream', false);
+        }
+      };
+    }
+
+    // Initialize
+    (function init() {
+      const { streamUrl, iceServers } = getLaunchParams();
+
+      if (!streamUrl) {
+        setStatus('No stream URL provided', false);
+        return;
+      }
+
+      connect(streamUrl, iceServers);
+    })();
+  </script>
+</body>
+</html>

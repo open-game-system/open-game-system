@@ -20,13 +20,14 @@
 | `packages/stream-kit-react` | `@open-game-system/stream-kit-react` | React hooks for stream lifecycle | `stream-kit-types`, `stream-kit-web` |
 | `packages/stream-kit-server` | `@open-game-system/stream-kit-server` | Headless browser renderer (Puppeteer + PeerJS) | `stream-kit-types` |
 | `packages/stream-kit-testing` | `@open-game-system/stream-kit-testing` | Test utilities for stream-kit | `stream-kit-types`, `stream-kit-web` |
-| `packages/cast-kit` | `@open-game-system/cast-kit` | TV casting SDK (Google Cast via native bridge) | None (uses its own WebView bridge) |
+| `packages/cast-kit-core` | `@open-game-system/cast-kit-core` | Cast store types, Zod schemas, app-bridge helpers | `app-bridge-web` |
+| `packages/cast-kit-react` | `@open-game-system/cast-kit-react` | React hooks for cast state and dispatch | `app-bridge-react`, `cast-kit-core` |
 
 ### Services (`services/`)
 
 | Path | npm Name | Purpose | Internal Dependencies |
 |------|----------|---------|----------------------|
-| `services/api` | `opengame-api` | Push notification relay API (Cloudflare Worker + D1) | None |
+| `services/api` | `opengame-api` | OGS API: push notifications, cast session management (Cloudflare Worker + D1) | None |
 
 ### Apps (`apps/`)
 
@@ -43,6 +44,7 @@
 | `examples/web-game-demo` | `@open-game-system/app-bridge-example-react` | React web game using app-bridge | `app-bridge-web`, `app-bridge-react`, `app-bridge-types` |
 | `examples/stream-react-demo` | `stream-kit-basic-react-demo` | React demo of stream-kit client | `stream-kit-react`, `stream-kit-types`, `stream-kit-web` |
 | `examples/stream-server-demo` | `bun-stream-server` | Bun-based stream server demo | None (standalone) |
+| `examples/cast-receiver` | `cast-receiver` | Minimal WebRTC receiver page for TV casting | None (vanilla JS) |
 
 ## Internal Dependency Resolution
 
@@ -74,8 +76,10 @@ Layer 1:
 Layer 2:
   app-bridge-react, app-bridge-react-native
   stream-kit-react, stream-kit-testing
+  cast-kit-core
 
 Layer 3:
+  cast-kit-react
   opengame-app, expo-bridge-demo, web-game-demo, stream-react-demo
 ```
 

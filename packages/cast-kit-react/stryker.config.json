@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker/master/packages/core/schema/stryker-core.schema.json",
+  "testRunner": "vitest",
+  "appendPlugins": ["@stryker-mutator/vitest-runner"],
+  "vitest": {
+    "related": false,
+    "dir": "/Users/jonathanmumm/src/open-game-system/packages/cast-kit-react"
+  },
+  "inPlace": true,
+  "mutate": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx"
+  ],
+  "reporters": ["json", "clear-text"],
+  "thresholds": {
+    "high": 90,
+    "low": 70,
+    "break": 60
+  }
+}

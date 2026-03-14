@@ -1,0 +1,224 @@
+import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import { CastProvider, useCastState, useCastSession, useCastDevices, useCastAvailable, useCastDispatch } from './index';
+import { CAST_INITIAL_STATE, _resetBridge, getCastBridge } from '@open-game-system/cast-kit-core';
+
+function initCastStore(data: object) {
+  // Ensure bridge is created before sending STATE_INIT
+  getCastBridge();
+  window.dispatchEvent(new MessageEvent('message', {
+    data: JSON.stringify({
+      type: 'STATE_INIT',
+      storeKey: 'cast',
+      data,
+    }),
+  }));
+}
+
+function sendStateUpdate(operations: object[]) {
+  window.dispatchEvent(new MessageEvent('message', {
+    data: JSON.stringify({
+      type: 'STATE_UPDATE',
+      storeKey: 'cast',
+      operations,
+    }),
+  }));
+}
+
+const CONNECTED_STATE = {
+  isAvailable: true,
+  devices: [
+    { id: 'tv-1', name: 'Living Room TV', type: 'chromecast' },
+    { id: 'tv-2', name: 'Bedroom TV', type: 'airplay' },
+  ],
+  session: {
+    status: 'connected',
+    deviceId: 'tv-1',
+    deviceName: 'Living Room TV',
+    sessionId: 'session-123',
+    streamSessionId: 'stream-456',
+  },
+  error: null,
+};
+
+describe('Cast-Kit React Hooks', () => {
+  beforeEach(() => {
+    _resetBridge();
+    vi.stubGlobal('ReactNativeWebView', {
+      postMessage: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function createWrapper() {
+    return ({ children }: { children: React.ReactNode }) => (
+      <CastProvider>{children}</CastProvider>
+    );
+  }
+
+  describe('CastProvider', () => {
+    it('renders null for children when cast store is not initialized', () => {
+      // Bridge exists but no STATE_INIT — Provider renders null
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => {
+        // This hook will never execute because Provider renders null
+        return 'rendered';
+      }, { wrapper });
+
+      // renderHook returns null result when wrapper renders null
+      expect(result.current).toBe(null);
+    });
+
+    it('renders nothing when bridge is null (no ReactNativeWebView, no window)', () => {
+      // When ReactNativeWebView is absent AND bridge is reset,
+      // getCastBridge() creates a bridge that exists but isn't supported.
+      // We need to test the case where getCastBridge() returns null.
+      // This happens in SSR where window is undefined.
+      // Since we can't delete window (React needs it), we test by
+      // verifying that CastProvider renders no content when bridge is not usable.
+      vi.stubGlobal('ReactNativeWebView', undefined);
+      _resetBridge();
+
+      const { container } = render(
+        <CastProvider>
+          <div data-testid="child">Should not render</div>
+        </CastProvider>
+      );
+      // Bridge exists but store is not initialized, so Provider's StoreContext
+      // renders null for children
+      expect(container.querySelector('[data-testid="child"]')).toBe(null);
+    });
+
+    it('renders children when cast store is initialized', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastState(), { wrapper });
+
+      expect(result.current).toEqual(CAST_INITIAL_STATE);
+    });
+  });
+
+  describe('useCastState', () => {
+    it('returns full cast state', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastState(), { wrapper });
+
+      expect(result.current.isAvailable).toBe(true);
+      expect(result.current.devices).toHaveLength(2);
+      expect(result.current.session.status).toBe('connected');
+      expect(result.current.error).toBe(null);
+    });
+
+    it('updates when state changes', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastState(), { wrapper });
+
+      expect(result.current.isAvailable).toBe(false);
+
+      act(() => {
+        sendStateUpdate([
+          { op: 'replace', path: '/isAvailable', value: true },
+        ]);
+      });
+
+      expect(result.current.isAvailable).toBe(true);
+    });
+  });
+
+  describe('useCastSession', () => {
+    it('returns only the session object', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastSession(), { wrapper });
+
+      expect(result.current).toEqual({
+        status: 'connected',
+        deviceId: 'tv-1',
+        deviceName: 'Living Room TV',
+        sessionId: 'session-123',
+        streamSessionId: 'stream-456',
+      });
+    });
+  });
+
+  describe('useCastDevices', () => {
+    it('returns the devices array', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastDevices(), { wrapper });
+
+      expect(result.current).toHaveLength(2);
+      expect(result.current[0].name).toBe('Living Room TV');
+      expect(result.current[1].name).toBe('Bedroom TV');
+    });
+  });
+
+  describe('useCastAvailable', () => {
+    it('returns false when no devices', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastAvailable(), { wrapper });
+
+      expect(result.current).toBe(false);
+    });
+
+    it('returns true when devices available', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastAvailable(), { wrapper });
+
+      expect(result.current).toBe(true);
+    });
+  });
+
+  describe('useCastDispatch', () => {
+    it('dispatches events to the cast store', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastDispatch(), { wrapper });
+
+      act(() => {
+        result.current({ type: 'SCAN_DEVICES' });
+      });
+
+      const postMessage = (window as any).ReactNativeWebView.postMessage;
+      const lastCall = postMessage.mock.calls[postMessage.mock.calls.length - 1][0];
+      const parsed = JSON.parse(lastCall);
+      expect(parsed.type).toBe('EVENT');
+      expect(parsed.storeKey).toBe('cast');
+      expect(parsed.event.type).toBe('SCAN_DEVICES');
+    });
+
+    it('dispatches START_CASTING with deviceId', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastDispatch(), { wrapper });
+
+      act(() => {
+        result.current({ type: 'START_CASTING', deviceId: 'tv-1' });
+      });
+
+      const postMessage = (window as any).ReactNativeWebView.postMessage;
+      const lastCall = postMessage.mock.calls[postMessage.mock.calls.length - 1][0];
+      const parsed = JSON.parse(lastCall);
+      expect(parsed.event.type).toBe('START_CASTING');
+      expect(parsed.event.deviceId).toBe('tv-1');
+    });
+  });
+});

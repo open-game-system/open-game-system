@@ -13,5 +13,19 @@ CREATE TABLE IF NOT EXISTS api_keys (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS cast_sessions (
+  session_id TEXT PRIMARY KEY,
+  game_id TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  view_url TEXT NOT NULL,
+  stream_session_id TEXT,
+  stream_url TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'ended')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_devices_push_token ON devices(push_token);
 CREATE INDEX IF NOT EXISTS idx_api_keys_game_id ON api_keys(game_id);
+CREATE INDEX IF NOT EXISTS idx_cast_sessions_game_id ON cast_sessions(game_id);
+CREATE INDEX IF NOT EXISTS idx_cast_sessions_status ON cast_sessions(status);
