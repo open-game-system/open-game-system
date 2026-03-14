@@ -16,7 +16,11 @@
         "applinks:triviajam.tv"
       ],
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "OGS needs local network access to discover and connect to Chromecast and AirPlay devices for TV casting.",
+        "NSBonjourServices": [
+          "_googlecast._tcp"
+        ]
       }
     },
     "android": {
