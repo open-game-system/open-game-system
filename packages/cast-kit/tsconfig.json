@@ -16,6 +16,7 @@
     },
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "types": [],
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx"
   },

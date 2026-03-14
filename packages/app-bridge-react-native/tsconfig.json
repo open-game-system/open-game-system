@@ -5,7 +5,8 @@
     "outDir": "./dist",
     "jsx": "react-native",
     "lib": ["ESNext"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "types": ["react", "react-native", "jest"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
