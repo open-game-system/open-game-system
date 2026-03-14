@@ -8,7 +8,8 @@ Acceptance tests in `docs/acceptance/` are the testable distillation of these sp
 
 | Spec File | Covers |
 |-----------|--------|
-| (none yet) | |
+| [push-notifications.md](push-notifications.md) | Device registration, JWT tokens, send notifications, providers |
+| [tv-casting.md](tv-casting.md) | Cast device discovery, session lifecycle, stream-kit rendering, receiver |
 
 ## Domains to Document
 
