@@ -62,16 +62,31 @@ jobs:
           fi
 
           echo "Creating database ${DB_NAME}..."
+          set +e
           CREATE_OUTPUT=$(npx wrangler d1 create "$DB_NAME" 2>&1)
+          CREATE_EXIT=$?
+          set -e
           echo "$CREATE_OUTPUT"
 
-          # Extract UUID from create output
-          DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1 || true)
+          if [ $CREATE_EXIT -ne 0 ]; then
+            # Check if it failed because it already exists
+            if echo "$CREATE_OUTPUT" | grep -qi "already exists"; then
+              echo "Database already exists, fetching ID..."
+              DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1 || true)
+            else
+              echo "D1 create failed with exit code $CREATE_EXIT"
+              exit 1
+            fi
+          else
+            # Extract UUID from create output
+            DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1 || true)
+          fi
+
           if [ -z "$DB_ID" ]; then
-            echo "Failed to extract database ID from create output"
+            echo "Failed to extract database ID"
             exit 1
           fi
-          echo "Created database with ID: ${DB_ID}"
+          echo "Created/found database with ID: ${DB_ID}"
           echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Render preview wrangler config
