@@ -151,6 +151,31 @@ describe("cast-store", () => {
       expect(session.streamSessionId).toBe(null);
     });
 
+    it("resets previous session when START_CASTING while already connected", () => {
+      const store = createCastStore();
+
+      // Setup: connect to device A
+      store.dispatch({
+        type: "SESSION_CONNECTED",
+        deviceId: "tv-1",
+        deviceName: "TV 1",
+        sessionId: "s-1",
+        streamSessionId: "str-1",
+      });
+      expect(store.getSnapshot().session.status).toBe("connected");
+
+      // Act: start casting to device B while still connected to A
+      store.dispatch({ type: "START_CASTING", deviceId: "tv-2" });
+
+      // Assert: old session fields are cleared, new device set
+      const session = store.getSnapshot().session;
+      expect(session.status).toBe("connecting");
+      expect(session.deviceId).toBe("tv-2");
+      expect(session.deviceName).toBe(null);
+      expect(session.sessionId).toBe(null);
+      expect(session.streamSessionId).toBe(null);
+    });
+
     it("clears error on STOP_CASTING", () => {
       const store = createCastStore();
       store.dispatch({ type: "SET_ERROR", error: "Something went wrong" });

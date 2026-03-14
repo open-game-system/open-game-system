@@ -68,5 +68,111 @@ export function useCastDispatch(): (event: CastEvents) => void {
   );
 }
 
+// ─── Render-prop components ───
+
+interface CastButtonState {
+  status: 'disconnected' | 'connecting' | 'connected';
+  deviceCount: number;
+  deviceName: string | null;
+  error: string | null;
+}
+
+interface CastButtonActions {
+  startCasting: (deviceId: string) => void;
+  stopCasting: () => void;
+  showPicker: () => void;
+}
+
+/**
+ * Headless render-prop component for the cast button.
+ * Renders nothing when no devices are available.
+ * When devices are available, calls the render function with state and actions.
+ */
+export function CastButton({ children }: {
+  children: (state: CastButtonState, actions: CastButtonActions) => React.ReactElement | null;
+}) {
+  const isAvailable = useCastAvailable();
+  const session = useCastSession();
+  const devices = useCastDevices();
+  const dispatch = useCastDispatch();
+  const error = CastStoreContext.useSelector((s) => s.error);
+
+  if (!isAvailable) return null;
+
+  const actions: CastButtonActions = {
+    startCasting: (deviceId: string) => dispatch({ type: 'START_CASTING', deviceId }),
+    stopCasting: () => dispatch({ type: 'STOP_CASTING' }),
+    showPicker: () => dispatch({ type: 'SHOW_CAST_PICKER' }),
+  };
+
+  return children(
+    {
+      status: session.status,
+      deviceCount: devices.length,
+      deviceName: session.deviceName,
+      error,
+    },
+    actions,
+  );
+}
+
+interface DeviceListState {
+  devices: CastDevice[];
+  connectedDeviceId: string | null;
+}
+
+interface DeviceListActions {
+  selectDevice: (deviceId: string) => void;
+}
+
+/**
+ * Headless render-prop component for the device list.
+ * Renders nothing when no devices are available.
+ */
+export function DeviceList({ children }: {
+  children: (state: DeviceListState, actions: DeviceListActions) => React.ReactElement | null;
+}) {
+  const devices = useCastDevices();
+  const session = useCastSession();
+  const dispatch = useCastDispatch();
+
+  if (devices.length === 0) return null;
+
+  return children(
+    {
+      devices,
+      connectedDeviceId: session.deviceId,
+    },
+    {
+      selectDevice: (deviceId: string) => dispatch({ type: 'START_CASTING', deviceId }),
+    },
+  );
+}
+
+interface CastStatusState {
+  status: 'disconnected' | 'connecting' | 'connected';
+  deviceName: string | null;
+  error: string | null;
+}
+
+/**
+ * Headless render-prop component for cast status display.
+ * Renders nothing when disconnected and no error.
+ */
+export function CastStatus({ children }: {
+  children: (state: CastStatusState) => React.ReactElement | null;
+}) {
+  const session = useCastSession();
+  const error = CastStoreContext.useSelector((s) => s.error);
+
+  if (session.status === 'disconnected' && !error) return null;
+
+  return children({
+    status: session.status,
+    deviceName: session.deviceName,
+    error,
+  });
+}
+
 // Re-export types for convenience
-export type { CastState, CastEvents, CastDevice, CastSession, CastStores };
+export type { CastState, CastEvents, CastDevice, CastSession, CastStores, CastButtonState, CastButtonActions, CastStatusState, DeviceListState, DeviceListActions };
