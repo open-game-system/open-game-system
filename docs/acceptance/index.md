@@ -7,7 +7,8 @@ Maintained as `.feature` files, date-named and sorted chronologically.
 
 | Date | Feature File | Covers |
 |------|-------------|--------|
-| (none yet) | | |
+| 2026-03-14 | [device-registration.feature](2026-03-14-device-registration.feature) | Device registration + JWT device token issuance (5 scenarios) |
+| 2026-03-14 | [send-notification.feature](2026-03-14-send-notification.feature) | Send push via device token, validation, lifecycle (14 scenarios) |
 
 ## Relationship to Product Specs
 
