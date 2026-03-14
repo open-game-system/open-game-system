@@ -1,5 +1,7 @@
 import { Hono } from "hono";
-import type { Env, DeviceRow, SendNotificationRequest } from "../types";
+import type { Env, DeviceRow } from "../types";
+import { SendNotificationSchema, DeviceTokenPayloadSchema } from "../schemas";
+import { verifyJwt } from "../lib/jwt";
 import { getProviderForPlatform } from "../providers/push";
 
 const notifications = new Hono<{ Bindings: Env }>();
@@ -7,11 +9,12 @@ const notifications = new Hono<{ Bindings: Env }>();
 /**
  * POST /api/v1/notifications/send
  * Sends a push notification to a device. Requires API key auth (applied in index.ts).
+ * Accepts a signed JWT deviceToken instead of a raw device ID.
  */
 notifications.post("/send", async (c) => {
-  let body: SendNotificationRequest;
+  let rawBody: unknown;
   try {
-    body = await c.req.json<SendNotificationRequest>();
+    rawBody = await c.req.json();
   } catch {
     return c.json(
       { error: { code: "invalid_body", message: "Request body must be valid JSON", status: 400 } },
@@ -19,20 +22,53 @@ notifications.post("/send", async (c) => {
     );
   }
 
-  const { deviceId, notification } = body;
+  const parsed = SendNotificationSchema.safeParse(rawBody);
 
-  if (!deviceId || !notification?.title || !notification?.body) {
+  if (!parsed.success) {
     return c.json(
       {
         error: {
           code: "missing_fields",
-          message: "deviceId, notification.title, and notification.body are required",
+          message: "deviceToken, notification.title, and notification.body are required",
           status: 400,
         },
       },
       400
     );
   }
+
+  const { deviceToken, notification } = parsed.data;
+
+  // Verify JWT signature and extract device ID
+  const jwtPayload = await verifyJwt(deviceToken, c.env.OGS_JWT_SECRET);
+  if (!jwtPayload) {
+    return c.json(
+      {
+        error: {
+          code: "invalid_device_token",
+          message: "Device token is invalid or has been tampered with",
+          status: 401,
+        },
+      },
+      401
+    );
+  }
+
+  const payloadParsed = DeviceTokenPayloadSchema.safeParse(jwtPayload);
+  if (!payloadParsed.success) {
+    return c.json(
+      {
+        error: {
+          code: "invalid_device_token",
+          message: "Device token payload is malformed",
+          status: 401,
+        },
+      },
+      401
+    );
+  }
+
+  const deviceId = payloadParsed.data.sub;
 
   // Look up the device
   const device = await c.env.DB.prepare(
@@ -54,7 +90,7 @@ notifications.post("/send", async (c) => {
     );
   }
 
-  // Send via the appropriate push provider
+  // Send via Expo Push
   const provider = getProviderForPlatform(device.platform);
   const result = await provider.send(device.push_token, {
     title: notification.title,
@@ -63,7 +99,6 @@ notifications.post("/send", async (c) => {
   });
 
   if (!result.success) {
-    // If device is no longer registered, clean it up
     if (!result.deviceActive) {
       await c.env.DB.prepare(
         "DELETE FROM devices WHERE ogs_device_id = ?"

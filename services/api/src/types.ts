@@ -1,5 +1,6 @@
 export interface Env {
   DB: D1Database;
+  OGS_JWT_SECRET: string;
 }
 
 export interface DeviceRow {
@@ -15,19 +16,4 @@ export interface ApiKeyRow {
   game_id: string;
   game_name: string;
   created_at: string;
-}
-
-export interface RegisterDeviceRequest {
-  ogsDeviceId: string;
-  platform: "ios" | "android";
-  pushToken: string;
-}
-
-export interface SendNotificationRequest {
-  deviceId: string;
-  notification: {
-    title: string;
-    body: string;
-    data?: Record<string, string>;
-  };
 }

@@ -12,7 +12,8 @@
     "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql"
   },
   "dependencies": {
-    "hono": "^4.12.7"
+    "hono": "^4.12.7",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260313.1",

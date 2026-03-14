@@ -1,16 +1,18 @@
 import { Hono } from "hono";
-import type { Env, RegisterDeviceRequest } from "../types";
+import type { Env } from "../types";
+import { RegisterDeviceSchema } from "../schemas";
+import { signJwt } from "../lib/jwt";
 
 const devices = new Hono<{ Bindings: Env }>();
 
 /**
  * POST /api/v1/devices/register
- * Registers or updates a device's push token.
+ * Registers or updates a device's push token. Returns a signed JWT device token.
  */
 devices.post("/register", async (c) => {
-  let body: RegisterDeviceRequest;
+  let rawBody: unknown;
   try {
-    body = await c.req.json<RegisterDeviceRequest>();
+    rawBody = await c.req.json();
   } catch {
     return c.json(
       { error: { code: "invalid_body", message: "Request body must be valid JSON", status: 400 } },
@@ -18,33 +20,30 @@ devices.post("/register", async (c) => {
     );
   }
 
-  const { ogsDeviceId, platform, pushToken } = body;
+  const parsed = RegisterDeviceSchema.safeParse(rawBody);
 
-  if (!ogsDeviceId || !platform || !pushToken) {
+  if (!parsed.success) {
+    const issues = parsed.error.issues;
+    // Distinguish "missing field" from "invalid enum value"
+    const hasMissingField = issues.some(
+      (i) => i.code === "invalid_type"
+    );
+
+    if (hasMissingField) {
+      return c.json(
+        { error: { code: "missing_fields", message: "ogsDeviceId, platform, and pushToken are required", status: 400 } },
+        400
+      );
+    }
+
+    // If all fields present but platform is wrong enum value
     return c.json(
-      {
-        error: {
-          code: "missing_fields",
-          message: "ogsDeviceId, platform, and pushToken are required",
-          status: 400,
-        },
-      },
+      { error: { code: "invalid_platform", message: "platform must be 'ios' or 'android'", status: 400 } },
       400
     );
   }
 
-  if (platform !== "ios" && platform !== "android") {
-    return c.json(
-      {
-        error: {
-          code: "invalid_platform",
-          message: "platform must be 'ios' or 'android'",
-          status: 400,
-        },
-      },
-      400
-    );
-  }
+  const { ogsDeviceId, platform, pushToken } = parsed.data;
 
   // Upsert: insert or replace on conflict
   await c.env.DB.prepare(
@@ -58,7 +57,17 @@ devices.post("/register", async (c) => {
     .bind(ogsDeviceId, platform, pushToken)
     .run();
 
-  return c.json({ deviceId: ogsDeviceId, registered: true });
+  // Sign a JWT device token
+  const deviceToken = await signJwt(
+    {
+      sub: ogsDeviceId,
+      iat: Math.floor(Date.now() / 1000),
+      iss: "ogs-api",
+    },
+    c.env.OGS_JWT_SECRET
+  );
+
+  return c.json({ deviceId: ogsDeviceId, deviceToken, registered: true });
 });
 
 export default devices;

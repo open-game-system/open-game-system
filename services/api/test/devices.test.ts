@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import app from "../src/index";
+import { OgsErrorSchema, RegisterDeviceResponseSchema, DeviceTokenPayloadSchema } from "../src/schemas";
 
-// Mock D1 database
+const JWT_SECRET = "test-jwt-secret";
+
 function createMockEnv() {
   return {
     DB: {
@@ -12,22 +14,29 @@ function createMockEnv() {
         })),
       })),
     },
+    OGS_JWT_SECRET: JWT_SECRET,
   };
 }
 
+function decodeJwtPayload(jwt: string): unknown {
+  const parts = jwt.split(".");
+  if (parts.length !== 3) throw new Error("Not a JWT");
+  return JSON.parse(atob(parts[1]));
+}
+
 describe("Device registration", () => {
-  it("POST /api/v1/devices/register returns 400 for invalid JSON", async () => {
+  it("rejects invalid JSON", async () => {
     const res = await app.request("/api/v1/devices/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: "not json",
     });
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: { code: string } };
+    const body = OgsErrorSchema.parse(await res.json());
     expect(body.error.code).toBe("invalid_body");
   });
 
-  it("POST /api/v1/devices/register returns 400 for missing fields", async () => {
+  it("rejects missing fields", async () => {
     const env = createMockEnv();
     const res = await app.request(
       "/api/v1/devices/register",
@@ -39,11 +48,11 @@ describe("Device registration", () => {
       env,
     );
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: { code: string } };
+    const body = OgsErrorSchema.parse(await res.json());
     expect(body.error.code).toBe("missing_fields");
   });
 
-  it("POST /api/v1/devices/register returns 400 for invalid platform", async () => {
+  it("rejects invalid platform", async () => {
     const env = createMockEnv();
     const res = await app.request(
       "/api/v1/devices/register",
@@ -59,11 +68,11 @@ describe("Device registration", () => {
       env,
     );
     expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: { code: string } };
+    const body = OgsErrorSchema.parse(await res.json());
     expect(body.error.code).toBe("invalid_platform");
   });
 
-  it("POST /api/v1/devices/register succeeds with valid input", async () => {
+  it("returns deviceId, registered, and a signed JWT deviceToken", async () => {
     const env = createMockEnv();
     const res = await app.request(
       "/api/v1/devices/register",
@@ -73,14 +82,21 @@ describe("Device registration", () => {
         body: JSON.stringify({
           ogsDeviceId: "device-1",
           platform: "ios",
-          pushToken: "token-abc",
+          pushToken: "ExponentPushToken[abc123]",
         }),
       },
       env,
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { deviceId: string; registered: boolean };
+
+    const body = RegisterDeviceResponseSchema.parse(await res.json());
     expect(body.deviceId).toBe("device-1");
     expect(body.registered).toBe(true);
+
+    // deviceToken must be a valid JWT with correct payload
+    const payload = DeviceTokenPayloadSchema.parse(decodeJwtPayload(body.deviceToken));
+    expect(payload.sub).toBe("device-1");
+    expect(payload.iss).toBe("ogs-api");
+    expect(payload.iat).toBeTypeOf("number");
   });
 });
