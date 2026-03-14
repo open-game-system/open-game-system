@@ -2,19 +2,19 @@
   "name": "@open-game-system/stream-kit-web",
   "version": "0.0.0",
   "description": "Browser client for streaming with PeerJS",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./dist/index.cjs"
     }
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
@@ -27,7 +27,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   },

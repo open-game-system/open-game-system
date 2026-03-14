@@ -2,10 +2,10 @@
   "name": "@open-game-system/stream-kit-testing",
   "version": "0.0.0",
   "description": "Testing utilities for Stream Kit packages",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsdown",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx"

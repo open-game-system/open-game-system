@@ -2,14 +2,14 @@
   "name": "@open-game-system/app-bridge-testing",
   "version": "0.0.0",
   "description": "Testing utilities for the app-bridge ecosystem",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.mts",
       "source": "./src/index.ts"
     }
   },
@@ -21,8 +21,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup --config tsup.config.ts",
-    "dev": "tsup --config tsup.config.ts --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -42,7 +42,6 @@
     "@testing-library/react": "^16.3.2",
     "@vitest/coverage-v8": "^4.1.0",
     "rimraf": "^6.1.3",
-    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   },

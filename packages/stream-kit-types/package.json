@@ -2,9 +2,9 @@
   "name": "@open-game-system/stream-kit-types",
   "version": "0.0.0",
   "description": "Core type definitions for the stream-kit ecosystem",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "sideEffects": false,
   "files": [
     "dist",
@@ -12,8 +12,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "clean": "rimraf dist",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "rimraf": "^6.1.3",
-    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   },
