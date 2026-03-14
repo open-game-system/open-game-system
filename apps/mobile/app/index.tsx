@@ -4,7 +4,7 @@ import {
   createNativeBridge,
   NativeBridge,
 } from "@open-game-system/app-bridge-react-native";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, StyleSheet, Text, View, StatusBar as RNStatusBar } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import GoogleCast, {
@@ -20,6 +20,14 @@ import {
   type CastStores,
   type CastDevice,
 } from "../services/cast-store";
+import {
+  createCastSession,
+  deleteCastSession,
+} from "../services/cast-api";
+
+// Configuration — read from env or use defaults
+const OGS_API_URL = process.env.EXPO_PUBLIC_OGS_API_URL ?? "https://api.opengame.org";
+const OGS_API_KEY = process.env.EXPO_PUBLIC_OGS_API_KEY ?? "";
 
 // Create the bridge and cast store
 const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
@@ -106,20 +114,57 @@ export default function Index() {
     }
   }, [devices]);
 
+  // Track active cast session ID for cleanup on session end
+  const castSessionIdRef = useRef<string | null>(null);
+
   // Subscribe to session lifecycle events
   useEffect(() => {
     const sessionManager = GoogleCast.sessionManager;
 
     const subs = [
-      sessionManager.onSessionStarted(() => {
-        // TODO: Call API to create cast session, then dispatch SESSION_CONNECTED with IDs
-        // For now, mark as connecting until API integration is wired
+      sessionManager.onSessionStarted((session) => {
         const currentDevices = castStore.getSnapshot().devices;
-        if (currentDevices.length > 0) {
-          castStore.dispatch({ type: "START_CASTING", deviceId: currentDevices[0].id });
-        }
+        if (currentDevices.length === 0) return;
+
+        const device = currentDevices[0];
+        castStore.dispatch({ type: "START_CASTING", deviceId: device.id });
+
+        // Call API to create cast session
+        const viewUrl = webviewSource.uri;
+        createCastSession(OGS_API_URL, OGS_API_KEY, device.id, viewUrl)
+          .then((result) => {
+            castSessionIdRef.current = result.sessionId;
+            castStore.dispatch({
+              type: "SESSION_CONNECTED",
+              deviceId: device.id,
+              deviceName: device.name,
+              sessionId: result.sessionId,
+              streamSessionId: result.streamSessionId,
+            });
+
+            // Send streamUrl to Chromecast via Cast SDK
+            const client = session.getClient();
+            client.loadMedia({
+              mediaInfo: {
+                contentUrl: result.streamUrl,
+                contentType: "application/x-mpegurl",
+              },
+            }).catch(() => {
+              // Best effort — media loading failure is non-fatal
+            });
+          })
+          .catch((err: Error) => {
+            castStore.dispatch({ type: "SET_ERROR", error: err.message });
+          });
       }),
       sessionManager.onSessionEnded(() => {
+        const sessionId = castSessionIdRef.current;
+        if (sessionId) {
+          deleteCastSession(OGS_API_URL, OGS_API_KEY, sessionId).catch(() => {
+            // Best effort — session is ending regardless
+          });
+          castSessionIdRef.current = null;
+        }
         castStore.dispatch({ type: "STOP_CASTING" });
       }),
       sessionManager.onSessionResumed(() => {
@@ -132,7 +177,7 @@ export default function Index() {
     ];
 
     return () => subs.forEach((s) => s.remove());
-  }, []);
+  }, [webviewSource]);
 
   return (
     <BridgeContext.BridgeProvider bridge={bridge}>
