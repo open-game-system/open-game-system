@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS cast_sessions (
   view_url TEXT NOT NULL,
   stream_session_id TEXT,
   stream_url TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'ended')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'idle', 'ended')),
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

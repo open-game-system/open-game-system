@@ -76,7 +76,7 @@ export const CreateCastSessionResponseSchema = z.object({
 
 export const CastSessionStatusResponseSchema = z.object({
   sessionId: z.string(),
-  status: z.enum(["pending", "active", "ended"]),
+  status: z.enum(["pending", "active", "idle", "ended"]),
   streamSessionId: z.string().nullable(),
   streamUrl: z.string().nullable(),
 });

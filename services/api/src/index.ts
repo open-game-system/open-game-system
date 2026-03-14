@@ -5,6 +5,7 @@ import { apiKeyAuth } from "./middleware/auth";
 import devices from "./routes/devices";
 import notifications from "./routes/notifications";
 import cast from "./routes/cast";
+import { handleScheduled } from "./scheduled";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -28,3 +29,8 @@ app.use("/api/v1/cast/*", apiKeyAuth);
 app.route("/api/v1/cast", cast);
 
 export default app;
+
+// Cloudflare Workers scheduled event handler — exported for wrangler cron triggers.
+// In production, wrangler.toml wires this via the module's `scheduled` export.
+// Tests import handleScheduled directly from ./scheduled.
+export { handleScheduled };

@@ -158,11 +158,20 @@ cast.post("/sessions/:id/state", async (c) => {
     .bind(sessionId)
     .first<CastSessionRow>();
 
-  if (!session || session.game_id !== gameId || session.status !== "active") {
+  if (!session || session.game_id !== gameId || (session.status !== "active" && session.status !== "idle")) {
     return c.json(
       { error: { code: "session_not_found", message: "Active cast session not found", status: 404 } },
       404,
     );
+  }
+
+  // Reactivate idle session on state push
+  if (session.status === "idle") {
+    await c.env.DB.prepare(
+      "UPDATE cast_sessions SET status = 'active', updated_at = datetime('now') WHERE session_id = ?",
+    )
+      .bind(sessionId)
+      .run();
   }
 
   // Forward state to stream-kit container (best effort — don't break the response)

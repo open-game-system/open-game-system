@@ -26,7 +26,7 @@ export interface CastSessionRow {
   view_url: string;
   stream_session_id: string | null;
   stream_url: string | null;
-  status: "pending" | "active" | "ended";
+  status: "pending" | "active" | "idle" | "ended";
   created_at: string;
   updated_at: string;
 }
