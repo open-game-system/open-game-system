@@ -14,7 +14,10 @@
       "associatedDomains": [
         "applinks:opengame.org",
         "applinks:triviajam.tv"
-      ]
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

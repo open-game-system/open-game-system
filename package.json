@@ -12,6 +12,13 @@
     "lint:fix": "prettier --write .",
     "clean": "turbo run clean"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
+      "workerd"
+    ]
+  },
   "devDependencies": {
     "prettier": "^3.8.1",
     "tsdown": "^0.21.2",
