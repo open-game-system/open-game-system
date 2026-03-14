@@ -5,6 +5,8 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
   "sideEffects": false,
   "files": [
     "dist",
