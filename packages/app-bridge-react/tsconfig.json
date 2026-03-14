@@ -1,21 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "composite": false,
     "outDir": "./dist",
-    "composite": true,
-    "declarationMap": true,
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "moduleResolution": "node",
-    "paths": {
-      "@open-game-system/app-bridge-types": ["../app-bridge-types/src"],
-      "@open-game-system/app-bridge-web": ["../app-bridge-web/src"]
-    }
+    "moduleResolution": "node"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../app-bridge-types" },
-    { "path": "../app-bridge-web" }
-  ]
-} 
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

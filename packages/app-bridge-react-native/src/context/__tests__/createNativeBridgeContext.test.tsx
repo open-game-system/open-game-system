@@ -17,15 +17,16 @@ interface TestStores extends BridgeStores {
 // Helper to create a fully typed Native mock bridge
 const createFullyMockedNativeBridge = () => {
   const baseMock = createMockBridge<TestStores>();
-  return {
+  const nativeBridge: NativeBridge<TestStores> = {
     ...baseMock,
     handleWebMessage: jest.fn(),
-    registerWebView: jest.fn(() => jest.fn()), // Returns unregister function
+    registerWebView: jest.fn(() => jest.fn()),
     unregisterWebView: jest.fn(),
-    onWebViewReady: jest.fn(() => jest.fn()), // Returns unsubscribe function
-    setStore: jest.fn(), // Add setStore
-    isWebViewReady: jest.fn().mockReturnValue(true), // Mock ready state
-  } as NativeBridge<TestStores>; // Cast to ensure type compatibility
+    subscribeToReadyState: jest.fn(() => jest.fn()),
+    getReadyState: jest.fn().mockReturnValue(true),
+    setStore: jest.fn(),
+  };
+  return nativeBridge;
 }
 
 describe('createNativeBridgeContext', () => {
