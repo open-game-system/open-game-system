@@ -98,6 +98,30 @@ describe("deep-links", () => {
       expect(result).toBe("https://triviajam.tv/spectate/abc123");
     });
 
+    it("converts custom scheme game path to triviajam.tv URL", () => {
+      mockParse.mockReturnValue({
+        path: "games/abc123",
+        queryParams: {},
+        hostname: null,
+        scheme: "myapp",
+      });
+
+      const result = extractGameUrl("myapp://games/abc123");
+      expect(result).toBe("https://triviajam.tv/games/abc123");
+    });
+
+    it("converts custom scheme spectate path to triviajam.tv URL", () => {
+      mockParse.mockReturnValue({
+        path: "spectate/abc123",
+        queryParams: {},
+        hostname: null,
+        scheme: "myapp",
+      });
+
+      const result = extractGameUrl("myapp://spectate/abc123");
+      expect(result).toBe("https://triviajam.tv/spectate/abc123");
+    });
+
     it("returns null for triviajam.tv homepage (not a game link)", () => {
       mockParse.mockReturnValue({
         path: "",
