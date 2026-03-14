@@ -12,12 +12,12 @@
     "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql"
   },
   "dependencies": {
-    "hono": "^4.6.0"
+    "hono": "^4.12.7"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241205.0",
-    "typescript": "^5.7.0",
-    "vitest": "^2.1.9",
-    "wrangler": "^4.0.0"
+    "@cloudflare/workers-types": "^4.20260313.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.73.0"
   }
 }

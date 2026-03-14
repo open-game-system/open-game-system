@@ -1,22 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "composite": false,
     "outDir": "./dist",
-    "composite": true,
-    "declarationMap": true,
     "jsx": "react-native",
     "lib": ["ESNext"],
-    "moduleResolution": "node",
-    "paths": {
-      "@open-game-system/app-bridge-types": ["../app-bridge-types/src"],
-      "@open-game-system/app-bridge-native": ["../app-bridge-native/src"]
-    }
+    "moduleResolution": "node"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../app-bridge-types" },
-    { "path": "../app-bridge-native" },
-    { "path": "../app-bridge-testing" }
-  ]
-} 
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

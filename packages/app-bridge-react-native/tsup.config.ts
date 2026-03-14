@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
-  dts: false, // Disabled: React 19 types from monorepo root conflict with RN's React 18 types. Fix by pinning @types/react resolution.
+  dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,

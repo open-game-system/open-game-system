@@ -12,9 +12,6 @@ on:
       - "packages/**"
       - ".github/workflows/ci-packages.yml"
 
-# app-bridge-react-native excluded: React 19 types from apps/mobile
-# conflict with its React 18 peer dep. Tracked in docs/quality.md.
-
 jobs:
   ci-packages:
     runs-on: ubuntu-latest
@@ -30,11 +27,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        run: pnpm turbo run build --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native"
+      - name: Build all packages
+        run: pnpm turbo run build --filter="./packages/*"
 
       - name: Typecheck packages
-        run: pnpm turbo run typecheck --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native" --continue || true
+        run: pnpm turbo run typecheck --filter="./packages/*" --continue || true
 
+      # app-bridge-react-native tests excluded: jest-expo requires Expo's
+      # native module system which doesn't resolve in pnpm strict mode.
+      # These tests run in CI - Mobile instead (same Jest/Expo environment).
       - name: Test packages
         run: pnpm turbo run test --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native"

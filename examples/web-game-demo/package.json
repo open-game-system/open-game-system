@@ -12,25 +12,25 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@open-game-system/app-bridge-web": "workspace:*",
     "@open-game-system/app-bridge-react": "workspace:*",
     "@open-game-system/app-bridge-types": "workspace:*",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@open-game-system/app-bridge-web": "workspace:*",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@open-game-system/app-bridge-testing": "workspace:*",
-    "@testing-library/react": "^14.2.1",
-    "@testing-library/jest-dom": "^6.1.5",
-    "chalk": "^5.3.0",
-    "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.19",
-    "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/coverage-v8": "^1.2.2",
-    "jsdom": "^24.0.0",
-    "typescript": "^5.8.3",
-    "vite": "^5.1.0",
-    "vite-tsconfig-paths": "^4.3.1",
-    "vitest": "^1.2.2"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.0",
+    "chalk": "^5.6.2",
+    "jsdom": "^28.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.0"
   }
-} 
+}

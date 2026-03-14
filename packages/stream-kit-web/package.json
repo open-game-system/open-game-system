@@ -26,10 +26,10 @@
     "peerjs": "^1.5.5"
   },
   "devDependencies": {
-    "@types/node": "^22.18.1",
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.2",
-    "vitest": "^2.1.9"
+    "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
   },
   "keywords": [
     "webrtc",
