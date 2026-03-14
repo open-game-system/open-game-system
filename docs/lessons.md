@@ -30,6 +30,7 @@ Persistent project knowledge. Review at the start of each task.
 - **Cloudflare Containers: can't add to existing Worker**: Deploying a Worker with `containers` config creates a container image registry tied to that Worker name. If the registry wasn't created with the Worker originally, it won't auto-create later — even after deleting and recreating the Worker. The DO metadata also persists across Worker deletion and requires explicit `deleted_classes` migration. Keep containers on their own Worker until Cloudflare fixes this.
 - **Cloudflare DO metadata survives Worker deletion**: `wrangler delete` removes the script but not the Durable Object class registry. Redeploying without the DO class requires a `deleted_classes` migration in wrangler.toml. Once the migration runs, the entries can be removed.
 - **OrbStack Docker can't push to Cloudflare container registry**: Local deploys with OrbStack fail at the registry push step. CI (standard Docker) works fine. Use CI for container deployments.
+- **Dual React with `link:` dependencies**: When a consuming app uses `link:../monorepo/packages/foo`, the linked package resolves React from its own `node_modules/`, not the consumer's. This causes "Cannot read properties of null (reading 'useMemo')" crashes. Fix: add Vite `resolve.alias` to force React resolution to the consumer's copy.
 
 ## Testing
 
