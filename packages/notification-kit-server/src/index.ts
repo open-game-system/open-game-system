@@ -30,10 +30,11 @@ export function createNotificationClient(config: NotificationClientConfig) {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json() as any;
+    const data: unknown = await response.json();
 
     if (!response.ok) {
-      throw new NotificationApiError(data.error ?? {
+      const errorBody = data as { error?: NotificationError };
+      throw new NotificationApiError(errorBody.error ?? {
         code: 'unknown_error',
         message: `HTTP ${response.status}`,
         status: response.status,

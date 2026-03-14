@@ -82,6 +82,31 @@ describe("ExpoPushProvider", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBe("DeviceNotRegistered");
+    expect(result.deviceActive).toBe(false);
+  });
+
+  it("marks device as active for non-device errors", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: [
+            {
+              status: "error",
+              message: "MessageTooBig",
+              details: { error: "MessageTooBig" },
+            },
+          ],
+        }),
+    });
+
+    const result = await provider.send("ExponentPushToken[abc123]", {
+      title: "Test",
+      body: "Test",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.deviceActive).toBe(true);
   });
 
   it("returns failure when fetch throws", async () => {

@@ -63,6 +63,15 @@ notifications.post("/send", async (c) => {
   });
 
   if (!result.success) {
+    // If device is no longer registered, clean it up
+    if (!result.deviceActive) {
+      await c.env.DB.prepare(
+        "DELETE FROM devices WHERE ogs_device_id = ?"
+      )
+        .bind(deviceId)
+        .run();
+    }
+
     return c.json(
       {
         error: {
@@ -70,6 +79,7 @@ notifications.post("/send", async (c) => {
           message: result.error ?? "Failed to send push notification",
           status: 502,
         },
+        deviceActive: result.deviceActive,
       },
       502
     );
@@ -80,6 +90,7 @@ notifications.post("/send", async (c) => {
   return c.json({
     id: notificationId,
     status: "sent",
+    deviceActive: true,
   });
 });
 

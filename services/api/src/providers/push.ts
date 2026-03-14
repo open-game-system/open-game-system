@@ -8,6 +8,8 @@ export interface PushResult {
   success: boolean;
   providerMessageId?: string;
   error?: string;
+  /** Whether the device's push token is still valid */
+  deviceActive: boolean;
 }
 
 export interface PushProvider {
@@ -18,6 +20,9 @@ export interface PushProvider {
 }
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+
+/** Expo error codes that indicate the device token is no longer valid */
+const DEVICE_INACTIVE_ERRORS = ["DeviceNotRegistered", "InvalidCredentials"];
 
 /**
  * Expo Push provider — sends notifications via Expo's push service,
@@ -68,20 +73,26 @@ export class ExpoPushProvider implements PushProvider {
       const ticket = result.data[0];
 
       if (ticket.status === "error") {
+        const errorCode = ticket.details?.error ?? ticket.message ?? "Unknown Expo push error";
+        const deviceActive = !DEVICE_INACTIVE_ERRORS.includes(errorCode);
+
         return {
           success: false,
-          error: ticket.message ?? ticket.details?.error ?? "Unknown Expo push error",
+          error: errorCode,
+          deviceActive,
         };
       }
 
       return {
         success: true,
         providerMessageId: ticket.id,
+        deviceActive: true,
       };
     } catch (err) {
       return {
         success: false,
         error: err instanceof Error ? err.message : "Failed to send push notification",
+        deviceActive: true, // Network error doesn't mean device is invalid
       };
     }
   }
