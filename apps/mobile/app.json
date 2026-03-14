@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.opengame.app",
       "associatedDomains": [
-        "applinks:opengame.org"
+        "applinks:opengame.org",
+        "applinks:triviajam.tv"
       ]
     },
     "android": {

@@ -74,6 +74,41 @@ describe("deep-links", () => {
       expect(extractGameUrl("myapp://open?url=")).toBeNull();
     });
 
+    it("extracts game URL from direct triviajam.tv link", () => {
+      mockParse.mockReturnValue({
+        path: "games/abc123",
+        queryParams: {},
+        hostname: "triviajam.tv",
+        scheme: "https",
+      });
+
+      const result = extractGameUrl("https://triviajam.tv/games/abc123");
+      expect(result).toBe("https://triviajam.tv/games/abc123");
+    });
+
+    it("extracts game URL from direct triviajam.tv spectate link", () => {
+      mockParse.mockReturnValue({
+        path: "spectate/abc123",
+        queryParams: {},
+        hostname: "triviajam.tv",
+        scheme: "https",
+      });
+
+      const result = extractGameUrl("https://triviajam.tv/spectate/abc123");
+      expect(result).toBe("https://triviajam.tv/spectate/abc123");
+    });
+
+    it("returns null for triviajam.tv homepage (not a game link)", () => {
+      mockParse.mockReturnValue({
+        path: "",
+        queryParams: {},
+        hostname: "triviajam.tv",
+        scheme: "https",
+      });
+
+      expect(extractGameUrl("https://triviajam.tv/")).toBeNull();
+    });
+
     it("returns null when parse throws an error", () => {
       mockParse.mockImplementation(() => {
         throw new Error("Invalid URL");
