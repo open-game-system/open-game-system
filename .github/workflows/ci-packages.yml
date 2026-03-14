@@ -33,8 +33,5 @@ jobs:
       - name: Typecheck packages
         run: pnpm turbo run typecheck --filter="./packages/*" --continue || true
 
-      # app-bridge-react-native tests excluded: jest-expo requires Expo's
-      # native module system which doesn't resolve in pnpm strict mode.
-      # These tests run in CI - Mobile instead (same Jest/Expo environment).
-      - name: Test packages
-        run: pnpm turbo run test --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native"
+      - name: Test all packages
+        run: pnpm turbo run test --filter="./packages/*"
