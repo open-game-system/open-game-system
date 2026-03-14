@@ -392,7 +392,11 @@ importers:
         specifier: ^4.73.0
         version: 4.73.0(@cloudflare/workers-types@4.20260313.1)
 
-  examples/cast-receiver: {}
+  examples/cast-receiver:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.52.0
+        version: 1.58.2
 
   examples/expo-bridge-demo:
     dependencies:
