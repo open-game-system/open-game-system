@@ -16,16 +16,26 @@ interface ScheduledDB {
   };
 }
 
+/**
+ * Narrow DO namespace interface for scheduled handler.
+ */
+interface ScheduledDONamespace {
+  idFromName(name: string): { toString(): string };
+  get(id: { toString(): string }): {
+    fetch(request: Request): Promise<Response>;
+  };
+}
+
 export interface ScheduledEnv {
   DB: ScheduledDB;
-  STREAM_SERVER_URL: string;
+  STREAM_CONTAINER: ScheduledDONamespace;
 }
 
 /**
  * Handles the Cloudflare scheduled (cron) trigger.
  *
- * 1. Active sessions with no state update for 30+ minutes → marked 'idle'
- * 2. Idle sessions with no update for 5+ minutes → marked 'ended' + stream-kit container torn down
+ * 1. Active sessions with no state update for 30+ minutes -> marked 'idle'
+ * 2. Idle sessions with no update for 5+ minutes -> marked 'ended' + stream container DO torn down
  */
 export async function handleScheduled(env: ScheduledEnv): Promise<void> {
   // Step 1: Mark stale active sessions as idle
@@ -63,12 +73,15 @@ export async function handleScheduled(env: ScheduledEnv): Promise<void> {
     .all<Pick<CastSessionRow, "session_id" | "stream_session_id">>();
 
   for (const session of staleIdle.results) {
-    // Tear down stream-kit container (best effort)
+    // Tear down stream container via DO (best effort)
     if (session.stream_session_id) {
       try {
-        await fetch(`${env.STREAM_SERVER_URL}/sessions/${session.stream_session_id}`, {
+        const doId = env.STREAM_CONTAINER.idFromName(`session-${session.session_id}`);
+        const stub = env.STREAM_CONTAINER.get(doId);
+
+        await stub.fetch(new Request(`https://stream-container/sessions/${session.stream_session_id}`, {
           method: "DELETE",
-        });
+        }));
       } catch {
         // Best effort — session ends regardless of teardown success
       }
