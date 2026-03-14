@@ -9,8 +9,8 @@ const DEFAULT_GAME_DOMAIN = "triviajam.tv";
  * Catch-all route for deep links that Expo Router doesn't have a screen for.
  * When a universal link like triviajam.tv/games/xyz opens the app, Expo Router
  * converts it to opengame://games/xyz and tries to match a route. This catch-all
- * intercepts it, extracts the game URL, and redirects to the index screen
- * where the WebView will load it.
+ * intercepts it, extracts the game URL, and redirects to the home screen
+ * which will navigate to the game screen via the game-url-store subscription.
  */
 export default function CatchAll() {
   const params = useGlobalSearchParams();

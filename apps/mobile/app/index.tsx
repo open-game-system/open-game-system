@@ -1,241 +1,342 @@
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  BridgedWebView,
-  createNativeBridgeContext,
-  createNativeBridge,
-  NativeBridge,
-} from "@open-game-system/app-bridge-react-native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Platform, StyleSheet, Text, View, StatusBar as RNStatusBar } from "react-native";
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  StatusBar as RNStatusBar,
+} from "react-native";
 import { StatusBar } from "expo-status-bar";
-import GoogleCast, {
-  CastButton,
-  useDevices,
-} from "react-native-google-cast";
+import { useRouter } from "expo-router";
+import {
+  getRecentGames,
+  type GameHistoryEntry,
+} from "../services/game-history";
 import {
   consumePendingGameUrl,
   subscribeToGameUrl,
 } from "../services/game-url-store";
-import {
-  createCastStore,
-  type CastStores,
-  type CastDevice,
-} from "../services/cast-store";
-import {
-  createCastSession,
-  deleteCastSession,
-} from "../services/cast-api";
 
-// Configuration — read from env or use defaults
-const OGS_API_URL = process.env.EXPO_PUBLIC_OGS_API_URL ?? "https://api.opengame.org";
-const OGS_API_KEY = process.env.EXPO_PUBLIC_OGS_API_KEY ?? "";
+const FEATURED_GAMES = [
+  {
+    url: "https://triviajam.tv",
+    name: "Trivia Jam",
+    description: "Real-time multiplayer trivia with friends",
+    featured: true,
+  },
+];
 
-// Create the bridge and cast store
-const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
-const castStore = createCastStore();
-bridge.setStore("cast", castStore);
+export default function HomeScreen() {
+  const router = useRouter();
+  const [recentGames, setRecentGames] = useState<GameHistoryEntry[]>([]);
+  const [sandboxUrl, setSandboxUrl] = useState("");
 
-// Create context
-const BridgeContext = createNativeBridgeContext<CastStores>();
-const CastContext = BridgeContext.createNativeStoreContext("cast");
+  // Load recent games on mount and when screen focuses
+  const loadRecentGames = useCallback(async () => {
+    const games = await getRecentGames();
+    setRecentGames(games);
+  }, []);
 
-const CastStatus = () => {
-  const isAvailable = CastContext.useSelector((state) => state.isAvailable);
-  const deviceCount = CastContext.useSelector((state) => state.devices.length);
-  const sessionStatus = CastContext.useSelector((state) => state.session.status);
-  const deviceName = CastContext.useSelector((state) => state.session.deviceName);
-  const error = CastContext.useSelector((state) => state.error);
-
-  return (
-    <View style={styles.castStatusContainer}>
-      <Text style={styles.castStatusText}>
-        Cast: {isAvailable ? `${deviceCount} device(s)` : 'No devices'}
-      </Text>
-      <Text style={styles.castStatusText}>Session: {sessionStatus}</Text>
-      {deviceName && (
-        <Text style={styles.castStatusText}>Device: {deviceName}</Text>
-      )}
-      {error && (
-        <Text style={[styles.castStatusText, { color: '#c00' }]}>Error: {error}</Text>
-      )}
-    </View>
-  );
-};
-
-export default function Index() {
-  // --- Hooks for native state updates ---
-  const devices = useDevices();
-
-  // Track the current URL to load in the WebView
-  const defaultSource = useMemo(() => Platform.select({
-    ios: { uri: "http://localhost:8787" }, // Use localhost for iOS simulator
-    android: { uri: "http://10.0.2.2:8787" }, // Use 10.0.2.2 for Android emulator
-    default: { uri: "http://localhost:8787" } // Default fallback
-  }), []);
-
-  const [webviewSource, setWebviewSource] = useState(defaultSource);
-
-  // Handle game URLs from deep links and notifications
   useEffect(() => {
-    // Check for a pending game URL (e.g., from a cold start deep link)
+    loadRecentGames();
+  }, [loadRecentGames]);
+
+  // Handle pending game URLs from deep links (cold start)
+  useEffect(() => {
     const pending = consumePendingGameUrl();
     if (pending) {
-      console.log("[Index] Loading pending game URL:", pending);
-      setWebviewSource({ uri: pending });
+      router.push({ pathname: "/game", params: { url: pending } });
+      return;
     }
 
     // Subscribe to future game URL changes (warm start deep links, notification taps)
     const unsubscribe = subscribeToGameUrl((gameUrl) => {
-      console.log("[Index] Loading game URL from deep link:", gameUrl);
-      setWebviewSource({ uri: gameUrl });
+      router.push({ pathname: "/game", params: { url: gameUrl } });
     });
 
     return unsubscribe;
-  }, []);
+  }, [router]);
 
-  // Show introductory overlay on first mount
-  useEffect(() => {
-    GoogleCast.showIntroductoryOverlay().catch(() => {});
-  }, []);
+  const launchGame = (url: string, name: string) => {
+    router.push({ pathname: "/game", params: { url, name } });
+    // Reload recent games when we come back
+    setTimeout(loadRecentGames, 500);
+  };
 
-  // Sync device discovery into bridge store
-  useEffect(() => {
-    const castDevices: CastDevice[] = devices.map((d) => ({
-      id: d.deviceId,
-      name: d.friendlyName,
-      type: "chromecast" as const,
-    }));
-
-    const currentDevices = castStore.getSnapshot().devices;
-    const devicesChanged = castDevices.length !== currentDevices.length ||
-      castDevices.some((d, i) => d.id !== currentDevices[i]?.id);
-
-    if (devicesChanged) {
-      castStore.dispatch({ type: "DEVICES_UPDATED", devices: castDevices });
-    }
-  }, [devices]);
-
-  // Track active cast session ID for cleanup on session end
-  const castSessionIdRef = useRef<string | null>(null);
-
-  // Subscribe to session lifecycle events
-  useEffect(() => {
-    const sessionManager = GoogleCast.sessionManager;
-
-    const subs = [
-      sessionManager.onSessionStarted((session) => {
-        const currentDevices = castStore.getSnapshot().devices;
-        if (currentDevices.length === 0) return;
-
-        const device = currentDevices[0];
-        castStore.dispatch({ type: "START_CASTING", deviceId: device.id });
-
-        // Call API to create cast session
-        const viewUrl = webviewSource.uri;
-        createCastSession(OGS_API_URL, OGS_API_KEY, device.id, viewUrl)
-          .then((result) => {
-            castSessionIdRef.current = result.sessionId;
-            castStore.dispatch({
-              type: "SESSION_CONNECTED",
-              deviceId: device.id,
-              deviceName: device.name,
-              sessionId: result.sessionId,
-              streamSessionId: result.streamSessionId,
-            });
-
-            // Send streamUrl to Chromecast via Cast SDK
-            const client = session.getClient();
-            client.loadMedia({
-              mediaInfo: {
-                contentUrl: result.streamUrl,
-                contentType: "application/x-mpegurl",
-              },
-            }).catch(() => {
-              // Best effort — media loading failure is non-fatal
-            });
-          })
-          .catch((err: Error) => {
-            castStore.dispatch({ type: "SET_ERROR", error: err.message });
-          });
-      }),
-      sessionManager.onSessionEnded(() => {
-        const sessionId = castSessionIdRef.current;
-        if (sessionId) {
-          deleteCastSession(OGS_API_URL, OGS_API_KEY, sessionId).catch(() => {
-            // Best effort — session is ending regardless
-          });
-          castSessionIdRef.current = null;
-        }
-        castStore.dispatch({ type: "STOP_CASTING" });
-      }),
-      sessionManager.onSessionResumed(() => {
-        // Session resumed — mark as connecting until we verify with API
-        const currentDevices = castStore.getSnapshot().devices;
-        if (currentDevices.length > 0) {
-          castStore.dispatch({ type: "START_CASTING", deviceId: currentDevices[0].id });
-        }
-      }),
-    ];
-
-    return () => subs.forEach((s) => s.remove());
-  }, [webviewSource]);
+  const launchSandbox = () => {
+    const url = sandboxUrl.trim();
+    if (!url) return;
+    const fullUrl = url.startsWith("http") ? url : `https://${url}`;
+    launchGame(fullUrl, "Sandbox");
+    setSandboxUrl("");
+  };
 
   return (
-    <BridgeContext.BridgeProvider bridge={bridge}>
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <CastContext.StoreProvider>
-          <View style={styles.castContainer}>
-            <CastButton style={styles.castButton} />
-            <CastStatus />
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <View style={styles.headerSection}>
+          <Text style={styles.logo}>OGS</Text>
+          <Text style={styles.subtitle}>Open Game System</Text>
+        </View>
+
+        {/* Featured Games */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Featured Games</Text>
+          {FEATURED_GAMES.map((game) => (
+            <TouchableOpacity
+              key={game.url}
+              style={styles.featuredCard}
+              onPress={() => launchGame(game.url, game.name)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.featuredContent}>
+                <Text style={styles.featuredName}>{game.name}</Text>
+                <Text style={styles.featuredDescription}>
+                  {game.description}
+                </Text>
+                <View style={styles.playButton}>
+                  <Text style={styles.playButtonText}>Play</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Your Games (Recently Played) */}
+        {recentGames.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Games</Text>
+            {recentGames.map((game) => (
+              <TouchableOpacity
+                key={game.url}
+                style={styles.gameRow}
+                onPress={() => launchGame(game.url, game.name)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.gameRowInfo}>
+                  <Text style={styles.gameRowName}>{game.name}</Text>
+                  <Text style={styles.gameRowUrl} numberOfLines={1}>
+                    {game.url}
+                  </Text>
+                </View>
+                <View style={styles.playButtonSmall}>
+                  <Text style={styles.playButtonSmallText}>Play</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
-          <View style={styles.webviewContainer}>
-            <BridgedWebView
-              bridge={bridge}
-              source={webviewSource}
-              style={styles.webview}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-              startInLoadingState={true}
-              scalesPageToFit={true}
+        )}
+
+        {/* Sandbox */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sandbox</Text>
+          <Text style={styles.sandboxHint}>
+            Enter a URL to load any game with bridge access
+          </Text>
+          <View style={styles.sandboxRow}>
+            <TextInput
+              style={styles.sandboxInput}
+              value={sandboxUrl}
+              onChangeText={setSandboxUrl}
+              placeholder="https://your-game.com"
+              placeholderTextColor="#666"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              returnKeyType="go"
+              onSubmitEditing={launchSandbox}
             />
+            <TouchableOpacity
+              style={[
+                styles.sandboxButton,
+                !sandboxUrl.trim() && styles.sandboxButtonDisabled,
+              ]}
+              onPress={launchSandbox}
+              disabled={!sandboxUrl.trim()}
+            >
+              <Text style={styles.sandboxButtonText}>Go</Text>
+            </TouchableOpacity>
           </View>
-        </CastContext.StoreProvider>
-      </View>
-    </BridgeContext.BridgeProvider>
+        </View>
+
+        {/* Settings placeholder */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          <TouchableOpacity style={styles.settingsRow}>
+            <Text style={styles.settingsLabel}>Push Notifications</Text>
+            <Text style={styles.settingsValue}>Enabled</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingsRow}>
+            <Text style={styles.settingsLabel}>Cast Devices</Text>
+            <Text style={styles.settingsValue}>Auto-discover</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    // Use RNStatusBar for Android height, otherwise use a fixed value for iOS
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 50,
+    backgroundColor: "#000",
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
   },
-  castContainer: {
-    padding: 16,
-    backgroundColor: "#f9f9f9",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    flexDirection: 'row',
-    alignItems: 'center',
+  scrollView: {
+    flex: 1,
   },
-  castButton: {
-    width: 30,
-    height: 30,
-    tintColor: 'black',
-    marginRight: 16,
+  scrollContent: {
+    paddingBottom: 40,
   },
-  castStatusContainer: {
+  headerSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  castStatusText: {
+  logo: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#a855f6",
+    letterSpacing: 2,
+  },
+  subtitle: {
     fontSize: 14,
+    color: "#888",
+    marginTop: 4,
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 28,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 12,
+  },
+  featuredCard: {
+    backgroundColor: "#1a1a2e",
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#a855f6",
+  },
+  featuredContent: {
+    padding: 20,
+  },
+  featuredName: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  featuredDescription: {
+    fontSize: 15,
+    color: "#aaa",
+    marginBottom: 16,
+  },
+  playButton: {
+    backgroundColor: "#a855f6",
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignSelf: "flex-start",
+  },
+  playButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  gameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#111",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  gameRowInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  gameRowName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  gameRowUrl: {
+    fontSize: 12,
     color: "#666",
+    marginTop: 4,
   },
-  webviewContainer: {
-    flex: 1,
+  playButtonSmall: {
+    backgroundColor: "#a855f6",
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
-  webview: {
+  playButtonSmallText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  sandboxHint: {
+    fontSize: 13,
+    color: "#888",
+    marginBottom: 12,
+  },
+  sandboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sandboxInput: {
     flex: 1,
+    backgroundColor: "#111",
+    borderRadius: 8,
+    padding: 14,
+    color: "#fff",
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: "#333",
+    marginRight: 8,
+  },
+  sandboxButton: {
+    backgroundColor: "#a855f6",
+    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+  },
+  sandboxButtonDisabled: {
+    opacity: 0.4,
+  },
+  sandboxButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  settingsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#111",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  settingsLabel: {
+    fontSize: 15,
+    color: "#fff",
+  },
+  settingsValue: {
+    fontSize: 14,
+    color: "#888",
   },
 });

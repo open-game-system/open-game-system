@@ -57,5 +57,11 @@ export default function RootLayout() {
     };
   }, [ogsDeviceId]);
 
-  return <Stack />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="game" />
+      <Stack.Screen name="[...unmatched]" />
+    </Stack>
+  );
 }
