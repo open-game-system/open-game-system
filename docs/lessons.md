@@ -27,6 +27,9 @@ Persistent project knowledge. Review at the start of each task.
 - **Cast-kit standalone bridge was a mistake**: Building a separate bridge (WebViewBridge, HttpBridge) duplicated app-bridge and caused architecture mismatch in trivia-jam. Casting state is just another app-bridge store. Follow the notification-kit pattern.
 - **TV rendering: stream-kit, not browser-on-TV**: Chromecast's built-in browser is slow and limited. Server-side rendering via stream-kit + WebRTC video streaming gives consistent quality. The TV receiver is just a `<video>` element.
 - **SDK components should be headless**: Styled components (CastButton, etc.) belong in the consuming app, not the SDK. SDKs export hooks and types; apps compose the UI.
+- **Cloudflare Containers: can't add to existing Worker**: Deploying a Worker with `containers` config creates a container image registry tied to that Worker name. If the registry wasn't created with the Worker originally, it won't auto-create later — even after deleting and recreating the Worker. The DO metadata also persists across Worker deletion and requires explicit `deleted_classes` migration. Keep containers on their own Worker until Cloudflare fixes this.
+- **Cloudflare DO metadata survives Worker deletion**: `wrangler delete` removes the script but not the Durable Object class registry. Redeploying without the DO class requires a `deleted_classes` migration in wrangler.toml. Once the migration runs, the entries can be removed.
+- **OrbStack Docker can't push to Cloudflare container registry**: Local deploys with OrbStack fail at the registry push step. CI (standard Docker) works fine. Use CI for container deployments.
 
 ## Testing
 
