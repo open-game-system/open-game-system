@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 const previewUrl = process.env.E2E_API_PREVIEW_URL;
-const apiKey = process.env.E2E_API_KEY || "test-api-key";
+const apiKey = process.env.E2E_API_KEY;
 
-test.describe("Cast API E2E", () => {
+test.describe("Cast API E2E — no auth required", () => {
   test.skip(
     !previewUrl,
     "E2E_API_PREVIEW_URL is required for preview API tests"
@@ -35,10 +35,35 @@ test.describe("Cast API E2E", () => {
     expect(body.error.code).toBe("invalid_api_key");
   });
 
+  test("rejects GET session without auth", async ({ request }) => {
+    const res = await request.get(`${previewUrl}/api/v1/cast/sessions/any-id`);
+    expect(res.status()).toBe(401);
+  });
+
+  test("rejects DELETE session without auth", async ({ request }) => {
+    const res = await request.delete(`${previewUrl}/api/v1/cast/sessions/any-id`);
+    expect(res.status()).toBe(401);
+  });
+
+  test("rejects state push without auth", async ({ request }) => {
+    const res = await request.post(
+      `${previewUrl}/api/v1/cast/sessions/any-id/state`,
+      { data: { state: { round: 1 } } }
+    );
+    expect(res.status()).toBe(401);
+  });
+});
+
+test.describe("Cast API E2E — with auth", () => {
+  test.skip(
+    !previewUrl || !apiKey,
+    "E2E_API_PREVIEW_URL and E2E_API_KEY are required"
+  );
+
   test("rejects cast session with missing fields", async ({ request }) => {
     const res = await request.post(`${previewUrl}/api/v1/cast/sessions`, {
       headers: { Authorization: `Bearer ${apiKey}` },
-      data: { deviceId: "tv-1" }, // missing viewUrl
+      data: { deviceId: "tv-1" },
     });
     expect(res.status()).toBe(400);
     const body = await res.json();
