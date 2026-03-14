@@ -76,6 +76,9 @@ const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event)
     case "START_CASTING":
       draft.session.status = "connecting";
       draft.session.deviceId = event.deviceId;
+      draft.session.deviceName = null;
+      draft.session.sessionId = null;
+      draft.session.streamSessionId = null;
       draft.error = null;
       break;
 

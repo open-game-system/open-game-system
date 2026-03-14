@@ -28,7 +28,9 @@ function extractTomlValue(content, key) {
   return match ? match[1] : null;
 }
 
-const main = extractTomlValue(wranglerContent, "main") || "src/index.ts";
+// main path must be relative to the config file location (.wrangler/)
+const mainFromToml = extractTomlValue(wranglerContent, "main") || "src/index.ts";
+const main = `../${mainFromToml}`;
 const compatDate =
   extractTomlValue(wranglerContent, "compatibility_date") || "2024-12-01";
 const accountId = extractTomlValue(wranglerContent, "account_id") || "";

@@ -284,7 +284,7 @@ describe("Notifications endpoint", () => {
 
     // Verify DELETE was called
     const deleteCalls = (env.DB.prepare as ReturnType<typeof vi.fn>).mock.calls
-      .filter(([sql]: [string]) => sql.includes("DELETE"));
+      .filter((args: unknown[]) => typeof args[0] === "string" && args[0].includes("DELETE"));
     expect(deleteCalls.length).toBe(1);
   });
 });

@@ -2,5 +2,11 @@
   "name": "cast-receiver",
   "version": "0.0.0",
   "private": true,
-  "description": "Minimal WebRTC receiver page for OGS TV casting"
+  "description": "Minimal WebRTC receiver page for OGS TV casting",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
 }

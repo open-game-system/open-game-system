@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { renderHook, act } from '@testing-library/react';
-import { CastProvider, useCastState, useCastSession, useCastDevices, useCastAvailable, useCastDispatch } from './index';
+import { CastProvider, useCastState, useCastSession, useCastDevices, useCastAvailable, useCastDispatch, CastButton, DeviceList, CastStatus } from './index';
 import { CAST_INITIAL_STATE, _resetBridge, getCastBridge } from '@open-game-system/cast-kit-core';
 
 function initCastStore(data: object) {
@@ -182,6 +182,186 @@ describe('Cast-Kit React Hooks', () => {
       const { result } = renderHook(() => useCastAvailable(), { wrapper });
 
       expect(result.current).toBe(true);
+    });
+  });
+
+  describe('CastButton (render prop)', () => {
+    it('renders nothing when not available', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const renderFn = vi.fn(() => null);
+      const { container } = render(
+        <CastProvider>
+          <CastButton>{renderFn}</CastButton>
+        </CastProvider>
+      );
+
+      expect(renderFn).not.toHaveBeenCalled();
+      expect(container.innerHTML).toBe('');
+    });
+
+    it('calls render prop with disconnected state when devices available', () => {
+      initCastStore({
+        ...CAST_INITIAL_STATE,
+        isAvailable: true,
+        devices: [{ id: 'tv-1', name: 'TV 1', type: 'chromecast' }],
+      });
+
+      const renderFn = vi.fn(() => <button>Cast</button>);
+      render(
+        <CastProvider>
+          <CastButton>{renderFn}</CastButton>
+        </CastProvider>
+      );
+
+      expect(renderFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'disconnected',
+          deviceCount: 1,
+          deviceName: null,
+          error: null,
+        }),
+        expect.objectContaining({
+          startCasting: expect.any(Function),
+          stopCasting: expect.any(Function),
+          showPicker: expect.any(Function),
+        })
+      );
+    });
+
+    it('calls render prop with connected state', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const renderFn = vi.fn(() => <span>Connected</span>);
+      render(
+        <CastProvider>
+          <CastButton>{renderFn}</CastButton>
+        </CastProvider>
+      );
+
+      expect(renderFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'connected',
+          deviceName: 'Living Room TV',
+        }),
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('DeviceList (render prop)', () => {
+    it('calls render prop with devices and onSelect', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const renderFn = vi.fn(() => <ul />);
+      render(
+        <CastProvider>
+          <DeviceList>{renderFn}</DeviceList>
+        </CastProvider>
+      );
+
+      expect(renderFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          devices: expect.arrayContaining([
+            expect.objectContaining({ id: 'tv-1', name: 'Living Room TV' }),
+            expect.objectContaining({ id: 'tv-2', name: 'Bedroom TV' }),
+          ]),
+          connectedDeviceId: 'tv-1',
+        }),
+        expect.objectContaining({
+          selectDevice: expect.any(Function),
+        })
+      );
+    });
+
+    it('renders nothing when no devices available', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const renderFn = vi.fn(() => null);
+      render(
+        <CastProvider>
+          <DeviceList>{renderFn}</DeviceList>
+        </CastProvider>
+      );
+
+      // No devices = don't call render prop
+      expect(renderFn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('CastStatus (render prop)', () => {
+    it('renders nothing when disconnected', () => {
+      initCastStore(CAST_INITIAL_STATE);
+
+      const renderFn = vi.fn(() => null);
+      render(
+        <CastProvider>
+          <CastStatus>{renderFn}</CastStatus>
+        </CastProvider>
+      );
+
+      expect(renderFn).not.toHaveBeenCalled();
+    });
+
+    it('calls render prop with connecting state', () => {
+      initCastStore({
+        ...CAST_INITIAL_STATE,
+        isAvailable: true,
+        session: { ...CAST_INITIAL_STATE.session, status: 'connecting', deviceId: 'tv-1' },
+      });
+
+      const renderFn = vi.fn(() => <span>Connecting...</span>);
+      render(
+        <CastProvider>
+          <CastStatus>{renderFn}</CastStatus>
+        </CastProvider>
+      );
+
+      expect(renderFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'connecting',
+          deviceName: null,
+          error: null,
+        })
+      );
+    });
+
+    it('calls render prop with connected state and device name', () => {
+      initCastStore(CONNECTED_STATE);
+
+      const renderFn = vi.fn(() => <span>Casting to TV</span>);
+      render(
+        <CastProvider>
+          <CastStatus>{renderFn}</CastStatus>
+        </CastProvider>
+      );
+
+      expect(renderFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'connected',
+          deviceName: 'Living Room TV',
+        })
+      );
+    });
+
+    it('calls render prop with error', () => {
+      initCastStore({
+        ...CONNECTED_STATE,
+        error: 'Stream ended unexpectedly',
+      });
+
+      const renderFn = vi.fn(() => <span>Error</span>);
+      render(
+        <CastProvider>
+          <CastStatus>{renderFn}</CastStatus>
+        </CastProvider>
+      );
+
+      expect(renderFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'Stream ended unexpectedly',
+        })
+      );
     });
   });
 

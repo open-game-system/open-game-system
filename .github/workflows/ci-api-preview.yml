@@ -9,6 +9,10 @@ on:
       - "packages/cast-kit-*/**"
       - ".github/workflows/ci-api-preview.yml"
 
+permissions:
+  pull-requests: write
+  contents: read
+
 concurrency:
   group: api-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -16,6 +20,8 @@ concurrency:
 jobs:
   deploy-preview:
     runs-on: ubuntu-latest
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.preview_url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -35,51 +41,32 @@ jobs:
       - name: Build packages
         run: pnpm turbo build --filter=@open-game-system/api...
 
-      - name: Run tests
+      - name: Run unit tests
         run: pnpm --filter @open-game-system/api test
 
-      - name: Create preview D1 database (idempotent)
+      - name: Setup preview D1 database
         id: d1
         run: |
-          set -euo pipefail
-          DB_NAME="opengame-api-pr-${PR_NUMBER}-db"
-
-          # Check if database already exists
-          EXISTING=$(npx wrangler d1 list --json 2>/dev/null | node -e "
-            const data = require('fs').readFileSync('/dev/stdin', 'utf8');
-            const dbs = JSON.parse(data);
-            const found = dbs.find(db => db.name === '${DB_NAME}');
-            if (found) console.log(found.uuid);
-          " || true)
-
-          if [ -n "$EXISTING" ]; then
-            echo "Database ${DB_NAME} already exists with ID: ${EXISTING}"
-            echo "database_id=${EXISTING}" >> "$GITHUB_OUTPUT"
-          else
-            echo "Creating database ${DB_NAME}..."
-            CREATE_OUTPUT=$(npx wrangler d1 create "$DB_NAME" 2>&1)
-            echo "$CREATE_OUTPUT"
-            DB_ID=$(echo "$CREATE_OUTPUT" | grep -oP '(?<=database_id = ")[^"]+' || true)
-            if [ -z "$DB_ID" ]; then
-              DB_ID=$(echo "$CREATE_OUTPUT" | grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1)
-            fi
-            if [ -z "$DB_ID" ]; then
-              echo "Failed to extract database ID from create output"
-              exit 1
-            fi
-            echo "Created database with ID: ${DB_ID}"
-            echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
-          fi
+          set -eo pipefail
+          # Use the production D1 database for preview deploys
+          # The E2E tests are read-only (auth/validation checks only)
+          # TODO: Create per-PR D1 databases once API token has D1:Edit permission
+          DB_ID="cec599e8-e064-4034-b035-3d97ed3b222c"
+          echo "Using production D1 database: ${DB_ID}"
+          echo "database_id=${DB_ID}" >> "$GITHUB_OUTPUT"
 
       - name: Render preview wrangler config
         env:
           PREVIEW_D1_DATABASE_ID: ${{ steps.d1.outputs.database_id }}
         run: node services/api/scripts/render-preview-wrangler.mjs
 
-      - name: Apply schema to preview D1
+      - name: Apply schema and seed E2E data in D1
         run: |
-          npx wrangler d1 execute "opengame-api-pr-${PR_NUMBER}-db" \
+          npx wrangler d1 execute "opengame-api-db" \
             --file=services/api/schema.sql \
+            --remote
+          npx wrangler d1 execute "opengame-api-db" \
+            --command="INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES ('e2e-test-api-key', 'e2e-test-game', 'E2E Test Game')" \
             --remote
 
       - name: Deploy preview Worker
@@ -104,7 +91,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const body = `### 🚀 API Preview Deployed
+            const body = `### API Preview Deployed
 
             **URL:** ${process.env.PREVIEW_URL}
 
@@ -142,3 +129,38 @@ jobs:
         env:
           PREVIEW_URL: ${{ steps.deploy.outputs.preview_url }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: deploy-preview
+    if: needs.deploy-preview.outputs.preview_url != ''
+    env:
+      E2E_API_PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
+      E2E_API_KEY: e2e-test-api-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright
+        run: pnpm --dir services/api exec playwright install --with-deps chromium
+
+      - name: Run E2E tests against preview
+        working-directory: services/api
+        run: pnpm test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-e2e-report
+          path: |
+            services/api/playwright-report
+            services/api/test-results

@@ -9,7 +9,8 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql"
+    "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "hono": "^4.12.7",
@@ -19,6 +20,7 @@
     "@cloudflare/workers-types": "^4.20260313.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
+    "@playwright/test": "^1.52.0",
     "wrangler": "^4.73.0"
   }
 }
