@@ -5,6 +5,33 @@
   "main": "dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.mts",
+      "import": "./dist/client/index.mjs",
+      "require": "./dist/client/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.mts",
+      "import": "./dist/react/index.mjs",
+      "require": "./dist/react/index.cjs"
+    },
+    "./mock": {
+      "types": "./dist/mock/index.d.mts",
+      "import": "./dist/mock/index.mjs",
+      "require": "./dist/mock/index.cjs"
+    },
+    "./receiver": {
+      "types": "./dist/receiver/index.d.mts",
+      "import": "./dist/receiver/index.mjs",
+      "require": "./dist/receiver/index.cjs"
+    }
+  },
   "files": [
     "dist",
     "LICENSE",

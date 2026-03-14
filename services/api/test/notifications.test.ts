@@ -1,5 +1,17 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import app from "../src/index";
+
+// Mock fetch for Expo Push API calls
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
+beforeEach(() => {
+  mockFetch.mockReset();
+  mockFetch.mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ data: [{ status: "ok", id: "expo-receipt-test" }] }),
+  });
+});
 
 function createMockEnv(apiKeyResult: unknown = null, deviceResult: unknown = null) {
   return {
