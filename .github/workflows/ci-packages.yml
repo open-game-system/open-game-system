@@ -12,8 +12,8 @@ on:
       - "packages/**"
       - ".github/workflows/ci-packages.yml"
 
-# app-bridge-react-native is excluded: React 19 types from apps/mobile conflict
-# with its React 18 peer dep. Tracked in docs/quality.md.
+# app-bridge-react-native excluded: React 19 types from apps/mobile
+# conflict with its React 18 peer dep. Tracked in docs/quality.md.
 
 jobs:
   ci-packages:
@@ -36,8 +36,5 @@ jobs:
       - name: Typecheck packages
         run: pnpm turbo run typecheck --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native" --continue || true
 
-      # Some package tests have pre-existing failures from monorepo migration
-      # (module resolution differences). Using --continue to report all results.
-      # Fix tracked in docs/quality.md per package.
       - name: Test packages
-        run: pnpm turbo run test --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native" --continue || true
+        run: pnpm turbo run test --filter="./packages/*" --filter="!@open-game-system/app-bridge-react-native"
