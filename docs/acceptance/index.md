@@ -16,6 +16,13 @@ Maintained as `.feature` files, date-named and sorted chronologically.
 | 2026-03-14 | [cast-stream-rendering.feature](2026-03-14-cast-stream-rendering.feature) | Stream-kit container lifecycle, WebRTC, rendering quality (12 scenarios) |
 | 2026-03-14 | [cast-receiver.feature](2026-03-14-cast-receiver.feature) | Minimal receiver page, WebRTC connection, display (9 scenarios) |
 | 2026-03-14 | [cast-ui-components.feature](2026-03-14-cast-ui-components.feature) | CastButton, DeviceList, CastStatus, React hooks (18 scenarios) |
+| 2026-03-15 | [ogs-app-onboarding.feature](2026-03-15-ogs-app-onboarding.feature) | 3-page onboarding flow, notifications permission, skip behavior (12 scenarios) |
+| 2026-03-15 | [ogs-app-home-screen.feature](2026-03-15-ogs-app-home-screen.feature) | Continue section, Game Directory, empty state, navigation (13 scenarios) |
+| 2026-03-15 | [ogs-app-game-detail.feature](2026-03-15-ogs-app-game-detail.feature) | Game detail screen, features display, launch flow (6 scenarios) |
+| 2026-03-15 | [ogs-app-game-screen.feature](2026-03-15-ogs-app-game-screen.feature) | Full-bleed WebView, loading, error, swipe hint, swipe back, push banner (18 scenarios) |
+| 2026-03-15 | [ogs-app-continue-lifecycle.feature](2026-03-15-ogs-app-continue-lifecycle.feature) | URL tracking, entry management, swipe-to-close, push routing, persistence (18 scenarios) |
+| 2026-03-15 | [ogs-app-settings.feature](2026-03-15-ogs-app-settings.feature) | Notification toggles, developer mode, debug overlay, custom URLs (18 scenarios) |
+| 2026-03-15 | [ogs-app-lifecycle.feature](2026-03-15-ogs-app-lifecycle.feature) | Background/foreground, force quit, memory, offline, deep links (14 scenarios) |
 
 ## Relationship to Product Specs
 
