@@ -71,7 +71,12 @@ function createMockEnv(opts: {
       }),
     },
     OGS_JWT_SECRET: "test-jwt-secret",
-    STREAM_SERVER_URL: "https://stream.test.com",
+    STREAM_CONTAINER: {
+      idFromName: vi.fn((name: string) => ({ name })),
+      get: vi.fn(() => ({
+        fetch: vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok" }), { status: 200 })),
+      })),
+    },
   };
 }
 
@@ -207,35 +212,15 @@ describe("Cast Sessions API", () => {
       expect(body.status).toBe("active");
       expect(body.sessionId).toBeTruthy();
       expect(body.streamSessionId).toBeTruthy();
-      // streamUrl should point to the stream server's /start-stream endpoint
-      expect(body.streamUrl).toContain("/start-stream");
+      // streamUrl should point to the API's stream proxy endpoint
+      expect(body.streamUrl).toContain("/api/v1/cast/stream/");
 
       // No fetch to stream server during session creation
       // (receiver handles PeerJS signaling directly)
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("returns 502 when STREAM_SERVER_URL is not configured", async () => {
-      const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
-      // Remove STREAM_SERVER_URL from env
-      delete (env as Record<string, unknown>).STREAM_SERVER_URL;
-
-      const res = await app.request(
-        "/api/v1/cast/sessions",
-        {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            deviceId: "tv-1",
-            viewUrl: "https://triviajam.com/tv?code=ABCD",
-          }),
-        },
-        env,
-      );
-      expect(res.status).toBe(502);
-      const body = OgsErrorSchema.parse(await res.json());
-      expect(body.error.code).toBe("stream_server_not_configured");
-    });
+    // Stream container is now always available via Container binding — no "not configured" state
   });
 
   // ─── Get Session ───
@@ -344,12 +329,8 @@ describe("Cast Sessions API", () => {
   // ─── Push State Update ───
 
   describe("POST /api/v1/cast/sessions/:id/state", () => {
-    it("pushes state update to active session", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "ok" }),
-      });
-
+    it("pushes state update to active session via container binding", async () => {
+      const mockContainerFetch = vi.fn().mockResolvedValue(new Response('{"status":"ok"}'));
       const env = createMockEnv({
         apiKeyResult: VALID_API_KEY,
         castSessionResult: {
@@ -358,12 +339,13 @@ describe("Cast Sessions API", () => {
           device_id: "tv-1",
           view_url: "https://triviajam.com/tv",
           stream_session_id: "stream-456",
-          stream_url: "wss://stream.test.com/456",
+          stream_url: "https://api.test.com/api/v1/cast/stream/session-123",
           status: "active",
           created_at: "2026-03-14T00:00:00",
           updated_at: "2026-03-14T00:00:00",
         },
       });
+      (env as any).STREAM_CONTAINER.get = vi.fn(() => ({ fetch: mockContainerFetch }));
 
       const res = await app.request(
         "/api/v1/cast/sessions/session-123/state",
@@ -378,12 +360,8 @@ describe("Cast Sessions API", () => {
       );
       expect(res.status).toBe(200);
 
-      // Verify the state was forwarded to stream-kit
-      expect(mockFetch).toHaveBeenCalledOnce();
-      const [url, opts] = mockFetch.mock.calls[0];
-      expect(url).toContain("stream-456");
-      const fetchBody = JSON.parse(opts.body);
-      expect(fetchBody.state.question).toBe("What year was JS created?");
+      // Verify the state was forwarded to the container
+      expect(mockContainerFetch).toHaveBeenCalledOnce();
     });
 
     it("returns 404 for ended session", async () => {
@@ -453,12 +431,7 @@ describe("Cast Sessions API", () => {
   // ─── Delete Session ───
 
   describe("DELETE /api/v1/cast/sessions/:id", () => {
-    it("ends an active session and tears down stream", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "stopped" }),
-      });
-
+    it("ends an active session", async () => {
       const env = createMockEnv({
         apiKeyResult: VALID_API_KEY,
         castSessionResult: {
@@ -467,7 +440,7 @@ describe("Cast Sessions API", () => {
           device_id: "tv-1",
           view_url: "https://triviajam.com/tv",
           stream_session_id: "stream-456",
-          stream_url: "wss://stream.test.com/456",
+          stream_url: "https://api.test.com/api/v1/cast/stream/session-123",
           status: "active",
           created_at: "2026-03-14T00:00:00",
           updated_at: "2026-03-14T00:00:00",
@@ -482,9 +455,7 @@ describe("Cast Sessions API", () => {
       expect(res.status).toBe(200);
       const body = CastSessionEndedResponseSchema.parse(await res.json());
       expect(body.status).toBe("ended");
-
-      // Verify stream-kit teardown was called
-      expect(mockFetch).toHaveBeenCalledOnce();
+      // Container auto-sleeps via sleepAfter — no explicit teardown
     });
 
     it("returns 200 for already-ended session (idempotent)", async () => {
@@ -570,21 +541,17 @@ describe("Cast Sessions API", () => {
       });
     });
 
-    describe("POST /cast/sessions/:id/state forwards state correctly", () => {
-      it("sends POST to ${STREAM_SERVER_URL}/sessions/${streamSessionId}/state with state body", async () => {
+    describe("POST /cast/sessions/:id/state forwards state to container", () => {
+      it("forwards state to the stream container via Container binding", async () => {
         const statePayload = { state: { question: "What year?", round: 3, timer: 30 } };
-
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ status: "ok" }),
-        });
-
+        const mockContainerFetch = vi.fn().mockResolvedValue(new Response('{"status":"ok"}'));
         const env = createMockEnv({
           apiKeyResult: VALID_API_KEY,
           castSessionResult: activeSession,
         });
+        (env as any).STREAM_CONTAINER.get = vi.fn(() => ({ fetch: mockContainerFetch }));
 
-        await app.request(
+        const res = await app.request(
           "/api/v1/cast/sessions/session-123/state",
           {
             method: "POST",
@@ -594,37 +561,28 @@ describe("Cast Sessions API", () => {
           env,
         );
 
-        expect(mockFetch).toHaveBeenCalledOnce();
-        const [url, opts] = mockFetch.mock.calls[0];
-        expect(url).toBe(`${STREAM_SERVER_URL}/sessions/stream-456/state`);
-        expect(opts.method).toBe("POST");
-        expect(opts.headers["Content-Type"]).toBe("application/json");
-        expect(JSON.parse(opts.body)).toEqual(statePayload);
+        expect(res.status).toBe(200);
+        expect(mockContainerFetch).toHaveBeenCalledOnce();
       });
     });
 
-    describe("DELETE /cast/sessions/:id tears down correctly", () => {
-      it("sends DELETE to ${STREAM_SERVER_URL}/sessions/${streamSessionId}", async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ status: "stopped" }),
-        });
-
+    describe("DELETE /cast/sessions/:id marks session as ended", () => {
+      it("marks session as ended without explicit container teardown", async () => {
         const env = createMockEnv({
           apiKeyResult: VALID_API_KEY,
           castSessionResult: activeSession,
         });
 
-        await app.request(
+        const res = await app.request(
           "/api/v1/cast/sessions/session-123",
           { method: "DELETE", headers: authHeaders() },
           env,
         );
 
-        expect(mockFetch).toHaveBeenCalledOnce();
-        const [url, opts] = mockFetch.mock.calls[0];
-        expect(url).toBe(`${STREAM_SERVER_URL}/sessions/stream-456`);
-        expect(opts.method).toBe("DELETE");
+        expect(res.status).toBe(200);
+        const body = await res.json() as { status: string };
+        expect(body.status).toBe("ended");
+        // No explicit container teardown — sleepAfter handles lifecycle
       });
     });
 

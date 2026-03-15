@@ -18,7 +18,6 @@ interface ScheduledDB {
 
 export interface ScheduledEnv {
   DB: ScheduledDB;
-  STREAM_SERVER_URL: string;
 }
 
 /**
@@ -63,17 +62,8 @@ export async function handleScheduled(env: ScheduledEnv): Promise<void> {
     .all<Pick<CastSessionRow, "session_id" | "stream_session_id">>();
 
   for (const session of staleIdle.results) {
-    // Tear down stream-kit container (best effort)
-    if (session.stream_session_id) {
-      try {
-        await fetch(`${env.STREAM_SERVER_URL}/sessions/${session.stream_session_id}`, {
-          method: "DELETE",
-        });
-      } catch {
-        // Best effort — session ends regardless of teardown success
-      }
-    }
-
+    // Container auto-sleeps via sleepAfter — no explicit teardown needed.
+    // Just mark the session as ended in the database.
     await env.DB.prepare(
       "UPDATE cast_sessions SET status = 'ended', updated_at = datetime('now') WHERE session_id = ?",
     )

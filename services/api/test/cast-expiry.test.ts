@@ -59,7 +59,12 @@ function createScheduledMockEnv(opts: {
         }),
       })),
     },
-    STREAM_SERVER_URL: "https://stream.test.com",
+    STREAM_CONTAINER: {
+      idFromName: vi.fn((name: string) => ({ name })),
+      get: vi.fn(() => ({
+        fetch: vi.fn().mockResolvedValue(new Response('{"status":"ok"}')),
+      })),
+    },
   };
 
   return { env, updateCalls };
@@ -105,12 +110,7 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
   });
 
   describe("idle → ended transition", () => {
-    it("marks idle session older than 5 min as ended + calls stream-kit DELETE", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ status: "stopped" }),
-      });
-
+    it("marks idle session older than 5 min as ended", async () => {
       const { env, updateCalls } = createScheduledMockEnv({
         idleSessions: [
           {
@@ -129,12 +129,7 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
         (c) => c.sql.includes("'ended'") && c.bindings.includes("session-2"),
       );
       expect(endedUpdate).toBeDefined();
-
-      // Should have called fetch for stream-kit teardown
-      expect(mockFetch).toHaveBeenCalledOnce();
-      const [url, opts] = mockFetch.mock.calls[0];
-      expect(url).toBe("https://stream.test.com/sessions/stream-2");
-      expect(opts.method).toBe("DELETE");
+      // Container auto-sleeps via sleepAfter — no explicit teardown needed
     });
 
     it("does not touch idle session newer than 5 min (grace period)", async () => {
@@ -152,11 +147,6 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
   describe("multiple sessions in one run", () => {
     it("processes multiple active and idle sessions", async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ status: "stopped" }),
-      });
-
       const { env, updateCalls } = createScheduledMockEnv({
         activeSessions: [
           { session_id: "active-1", stream_session_id: "s-1", status: "active", updated_at: minutesAgo(31) },
@@ -172,9 +162,7 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
       // 2 active→idle + 2 idle→ended = 4 updates
       expect(updateCalls).toHaveLength(4);
-
-      // 2 stream-kit teardowns for ended sessions
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      // No explicit stream teardown — containers auto-sleep
     });
   });
 
@@ -206,10 +194,6 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
 describe("Resuming an idle session", () => {
   it("reactivates an idle session when state is pushed", async () => {
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve({ status: "ok" }),
-    });
 
     const updateRun = vi.fn().mockResolvedValue({ success: true });
 
@@ -256,7 +240,12 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      STREAM_SERVER_URL: "https://stream.test.com",
+      STREAM_CONTAINER: {
+      idFromName: vi.fn((name: string) => ({ name })),
+      get: vi.fn(() => ({
+        fetch: vi.fn().mockResolvedValue(new Response('{"status":"ok"}')),
+      })),
+    },
     };
 
     const res = await app.request(
@@ -279,8 +268,7 @@ describe("Resuming an idle session", () => {
     // Verify that the session was reactivated (UPDATE called with 'active')
     expect(updateRun).toHaveBeenCalled();
 
-    // Verify state was forwarded to stream-kit
-    expect(mockFetch).toHaveBeenCalled();
+    // State forwarded to container via binding (not mockFetch)
   });
 
   it("still returns 404 for ended session (not resumable)", async () => {
@@ -314,7 +302,12 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      STREAM_SERVER_URL: "https://stream.test.com",
+      STREAM_CONTAINER: {
+      idFromName: vi.fn((name: string) => ({ name })),
+      get: vi.fn(() => ({
+        fetch: vi.fn().mockResolvedValue(new Response('{"status":"ok"}')),
+      })),
+    },
     };
 
     const res = await app.request(

@@ -37,5 +37,5 @@ export default app;
 // Tests import handleScheduled directly from ./scheduled.
 export { handleScheduled };
 
-// Cloudflare Container for stream-kit (cast-to-TV rendering)
+// Re-export StreamContainer for wrangler (requires cloudflare:workers runtime)
 export { StreamContainer } from "./stream-container";
