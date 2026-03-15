@@ -1,0 +1,97 @@
+name: CI - API E2E (Cast Streaming)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/api/**"
+      - "examples/cast-receiver/**"
+      - "examples/stream-server-demo/**"
+      - ".github/workflows/ci-api-e2e.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "services/api/**"
+      - "examples/cast-receiver/**"
+      - "examples/stream-server-demo/**"
+      - ".github/workflows/ci-api-e2e.yml"
+
+jobs:
+  cast-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Install Puppeteer's Chrome for stream server
+      - name: Install Chrome for Puppeteer
+        working-directory: examples/stream-server-demo/container
+        run: |
+          pnpm install
+          npx puppeteer browsers install chrome
+
+      # Install Playwright browsers for E2E tests
+      - name: Install Playwright
+        working-directory: services/api
+        run: npx playwright install chromium
+
+      # Start stream server in background
+      - name: Start stream server
+        working-directory: examples/stream-server-demo/container
+        run: |
+          npx tsx src/server.ts &
+          sleep 5
+          curl -s http://localhost:8080 || echo "Stream server started"
+        env:
+          DISPLAY: ":99"
+
+      # Set up virtual display for headless Chrome (stream server needs it)
+      - name: Set up Xvfb
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y xvfb
+          Xvfb :99 -screen 0 1920x1080x24 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
+      # Create local D1 database with schema
+      - name: Set up local D1
+        working-directory: services/api
+        run: |
+          echo 'JWT_SECRET="ci-jwt-secret"' > .dev.vars
+          echo 'ENVIRONMENT="ci"' >> .dev.vars
+          echo 'STREAM_SERVER_URL="http://localhost:8080"' >> .dev.vars
+          wrangler d1 execute opengame-api-db --local --file=schema.sql
+          wrangler d1 execute opengame-api-db --local --command "INSERT INTO api_keys (key, game_id, game_name) VALUES ('ci-test-key', 'test-game', 'CI Test Game')"
+
+      # Start API server in background
+      - name: Start API server
+        working-directory: services/api
+        run: |
+          wrangler dev --port 8788 --inspector-port 0 &
+          sleep 5
+          curl -s http://localhost:8788/api/v1/health
+
+      # Run E2E tests
+      - name: Run cast E2E tests
+        working-directory: services/api
+        run: npx playwright test test/e2e/cast-stream.spec.ts --reporter=list
+        env:
+          E2E_API_URL: http://localhost:8788
+          E2E_API_KEY: ci-test-key
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cast-e2e-results
+          path: services/api/test-results/
+          retention-days: 7
