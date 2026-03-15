@@ -47,8 +47,8 @@ test.describe("Cast Stream — Container Provisioning", () => {
     expect(body.streamUrl).toBeTruthy();
     expect(body.status).toBe("active");
 
-    // streamUrl should point to the stream server's start-stream endpoint
-    expect(body.streamUrl).toContain("/start-stream");
+    // streamUrl should point to the API's stream proxy
+    expect(body.streamUrl).toContain("/api/v1/cast/stream/");
   });
 
   test("stream container renders the spectate URL", async ({ request }) => {
@@ -128,20 +128,30 @@ test.describe("Cast Stream — Container Provisioning", () => {
 test.describe("Cast Stream — WebRTC Signaling", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
 
-  test("receiver connects to stream server and receives video via PeerJS", async ({
+  test("receiver connects via API proxy and receives video via PeerJS @container", async ({
     request,
     page,
   }) => {
-    // Load the receiver page pointing at the real stream server
-    const streamServerUrl = "http://localhost:8080";
+    // Create a cast session to get a stream proxy URL
+    const createRes = await request.post(`${apiUrl}/api/v1/cast/sessions`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      data: {
+        deviceId: "e2e-peerjs-test",
+        viewUrl: spectateUrl,
+      },
+    });
+    expect(createRes.status()).toBe(201);
+    const { sessionId, streamUrl } = await createRes.json();
+
+    // streamUrl is the API proxy: http://localhost:8788/api/v1/cast/stream/:sessionId
+    // The receiver uses this as its streamServerUrl
     const receiverPath = `${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html`;
-    const receiverUrl = `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
+    const receiverUrl = `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
 
     console.log("[Test] Loading receiver:", receiverUrl);
     await page.goto(receiverUrl);
 
     // Wait for the receiver to connect and display video (up to 45s)
-    // The receiver will create a PeerJS peer, call /start-stream, and wait for the call
     const gotVideo = await page.waitForFunction(
       () => {
         const video = document.querySelector("video");
@@ -152,14 +162,10 @@ test.describe("Cast Stream — WebRTC Signaling", () => {
 
     expect(gotVideo).toBe(true);
 
-    // Verify video is playing
-    if (gotVideo) {
-      const isPlaying = await page.evaluate(() => {
-        const video = document.querySelector("video");
-        return video && !video.paused && video.readyState >= 2;
-      });
-      console.log("[Test] Video playing:", isPlaying);
-    }
+    // Clean up
+    await request.delete(`${apiUrl}/api/v1/cast/sessions/${sessionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
   });
 });
 
@@ -256,7 +262,7 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     ).toBe(true);
   });
 
-  test("receiver connects to real stream and displays video", async ({
+  test("receiver connects to real stream and displays video @container", async ({
     page,
     request,
   }) => {
@@ -273,14 +279,11 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     expect(createRes.status()).toBe(201);
     const { sessionId, streamUrl } = await createRes.json();
 
-    // streamUrl is the stream server's /start-stream endpoint
-    // Extract the base URL for the receiver
-    const streamServerUrl = streamUrl.replace(/\/start-stream$/, '');
-
-    // Load receiver with stream server URL and view URL
+    // streamUrl is the API proxy URL: /api/v1/cast/stream/:sessionId
+    // The receiver uses this as its streamServerUrl
     const receiverPath = `${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html`;
     await page.goto(
-      `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
+      `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
     );
 
     // Wait for video to have srcObject (up to 45 seconds)
