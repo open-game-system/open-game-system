@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Static Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, system-ui, sans-serif;
+      background: #0d0d1a;
+      color: #e8e8ed;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    h1 { font-size: 24px; margin-bottom: 12px; }
+    p { color: #8888a0; font-size: 14px; margin-bottom: 24px; }
+    .status { font-size: 12px; color: #4ade80; }
+    a { color: #a855f6; text-decoration: none; margin: 8px 0; display: block; }
+    #cookie-status, #storage-status { font-size: 12px; color: #8888a0; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1 id="game-title">Test Static Game</h1>
+  <p>This is a test fixture for Detox e2e tests.</p>
+  <div class="status" id="bridge-status">Checking bridge...</div>
+  <a href="/page2.html">Go to Page 2</a>
+  <div id="cookie-status"></div>
+  <div id="storage-status"></div>
+
+  <script>
+    // Set a test cookie
+    document.cookie = "ogs_test=active; path=/; max-age=86400";
+    document.getElementById('cookie-status').textContent =
+      'Cookie: ' + document.cookie;
+
+    // Set localStorage
+    localStorage.setItem('ogs_test_data', JSON.stringify({ level: 1, score: 0 }));
+    document.getElementById('storage-status').textContent =
+      'Storage: ' + localStorage.getItem('ogs_test_data');
+
+    // Check if OGS bridge is available
+    if (window.__OGS_BRIDGE__) {
+      document.getElementById('bridge-status').textContent = 'Bridge: Connected';
+    } else {
+      document.getElementById('bridge-status').textContent = 'Bridge: Not available';
+    }
+  </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import {
   getRecentGames,
   type GameHistoryEntry,
@@ -44,9 +45,15 @@ export default function HomeScreen() {
     setRecentGames(games);
   }, []);
 
+  const navigation = useNavigation();
+
+  // Reload games whenever home screen becomes focused
   useEffect(() => {
-    loadRecentGames();
-  }, [loadRecentGames]);
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadRecentGames();
+    });
+    return unsubscribe;
+  }, [navigation, loadRecentGames]);
 
   // Handle pending game URLs from deep links (cold start)
   useEffect(() => {
