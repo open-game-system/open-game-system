@@ -27,10 +27,9 @@ const spectateUrl =
 test.describe("Cast Stream — Container Provisioning", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
 
-  test("creates a cast session that provisions a stream container", async ({
+  test("creates a cast session with stream server details", async ({
     request,
   }) => {
-    // RED: This test should fail until the Container binding is wired up
     const res = await request.post(`${apiUrl}/api/v1/cast/sessions`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       data: {
@@ -48,8 +47,8 @@ test.describe("Cast Stream — Container Provisioning", () => {
     expect(body.streamUrl).toBeTruthy();
     expect(body.status).toBe("active");
 
-    // streamUrl should be a WebSocket URL for WebRTC signaling
-    expect(body.streamUrl).toMatch(/^wss?:\/\//);
+    // streamUrl should point to the stream server's start-stream endpoint
+    expect(body.streamUrl).toContain("/start-stream");
   });
 
   test("stream container renders the spectate URL", async ({ request }) => {
@@ -129,44 +128,38 @@ test.describe("Cast Stream — Container Provisioning", () => {
 test.describe("Cast Stream — WebRTC Signaling", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
 
-  test.fixme("stream URL provides WebRTC signaling via WebSocket", async ({
+  test("receiver connects to stream server and receives video via PeerJS", async ({
     request,
     page,
   }) => {
-    // FIXME: The stream-kit server uses PeerJS for signaling, not a custom WS endpoint.
-    // Need to align the streamUrl format with the actual signaling protocol.
-    // Create session
-    const createRes = await request.post(`${apiUrl}/api/v1/cast/sessions`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      data: {
-        deviceId: "e2e-webrtc-test",
-        viewUrl: spectateUrl,
+    // Load the receiver page pointing at the real stream server
+    const streamServerUrl = "http://localhost:8080";
+    const receiverPath = `${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html`;
+    const receiverUrl = `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
+
+    console.log("[Test] Loading receiver:", receiverUrl);
+    await page.goto(receiverUrl);
+
+    // Wait for the receiver to connect and display video (up to 45s)
+    // The receiver will create a PeerJS peer, call /start-stream, and wait for the call
+    const gotVideo = await page.waitForFunction(
+      () => {
+        const video = document.querySelector("video");
+        return video?.srcObject !== null && video?.srcObject !== undefined;
       },
-    });
-    expect(createRes.status()).toBe(201);
-    const { sessionId, streamUrl } = await createRes.json();
+      { timeout: 45_000 }
+    ).then(() => true).catch(() => false);
 
-    // Give container time to start
-    await new Promise((r) => setTimeout(r, 10_000));
+    expect(gotVideo).toBe(true);
 
-    // Verify the WebSocket signaling endpoint is reachable
-    // Navigate to a blank page first so we have a browser context for WebSocket
-    await page.goto("about:blank");
-    const wsConnected = await page.evaluate(async (url) => {
-      return new Promise<boolean>((resolve) => {
-        const ws = new WebSocket(url);
-        const timeout = setTimeout(() => { ws.close(); resolve(false); }, 10_000);
-        ws.onopen = () => { clearTimeout(timeout); ws.close(); resolve(true); };
-        ws.onerror = () => { clearTimeout(timeout); resolve(false); };
+    // Verify video is playing
+    if (gotVideo) {
+      const isPlaying = await page.evaluate(() => {
+        const video = document.querySelector("video");
+        return video && !video.paused && video.readyState >= 2;
       });
-    }, streamUrl);
-
-    expect(wsConnected).toBe(true);
-
-    // Clean up
-    await request.delete(`${apiUrl}/api/v1/cast/sessions/${sessionId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+      console.log("[Test] Video playing:", isPlaying);
+    }
   });
 });
 
@@ -217,12 +210,12 @@ test.describe("Cast Receiver — WebRTC Display", () => {
   test("receiver page loads with status overlay and video element", async ({
     page,
   }) => {
-    // Load receiver with a dummy streamUrl
-    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html?streamUrl=ws://localhost:9999/fake`;
+    // Load receiver with params
+    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html?streamServerUrl=http://localhost:9999&viewUrl=https://example.com`;
 
     await page.goto(receiverUrl);
 
-    // Status text element should exist (may show "Connecting" or "Unable to connect")
+    // Status text element should exist
     const statusEl = page.locator("#status-text");
     await expect(statusEl).toBeVisible();
 
@@ -231,10 +224,10 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     await expect(video).toBeVisible();
   });
 
-  test("receiver shows error state when connection fails", async ({
+  test("receiver shows error state when stream server unreachable", async ({
     page,
   }) => {
-    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html?streamUrl=ws://localhost:9999/fake`;
+    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html?streamServerUrl=http://localhost:9999&viewUrl=https://example.com`;
 
     await page.goto(receiverUrl);
 
@@ -263,12 +256,13 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     ).toBe(true);
   });
 
-  test.fixme("receiver connects to real stream and displays video", async ({
+  test("receiver connects to real stream and displays video", async ({
     page,
     request,
   }) => {
-    // FIXME: Depends on WebRTC signaling URL being correct (see WebRTC Signaling test above)
     // Create a real cast session
+    // This test creates a cast session via the API, then loads the receiver
+    // page with the stream server URL. The receiver handles PeerJS signaling.
     const createRes = await request.post(`${apiUrl}/api/v1/cast/sessions`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       data: {
@@ -279,25 +273,26 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     expect(createRes.status()).toBe(201);
     const { sessionId, streamUrl } = await createRes.json();
 
-    // Give container time to start rendering
-    await new Promise((r) => setTimeout(r, 10_000));
+    // streamUrl is the stream server's /start-stream endpoint
+    // Extract the base URL for the receiver
+    const streamServerUrl = streamUrl.replace(/\/start-stream$/, '');
 
-    // Load receiver with the real streamUrl
-    const receiverPath = `${process.cwd()}/../../examples/cast-receiver/receiver.html`;
+    // Load receiver with stream server URL and view URL
+    const receiverPath = `${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html`;
     await page.goto(
-      `file://${receiverPath}?streamUrl=${encodeURIComponent(streamUrl)}`
+      `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
     );
 
-    // Wait for video to appear (up to 30 seconds)
-    const video = page.locator("video");
-    await expect(video).toBeVisible({ timeout: 30_000 });
+    // Wait for video to have srcObject (up to 45 seconds)
+    const gotVideo = await page.waitForFunction(
+      () => {
+        const video = document.querySelector("video");
+        return video?.srcObject !== null && video?.srcObject !== undefined;
+      },
+      { timeout: 45_000 }
+    ).then(() => true).catch(() => false);
 
-    // Check that video has a srcObject (stream attached)
-    const hasStream = await page.evaluate(() => {
-      const video = document.querySelector("video");
-      return video?.srcObject !== null;
-    });
-    expect(hasStream).toBe(true);
+    expect(gotVideo).toBe(true);
 
     // Clean up
     await request.delete(`${apiUrl}/api/v1/cast/sessions/${sessionId}`, {

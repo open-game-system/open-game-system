@@ -44,52 +44,20 @@ cast.post("/sessions", async (c) => {
   const gameId = c.get("gameId");
   const sessionId = crypto.randomUUID();
 
-  // Provision stream-kit container
+  // Get stream server URL for the receiver to connect to directly
   const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
-  let streamSessionId: string;
-  let streamUrl: string;
-
-  try {
-    const receiverPeerId = crypto.randomUUID();
-    const streamRes = await fetch(`${streamServerUrl}/start-stream`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: viewUrl,
-        peerId: receiverPeerId,
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      }),
-    });
-
-    if (!streamRes.ok) {
-      const errText = await streamRes.text().catch(() => "");
-      return c.json(
-        { error: { code: "stream_provisioning_failed", message: `Failed to provision stream container: ${errText}`, status: 502 } },
-        502,
-      );
-    }
-
-    const streamData = (await streamRes.json()) as {
-      status?: string;
-      srcPeerId?: string;
-      browserWSEndpoint?: string;
-    };
-    if (streamData.status !== "success" || !streamData.srcPeerId) {
-      return c.json(
-        { error: { code: "stream_provisioning_failed", message: "Invalid response from stream server", status: 502 } },
-        502,
-      );
-    }
-    streamSessionId = streamData.srcPeerId;
-    // Construct WebSocket signaling URL from stream server
-    const wsBase = streamServerUrl.replace(/^http/, "ws");
-    streamUrl = `${wsBase}/stream/${streamSessionId}/ws`;
-  } catch (err) {
+  if (!streamServerUrl) {
     return c.json(
-      { error: { code: "stream_provisioning_failed", message: `Failed to reach stream server: ${err instanceof Error ? err.message : "unknown"}`, status: 502 } },
+      { error: { code: "stream_server_not_configured", message: "Stream server URL is not configured", status: 502 } },
       502,
     );
   }
+
+  // The receiver will provision the stream container directly via PeerJS.
+  // The cast session just records the intent and provides the receiver with
+  // the stream server URL and view URL to render.
+  const streamSessionId = sessionId; // Use same ID for simplicity
+  const streamUrl = `${streamServerUrl}/start-stream`;
 
   // Persist session
   await c.env.DB.prepare(
