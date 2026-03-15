@@ -85,6 +85,7 @@ jobs:
         env:
           E2E_API_URL: http://localhost:8788
           E2E_API_KEY: ci-test-key
+          E2E_STREAM_SERVER_URL: http://localhost:8080
 
       - name: Upload test results
         if: always()
