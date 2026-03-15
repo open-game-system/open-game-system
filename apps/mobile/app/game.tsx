@@ -50,7 +50,7 @@ export default function GameScreen() {
   const defaultSource = useMemo(
     () =>
       Platform.select({
-        ios: { uri: "http://localhost:8787" },
+        ios: { uri: "http://Jonathans-MacBook-Pro.local:3000" },
         android: { uri: "http://10.0.2.2:8787" },
         default: { uri: "http://localhost:8787" },
       }),
@@ -171,6 +171,7 @@ export default function GameScreen() {
               domStorageEnabled={true}
               startInLoadingState={true}
               scalesPageToFit={true}
+              webviewDebuggingEnabled={true}
             />
           </View>
         </CastContext.StoreProvider>

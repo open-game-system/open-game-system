@@ -22,7 +22,7 @@ import {
 
 const FEATURED_GAMES = [
   {
-    url: "https://triviajam.tv",
+    url: "https://dev.triviajam.tv",
     name: "Trivia Jam",
     description: "Real-time multiplayer trivia with friends",
     featured: true,

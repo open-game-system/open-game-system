@@ -40,3 +40,4 @@ app-example
 # Stryker mutation testing
 .stryker-tmp/
 reports/
+*.ipa

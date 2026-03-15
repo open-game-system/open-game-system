@@ -14,7 +14,9 @@
     "test:ci": "jest --ci --coverage --coverageReporters=json-summary --coverageReporters=text",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test:mutate": "npx stryker run"
+    "test:mutate": "npx stryker run",
+    "build:preview:ios": "eas build --profile preview --platform ios --local --non-interactive",
+    "build:dev:ios": "eas build --profile development --platform ios --local --non-interactive"
   },
   "jest": {
     "preset": "jest-expo",

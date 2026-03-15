@@ -93,12 +93,12 @@ export function createWebBridge<
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: "BRIDGE_READY" }));
 
     const messageHandler = (event: MessageEvent) => {
-      // console.log("[Web Bridge] Received raw message event:", event); // Log raw event
+      console.log("[Web Bridge] Received raw message event:", event);
       try {
         const message = JSON.parse(event.data) as NativeToWebMessage;
-        // console.log("[Web Bridge] Parsed message data:", message); // Log parsed message
+        console.log("[Web Bridge] Parsed message data:", message);
         if (message.type === "STATE_INIT") {
-          // console.log(`[Web Bridge] Handling STATE_INIT for store '${String(message.storeKey)}'`, message.data); // Log init handling
+          console.log(`[Web Bridge] Handling STATE_INIT for store '${String(message.storeKey)}'`, message.data);
           if (message.data === null) {
             // Remove state when receiving null data
             stateByStore.delete(message.storeKey as keyof TStores);
@@ -126,7 +126,7 @@ export function createWebBridge<
                 message.storeKey as keyof TStores,
                 result.newDocument
               );
-              // console.log(`[Web Bridge] State updated for store '${String(message.storeKey)}' via patch:`, result.newDocument); // Log state after patch
+              console.log(`[Web Bridge] State updated for store '${String(message.storeKey)}' via patch:`, result.newDocument);
               notifyStateListeners(message.storeKey as keyof TStores);
             }
           }
