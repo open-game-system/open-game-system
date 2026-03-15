@@ -50,31 +50,43 @@ cast.post("/sessions", async (c) => {
   let streamUrl: string;
 
   try {
+    const receiverPeerId = crypto.randomUUID();
     const streamRes = await fetch(`${streamServerUrl}/start-stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: viewUrl }),
+      body: JSON.stringify({
+        url: viewUrl,
+        peerId: receiverPeerId,
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      }),
     });
 
     if (!streamRes.ok) {
+      const errText = await streamRes.text().catch(() => "");
       return c.json(
-        { error: { code: "stream_provisioning_failed", message: "Failed to provision stream container", status: 502 } },
+        { error: { code: "stream_provisioning_failed", message: `Failed to provision stream container: ${errText}`, status: 502 } },
         502,
       );
     }
 
-    const streamData = (await streamRes.json()) as { sessionId?: string; streamUrl?: string };
-    if (!streamData.sessionId || !streamData.streamUrl) {
+    const streamData = (await streamRes.json()) as {
+      status?: string;
+      srcPeerId?: string;
+      browserWSEndpoint?: string;
+    };
+    if (streamData.status !== "success" || !streamData.srcPeerId) {
       return c.json(
         { error: { code: "stream_provisioning_failed", message: "Invalid response from stream server", status: 502 } },
         502,
       );
     }
-    streamSessionId = streamData.sessionId;
-    streamUrl = streamData.streamUrl;
-  } catch {
+    streamSessionId = streamData.srcPeerId;
+    // Construct WebSocket signaling URL from stream server
+    const wsBase = streamServerUrl.replace(/^http/, "ws");
+    streamUrl = `${wsBase}/stream/${streamSessionId}/ws`;
+  } catch (err) {
     return c.json(
-      { error: { code: "stream_provisioning_failed", message: "Failed to reach stream server", status: 502 } },
+      { error: { code: "stream_provisioning_failed", message: `Failed to reach stream server: ${err instanceof Error ? err.message : "unknown"}`, status: 502 } },
       502,
     );
   }
