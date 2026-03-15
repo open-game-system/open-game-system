@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import {
@@ -11,9 +11,34 @@ import {
   addDeepLinkListener,
 } from "../services/deep-links";
 import { setGameUrl } from "../services/game-url-store";
+import { isOnboardingComplete } from "../services/onboarding";
 
 export default function RootLayout() {
   const [ogsDeviceId, setOgsDeviceId] = useState<string | null>(null);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Check onboarding state
+  useEffect(() => {
+    isOnboardingComplete().then((complete) => {
+      setNeedsOnboarding(!complete);
+      setOnboardingChecked(true);
+    });
+  }, []);
+
+  // Redirect to onboarding if needed (only on initial check)
+  useEffect(() => {
+    if (!onboardingChecked) return;
+
+    if (needsOnboarding) {
+      router.replace('/onboarding');
+    }
+    // Only run once after initial check — onboarding screen handles its own
+    // navigation back to '/' after completion via markOnboardingComplete()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboardingChecked]);
 
   // Initialize push notifications and get device ID
   useEffect(() => {
@@ -59,6 +84,7 @@ export default function RootLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
       <Stack.Screen name="index" />
       <Stack.Screen name="game" />
       <Stack.Screen name="[...unmatched]" />

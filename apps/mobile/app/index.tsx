@@ -75,14 +75,14 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="homeScreen">
       <StatusBar style="light" />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <View style={styles.headerSection}>
+        <View style={styles.headerSection} testID="headerLogo">
           <Text style={styles.logo}>OGS</Text>
           <Text style={styles.subtitle}>Open Game System</Text>
         </View>
