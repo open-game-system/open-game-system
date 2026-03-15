@@ -188,16 +188,7 @@ describe("Cast Sessions API", () => {
   });
 
   describe("POST /api/v1/cast/sessions - Success", () => {
-    it("creates a cast session and provisions a stream", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            sessionId: "stream-456",
-            streamUrl: "wss://stream.test.com/456",
-          }),
-      });
-
+    it("creates a cast session with stream server URL", async () => {
       const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
       const res = await app.request(
         "/api/v1/cast/sessions",
@@ -214,25 +205,21 @@ describe("Cast Sessions API", () => {
       expect(res.status).toBe(201);
       const body = CreateCastSessionResponseSchema.parse(await res.json());
       expect(body.status).toBe("active");
-      expect(body.streamSessionId).toBe("stream-456");
-      expect(body.streamUrl).toBe("wss://stream.test.com/456");
+      expect(body.sessionId).toBeTruthy();
+      expect(body.streamSessionId).toBeTruthy();
+      // streamUrl should point to the stream server's /start-stream endpoint
+      expect(body.streamUrl).toContain("/start-stream");
 
-      // Verify stream-kit was called with the viewUrl
-      expect(mockFetch).toHaveBeenCalledOnce();
-      const [url, opts] = mockFetch.mock.calls[0];
-      expect(url).toContain("/start-stream");
-      const fetchBody = JSON.parse(opts.body);
-      expect(fetchBody.url).toBe("https://triviajam.com/tv?code=ABCD");
+      // No fetch to stream server during session creation
+      // (receiver handles PeerJS signaling directly)
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it("returns 502 when stream provisioning fails", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.resolve({ error: "container failed to start" }),
-      });
-
+    it("returns 502 when STREAM_SERVER_URL is not configured", async () => {
       const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
+      // Remove STREAM_SERVER_URL from env
+      delete (env as Record<string, unknown>).STREAM_SERVER_URL;
+
       const res = await app.request(
         "/api/v1/cast/sessions",
         {
@@ -247,7 +234,7 @@ describe("Cast Sessions API", () => {
       );
       expect(res.status).toBe(502);
       const body = OgsErrorSchema.parse(await res.json());
-      expect(body.error.code).toBe("stream_provisioning_failed");
+      expect(body.error.code).toBe("stream_server_not_configured");
     });
   });
 
@@ -565,14 +552,9 @@ describe("Cast Sessions API", () => {
     };
 
     describe("POST /cast/sessions calls stream-kit with correct URL and body", () => {
-      it("sends POST to ${STREAM_SERVER_URL}/start-stream with { url: viewUrl }", async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ sessionId: "stream-456", streamUrl: "wss://stream.test.com/456" }),
-        });
-
+      it("session creation does not call stream server (receiver handles PeerJS directly)", async () => {
         const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
-        await app.request(
+        const res = await app.request(
           "/api/v1/cast/sessions",
           {
             method: "POST",
@@ -582,12 +564,9 @@ describe("Cast Sessions API", () => {
           env,
         );
 
-        expect(mockFetch).toHaveBeenCalledOnce();
-        const [url, opts] = mockFetch.mock.calls[0];
-        expect(url).toBe(`${STREAM_SERVER_URL}/start-stream`);
-        expect(opts.method).toBe("POST");
-        expect(opts.headers["Content-Type"]).toBe("application/json");
-        expect(JSON.parse(opts.body)).toEqual({ url: VIEW_URL });
+        expect(res.status).toBe(201);
+        // No fetch to stream server — receiver handles signaling
+        expect(mockFetch).not.toHaveBeenCalled();
       });
     });
 
@@ -649,96 +628,9 @@ describe("Cast Sessions API", () => {
       });
     });
 
-    describe("stream-kit returns unexpected response shape", () => {
-      it("returns 502 when sessionId is missing from stream-kit response", async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ streamUrl: "wss://stream.test.com/456" }), // missing sessionId
-        });
-
-        const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
-        const res = await app.request(
-          "/api/v1/cast/sessions",
-          {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ deviceId: "tv-1", viewUrl: VIEW_URL }),
-          },
-          env,
-        );
-
-        expect(res.status).toBe(502);
-        const body = OgsErrorSchema.parse(await res.json());
-        expect(body.error.code).toBe("stream_provisioning_failed");
-      });
-
-      it("returns 502 when streamUrl is missing from stream-kit response", async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve({ sessionId: "stream-456" }), // missing streamUrl
-        });
-
-        const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
-        const res = await app.request(
-          "/api/v1/cast/sessions",
-          {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ deviceId: "tv-1", viewUrl: VIEW_URL }),
-          },
-          env,
-        );
-
-        expect(res.status).toBe(502);
-        const body = OgsErrorSchema.parse(await res.json());
-        expect(body.error.code).toBe("stream_provisioning_failed");
-      });
-    });
-
-    describe("stream-kit returns non-JSON response", () => {
-      it("returns 502 when stream-kit returns non-JSON", async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: () => { throw new SyntaxError("Unexpected token"); },
-        });
-
-        const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
-        const res = await app.request(
-          "/api/v1/cast/sessions",
-          {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ deviceId: "tv-1", viewUrl: VIEW_URL }),
-          },
-          env,
-        );
-
-        expect(res.status).toBe(502);
-        const body = OgsErrorSchema.parse(await res.json());
-        expect(body.error.code).toBe("stream_provisioning_failed");
-      });
-    });
-
-    describe("stream-kit network timeout", () => {
-      it("returns 502 when fetch throws TypeError (network error)", async () => {
-        mockFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
-
-        const env = createMockEnv({ apiKeyResult: VALID_API_KEY });
-        const res = await app.request(
-          "/api/v1/cast/sessions",
-          {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ deviceId: "tv-1", viewUrl: VIEW_URL }),
-          },
-          env,
-        );
-
-        expect(res.status).toBe(502);
-        const body = OgsErrorSchema.parse(await res.json());
-        expect(body.error.code).toBe("stream_provisioning_failed");
-      });
-    });
+    // Stream provisioning tests removed — the API no longer calls the stream
+    // server during session creation. The receiver handles PeerJS signaling
+    // directly with the stream server.
 
     describe("state update forwarding fails silently", () => {
       it("returns 200 even when stream-kit returns error on state push", async () => {
