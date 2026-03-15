@@ -131,3 +131,53 @@ Feature: OGS App Continue Lifecycle
     Given the user has games in Continue
     When the app is updated to a new version
     Then the Continue list is preserved
+
+  # --- WebView Storage Persistence ---
+
+  Scenario: Game session cookies persist across swipe-back and return
+    Given the user opens a game and the game sets a session cookie
+    When the user swipes back to home
+    And the user taps the game in Continue
+    Then the game's session cookie is still present
+    And the game does not require re-authentication
+
+  Scenario: Game localStorage persists across swipe-back and return
+    Given the user opens a game and the game writes to localStorage
+    When the user swipes back to home
+    And the user taps the game in Continue
+    Then the game's localStorage data is still present
+
+  Scenario: Cookies persist across WebView eviction and reload
+    Given the user has opened many games exceeding the memory limit
+    And a game with an active session cookie has been evicted
+    When the user taps that game in Continue and it reloads
+    Then the game's session cookie is still present
+    And the game session is maintained
+
+  Scenario: localStorage persists across WebView eviction and reload
+    Given the user has opened many games exceeding the memory limit
+    And a game with localStorage data has been evicted
+    When the user taps that game in Continue and it reloads
+    Then the game's localStorage data is still present
+
+  Scenario: Cookies persist across app force-quit and relaunch
+    Given the user is playing a game with an active session cookie
+    When the user force-quits and relaunches the app
+    And the user taps the game in Continue
+    Then the game's session cookie is still present
+
+  Scenario: localStorage persists across app force-quit and relaunch
+    Given the user is playing a game with localStorage data
+    When the user force-quits and relaunches the app
+    And the user taps the game in Continue
+    Then the game's localStorage data is still present
+
+  Scenario: Cookies are isolated between different game origins
+    Given the user has played a game at "https://game-a.com" that set a cookie
+    And the user has played a game at "https://game-b.com"
+    Then "https://game-b.com" cannot read cookies set by "https://game-a.com"
+
+  Scenario: All games share one WebView process pool for cookie persistence
+    Given the user opens a game and the game sets a session cookie
+    When the WebView is destroyed and a new WebView is created for the same game
+    Then the cookie is still available because all WebViews share the same process pool
