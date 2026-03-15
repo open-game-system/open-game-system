@@ -4,7 +4,6 @@ compatibility_date = "2024-12-01"
 account_id = "ccf4d9a0a3b76ffae0b6ee048de66f07"
 
 [vars]
-# STREAM_SERVER_URL is set per-environment (preview/production) in .dev.vars or via wrangler secret
 
 [triggers]
 crons = ["*/5 * * * *"]
@@ -13,3 +12,17 @@ crons = ["*/5 * * * *"]
 binding = "DB"
 database_name = "opengame-api-db"
 database_id = "cec599e8-e064-4034-b035-3d97ed3b222c"
+
+# Stream container for cast-to-TV rendering
+[[containers]]
+class_name = "StreamContainer"
+image = "../../examples/stream-server-demo/container/Dockerfile"
+max_instances = 5
+
+[[durable_objects.bindings]]
+class_name = "StreamContainer"
+name = "STREAM_CONTAINER"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["StreamContainer"]

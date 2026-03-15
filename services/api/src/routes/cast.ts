@@ -44,20 +44,11 @@ cast.post("/sessions", async (c) => {
   const gameId = c.get("gameId");
   const sessionId = crypto.randomUUID();
 
-  // Get stream server URL for the receiver to connect to directly
-  const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
-  if (!streamServerUrl) {
-    return c.json(
-      { error: { code: "stream_server_not_configured", message: "Stream server URL is not configured", status: 502 } },
-      502,
-    );
-  }
-
-  // The receiver will provision the stream container directly via PeerJS.
-  // The cast session just records the intent and provides the receiver with
-  // the stream server URL and view URL to render.
-  const streamSessionId = sessionId; // Use same ID for simplicity
-  const streamUrl = `${streamServerUrl}/start-stream`;
+  // The receiver proxies through the API to reach the stream container.
+  // Each cast session gets its own container instance (keyed by sessionId).
+  const streamSessionId = sessionId;
+  const apiOrigin = new URL(c.req.url).origin;
+  const streamUrl = `${apiOrigin}/api/v1/cast/stream/${sessionId}`;
 
   // Persist session
   await c.env.DB.prepare(
@@ -154,10 +145,12 @@ cast.post("/sessions/:id/state", async (c) => {
       .run();
   }
 
-  // Forward state to stream-kit container (best effort — don't break the response)
-  const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
+  // Forward state to stream container (best effort)
   try {
-    await fetch(`${streamServerUrl}/sessions/${session.stream_session_id}/state`, {
+    const container = c.env.STREAM_CONTAINER.get(
+      c.env.STREAM_CONTAINER.idFromName(session.stream_session_id!)
+    );
+    await container.fetch("http://container/state", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed.data),
@@ -195,15 +188,8 @@ cast.delete("/sessions/:id", async (c) => {
     return c.json({ status: "ended" as const });
   }
 
-  // Tear down stream-kit container
-  const streamServerUrl = (c.env as Env & { STREAM_SERVER_URL?: string }).STREAM_SERVER_URL;
-  if (session.stream_session_id) {
-    await fetch(`${streamServerUrl}/sessions/${session.stream_session_id}`, {
-      method: "DELETE",
-    }).catch(() => {
-      // Best effort teardown — session is ending regardless
-    });
-  }
+  // The container will auto-sleep via sleepAfter config.
+  // No explicit teardown needed — the Container class handles lifecycle.
 
   // Mark session as ended
   await c.env.DB.prepare(
@@ -213,6 +199,39 @@ cast.delete("/sessions/:id", async (c) => {
     .run();
 
   return c.json({ status: "ended" as const });
+});
+
+/**
+ * ALL /api/v1/cast/stream/:sessionId/*
+ * Proxies requests from the cast receiver to the stream container.
+ * The receiver calls /start-stream, /ice-servers, etc. through this proxy.
+ * No API key required — the receiver on Chromecast doesn't have one.
+ */
+cast.all("/stream/:sessionId/*", async (c) => {
+  const sessionId = c.req.param("sessionId");
+  const containerBinding = c.env.STREAM_CONTAINER;
+
+  if (!containerBinding) {
+    return c.json(
+      { error: { code: "stream_not_configured", message: "Stream container not configured", status: 502 } },
+      502,
+    );
+  }
+
+  // Get or create a container instance for this session
+  const container = containerBinding.get(containerBinding.idFromName(sessionId));
+
+  // Forward the request to the container, stripping the proxy prefix
+  const originalUrl = new URL(c.req.url);
+  const proxyPath = originalUrl.pathname.replace(`/api/v1/cast/stream/${sessionId}`, "");
+  const containerUrl = new URL(proxyPath || "/", "http://container");
+  containerUrl.search = originalUrl.search;
+
+  return container.fetch(containerUrl.toString(), {
+    method: c.req.method,
+    headers: c.req.raw.headers,
+    body: c.req.method !== "GET" && c.req.method !== "HEAD" ? c.req.raw.body : undefined,
+  });
 });
 
 export default cast;

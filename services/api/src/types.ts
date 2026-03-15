@@ -1,7 +1,9 @@
+import type { StreamContainer } from "./stream-container";
+
 export interface Env {
   DB: D1Database;
   OGS_JWT_SECRET: string;
-  STREAM_SERVER_URL: string;
+  STREAM_CONTAINER: DurableObjectNamespace<StreamContainer>;
 }
 
 export interface DeviceRow {

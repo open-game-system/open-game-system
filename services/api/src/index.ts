@@ -24,8 +24,10 @@ app.route("/api/v1/devices", devices);
 app.use("/api/v1/notifications/*", apiKeyAuth);
 app.route("/api/v1/notifications", notifications);
 
-// Cast sessions (API key required - called by native app)
-app.use("/api/v1/cast/*", apiKeyAuth);
+// Cast sessions (API key required for session management, not for stream proxy)
+app.use("/api/v1/cast/sessions/*", apiKeyAuth);
+app.use("/api/v1/cast/sessions", apiKeyAuth);
+// /api/v1/cast/stream/* is unauthenticated (called by Chromecast receiver)
 app.route("/api/v1/cast", cast);
 
 export default app;
@@ -34,3 +36,6 @@ export default app;
 // In production, wrangler.toml wires this via the module's `scheduled` export.
 // Tests import handleScheduled directly from ./scheduled.
 export { handleScheduled };
+
+// Cloudflare Container for stream-kit (cast-to-TV rendering)
+export { StreamContainer } from "./stream-container";
