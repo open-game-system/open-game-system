@@ -149,7 +149,7 @@ export default function GameScreen() {
 
   return (
     <BridgeContext.BridgeProvider bridge={bridge}>
-      <View style={styles.container}>
+      <View style={styles.container} testID="gameScreen">
         <StatusBar style="light" />
         <View style={styles.header}>
           <TouchableOpacity
