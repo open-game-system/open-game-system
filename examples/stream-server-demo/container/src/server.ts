@@ -1113,7 +1113,7 @@ const server = http.createServer(async (req: any, res: any) => {
   }
 });
 
-const PORT = 8080;
+const PORT = parseInt(process.env.PORT || '8080', 10);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Container server running at http://0.0.0.0:${PORT}`);
 });
