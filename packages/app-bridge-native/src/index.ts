@@ -174,18 +174,23 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
       return;
     }
 
+    console.log("[Native Bridge] Received message:", parsedData.type);
     switch (parsedData.type) {
       case "BRIDGE_READY": {
+        console.log("[Native Bridge] BRIDGE_READY received. Registered stores:", Array.from(stores.keys()));
         const targetWebViews = sourceWebView ? [sourceWebView] : Array.from(webViews);
+        console.log("[Native Bridge] Sending STATE_INIT to", targetWebViews.length, "webview(s)");
         targetWebViews.forEach(webView => {
             if (!webView) return;
             readyWebViews.add(webView);
             notifyReadyStateListeners(webView, true);
             stores.forEach((store, key) => {
+                const snapshot = store.getSnapshot();
+                console.log(`[Native Bridge] Sending STATE_INIT for store '${String(key)}':`, JSON.stringify(snapshot));
                 const initMessage = JSON.stringify({
                     type: "STATE_INIT",
                     storeKey: key,
-                    data: store.getSnapshot(),
+                    data: snapshot,
                 });
                 if (webView.postMessage) webView.postMessage(initMessage);
             });
@@ -194,6 +199,7 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
       }
       case "EVENT": {
         const { storeKey, event } = parsedData;
+        console.log(`[Native Bridge] EVENT for store '${storeKey}':`, JSON.stringify(event));
         const store = stores.get(storeKey as keyof TStores) as Store<any, typeof event> | undefined;
         if (store) {
           store.dispatch(event);

@@ -31,9 +31,11 @@ import {
 import { addRecentGame } from "../services/game-history";
 
 // Create the bridge and cast store
+console.log("[GameScreen] Creating native bridge and cast store");
 const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
 const castStore = createCastStore();
 bridge.setStore("cast", castStore);
+console.log("[GameScreen] Bridge created, cast store set. Initial state:", JSON.stringify(castStore.getSnapshot()));
 
 // Create context
 const BridgeContext = createNativeBridgeContext<CastStores>();
@@ -108,7 +110,9 @@ export default function GameScreen() {
       castDevices.some((d, i) => d.id !== currentDevices[i]?.id);
 
     if (devicesChanged) {
+      console.log("[GameScreen] Devices changed:", JSON.stringify(castDevices));
       castStore.dispatch({ type: "DEVICES_UPDATED", devices: castDevices });
+      console.log("[GameScreen] Cast store state after device update:", JSON.stringify(castStore.getSnapshot()));
     }
   }, [devices]);
 
