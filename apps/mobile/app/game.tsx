@@ -77,7 +77,11 @@ export default function GameScreen() {
   // Record this game in history
   useEffect(() => {
     const url = webviewSource.uri;
-    if (url && !url.includes("localhost") && !url.includes("10.0.2.2")) {
+    const isLocalDev =
+      url.includes("localhost") ||
+      url.includes("10.0.2.2") ||
+      url.includes(".local:");
+    if (url && !isLocalDev) {
       addRecentGame(url, gameName);
     }
   }, [webviewSource.uri, gameName]);
