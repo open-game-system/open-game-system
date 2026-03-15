@@ -4,8 +4,8 @@ describe('Onboarding', () => {
   beforeEach(async () => {
     await device.launchApp({
       newInstance: true,
-      delete: true, // Fresh install state
-      permissions: { notifications: 'unset' },
+      delete: true,
+      permissions: { notifications: 'YES' },
     });
   });
 

@@ -86,7 +86,9 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
       <Stack.Screen name="index" />
+      <Stack.Screen name="game-detail" />
       <Stack.Screen name="game" />
+      <Stack.Screen name="settings" />
       <Stack.Screen name="[...unmatched]" />
     </Stack>
   );
