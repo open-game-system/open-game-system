@@ -1104,6 +1104,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@cloudflare/vitest-pool-workers':
+        specifier: ^0.13.0
+        version: 0.13.0(@cloudflare/workers-types@4.20260313.1)(@vitest/runner@4.1.0)(@vitest/snapshot@4.1.0)(vitest@4.1.0)
       '@cloudflare/workers-types':
         specifier: ^4.20260313.1
         version: 4.20260313.1
@@ -1745,6 +1748,13 @@ packages:
     peerDependenciesMeta:
       workerd:
         optional: true
+
+  '@cloudflare/vitest-pool-workers@0.13.0':
+    resolution: {integrity: sha512-Q20e4+EOhyl3JZ6i8Xzg6N6KKKvGFKaWXiFsehfi291RA6bxLJQDftYWzGlldX1iU2NBZkz9z7GEPCS2gzR6PQ==}
+    peerDependencies:
+      '@vitest/runner': ^4.1.0
+      '@vitest/snapshot': ^4.1.0
+      vitest: ^4.1.0
 
   '@cloudflare/workerd-darwin-64@1.20260312.1':
     resolution: {integrity: sha512-HUAtDWaqUduS6yasV6+NgsK7qBpP1qGU49ow/Wb117IHjYp+PZPUGReDYocpB4GOMRoQlvdd4L487iFxzdARpw==}
@@ -11637,6 +11647,21 @@ snapshots:
       unenv: 2.0.0-rc.24
     optionalDependencies:
       workerd: 1.20260312.1
+
+  '@cloudflare/vitest-pool-workers@0.13.0(@cloudflare/workers-types@4.20260313.1)(@vitest/runner@4.1.0)(@vitest/snapshot@4.1.0)(vitest@4.1.0)':
+    dependencies:
+      '@vitest/runner': 4.1.0
+      '@vitest/snapshot': 4.1.0
+      cjs-module-lexer: 1.4.3
+      esbuild: 0.27.3
+      miniflare: 4.20260312.0
+      vitest: 4.1.0(@types/node@25.5.0)(@vitest/ui@4.1.0)(happy-dom@20.8.4)(jsdom@28.1.0)(vite@8.0.0(@types/node@25.5.0)(esbuild@0.27.4)(jiti@1.21.7)(terser@5.46.0)(yaml@2.8.2))
+      wrangler: 4.73.0(@cloudflare/workers-types@4.20260313.1)
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - '@cloudflare/workers-types'
+      - bufferutil
+      - utf-8-validate
 
   '@cloudflare/workerd-darwin-64@1.20260312.1':
     optional: true
