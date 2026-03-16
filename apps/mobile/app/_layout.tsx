@@ -39,12 +39,15 @@ export default function RootLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onboardingChecked]);
 
-  // Initialize push notifications and get device ID
+  // Initialize push notifications AFTER onboarding is complete
+  // This prevents the OS permission dialog from firing before
+  // the onboarding notification permission page is shown.
   useEffect(() => {
+    if (!onboardingChecked || needsOnboarding) return;
     initializePushNotifications().then((deviceId) => {
       setOgsDeviceId(deviceId);
     });
-  }, []);
+  }, [onboardingChecked, needsOnboarding]);
 
   // Handle deep links (Universal Links and custom scheme)
   useEffect(() => {

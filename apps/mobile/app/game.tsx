@@ -65,31 +65,31 @@ export default function GameScreen() {
     []
   );
 
-  const [webviewSource, setWebviewSource] = useState(() => {
-    if (params.url) {
-      return { uri: params.url };
-    }
+  // Derive webview source from params or pending URL — no useEffect sync needed
+  const initialSource = useMemo(() => {
+    if (params.url) return { uri: params.url };
     const pending = consumePendingGameUrl();
-    if (pending) {
-      return { uri: pending };
-    }
+    if (pending) return { uri: pending };
     return defaultSource;
-  });
+  }, [params.url, defaultSource]);
 
-  useEffect(() => {
-    if (params.url) {
-      setWebviewSource({ uri: params.url });
-    }
-  }, [params.url]);
+  const [webviewSource, setWebviewSource] = useState(initialSource);
+
+  // Only update when initialSource changes (new params arrive)
+  const prevInitialUri = useRef(initialSource.uri);
+  if (initialSource.uri !== prevInitialUri.current) {
+    prevInitialUri.current = initialSource.uri;
+    setWebviewSource(initialSource);
+  }
 
   const gameName = params.name || "Game";
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const gameInfo = findGameByUrl(webviewSource.uri);
-  const originDomain = (() => {
+  const gameInfo = useMemo(() => findGameByUrl(webviewSource.uri), [webviewSource.uri]);
+  const originDomain = useMemo(() => {
     try { return new URL(webviewSource.uri).hostname; }
     catch { return webviewSource.uri; }
-  })();
+  }, [webviewSource.uri]);
 
   const handleLoadEnd = useCallback(() => {
     setIsLoading(false);

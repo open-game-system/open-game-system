@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -174,6 +174,14 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [notificationsAlreadyGranted, setNotificationsAlreadyGranted] = useState(false);
+
+  // Check if notifications are already granted on mount
+  useEffect(() => {
+    Notifications.getPermissionsAsync().then(({ status }) => {
+      setNotificationsAlreadyGranted(status === 'granted');
+    });
+  }, []);
 
   const handleComplete = useCallback(async () => {
     await markOnboardingComplete();
@@ -182,13 +190,17 @@ export default function OnboardingScreen() {
 
   const goToPage = useCallback(
     (page: number) => {
+      // Skip notification page (index 1) if already granted
+      if (page === 1 && notificationsAlreadyGranted) {
+        page = 2;
+      }
       if (page >= PAGES.length) {
         handleComplete();
         return;
       }
       flatListRef.current?.scrollToIndex({ index: page, animated: true });
     },
-    [handleComplete]
+    [handleComplete, notificationsAlreadyGranted]
   );
 
   const handleNext = useCallback(() => {
@@ -250,7 +262,7 @@ export default function OnboardingScreen() {
         keyExtractor={(item) => item.key}
         horizontal
         pagingEnabled
-        scrollEnabled={false}
+        scrollEnabled={true}
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
