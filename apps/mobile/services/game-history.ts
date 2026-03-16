@@ -42,6 +42,15 @@ export async function addRecentGame(
 }
 
 /**
+ * Remove a specific game from history by URL.
+ */
+export async function removeRecentGame(url: string): Promise<void> {
+  const games = await getRecentGames();
+  const filtered = games.filter((g) => g.url !== url);
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+}
+
+/**
  * Clear all game history.
  */
 export async function clearRecentGames(): Promise<void> {

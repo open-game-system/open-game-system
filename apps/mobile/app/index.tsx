@@ -24,6 +24,8 @@ import {
   findGameByUrl,
   type GameDirectoryEntry,
 } from '../services/game-directory';
+import { removeRecentGame } from '../services/game-history';
+import { SwipeableRow } from '../components/SwipeableRow';
 
 function formatRelativeTime(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
@@ -79,8 +81,15 @@ export default function HomeScreen() {
       pathname: '/game',
       params: { url: entry.url, name: entry.name },
     });
-    setTimeout(loadRecentGames, 500);
   };
+
+  const closeContinueGame = useCallback(
+    async (url: string) => {
+      await removeRecentGame(url);
+      loadRecentGames();
+    },
+    [loadRecentGames]
+  );
 
   const openSettings = () => {
     router.push('/settings');
@@ -134,31 +143,37 @@ export default function HomeScreen() {
             <Text style={styles.sectionLabel}>Continue</Text>
             {recentGames.map((game) => {
               const directoryEntry = findGameByUrl(game.url);
+              const entryId = directoryEntry?.id ?? 'unknown';
               return (
-                <TouchableOpacity
+                <SwipeableRow
                   key={game.url}
-                  testID={`continueGame-${directoryEntry?.id ?? 'unknown'}`}
-                  style={styles.continueRow}
-                  onPress={() => openContinueGame(game)}
-                  activeOpacity={0.7}
+                  testID={`continueSwipeable-${entryId}`}
+                  onClose={() => closeContinueGame(game.url)}
                 >
-                  <View
-                    style={[
-                      styles.dotIndicator,
-                      {
-                        backgroundColor:
-                          directoryEntry?.iconColor ?? '#A855F6',
-                      },
-                    ]}
-                  />
-                  <View style={styles.continueInfo}>
-                    <Text style={styles.continueName}>{game.name}</Text>
-                    <Text style={styles.continueTime}>
-                      {formatRelativeTime(game.lastPlayed)}
-                    </Text>
-                  </View>
-                  <Text style={styles.chevron}>›</Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    testID={`continueGame-${entryId}`}
+                    style={styles.continueRow}
+                    onPress={() => openContinueGame(game)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.dotIndicator,
+                        {
+                          backgroundColor:
+                            directoryEntry?.iconColor ?? '#A855F6',
+                        },
+                      ]}
+                    />
+                    <View style={styles.continueInfo}>
+                      <Text style={styles.continueName}>{game.name}</Text>
+                      <Text style={styles.continueTime}>
+                        {formatRelativeTime(game.lastPlayed)}
+                      </Text>
+                    </View>
+                    <Text style={styles.chevron}>›</Text>
+                  </TouchableOpacity>
+                </SwipeableRow>
               );
             })}
           </View>
