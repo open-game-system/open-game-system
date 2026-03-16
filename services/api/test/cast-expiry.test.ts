@@ -59,12 +59,6 @@ function createScheduledMockEnv(opts: {
         }),
       })),
     },
-    STREAM_CONTAINER: {
-      idFromName: vi.fn((name: string) => ({ name })),
-      get: vi.fn(() => ({
-        fetch: vi.fn().mockResolvedValue(new Response('{"status":"ok"}')),
-      })),
-    },
   };
 
   return { env, updateCalls };
@@ -240,13 +234,7 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      STREAM_CONTAINER: {
-      idFromName: vi.fn((name: string) => ({ name })),
-      get: vi.fn(() => ({
-        fetch: vi.fn().mockResolvedValue(new Response('{"status":"ok"}')),
-      })),
-    },
-    };
+      };
 
     const res = await app.request(
       "/api/v1/cast/sessions/session-idle/state",
@@ -302,13 +290,7 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      STREAM_CONTAINER: {
-      idFromName: vi.fn((name: string) => ({ name })),
-      get: vi.fn(() => ({
-        fetch: vi.fn().mockResolvedValue(new Response('{"status":"ok"}')),
-      })),
-    },
-    };
+      };
 
     const res = await app.request(
       "/api/v1/cast/sessions/session-ended/state",
