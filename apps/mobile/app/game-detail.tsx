@@ -11,6 +11,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { findGameById } from '../services/game-directory';
+import { addRecentGame } from '../services/game-history';
 
 export default function GameDetailScreen() {
   const router = useRouter();
@@ -25,7 +26,9 @@ export default function GameDetailScreen() {
     );
   }
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
+    // Record in game history before navigating — ensures the write completes
+    await addRecentGame(game.url, game.name);
     router.push({
       pathname: '/game',
       params: { url: game.url, name: game.name },

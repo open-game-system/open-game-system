@@ -72,6 +72,13 @@ export default function GameScreen() {
     return defaultSource;
   });
 
+  // Update webview source when params change (handles async param delivery)
+  useEffect(() => {
+    if (params.url) {
+      setWebviewSource({ uri: params.url });
+    }
+  }, [params.url]);
+
   const gameName = params.name || "Game";
 
   // Record this game in history
