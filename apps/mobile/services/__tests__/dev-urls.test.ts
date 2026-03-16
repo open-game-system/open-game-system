@@ -69,9 +69,16 @@ describe('dev-urls', () => {
       expect(stored[9]).toBe('https://url8.dev'); // url9 evicted
     });
 
-    it('adds to empty list', async () => {
+    it('adds to empty list and uses correct storage key', async () => {
       mockedAsyncStorage.getItem.mockResolvedValue(null);
       await addRecentDevUrl('https://first.dev');
+      expect(mockedAsyncStorage.getItem).toHaveBeenCalledWith(
+        '@ogs/recent_dev_urls'
+      );
+      expect(mockedAsyncStorage.setItem).toHaveBeenCalledWith(
+        '@ogs/recent_dev_urls',
+        expect.any(String)
+      );
       const stored = JSON.parse(
         mockedAsyncStorage.setItem.mock.calls[0][1] as string
       );
