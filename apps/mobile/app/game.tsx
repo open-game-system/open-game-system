@@ -112,6 +112,23 @@ export default function GameScreen() {
     router.back();
   }, [router]);
 
+  // Track URL changes within the WebView and update game history
+  const handleNavigationStateChange = useCallback(
+    (navState: { url?: string; title?: string }) => {
+      if (navState.url && navState.url !== webviewSource.uri) {
+        const isLocalDev =
+          navState.url.includes("localhost") ||
+          navState.url.includes("10.0.2.2") ||
+          navState.url.includes(".local:");
+        if (!isLocalDev) {
+          const title = navState.title || gameName;
+          addRecentGame(navState.url, title);
+        }
+      }
+    },
+    [webviewSource.uri, gameName]
+  );
+
   // Record this game in history
   useEffect(() => {
     const url = webviewSource.uri;
@@ -275,6 +292,7 @@ export default function GameScreen() {
                 webviewDebuggingEnabled={true}
                 onLoadEnd={handleLoadEnd}
                 onError={handleError}
+                // onNavigationStateChange={handleNavigationStateChange}  // TODO: enable when URL tracking is properly tested
               />
             </View>
           </CastContext.StoreProvider>
