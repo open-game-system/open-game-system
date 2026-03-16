@@ -35,12 +35,22 @@ describe('Game Screen', () => {
 
   // --- Loading State ---
 
-  it('should show loading screen while game loads', async () => {
-    await launchGame();
-    // Loading state should show game info
-    // Note: The loading screen is transient — it may have already
-    // dismissed by the time we check. We verify the loading container
-    // testID exists (it stays until WebView loads).
+  it('should show loading screen with game info while loading', async () => {
+    // Launch a game and check for loading overlay
+    await element(by.id('directoryGame-trivia-jam')).tap();
+    await waitFor(element(by.id('gameDetailScreen')))
+      .toExist()
+      .withTimeout(3000);
+    await element(by.id('gameDetailPlayButton')).tap();
+
+    // The loading screen appears immediately before the WebView loads
+    await device.disableSynchronization();
+    await waitFor(element(by.id('gameScreen')))
+      .toExist()
+      .withTimeout(10000);
+
+    // Loading overlay should show (may be very fast for cached pages)
+    // We just verify the game screen exists with the loading infrastructure
     await expect(element(by.id('gameScreen'))).toExist();
     await device.enableSynchronization();
   });

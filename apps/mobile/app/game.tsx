@@ -4,13 +4,16 @@ import {
   createNativeBridge,
   NativeBridge,
 } from "@open-game-system/app-bridge-react-native";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   PanResponder,
   Platform,
   StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -28,6 +31,7 @@ import {
   type CastDevice,
 } from "../services/cast-store";
 import { addRecentGame } from "../services/game-history";
+import { findGameByUrl } from "../services/game-directory";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
@@ -79,6 +83,34 @@ export default function GameScreen() {
   }, [params.url]);
 
   const gameName = params.name || "Game";
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const gameInfo = findGameByUrl(webviewSource.uri);
+  const originDomain = (() => {
+    try { return new URL(webviewSource.uri).hostname; }
+    catch { return webviewSource.uri; }
+  })();
+
+  const handleLoadEnd = useCallback(() => {
+    setIsLoading(false);
+    setHasError(false);
+  }, []);
+
+  const handleError = useCallback(() => {
+    setIsLoading(false);
+    setHasError(true);
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setIsLoading(true);
+    setHasError(false);
+    // Force a re-render of the WebView by creating a new source object
+    setWebviewSource((prev) => ({ uri: prev.uri }));
+  }, []);
+
+  const handleGoHome = useCallback(() => {
+    router.back();
+  }, [router]);
 
   // Record this game in history
   useEffect(() => {
@@ -187,6 +219,38 @@ export default function GameScreen() {
     })
   ).current;
 
+  // Error screen
+  if (hasError) {
+    return (
+      <View style={styles.container} testID="gameScreen">
+        <StatusBar style="light" />
+        <View style={styles.errorContainer} testID="gameErrorScreen">
+          <View style={styles.errorIcon}>
+            <Text style={styles.errorIconText}>!</Text>
+          </View>
+          <Text style={styles.errorTitle}>Couldn't load game</Text>
+          <Text style={styles.errorMessage}>
+            {originDomain} isn't responding. Check your connection and try again.
+          </Text>
+          <TouchableOpacity
+            testID="gameRetryButton"
+            style={styles.retryButton}
+            onPress={handleRetry}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="gameGoHomeButton"
+            style={styles.goHomeButton}
+            onPress={handleGoHome}
+          >
+            <Text style={styles.goHomeText}>Go Home</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <BridgeContext.BridgeProvider bridge={bridge}>
       <View style={styles.container} testID="gameScreen">
@@ -206,12 +270,41 @@ export default function GameScreen() {
                 style={styles.webview}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
-                startInLoadingState={true}
+                startInLoadingState={false}
                 scalesPageToFit={true}
                 webviewDebuggingEnabled={true}
+                onLoadEnd={handleLoadEnd}
+                onError={handleError}
               />
             </View>
           </CastContext.StoreProvider>
+
+          {/* Loading overlay */}
+          {isLoading && (
+            <View style={styles.loadingOverlay} testID="gameLoadingScreen">
+              <View
+                style={[
+                  styles.loadingIcon,
+                  { backgroundColor: gameInfo?.iconBgColor ?? '#2D1B69' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.loadingIconText,
+                    { color: gameInfo?.iconColor ?? '#A855F6' },
+                  ]}
+                >
+                  {gameInfo?.iconInitials ?? gameName.substring(0, 2).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.loadingTitle}>Loading {gameName}</Text>
+              <Text style={styles.loadingDomain}>{originDomain}</Text>
+              <ActivityIndicator
+                color="#A855F6"
+                style={styles.loadingSpinner}
+              />
+            </View>
+          )}
         </Animated.View>
       </View>
     </BridgeContext.BridgeProvider>
@@ -221,7 +314,7 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#0A0A0F",
   },
   fullScreen: {
     flex: 1,
@@ -231,5 +324,93 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  // Loading overlay
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#0A0A0F",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+  },
+  loadingIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  loadingIconText: {
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  loadingTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#E8E8ED",
+    letterSpacing: -0.3,
+  },
+  loadingDomain: {
+    fontSize: 14,
+    color: "#8888A0",
+  },
+  loadingSpinner: {
+    marginTop: 16,
+  },
+  // Error screen
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    gap: 8,
+  },
+  errorIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: "rgba(220, 38, 38, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  errorIconText: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#DC2626",
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#E8E8ED",
+    letterSpacing: -0.3,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: "#8888A0",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: "#A855F6",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  goHomeButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+  },
+  goHomeText: {
+    color: "#8888A0",
+    fontSize: 15,
+    fontWeight: "500",
   },
 });
