@@ -22,30 +22,13 @@ describe('Onboarding — Full Flow', () => {
     await expect(element(by.id('pageDot-0-active'))).toExist();
   });
 
-  it('should navigate through all 3 pages and complete via Let\'s Go', async () => {
-    // Page 1 → Page 2
+  it('should navigate to completion page and finish (skips notifications when pre-granted)', async () => {
+    // Tap Next — since notifications are pre-granted, page 2 is skipped
+    // and we go directly to page 3 ("You're all set")
     await element(by.id('onboardingNextButton')).tap();
-    await waitFor(element(by.text('Stay in the game')))
-      .toBeVisible()
-      .withTimeout(5000);
-    await expect(element(by.id('pageDot-1-active'))).toExist();
-
-    // Verify page 2 content
-    await expect(
-      element(by.text('Turn alerts for board games'))
-    ).toBeVisible();
-    await expect(
-      element(by.text('Game invites from friends'))
-    ).toBeVisible();
-    await expect(element(by.text('Live game countdowns'))).toBeVisible();
-    await expect(element(by.id('onboardingSkipButton'))).toBeVisible();
-
-    // Page 2 → Page 3 via Maybe Later
-    await element(by.id('onboardingMaybeLaterButton')).tap();
     await waitFor(element(by.text("You're all set")))
       .toBeVisible()
       .withTimeout(5000);
-    await expect(element(by.id('pageDot-2-active'))).toExist();
     await expect(element(by.id('onboardingLetsGoButton'))).toBeVisible();
 
     // Page 3 → Home
@@ -90,29 +73,5 @@ describe('Onboarding — Skip Flow', () => {
       .toExist()
       .withTimeout(5000);
     await expect(element(by.id('onboardingScreen'))).not.toExist();
-  });
-});
-
-describe('Onboarding — Enable Notifications Flow', () => {
-  beforeAll(async () => {
-    await device.launchApp({
-      newInstance: true,
-      delete: true,
-      permissions: { notifications: 'YES' },
-    });
-    await waitFor(element(by.id('onboardingScreen')))
-      .toExist()
-      .withTimeout(10000);
-  });
-
-  it('should advance to page 3 after enabling notifications', async () => {
-    await element(by.id('onboardingNextButton')).tap();
-    await waitFor(element(by.text('Stay in the game')))
-      .toBeVisible()
-      .withTimeout(5000);
-    await element(by.id('onboardingEnableNotificationsButton')).tap();
-    await waitFor(element(by.text("You're all set")))
-      .toBeVisible()
-      .withTimeout(5000);
   });
 });
