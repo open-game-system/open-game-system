@@ -1,29 +1,30 @@
 # Morning Briefing — 2026-03-15
 
 ## Summary
-Completed 4 tasks from the deferred backlog. All tests green. No regressions.
+Completed 5 tasks from the deferred backlog. All tests green. No regressions.
 
 ## What was done
 
-1. **Full-bleed game screen** — Removed the header bar (back button, title, cast button). WebView now fills the entire screen with zero OGS chrome. Added PanResponder-based swipe-back from the left edge (30px hit zone, 35% threshold). Commit: `13c914a`
+1. **Full-bleed game screen** — Removed header bar. WebView fills entire screen. PanResponder-based swipe-back from left edge (30px zone, 35% threshold). Commit: `13c914a`
 
-2. **Loading state screen** — Full-screen overlay with game icon (colors from directory), game name, origin domain, and activity spinner. Shown until WebView finishes loading. Commit: `9a2176b`
+2. **Loading state screen** — Full-screen overlay with game icon, name, domain, spinner. Dismissed on WebView load. Commit: `9a2176b`
 
-3. **Error state screen** — "Couldn't load game" screen with domain-specific message, "Try Again" button (reloads WebView), and "Go Home" link. Red error icon. Commit: `9a2176b`
+3. **Error state screen** — "Couldn't load game" with domain-specific message, Try Again, Go Home. Commit: `9a2176b`
 
-4. **SwipeableRow for Continue entries** — Swipe left to reveal red "Close" action. PanResponder-based (no reanimated dependency issues). Spring snap-back on cancel. Removes game from AsyncStorage and refreshes list. Commit: `6937892`
+4. **SwipeableRow for Continue entries** — Swipe left reveals red Close action. Removes game from history + refreshes list. Commit: `6937892`
+
+5. **Developer Tools screen** — Custom URL input + Launch, Bridge Inspector (device ID, push token, bridge status, platform, cast devices), Recent URLs with tap-to-fill. Accessible from Settings when Developer Mode is on. Commit: `fb08304`
 
 ## What needs your attention
-- **Swipe-back gesture + WebView**: The PanResponder approach works in the real app but Detox can't test it (WebView consumes touch events before the edge gesture handler). Skipped in e2e tests. Consider Maestro for this specific test.
-- **Reanimated Babel plugin**: Using reanimated's `Animated` API causes a Worklets Babel plugin crash during Release builds. Sticking with React Native's built-in `Animated` + `PanResponder` for now. If you need smooth reanimated gestures later, investigate the Babel plugin version.
+- **Swipe-back gesture**: Works in real app but skipped in Detox (WebView consumes touches before edge PanResponder). Consider Maestro for this test.
+- **Reanimated Babel plugin**: Crashes during Release builds. Using RN's built-in Animated + PanResponder instead. Investigate if you need reanimated later.
+- **Simulator resource exhaustion**: Full Detox suite (~38 tests) sometimes times out after long sessions. Rebooting the simulator (`xcrun simctl shutdown all && xcrun simctl boot <UDID>`) fixes it.
 
-## Remaining from the backlog
+## Remaining from backlog
 
 | # | Task | Status |
 |---|---|---|
 | 2 | Swipe hint overlay | Pending |
-| 3 | (was combined with 2) | — |
-| 7 | Developer Tools screen | Pending |
 | 8 | Debug overlay on game screen | Pending |
 | 9 | URL tracking via onNavigationStateChange | Pending |
 | 10 | Push notification routing | Pending |
@@ -32,6 +33,15 @@ Completed 4 tasks from the deferred backlog. All tests green. No regressions.
 | 13 | Cookie/localStorage persistence tests | Pending |
 
 ## Test results
-- Unit: 83 passing
-- E2E: 37 passing, 1 skipped (swipe gesture)
+- Unit: 83/83 passing
+- E2E: 37 passing, 1 skipped
 - Typecheck: clean
+
+## Commits this session
+| Hash | Description |
+|---|---|
+| `13c914a` | Full-bleed game screen + edge swipe-back |
+| `9a2176b` | Loading state + error screen |
+| `6937892` | SwipeableRow for Continue entries |
+| `1766963` | Nightshift progress update |
+| `fb08304` | Developer Tools screen |
