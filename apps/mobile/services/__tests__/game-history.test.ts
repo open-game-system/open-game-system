@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getRecentGames,
   addRecentGame,
+  removeRecentGame,
   clearRecentGames,
   type GameHistoryEntry,
 } from "../game-history";
@@ -133,6 +134,52 @@ describe("game-history", () => {
       ) as GameHistoryEntry[];
       expect(saved).toHaveLength(20);
       expect(saved[0].url).toBe("https://newgame.com");
+    });
+  });
+
+  describe("removeRecentGame", () => {
+    it("removes a game by URL", async () => {
+      const existing: GameHistoryEntry[] = [
+        {
+          url: "https://game1.com",
+          name: "Game 1",
+          lastPlayed: "2026-03-14T00:00:00.000Z",
+        },
+        {
+          url: "https://game2.com",
+          name: "Game 2",
+          lastPlayed: "2026-03-13T00:00:00.000Z",
+        },
+      ];
+      mockedAsyncStorage.getItem.mockResolvedValue(JSON.stringify(existing));
+      mockedAsyncStorage.setItem.mockResolvedValue(undefined);
+
+      await removeRecentGame("https://game1.com");
+
+      const saved = JSON.parse(
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+      ) as GameHistoryEntry[];
+      expect(saved).toHaveLength(1);
+      expect(saved[0].url).toBe("https://game2.com");
+    });
+
+    it("does nothing when URL not found", async () => {
+      const existing: GameHistoryEntry[] = [
+        {
+          url: "https://game1.com",
+          name: "Game 1",
+          lastPlayed: "2026-03-14T00:00:00.000Z",
+        },
+      ];
+      mockedAsyncStorage.getItem.mockResolvedValue(JSON.stringify(existing));
+      mockedAsyncStorage.setItem.mockResolvedValue(undefined);
+
+      await removeRecentGame("https://nonexistent.com");
+
+      const saved = JSON.parse(
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+      ) as GameHistoryEntry[];
+      expect(saved).toHaveLength(1);
     });
   });
 
