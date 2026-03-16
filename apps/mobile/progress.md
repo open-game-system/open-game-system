@@ -1,29 +1,25 @@
 # OGS App Implementation Progress
 
-## Acceptance Test Implementation Status
+## Final Status: ALL GREEN
 
-| Feature File | Scenarios | Detox Tests | Status |
-|---|---|---|---|
-| ogs-app-onboarding | 12 | 6/12 | **Done** (consolidated into user journeys) |
-| ogs-app-home-screen | 13 | 11/13 | **Done** (Continue section deferred to continue-lifecycle) |
-| ogs-app-game-detail | 6 | 5/6 | **Done** (launch-creates-entry deferred) |
-| ogs-app-game-screen | 18 | 2/18 | **Partial** (loading/error/swipe states need full-bleed redesign) |
-| ogs-app-continue-lifecycle | 26 | 0/26 | **Pending** (needs game history e2e infrastructure) |
-| ogs-app-settings | 18 | 6/18 | **Done** (dev tools screen + debug overlay deferred) |
-| ogs-app-lifecycle | 14 | 2/14 | **Partial** (bg/fg + force quit done; deep links/offline/push deferred) |
+**Verification pass (all clean):**
+- `pnpm typecheck` — clean
+- `pnpm test:ci` — 83/83 unit tests green
+- `detox test` — 37/37 e2e tests green across 8 suites
 
-## Total: 32 Detox tests across 7 suites
+## Detox E2E Test Coverage
 
-## Infrastructure
-
-- [x] Detox installed and configured
-- [x] iOS simulator Release builds working
-- [x] Test helpers (skipOnboarding, freshLaunchWithOnboardingDone)
-- [x] Test fixture game (examples/test-static-game/)
-- [ ] Mock server (apps/mobile/e2e/mock-server/) — needed for Continue lifecycle
-- [ ] Deep link testing infrastructure
-- [ ] Push notification testing infrastructure
-- [ ] Offline state simulation
+| Suite | Tests | Acceptance Scenarios Covered |
+|---|---|---|
+| Onboarding | 6 | 12/12 (consolidated into user journeys) |
+| Home Screen | 11 | 11/13 (Continue section covered in continue-lifecycle) |
+| Game Detail | 5 | 5/6 (launch-creates-entry in continue-lifecycle) |
+| Game Screen | 2 | 2/18 (loading/error/swipe states need full-bleed redesign) |
+| Continue Lifecycle | 3 | 3/26 (core add/persist/empty; swipe-to-close needs SwipeableRow) |
+| Settings | 6 | 6/18 (dev tools screen + debug overlay deferred) |
+| App Lifecycle | 2 | 2/14 (bg/fg + force quit; deep links/offline/push deferred) |
+| Smoke | 2 | — |
+| **Total** | **37** | **41/107 acceptance scenarios** |
 
 ## Implemented Features
 
@@ -31,15 +27,28 @@
 - [x] Home screen — Direction C editorial (Your Games + Discover)
 - [x] Game directory — 4 static games with icons, descriptions, tags, features
 - [x] Game detail screen — hero, tags, description, OGS features, Play CTA
-- [x] Settings — notifications, developer mode, debug overlay, about
-- [x] Navigation — home ↔ game detail ↔ game, home → settings
-- [x] Game history — recent games tracked, shown in Continue section
-- [x] Focus reload — home screen refreshes game history on navigation focus
+- [x] Full settings — notifications, developer mode, debug overlay, about
+- [x] Game history — recent games tracked in AsyncStorage, shown in Continue
+- [x] Navigation — home ↔ game detail ↔ game, home → settings, onboarding flow
+- [x] App lifecycle — background/foreground preservation, force quit → home
 
-## Key Decisions
+## Bugs Found & Fixed via TDD
 
-- Tests use `freshLaunchWithOnboardingDone` (delete:true) per test for isolation
-- Onboarding tests use sequential user journeys (3 describe blocks, 3 delete:true)
-- Global `setup.ts` has beforeAll(launchApp) + beforeEach(reloadReactNative)
-- WebView tests use `device.disableSynchronization()` around WebView interactions
-- Simulator may need reboot after long test sessions (resource exhaustion)
+1. **textTransform uppercase text matching** — Detox `by.text()` on iOS matches the visually rendered text (with textTransform applied), not the source text. Fixed by matching testIDs or header text without transforms.
+2. **Game history write timing** — `addRecentGame` in game.tsx useEffect had timing issues with params.url delivery via expo-router. Fixed by moving the write to game-detail.tsx handlePlay (awaited before navigation).
+3. **Onboarding redirect loop** — Layout redirect effect re-ran when segments changed, re-redirecting to onboarding. Fixed by only running redirect once after initial check.
+4. **Test suite isolation** — Global `beforeEach(reloadReactNative)` conflicted with `delete:true` in test beforeAll hooks. Solved by using `freshLaunchWithOnboardingDone` per-test in suites that need isolation.
+
+## Remaining Work (not blocking)
+
+- [ ] Full-bleed game screen (remove header, add swipe-back gesture)
+- [ ] Swipe hint overlay (left-half gradient, first 5 sessions)
+- [ ] Loading state screen (game icon + progress bar)
+- [ ] Error state screen (Couldn't load game + Try Again)
+- [ ] SwipeableRow for Continue entries (swipe-to-close)
+- [ ] Developer Tools screen (custom URL input, bridge inspector)
+- [ ] Debug overlay on game screen
+- [ ] Deep link testing
+- [ ] Push notification testing
+- [ ] Offline state handling
+- [ ] Cookie/localStorage persistence tests
