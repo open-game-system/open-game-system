@@ -153,6 +153,20 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Developer Tools button (visible when dev mode is on) */}
+        {devMode && (
+          <View style={styles.section}>
+            <TouchableOpacity
+              testID="openDevToolsButton"
+              style={styles.devToolsButton}
+              onPress={() => router.push('/dev-tools')}
+            >
+              <Text style={styles.devToolsButtonText}>Open Developer Tools</Text>
+              <Text style={styles.chevron}>›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* About */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>About</Text>
@@ -261,5 +275,19 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: '#8888A0',
     fontWeight: '300',
+  },
+  devToolsButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#141420',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  devToolsButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#A855F6',
   },
 });

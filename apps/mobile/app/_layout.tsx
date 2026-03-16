@@ -88,6 +88,7 @@ export default function RootLayout() {
       <Stack.Screen name="game-detail" />
       <Stack.Screen name="game" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="dev-tools" />
       <Stack.Screen name="[...unmatched]" />
     </Stack>
   );
