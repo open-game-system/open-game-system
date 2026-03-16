@@ -72,9 +72,12 @@ export default function HomeScreen() {
     return unsubscribe;
   }, [router]);
 
-  const openGameDetail = (gameId: string) => {
-    router.push({ pathname: '/game-detail', params: { id: gameId } });
-  };
+  const openGameDetail = useCallback(
+    (gameId: string) => {
+      router.push({ pathname: '/game-detail', params: { id: gameId } });
+    },
+    [router]
+  );
 
   const openContinueGame = (entry: GameHistoryEntry) => {
     router.push({
@@ -91,9 +94,9 @@ export default function HomeScreen() {
     [loadRecentGames]
   );
 
-  const openSettings = () => {
+  const openSettings = useCallback(() => {
     router.push('/settings');
-  };
+  }, [router]);
 
   const hasContinueGames = recentGames.length > 0;
 
@@ -203,7 +206,7 @@ export default function HomeScreen() {
   );
 }
 
-function DirectoryRow({
+const DirectoryRow = React.memo(function DirectoryRow({
   game,
   onPress,
 }: {
@@ -237,7 +240,7 @@ function DirectoryRow({
       </TouchableOpacity>
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
