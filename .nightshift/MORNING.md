@@ -1,47 +1,39 @@
-# Morning Briefing — 2026-03-15
+# Morning Briefing — 2026-03-15 Nightshift
 
 ## Summary
-Completed 5 tasks from the deferred backlog. All tests green. No regressions.
+Completed 6 tasks from the deferred backlog. All tests green (37 + 1 skipped). Clean working tree.
 
 ## What was done
 
-1. **Full-bleed game screen** — Removed header bar. WebView fills entire screen. PanResponder-based swipe-back from left edge (30px zone, 35% threshold). Commit: `13c914a`
-
-2. **Loading state screen** — Full-screen overlay with game icon, name, domain, spinner. Dismissed on WebView load. Commit: `9a2176b`
-
-3. **Error state screen** — "Couldn't load game" with domain-specific message, Try Again, Go Home. Commit: `9a2176b`
-
-4. **SwipeableRow for Continue entries** — Swipe left reveals red Close action. Removes game from history + refreshes list. Commit: `6937892`
-
-5. **Developer Tools screen** — Custom URL input + Launch, Bridge Inspector (device ID, push token, bridge status, platform, cast devices), Recent URLs with tap-to-fill. Accessible from Settings when Developer Mode is on. Commit: `fb08304`
+| # | Task | Commit | Notes |
+|---|---|---|---|
+| 1 | Full-bleed game screen | `13c914a` | Removed header, WebView fills screen, PanResponder edge swipe-back |
+| 4 | Loading state | `9a2176b` | Game icon, name, domain, spinner overlay |
+| 5 | Error state | `9a2176b` | "Couldn't load game" + Try Again + Go Home |
+| 6 | SwipeableRow | `6937892` | Swipe left to close Continue entries |
+| 7 | Developer Tools | `fb08304` | URL input, bridge inspector, recent URLs |
+| 9 | URL tracking | `fa61de9` | Code ready but disabled — needs local test fixture |
 
 ## What needs your attention
-- **Swipe-back gesture**: Works in real app but skipped in Detox (WebView consumes touches before edge PanResponder). Consider Maestro for this test.
-- **Reanimated Babel plugin**: Crashes during Release builds. Using RN's built-in Animated + PanResponder instead. Investigate if you need reanimated later.
-- **Simulator resource exhaustion**: Full Detox suite (~38 tests) sometimes times out after long sessions. Rebooting the simulator (`xcrun simctl shutdown all && xcrun simctl boot <UDID>`) fixes it.
 
-## Remaining from backlog
+1. **Swipe-back gesture** works in real app but Detox can't test it (WebView consumes touches). Consider Maestro for this specific test.
+2. **Reanimated Babel plugin** crashes during Release builds. Using RN's built-in Animated + PanResponder. Investigate if you need reanimated gestures later.
+3. **URL tracking** (`onNavigationStateChange`) is implemented but disabled. External URLs (triviajam.tv) cause unpredictable redirects that create competing history entries. Enable after setting up local test fixture games.
+4. **Simulator exhaustion** — rebooting simulator (`xcrun simctl shutdown all`) fixes intermittent timeouts in long test sessions.
 
-| # | Task | Status |
+## Remaining backlog
+
+| Task | Priority | Complexity |
 |---|---|---|
-| 2 | Swipe hint overlay | Pending |
-| 8 | Debug overlay on game screen | Pending |
-| 9 | URL tracking via onNavigationStateChange | Pending |
-| 10 | Push notification routing | Pending |
-| 11 | Deep link handling | Pending |
-| 12 | Offline state handling | Pending |
-| 13 | Cookie/localStorage persistence tests | Pending |
+| Swipe hint overlay (first 5 sessions) | Medium | Medium — needs session counter service |
+| Debug overlay on game screen | Medium | Medium — floating panel with bridge state |
+| Push notification routing | Lower | High — needs notification payload matching |
+| Deep link handling | Lower | High — needs Expo linking setup |
+| Offline state handling | Lower | Medium — needs network detection |
+| Cookie/localStorage persistence | Lower | Medium — needs local test fixture |
 
 ## Test results
-- Unit: 83/83 passing
-- E2E: 37 passing, 1 skipped
 - Typecheck: clean
-
-## Commits this session
-| Hash | Description |
-|---|---|
-| `13c914a` | Full-bleed game screen + edge swipe-back |
-| `9a2176b` | Loading state + error screen |
-| `6937892` | SwipeableRow for Continue entries |
-| `1766963` | Nightshift progress update |
-| `fb08304` | Developer Tools screen |
+- Unit tests: 83/83 green
+- Detox e2e: 37 green, 1 skipped
+- Working tree: clean
