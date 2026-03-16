@@ -31,3 +31,4 @@ test-results/
 # Agent working files
 .swarm/
 .claude/
+.nightshift/
