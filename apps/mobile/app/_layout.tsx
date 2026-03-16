@@ -12,6 +12,7 @@ import {
 } from "../services/deep-links";
 import { setGameUrl } from "../services/game-url-store";
 import { isOnboardingComplete } from "../services/onboarding";
+import { incrementSessionCount } from "../services/session-counter";
 
 export default function RootLayout() {
   const [ogsDeviceId, setOgsDeviceId] = useState<string | null>(null);
@@ -30,7 +31,8 @@ export default function RootLayout() {
         return;
       }
 
-      // Onboarding done — safe to init push (won't trigger permission dialog)
+      // Onboarding done — increment session counter and init push
+      await incrementSessionCount();
       const deviceId = await initializePushNotifications();
       if (cancelled) return;
       setOgsDeviceId(deviceId);

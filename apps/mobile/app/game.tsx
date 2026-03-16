@@ -29,6 +29,7 @@ import { addRecentGame } from "../services/game-history";
 import { findGameByUrl } from "../services/game-directory";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { GameErrorScreen } from "../components/GameErrorScreen";
+import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
@@ -46,6 +47,7 @@ export default function GameScreen() {
   const params = useLocalSearchParams<{ url?: string; name?: string }>();
   const translateX = useRef(new Animated.Value(0)).current;
   const devices = useDevices();
+  const [showSwipeHint, dismissSwipeHint] = useSwipeHint();
 
   // --- Source resolution ---
   const defaultSource = useMemo(
@@ -221,6 +223,13 @@ export default function GameScreen() {
               />
             </View>
           </CastContext.StoreProvider>
+
+          {!isLoading && showSwipeHint && (
+            <SwipeHintOverlay
+              visible={showSwipeHint}
+              onDismiss={dismissSwipeHint}
+            />
+          )}
 
           {isLoading && (
             <GameLoadingOverlay
