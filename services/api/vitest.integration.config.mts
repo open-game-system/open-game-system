@@ -7,6 +7,11 @@ export default defineConfig({
       wrangler: {
         configPath: "./wrangler.toml",
       },
+      miniflare: {
+        bindings: {
+          OGS_JWT_SECRET: "test-jwt-secret",
+        },
+      },
     }),
   ],
   test: {
