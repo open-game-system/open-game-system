@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import type { Env } from "../types";
-import { RegisterDeviceSchema } from "../schemas";
 import { signJwt } from "../lib/jwt";
+import { RegisterDeviceSchema } from "../schemas";
+import type { Env } from "../types";
 
 const devices = new Hono<{ Bindings: Env }>();
 
@@ -16,7 +16,7 @@ devices.post("/register", async (c) => {
   } catch {
     return c.json(
       { error: { code: "invalid_body", message: "Request body must be valid JSON", status: 400 } },
-      400
+      400,
     );
   }
 
@@ -25,21 +25,31 @@ devices.post("/register", async (c) => {
   if (!parsed.success) {
     const issues = parsed.error.issues;
     // Distinguish "missing field" from "invalid enum value"
-    const hasMissingField = issues.some(
-      (i) => i.code === "invalid_type"
-    );
+    const hasMissingField = issues.some((i) => i.code === "invalid_type");
 
     if (hasMissingField) {
       return c.json(
-        { error: { code: "missing_fields", message: "ogsDeviceId, platform, and pushToken are required", status: 400 } },
-        400
+        {
+          error: {
+            code: "missing_fields",
+            message: "ogsDeviceId, platform, and pushToken are required",
+            status: 400,
+          },
+        },
+        400,
       );
     }
 
     // If all fields present but platform is wrong enum value
     return c.json(
-      { error: { code: "invalid_platform", message: "platform must be 'ios' or 'android'", status: 400 } },
-      400
+      {
+        error: {
+          code: "invalid_platform",
+          message: "platform must be 'ios' or 'android'",
+          status: 400,
+        },
+      },
+      400,
     );
   }
 
@@ -52,7 +62,7 @@ devices.post("/register", async (c) => {
      ON CONFLICT(ogs_device_id) DO UPDATE SET
        platform = excluded.platform,
        push_token = excluded.push_token,
-       updated_at = datetime('now')`
+       updated_at = datetime('now')`,
   )
     .bind(ogsDeviceId, platform, pushToken)
     .run();
@@ -64,7 +74,7 @@ devices.post("/register", async (c) => {
       iat: Math.floor(Date.now() / 1000),
       iss: "ogs-api",
     },
-    c.env.OGS_JWT_SECRET
+    c.env.OGS_JWT_SECRET,
   );
 
   return c.json({ deviceId: ogsDeviceId, deviceToken, registered: true });

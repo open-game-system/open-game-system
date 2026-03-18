@@ -1,8 +1,4 @@
-import {
-  createCastSession,
-  deleteCastSession,
-  pushCastStateUpdate,
-} from "../cast-api";
+import { createCastSession, deleteCastSession, pushCastStateUpdate } from "../cast-api";
 
 // Mock global fetch
 const mockFetch = jest.fn();
@@ -39,20 +35,17 @@ describe("cast-api", () => {
 
       expect(result).toEqual(responseBody);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${API_URL}/api/v1/cast/sessions`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${API_KEY}`,
-          },
-          body: JSON.stringify({
-            deviceId: "chromecast-1",
-            viewUrl: "https://game.example.com/play",
-          }),
+      expect(mockFetch).toHaveBeenCalledWith(`${API_URL}/api/v1/cast/sessions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
-      );
+        body: JSON.stringify({
+          deviceId: "chromecast-1",
+          viewUrl: "https://game.example.com/play",
+        }),
+      });
     });
 
     it("throws on 502 stream provisioning failure", async () => {
@@ -109,19 +102,14 @@ describe("cast-api", () => {
         json: () => Promise.resolve({ status: "ended" }),
       });
 
-      await expect(
-        deleteCastSession(API_URL, API_KEY, "session-123"),
-      ).resolves.toBeUndefined();
+      await expect(deleteCastSession(API_URL, API_KEY, "session-123")).resolves.toBeUndefined();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${API_URL}/api/v1/cast/sessions/session-123`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${API_KEY}`,
-          },
+      expect(mockFetch).toHaveBeenCalledWith(`${API_URL}/api/v1/cast/sessions/session-123`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${API_KEY}`,
         },
-      );
+      });
     });
 
     it("throws on 404", async () => {
@@ -138,9 +126,9 @@ describe("cast-api", () => {
           }),
       });
 
-      await expect(
-        deleteCastSession(API_URL, API_KEY, "nonexistent-session"),
-      ).rejects.toThrow("Cast session not found");
+      await expect(deleteCastSession(API_URL, API_KEY, "nonexistent-session")).rejects.toThrow(
+        "Cast session not found",
+      );
     });
   });
 
@@ -155,17 +143,14 @@ describe("cast-api", () => {
         pushCastStateUpdate(API_URL, API_KEY, "session-123", { round: 3 }),
       ).resolves.toBeUndefined();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${API_URL}/api/v1/cast/sessions/session-123/state`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${API_KEY}`,
-          },
-          body: JSON.stringify({ state: { round: 3 } }),
+      expect(mockFetch).toHaveBeenCalledWith(`${API_URL}/api/v1/cast/sessions/session-123/state`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
         },
-      );
+        body: JSON.stringify({ state: { round: 3 } }),
+      });
     });
 
     it("does not throw on failure (best effort)", async () => {

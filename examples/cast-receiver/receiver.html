@@ -188,7 +188,7 @@
         // Step 1: Fetch ICE servers from stream server (if available)
         let resolvedIceServers = iceServers;
         try {
-          const iceEndpoint = streamServerUrl.replace(/\/$/, '') + '/ice-servers';
+          const iceEndpoint = `${streamServerUrl.replace(/\/$/, '')}/ice-servers`;
           const iceRes = await fetch(iceEndpoint);
           if (iceRes.ok) {
             const iceData = await iceRes.json();
@@ -202,7 +202,7 @@
         }
 
         // Step 2: Create PeerJS peer
-        const receiverId = 'receiver-' + crypto.randomUUID();
+        const receiverId = `receiver-${crypto.randomUUID()}`;
         console.log('[Receiver] Creating PeerJS peer:', receiverId);
 
         peer = new Peer(receiverId, {
@@ -254,7 +254,7 @@
 
         // Step 4: Request stream from server
         setStatus('Starting stream...');
-        const startEndpoint = streamServerUrl.replace(/\/$/, '') + '/start-stream';
+        const startEndpoint = `${streamServerUrl.replace(/\/$/, '')}/start-stream`;
         console.log('[Receiver] Requesting stream from:', startEndpoint);
 
         const streamRes = await fetch(startEndpoint, {

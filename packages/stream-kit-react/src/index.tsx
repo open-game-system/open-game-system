@@ -45,17 +45,16 @@ function createStreamStateContext() {
 
   const Provider = memo(({ children }: { children: ReactNode }) => {
     const stream = useStream();
-    
-    const store = useMemo(() => ({
-      subscribe: stream.subscribe.bind(stream),
-      getSnapshot: () => stream.state,
-    }), [stream]);
 
-    return (
-      <StateContext.Provider value={store}>
-        {children}
-      </StateContext.Provider>
+    const store = useMemo(
+      () => ({
+        subscribe: stream.subscribe.bind(stream),
+        getSnapshot: () => stream.state,
+      }),
+      [stream],
     );
+
+    return <StateContext.Provider value={store}>{children}</StateContext.Provider>;
   });
   Provider.displayName = "StreamStateProvider";
 
@@ -65,97 +64,107 @@ function createStreamStateContext() {
       throw new Error("useSelector must be used within a StreamState.Provider");
     }
     const memoizedSelector = useMemo(() => selector, [selector]);
-    
+
     return useSyncExternalStore(
       store.subscribe,
       () => memoizedSelector(store.getSnapshot()),
-      () => memoizedSelector(store.getSnapshot()) // Same for server
+      () => memoizedSelector(store.getSnapshot()), // Same for server
     );
   }
 
   // Helper components for common stream state patterns
-  const Status = memo(({ children }: { children: (status: StreamState["status"]) => ReactNode }) => {
-    const status = useSelector(state => state.status);
-    return <>{children(status)}</>;
-  });
+  const Status = memo(
+    ({ children }: { children: (status: StreamState["status"]) => ReactNode }) => {
+      const status = useSelector((state) => state.status);
+      return <>{children(status)}</>;
+    },
+  );
   Status.displayName = "StreamStatus";
 
-  const When = memo(({ 
-    status, 
-    children 
-  }: { 
-    status: StreamState["status"] | StreamState["status"][];
-    children: ReactNode;
-  }) => {
-    const currentStatus = useSelector(state => state.status);
-    const statuses = Array.isArray(status) ? status : [status];
-    return statuses.includes(currentStatus) ? <>{children}</> : null;
-  });
+  const When = memo(
+    ({
+      status,
+      children,
+    }: {
+      status: StreamState["status"] | StreamState["status"][];
+      children: ReactNode;
+    }) => {
+      const currentStatus = useSelector((state) => state.status);
+      const statuses = Array.isArray(status) ? status : [status];
+      return statuses.includes(currentStatus) ? children : null;
+    },
+  );
   When.displayName = "StreamWhen";
 
-  const Stats = memo(({ children }: { children: (stats: { fps: number; latency: number }) => ReactNode }) => {
-    const stats = useSelector(state => ({
-      fps: state.fps || 0,
-      latency: state.latency || 0
-    }));
-    return <>{children(stats)}</>;
-  });
+  const Stats = memo(
+    ({ children }: { children: (stats: { fps: number; latency: number }) => ReactNode }) => {
+      const stats = useSelector((state) => ({
+        fps: state.fps || 0,
+        latency: state.latency || 0,
+      }));
+      return <>{children(stats)}</>;
+    },
+  );
   Stats.displayName = "StreamStats";
 
-  const Quality = memo(({ children }: { children: (quality: { resolution: string; bitrate: number }) => ReactNode }) => {
-    const quality = useSelector(state => ({
-      resolution: state.resolution || "unknown",
-      bitrate: state.bitrate || 0
-    }));
-    return <>{children(quality)}</>;
-  });
+  const Quality = memo(
+    ({
+      children,
+    }: {
+      children: (quality: { resolution: string; bitrate: number }) => ReactNode;
+    }) => {
+      const quality = useSelector((state) => ({
+        resolution: state.resolution || "unknown",
+        bitrate: state.bitrate || 0,
+      }));
+      return <>{children(quality)}</>;
+    },
+  );
   Quality.displayName = "StreamQuality";
 
-  const Match = memo(({ 
-    when,
-    children 
-  }: { 
-    when: (state: StreamState) => boolean;
-    children: ReactNode;
-  }) => {
-    const matches = useSelector(when);
-    return matches ? <>{children}</> : null;
-  });
+  const Match = memo(
+    ({ when, children }: { when: (state: StreamState) => boolean; children: ReactNode }) => {
+      const matches = useSelector(when);
+      return matches ? children : null;
+    },
+  );
   Match.displayName = "StreamMatch";
 
-  const Overlay = memo(({ 
-    status,
-    connecting,
-    streaming,
-    ended,
-    error,
-  }: { 
-    status?: StreamState["status"] | StreamState["status"][];
-    connecting?: ReactNode;
-    streaming?: ReactNode;
-    ended?: ReactNode;
-    error?: ReactNode;
-  }) => {
-    const currentStatus = useSelector(state => state.status);
-    const statuses = status ? (Array.isArray(status) ? status : [status]) : null;
+  const Overlay = memo(
+    ({
+      status,
+      connecting,
+      streaming,
+      ended,
+      error,
+    }: {
+      status?: StreamState["status"] | StreamState["status"][];
+      connecting?: ReactNode;
+      streaming?: ReactNode;
+      ended?: ReactNode;
+      error?: ReactNode;
+    }) => {
+      const currentStatus = useSelector((state) => state.status);
+      const statuses = status ? (Array.isArray(status) ? status : [status]) : null;
 
-    if (statuses && !statuses.includes(currentStatus)) {
-      return null;
-    }
-
-    switch (currentStatus) {
-      case "connecting":
-        return connecting ? <>{connecting}</> : null;
-      case "streaming":
-        return streaming ? <>{streaming}</> : null;
-      case "ended":
-        return ended ? <>{ended}</> : null;
-      case "error":
-        return error ? <>{error}</> : null;
-      default:
+      if (statuses && !statuses.includes(currentStatus)) {
         return null;
-    }
-  });
+      }
+
+      switch (currentStatus) {
+        case "connecting":
+          return connecting ? connecting : null;
+        case "streaming":
+          return streaming ? streaming : null;
+        case "ended":
+          return ended ? ended : null;
+        case "error":
+          return error ? error : null;
+        default:
+          return null;
+      }
+    },
+  );
   Overlay.displayName = "StreamOverlay";
 
   return {
@@ -182,24 +191,15 @@ const StreamCanvas = memo(
       const videoElement = stream.getVideoElement();
       const currentVideoRef = videoRef.current;
 
-      if (videoElement && currentVideoRef && currentVideoRef.parentNode) {
+      if (videoElement && currentVideoRef?.parentNode) {
         if (currentVideoRef !== videoElement) {
           currentVideoRef.parentNode.replaceChild(videoElement, currentVideoRef);
         }
       }
     }, [stream]);
 
-    return (
-      <video
-        ref={videoRef}
-        className={className}
-        {...props}
-        playsInline
-        autoPlay
-        muted
-      />
-    );
-  }
+    return <video ref={videoRef} className={className} {...props} playsInline autoPlay muted />;
+  },
 );
 StreamCanvas.displayName = "StreamCanvas";
 
@@ -210,16 +210,12 @@ const StreamProvider = memo(
 
     return (
       <StreamContext.Provider value={value}>
-        <StreamState.Provider>
-          {children}
-        </StreamState.Provider>
+        <StreamState.Provider>{children}</StreamState.Provider>
       </StreamContext.Provider>
     );
-  }
+  },
 );
 StreamProvider.displayName = "StreamProvider";
 
 // Export everything directly
-export {
-  createStreamStateContext, StreamCanvas, StreamProvider, useStream
-};
+export { createStreamStateContext, StreamCanvas, StreamProvider, useStream };

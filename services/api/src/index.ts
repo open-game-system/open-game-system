@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { Env } from "./types";
 import { apiKeyAuth } from "./middleware/auth";
+import cast from "./routes/cast";
 import devices from "./routes/devices";
 import notifications from "./routes/notifications";
-import cast from "./routes/cast";
 import { handleScheduled } from "./scheduled";
+import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -32,10 +32,9 @@ app.route("/api/v1/cast", cast);
 
 export default app;
 
+// Re-export StreamContainer for wrangler (requires cloudflare:workers runtime)
+export { StreamContainer } from "./stream-container";
 // Cloudflare Workers scheduled event handler — exported for wrangler cron triggers.
 // In production, wrangler.toml wires this via the module's `scheduled` export.
 // Tests import handleScheduled directly from ./scheduled.
 export { handleScheduled };
-
-// Re-export StreamContainer for wrangler (requires cloudflare:workers runtime)
-export { StreamContainer } from "./stream-container";

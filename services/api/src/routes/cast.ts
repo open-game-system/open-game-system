@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { Env, CastSessionRow } from "../types";
-import { CreateCastSessionSchema, CastStateUpdateSchema } from "../schemas";
+import { CastStateUpdateSchema, CreateCastSessionSchema } from "../schemas";
+import type { CastSessionRow, Env } from "../types";
 
 type CastEnv = { Bindings: Env; Variables: { gameId: string; gameName: string } };
 
@@ -29,13 +29,25 @@ cast.post("/sessions", async (c) => {
 
     if (hasDeviceId && hasViewUrl) {
       return c.json(
-        { error: { code: "invalid_view_url", message: "viewUrl must be a valid HTTPS URL", status: 400 } },
+        {
+          error: {
+            code: "invalid_view_url",
+            message: "viewUrl must be a valid HTTPS URL",
+            status: 400,
+          },
+        },
         400,
       );
     }
 
     return c.json(
-      { error: { code: "missing_fields", message: "deviceId and viewUrl (HTTPS) are required", status: 400 } },
+      {
+        error: {
+          code: "missing_fields",
+          message: "deviceId and viewUrl (HTTPS) are required",
+          status: 400,
+        },
+      },
       400,
     );
   }
@@ -76,9 +88,7 @@ cast.get("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   const gameId = c.get("gameId");
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
@@ -123,15 +133,19 @@ cast.post("/sessions/:id/state", async (c) => {
     );
   }
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
-  if (!session || session.game_id !== gameId || (session.status !== "active" && session.status !== "idle")) {
+  if (
+    !session ||
+    session.game_id !== gameId ||
+    (session.status !== "active" && session.status !== "idle")
+  ) {
     return c.json(
-      { error: { code: "session_not_found", message: "Active cast session not found", status: 404 } },
+      {
+        error: { code: "session_not_found", message: "Active cast session not found", status: 404 },
+      },
       404,
     );
   }
@@ -148,7 +162,7 @@ cast.post("/sessions/:id/state", async (c) => {
   // Forward state to stream container (best effort)
   try {
     const container = c.env.STREAM_CONTAINER.get(
-      c.env.STREAM_CONTAINER.idFromName(session.stream_session_id!)
+      c.env.STREAM_CONTAINER.idFromName(session.stream_session_id!),
     );
     await container.fetch("http://container/state", {
       method: "POST",
@@ -170,9 +184,7 @@ cast.delete("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   const gameId = c.get("gameId");
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
@@ -213,7 +225,13 @@ cast.all("/stream/:sessionId/*", async (c) => {
 
   if (!containerBinding) {
     return c.json(
-      { error: { code: "stream_not_configured", message: "Stream container not configured", status: 502 } },
+      {
+        error: {
+          code: "stream_not_configured",
+          message: "Stream container not configured",
+          status: 502,
+        },
+      },
       502,
     );
   }

@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../src/index";
 import {
-  OgsErrorSchema,
-  CreateCastSessionResponseSchema,
-  CastSessionStatusResponseSchema,
   CastSessionEndedResponseSchema,
+  CastSessionStatusResponseSchema,
+  CreateCastSessionResponseSchema,
+  OgsErrorSchema,
 } from "../src/schemas";
 
 const VALID_API_KEY = { key: "valid-key", game_id: "trivia-jam", game_name: "Trivia Jam" };
@@ -17,11 +17,9 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 
-function createMockEnv(opts: {
-  apiKeyResult?: unknown;
-  castSessionResult?: unknown;
-  insertSuccess?: boolean;
-} = {}) {
+function createMockEnv(
+  opts: { apiKeyResult?: unknown; castSessionResult?: unknown; insertSuccess?: boolean } = {},
+) {
   const { apiKeyResult = null, castSessionResult = null, insertSuccess = true } = opts;
 
   return {
@@ -37,7 +35,9 @@ function createMockEnv(opts: {
         if (sql.includes("INSERT INTO cast_sessions")) {
           return {
             bind: vi.fn(() => ({
-              run: vi.fn().mockResolvedValue(insertSuccess ? { success: true } : { success: false }),
+              run: vi
+                .fn()
+                .mockResolvedValue(insertSuccess ? { success: true } : { success: false }),
             })),
           };
         }
@@ -74,7 +74,9 @@ function createMockEnv(opts: {
     STREAM_CONTAINER: {
       idFromName: vi.fn((name: string) => ({ name })),
       get: vi.fn(() => ({
-        fetch: vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok" }), { status: 200 })),
+        fetch: vi
+          .fn()
+          .mockResolvedValue(new Response(JSON.stringify({ status: "ok" }), { status: 200 })),
       })),
     },
   };
@@ -336,11 +338,7 @@ describe("Cast Sessions API", () => {
 
     it("returns 401 without auth", async () => {
       const env = createMockEnv();
-      const res = await app.request(
-        "/api/v1/cast/sessions/session-123",
-        { method: "GET" },
-        env,
-      );
+      const res = await app.request("/api/v1/cast/sessions/session-123", { method: "GET" }, env);
       expect(res.status).toBe(401);
     });
   });
@@ -514,11 +512,7 @@ describe("Cast Sessions API", () => {
 
     it("returns 401 without auth", async () => {
       const env = createMockEnv();
-      const res = await app.request(
-        "/api/v1/cast/sessions/session-123",
-        { method: "DELETE" },
-        env,
-      );
+      const res = await app.request("/api/v1/cast/sessions/session-123", { method: "DELETE" }, env);
       expect(res.status).toBe(401);
     });
   });
@@ -599,7 +593,7 @@ describe("Cast Sessions API", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json() as { status: string };
+        const body = (await res.json()) as { status: string };
         expect(body.status).toBe("ended");
         // No explicit container teardown — sleepAfter handles lifecycle
       });
@@ -633,7 +627,7 @@ describe("Cast Sessions API", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json() as { status: string };
+        const body = (await res.json()) as { status: string };
         expect(body.status).toBe("ok");
       });
 
@@ -656,7 +650,7 @@ describe("Cast Sessions API", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json() as { status: string };
+        const body = (await res.json()) as { status: string };
         expect(body.status).toBe("ok");
       });
     });

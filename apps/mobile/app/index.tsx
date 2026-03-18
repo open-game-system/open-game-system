@@ -1,31 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Platform,
+  StatusBar as RNStatusBar,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  StatusBar as RNStatusBar,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
-import {
-  getRecentGames,
-  type GameHistoryEntry,
-} from '../services/game-history';
-import {
-  consumePendingGameUrl,
-  subscribeToGameUrl,
-} from '../services/game-url-store';
-import {
-  GAME_DIRECTORY,
-  findGameByUrl,
-  type GameDirectoryEntry,
-} from '../services/game-directory';
-import { removeRecentGame } from '../services/game-history';
-import { SwipeableRow } from '../components/SwipeableRow';
+} from "react-native";
+import { SwipeableRow } from "../components/SwipeableRow";
+import { findGameByUrl, GAME_DIRECTORY, type GameDirectoryEntry } from "../services/game-directory";
+import { type GameHistoryEntry, getRecentGames, removeRecentGame } from "../services/game-history";
+import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 
 function formatRelativeTime(isoDate: string): string {
   const diff = Date.now() - new Date(isoDate).getTime();
@@ -34,7 +23,7 @@ function formatRelativeTime(isoDate: string): string {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return 'Yesterday';
+  if (days === 1) return "Yesterday";
   return `${days}d ago`;
 }
 
@@ -51,7 +40,7 @@ export default function HomeScreen() {
 
   // Reload games whenever home screen becomes focused
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+    const unsubscribe = navigation.addListener("focus", () => {
       loadRecentGames();
     });
     return unsubscribe;
@@ -61,12 +50,12 @@ export default function HomeScreen() {
   useEffect(() => {
     const pending = consumePendingGameUrl();
     if (pending) {
-      router.push({ pathname: '/game', params: { url: pending } });
+      router.push({ pathname: "/game", params: { url: pending } });
       return;
     }
 
     const unsubscribe = subscribeToGameUrl((gameUrl) => {
-      router.push({ pathname: '/game', params: { url: gameUrl } });
+      router.push({ pathname: "/game", params: { url: gameUrl } });
     });
 
     return unsubscribe;
@@ -74,14 +63,14 @@ export default function HomeScreen() {
 
   const openGameDetail = useCallback(
     (gameId: string) => {
-      router.push({ pathname: '/game-detail', params: { id: gameId } });
+      router.push({ pathname: "/game-detail", params: { id: gameId } });
     },
-    [router]
+    [router],
   );
 
   const openContinueGame = (entry: GameHistoryEntry) => {
     router.push({
-      pathname: '/game',
+      pathname: "/game",
       params: { url: entry.url, name: entry.name },
     });
   };
@@ -91,11 +80,11 @@ export default function HomeScreen() {
       await removeRecentGame(url);
       loadRecentGames();
     },
-    [loadRecentGames]
+    [loadRecentGames],
   );
 
   const openSettings = useCallback(() => {
-    router.push('/settings');
+    router.push("/settings");
   }, [router]);
 
   const hasContinueGames = recentGames.length > 0;
@@ -114,15 +103,9 @@ export default function HomeScreen() {
             <View style={styles.ogsIcon}>
               <Text style={styles.ogsIconText}>OGS</Text>
             </View>
-            {hasContinueGames ? (
-              <Text style={styles.headerTitle}>Your Games</Text>
-            ) : null}
+            {hasContinueGames ? <Text style={styles.headerTitle}>Your Games</Text> : null}
           </View>
-          <TouchableOpacity
-            testID="hamburgerMenu"
-            style={styles.menuButton}
-            onPress={openSettings}
-          >
+          <TouchableOpacity testID="hamburgerMenu" style={styles.menuButton} onPress={openSettings}>
             <View style={styles.menuLine} />
             <View style={styles.menuLine} />
             <View style={styles.menuLine} />
@@ -134,8 +117,7 @@ export default function HomeScreen() {
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeTitle}>Welcome to OGS</Text>
             <Text style={styles.welcomeBody}>
-              Play web games with native superpowers. Pick a game below to get
-              started.
+              Play web games with native superpowers. Pick a game below to get started.
             </Text>
           </View>
         )}
@@ -146,7 +128,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionLabel}>Continue</Text>
             {recentGames.map((game) => {
               const directoryEntry = findGameByUrl(game.url);
-              const entryId = directoryEntry?.id ?? 'unknown';
+              const entryId = directoryEntry?.id ?? "unknown";
               return (
                 <SwipeableRow
                   key={game.url}
@@ -163,16 +145,13 @@ export default function HomeScreen() {
                       style={[
                         styles.dotIndicator,
                         {
-                          backgroundColor:
-                            directoryEntry?.iconColor ?? '#A855F6',
+                          backgroundColor: directoryEntry?.iconColor ?? "#A855F6",
                         },
                       ]}
                     />
                     <View style={styles.continueInfo}>
                       <Text style={styles.continueName}>{game.name}</Text>
-                      <Text style={styles.continueTime}>
-                        {formatRelativeTime(game.lastPlayed)}
-                      </Text>
+                      <Text style={styles.continueTime}>{formatRelativeTime(game.lastPlayed)}</Text>
                     </View>
                     <Text style={styles.chevron}>›</Text>
                   </TouchableOpacity>
@@ -184,21 +163,11 @@ export default function HomeScreen() {
 
         {/* Game Directory */}
         <View style={styles.section}>
-          <Text
-            style={
-              hasContinueGames
-                ? styles.discoverTitle
-                : styles.sectionLabel
-            }
-          >
-            {hasContinueGames ? 'Discover' : 'Game Directory'}
+          <Text style={hasContinueGames ? styles.discoverTitle : styles.sectionLabel}>
+            {hasContinueGames ? "Discover" : "Game Directory"}
           </Text>
           {GAME_DIRECTORY.map((game) => (
-            <DirectoryRow
-              key={game.id}
-              game={game}
-              onPress={() => openGameDetail(game.id)}
-            />
+            <DirectoryRow key={game.id} game={game} onPress={() => openGameDetail(game.id)} />
           ))}
         </View>
       </ScrollView>
@@ -220,9 +189,7 @@ const DirectoryRow = React.memo(function DirectoryRow({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View
-        style={[styles.directoryIcon, { backgroundColor: game.iconBgColor }]}
-      >
+      <View style={[styles.directoryIcon, { backgroundColor: game.iconBgColor }]}>
         <Text style={[styles.directoryIconText, { color: game.iconColor }]}>
           {game.iconInitials}
         </Text>
@@ -245,8 +212,8 @@ const DirectoryRow = React.memo(function DirectoryRow({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 50,
+    backgroundColor: "#0A0A0F",
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
   },
   scrollView: {
     flex: 1,
@@ -255,9 +222,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 24,
@@ -270,27 +237,27 @@ const styles = StyleSheet.create({
   },
   ogsIconText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#A855F6',
+    fontWeight: "700",
+    color: "#A855F6",
   },
   headerTitle: {
     fontSize: 34,
-    fontWeight: '700',
-    color: '#E8E8ED',
+    fontWeight: "700",
+    color: "#E8E8ED",
     letterSpacing: -1.5,
   },
   menuButton: {
     width: 36,
     height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 5,
   },
   menuLine: {
     width: 20,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#8888A0',
+    backgroundColor: "#8888A0",
   },
   welcomeSection: {
     paddingHorizontal: 24,
@@ -299,13 +266,13 @@ const styles = StyleSheet.create({
   },
   welcomeTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#E8E8ED',
+    fontWeight: "700",
+    color: "#E8E8ED",
     letterSpacing: -0.5,
   },
   welcomeBody: {
     fontSize: 15,
-    color: '#8888A0',
+    color: "#8888A0",
     lineHeight: 22,
   },
   section: {
@@ -314,25 +281,25 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#8888A0',
+    fontWeight: "700",
+    color: "#8888A0",
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 14,
   },
   discoverTitle: {
     fontSize: 26,
-    fontWeight: '700',
-    color: '#E8E8ED',
+    fontWeight: "700",
+    color: "#E8E8ED",
     letterSpacing: -0.5,
     marginBottom: 16,
   },
   continueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 18,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1C1C2E',
+    borderBottomColor: "#1C1C2E",
   },
   dotIndicator: {
     width: 6,
@@ -346,37 +313,37 @@ const styles = StyleSheet.create({
   },
   continueName: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#E8E8ED',
+    fontWeight: "600",
+    color: "#E8E8ED",
     letterSpacing: -0.3,
   },
   continueTime: {
     fontSize: 13,
-    color: '#8888A0',
+    color: "#8888A0",
   },
   chevron: {
     fontSize: 22,
-    color: '#8888A0',
-    fontWeight: '300',
+    color: "#8888A0",
+    fontWeight: "300",
   },
   directoryRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1C1C2E',
+    borderBottomColor: "#1C1C2E",
     gap: 16,
   },
   directoryIcon: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   directoryIconText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   directoryInfo: {
     flex: 1,
@@ -384,25 +351,25 @@ const styles = StyleSheet.create({
   },
   directoryName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#E8E8ED',
+    fontWeight: "600",
+    color: "#E8E8ED",
     letterSpacing: -0.2,
   },
   directoryDescription: {
     fontSize: 14,
-    color: '#8888A0',
+    color: "#8888A0",
     lineHeight: 20,
   },
   playButton: {
-    backgroundColor: '#A855F6',
+    backgroundColor: "#A855F6",
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   playButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

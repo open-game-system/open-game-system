@@ -36,12 +36,12 @@
     // Set a test cookie
     document.cookie = "ogs_test=active; path=/; max-age=86400";
     document.getElementById('cookie-status').textContent =
-      'Cookie: ' + document.cookie;
+      `Cookie: ${document.cookie}`;
 
     // Set localStorage
     localStorage.setItem('ogs_test_data', JSON.stringify({ level: 1, score: 0 }));
     document.getElementById('storage-status').textContent =
-      'Storage: ' + localStorage.getItem('ogs_test_data');
+      `Storage: ${localStorage.getItem('ogs_test_data')}`;
 
     // Check if OGS bridge is available
     if (window.__OGS_BRIDGE__) {

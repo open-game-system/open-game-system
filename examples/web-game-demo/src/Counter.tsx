@@ -1,26 +1,20 @@
-import { createBridgeContext } from "@open-game-system/app-bridge-react";
+import type { createBridgeContext } from "@open-game-system/app-bridge-react";
 import { useEffect, useState } from "react";
 import {
   BridgeContext as DefaultBridgeContext,
   CounterContext as DefaultCounterContext,
 } from "./bridge";
-import { AppStores } from "./types";
+import type { AppStores } from "./types";
 
 type BridgeContextType = ReturnType<typeof createBridgeContext<AppStores>>;
-type StoreContextType = ReturnType<
-  typeof DefaultBridgeContext.createStoreContext<"counter">
->;
+type StoreContextType = ReturnType<typeof DefaultBridgeContext.createStoreContext<"counter">>;
 
 type CounterProps = {
   BridgeContext?: BridgeContextType;
   CounterContext?: StoreContextType;
 };
 
-function CounterDisplay({
-  CounterContext,
-}: {
-  CounterContext: StoreContextType;
-}) {
+function CounterDisplay({ CounterContext }: { CounterContext: StoreContextType }) {
   const value = CounterContext.useSelector((state) => state?.value);
 
   useEffect(() => {
@@ -72,11 +66,7 @@ function CounterDisplay({
   );
 }
 
-function CounterControls({
-  CounterContext,
-}: {
-  CounterContext: StoreContextType;
-}) {
+function CounterControls({ CounterContext }: { CounterContext: StoreContextType }) {
   const store = CounterContext.useStore();
   const [inputValue, setInputValue] = useState("0");
 

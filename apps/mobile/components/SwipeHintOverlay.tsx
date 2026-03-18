@@ -1,12 +1,6 @@
-import React, { memo, useCallback, useEffect, useState } from 'react';
-import {
-  Animated,
-  StyleSheet,
-  Text,
-  TouchableWithoutFeedback,
-  View,
-} from 'react-native';
-import { shouldShowSwipeHint } from '../services/session-counter';
+import { memo, useCallback, useEffect, useState } from "react";
+import { Animated, StyleSheet, Text, TouchableWithoutFeedback, View } from "react-native";
+import { shouldShowSwipeHint } from "../services/session-counter";
 
 interface SwipeHintOverlayProps {
   visible: boolean;
@@ -76,33 +70,33 @@ export function useSwipeHint(): [boolean, () => void] {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     bottom: 0,
     width: 200,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingLeft: 20,
   },
   content: {
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 12,
   },
   arrow: {
     fontSize: 24,
-    color: '#A855F6',
-    fontWeight: '600',
+    color: "#A855F6",
+    fontWeight: "600",
   },
   textGroup: {
     gap: 4,
   },
   title: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
   subtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: "rgba(255, 255, 255, 0.5)",
   },
 });

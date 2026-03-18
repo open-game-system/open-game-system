@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import type React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 interface SettingsSectionProps {
   label: string;
@@ -26,11 +26,7 @@ export function SettingsRow({ children, isLast, disabled, testID }: SettingsRowP
   return (
     <View
       testID={testID}
-      style={[
-        styles.row,
-        !isLast && styles.rowBorderBottom,
-        disabled && styles.rowDisabled,
-      ]}
+      style={[styles.row, !isLast && styles.rowBorderBottom, disabled && styles.rowDisabled]}
     >
       {children}
     </View>
@@ -44,27 +40,27 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#8888A0',
+    fontWeight: "700",
+    color: "#8888A0",
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 8,
   },
   groupedRows: {
-    backgroundColor: '#141420',
+    backgroundColor: "#141420",
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   rowBorderBottom: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1C1C2E',
+    borderBottomColor: "#1C1C2E",
   },
   rowDisabled: {
     opacity: 0.4,

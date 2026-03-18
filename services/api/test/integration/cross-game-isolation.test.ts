@@ -1,5 +1,5 @@
 import { env, SELF } from "cloudflare:test";
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 /**
  * Cross-Game Isolation Integration Tests
@@ -18,10 +18,7 @@ function headersFor(apiKey: string) {
   };
 }
 
-async function createSession(
-  apiKey: string,
-  deviceId: string
-): Promise<{ sessionId: string }> {
+async function createSession(apiKey: string, deviceId: string): Promise<{ sessionId: string }> {
   const res = await SELF.fetch("https://api.test/api/v1/cast/sessions", {
     method: "POST",
     headers: headersFor(apiKey),
@@ -39,7 +36,7 @@ describe("Cross-Game Isolation — D1 Integration", () => {
 
     // Seed a second game's API key
     await env.DB.prepare(
-      "INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES (?, ?, ?)"
+      "INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES (?, ?, ?)",
     )
       .bind(GAME_B_KEY, "word-clash", "Word Clash")
       .run();
@@ -49,10 +46,9 @@ describe("Cross-Game Isolation — D1 Integration", () => {
     const { sessionId } = await createSession(GAME_B_KEY, "tv-b");
 
     // Game A tries to GET game B's session
-    const res = await SELF.fetch(
-      `https://api.test/api/v1/cast/sessions/${sessionId}`,
-      { headers: headersFor(GAME_A_KEY) }
-    );
+    const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+      headers: headersFor(GAME_A_KEY),
+    });
 
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error: { code: string } };
@@ -63,17 +59,15 @@ describe("Cross-Game Isolation — D1 Integration", () => {
     const { sessionId } = await createSession(GAME_B_KEY, "tv-b");
 
     // Game A tries to DELETE game B's session
-    const res = await SELF.fetch(
-      `https://api.test/api/v1/cast/sessions/${sessionId}`,
-      { method: "DELETE", headers: headersFor(GAME_A_KEY) }
-    );
+    const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+      method: "DELETE",
+      headers: headersFor(GAME_A_KEY),
+    });
 
     expect(res.status).toBe(404);
 
     // Verify session is still active in D1
-    const row = await env.DB.prepare(
-      "SELECT status FROM cast_sessions WHERE session_id = ?"
-    )
+    const row = await env.DB.prepare("SELECT status FROM cast_sessions WHERE session_id = ?")
       .bind(sessionId)
       .first<{ status: string }>();
 
@@ -84,14 +78,11 @@ describe("Cross-Game Isolation — D1 Integration", () => {
     const { sessionId } = await createSession(GAME_B_KEY, "tv-b");
 
     // Game A tries to push state to game B's session
-    const res = await SELF.fetch(
-      `https://api.test/api/v1/cast/sessions/${sessionId}/state`,
-      {
-        method: "POST",
-        headers: headersFor(GAME_A_KEY),
-        body: JSON.stringify({ state: { hijacked: true } }),
-      }
-    );
+    const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}/state`, {
+      method: "POST",
+      headers: headersFor(GAME_A_KEY),
+      body: JSON.stringify({ state: { hijacked: true } }),
+    });
 
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error: { code: string } };
@@ -103,10 +94,9 @@ describe("Cross-Game Isolation — D1 Integration", () => {
     const { sessionId: sessionB } = await createSession(GAME_B_KEY, "tv-b");
 
     // Game A reads session B → 404
-    const res = await SELF.fetch(
-      `https://api.test/api/v1/cast/sessions/${sessionB}`,
-      { headers: headersFor(GAME_A_KEY) }
-    );
+    const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionB}`, {
+      headers: headersFor(GAME_A_KEY),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -114,10 +104,9 @@ describe("Cross-Game Isolation — D1 Integration", () => {
   it("game can read its own session after creation", async () => {
     const { sessionId } = await createSession(GAME_A_KEY, "tv-a");
 
-    const res = await SELF.fetch(
-      `https://api.test/api/v1/cast/sessions/${sessionId}`,
-      { headers: headersFor(GAME_A_KEY) }
-    );
+    const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+      headers: headersFor(GAME_A_KEY),
+    });
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as { sessionId: string; status: string };

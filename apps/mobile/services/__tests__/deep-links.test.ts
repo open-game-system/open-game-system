@@ -1,5 +1,5 @@
-import { extractGameUrl, getInitialGameUrl, addDeepLinkListener } from "../deep-links";
 import * as Linking from "expo-linking";
+import { addDeepLinkListener, extractGameUrl, getInitialGameUrl } from "../deep-links";
 
 jest.mock("expo-linking", () => ({
   parse: jest.fn(),
@@ -8,8 +8,12 @@ jest.mock("expo-linking", () => ({
 }));
 
 const mockParse = Linking.parse as jest.MockedFunction<typeof Linking.parse>;
-const mockGetInitialURL = Linking.getInitialURL as jest.MockedFunction<typeof Linking.getInitialURL>;
-const mockAddEventListener = Linking.addEventListener as jest.MockedFunction<typeof Linking.addEventListener>;
+const mockGetInitialURL = Linking.getInitialURL as jest.MockedFunction<
+  typeof Linking.getInitialURL
+>;
+const mockAddEventListener = Linking.addEventListener as jest.MockedFunction<
+  typeof Linking.addEventListener
+>;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -25,7 +29,9 @@ describe("deep-links", () => {
         scheme: "https",
       });
 
-      const result = extractGameUrl("https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv%2Fgames%2Fabc123");
+      const result = extractGameUrl(
+        "https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv%2Fgames%2Fabc123",
+      );
       expect(result).toBe("https://triviajam.tv/games/abc123");
     });
 
@@ -172,7 +178,9 @@ describe("deep-links", () => {
 
   describe("getInitialGameUrl", () => {
     it("returns game URL when app was launched with a valid deep link", async () => {
-      mockGetInitialURL.mockResolvedValue("https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv");
+      mockGetInitialURL.mockResolvedValue(
+        "https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv",
+      );
       mockParse.mockReturnValue({
         path: "open",
         queryParams: { url: "https://triviajam.tv" },
@@ -183,10 +191,7 @@ describe("deep-links", () => {
       const logSpy = jest.spyOn(console, "log").mockImplementation();
       const result = await getInitialGameUrl();
       expect(result).toBe("https://triviajam.tv");
-      expect(logSpy).toHaveBeenCalledWith(
-        "[DeepLinks] Initial URL:",
-        expect.any(String)
-      );
+      expect(logSpy).toHaveBeenCalledWith("[DeepLinks] Initial URL:", expect.any(String));
       logSpy.mockRestore();
     });
 
@@ -236,7 +241,9 @@ describe("deep-links", () => {
         scheme: "https",
       });
 
-      capturedHandler!({ url: "https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv%2Fgames%2Flive" });
+      capturedHandler!({
+        url: "https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv%2Fgames%2Flive",
+      });
       expect(callback).toHaveBeenCalledWith("https://triviajam.tv/games/live");
     });
 

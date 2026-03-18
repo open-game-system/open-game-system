@@ -1,52 +1,65 @@
-import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render } from '@testing-library/react';
-import { renderHook, act } from '@testing-library/react';
-import { CastProvider, useCastState, useCastSession, useCastDevices, useCastAvailable, useCastDispatch, CastButton, DeviceList, CastStatus } from './index';
-import { CAST_INITIAL_STATE, _resetBridge, getCastBridge } from '@open-game-system/cast-kit-core';
+import { _resetBridge, CAST_INITIAL_STATE, getCastBridge } from "@open-game-system/cast-kit-core";
+import { act, render, renderHook } from "@testing-library/react";
+import type React from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  CastButton,
+  CastProvider,
+  CastStatus,
+  DeviceList,
+  useCastAvailable,
+  useCastDevices,
+  useCastDispatch,
+  useCastSession,
+  useCastState,
+} from "./index";
 
 function initCastStore(data: object) {
   // Ensure bridge is created before sending STATE_INIT
   getCastBridge();
-  window.dispatchEvent(new MessageEvent('message', {
-    data: JSON.stringify({
-      type: 'STATE_INIT',
-      storeKey: 'cast',
-      data,
+  window.dispatchEvent(
+    new MessageEvent("message", {
+      data: JSON.stringify({
+        type: "STATE_INIT",
+        storeKey: "cast",
+        data,
+      }),
     }),
-  }));
+  );
 }
 
 function sendStateUpdate(operations: object[]) {
-  window.dispatchEvent(new MessageEvent('message', {
-    data: JSON.stringify({
-      type: 'STATE_UPDATE',
-      storeKey: 'cast',
-      operations,
+  window.dispatchEvent(
+    new MessageEvent("message", {
+      data: JSON.stringify({
+        type: "STATE_UPDATE",
+        storeKey: "cast",
+        operations,
+      }),
     }),
-  }));
+  );
 }
 
 const CONNECTED_STATE = {
   isAvailable: true,
   devices: [
-    { id: 'tv-1', name: 'Living Room TV', type: 'chromecast' },
-    { id: 'tv-2', name: 'Bedroom TV', type: 'airplay' },
+    { id: "tv-1", name: "Living Room TV", type: "chromecast" },
+    { id: "tv-2", name: "Bedroom TV", type: "airplay" },
   ],
   session: {
-    status: 'connected',
-    deviceId: 'tv-1',
-    deviceName: 'Living Room TV',
-    sessionId: 'session-123',
-    streamSessionId: 'stream-456',
+    status: "connected",
+    deviceId: "tv-1",
+    deviceName: "Living Room TV",
+    sessionId: "session-123",
+    streamSessionId: "stream-456",
   },
   error: null,
 };
 
-describe('Cast-Kit React Hooks', () => {
+describe("Cast-Kit React Hooks", () => {
   beforeEach(() => {
     _resetBridge();
-    vi.stubGlobal('ReactNativeWebView', {
+    vi.stubGlobal("ReactNativeWebView", {
       postMessage: vi.fn(),
     });
   });
@@ -56,45 +69,46 @@ describe('Cast-Kit React Hooks', () => {
   });
 
   function createWrapper() {
-    return ({ children }: { children: React.ReactNode }) => (
-      <CastProvider>{children}</CastProvider>
-    );
+    return ({ children }: { children: React.ReactNode }) => <CastProvider>{children}</CastProvider>;
   }
 
-  describe('CastProvider', () => {
-    it('renders null for children when cast store is not initialized', () => {
+  describe("CastProvider", () => {
+    it("renders null for children when cast store is not initialized", () => {
       // Bridge exists but no STATE_INIT — Provider renders null
       const wrapper = createWrapper();
-      const { result } = renderHook(() => {
-        // This hook will never execute because Provider renders null
-        return 'rendered';
-      }, { wrapper });
+      const { result } = renderHook(
+        () => {
+          // This hook will never execute because Provider renders null
+          return "rendered";
+        },
+        { wrapper },
+      );
 
       // renderHook returns null result when wrapper renders null
       expect(result.current).toBe(null);
     });
 
-    it('renders nothing when bridge is null (no ReactNativeWebView, no window)', () => {
+    it("renders nothing when bridge is null (no ReactNativeWebView, no window)", () => {
       // When ReactNativeWebView is absent AND bridge is reset,
       // getCastBridge() creates a bridge that exists but isn't supported.
       // We need to test the case where getCastBridge() returns null.
       // This happens in SSR where window is undefined.
       // Since we can't delete window (React needs it), we test by
       // verifying that CastProvider renders no content when bridge is not usable.
-      vi.stubGlobal('ReactNativeWebView', undefined);
+      vi.stubGlobal("ReactNativeWebView", undefined);
       _resetBridge();
 
       const { container } = render(
         <CastProvider>
           <div data-testid="child">Should not render</div>
-        </CastProvider>
+        </CastProvider>,
       );
       // Bridge exists but store is not initialized, so Provider's StoreContext
       // renders null for children
       expect(container.querySelector('[data-testid="child"]')).toBe(null);
     });
 
-    it('renders children when cast store is initialized', () => {
+    it("renders children when cast store is initialized", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const wrapper = createWrapper();
@@ -104,8 +118,8 @@ describe('Cast-Kit React Hooks', () => {
     });
   });
 
-  describe('useCastState', () => {
-    it('returns full cast state', () => {
+  describe("useCastState", () => {
+    it("returns full cast state", () => {
       initCastStore(CONNECTED_STATE);
 
       const wrapper = createWrapper();
@@ -113,11 +127,11 @@ describe('Cast-Kit React Hooks', () => {
 
       expect(result.current.isAvailable).toBe(true);
       expect(result.current.devices).toHaveLength(2);
-      expect(result.current.session.status).toBe('connected');
+      expect(result.current.session.status).toBe("connected");
       expect(result.current.error).toBe(null);
     });
 
-    it('updates when state changes', () => {
+    it("updates when state changes", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const wrapper = createWrapper();
@@ -126,47 +140,45 @@ describe('Cast-Kit React Hooks', () => {
       expect(result.current.isAvailable).toBe(false);
 
       act(() => {
-        sendStateUpdate([
-          { op: 'replace', path: '/isAvailable', value: true },
-        ]);
+        sendStateUpdate([{ op: "replace", path: "/isAvailable", value: true }]);
       });
 
       expect(result.current.isAvailable).toBe(true);
     });
   });
 
-  describe('useCastSession', () => {
-    it('returns only the session object', () => {
+  describe("useCastSession", () => {
+    it("returns only the session object", () => {
       initCastStore(CONNECTED_STATE);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useCastSession(), { wrapper });
 
       expect(result.current).toEqual({
-        status: 'connected',
-        deviceId: 'tv-1',
-        deviceName: 'Living Room TV',
-        sessionId: 'session-123',
-        streamSessionId: 'stream-456',
+        status: "connected",
+        deviceId: "tv-1",
+        deviceName: "Living Room TV",
+        sessionId: "session-123",
+        streamSessionId: "stream-456",
       });
     });
   });
 
-  describe('useCastDevices', () => {
-    it('returns the devices array', () => {
+  describe("useCastDevices", () => {
+    it("returns the devices array", () => {
       initCastStore(CONNECTED_STATE);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useCastDevices(), { wrapper });
 
       expect(result.current).toHaveLength(2);
-      expect(result.current[0].name).toBe('Living Room TV');
-      expect(result.current[1].name).toBe('Bedroom TV');
+      expect(result.current[0].name).toBe("Living Room TV");
+      expect(result.current[1].name).toBe("Bedroom TV");
     });
   });
 
-  describe('useCastAvailable', () => {
-    it('returns false when no devices', () => {
+  describe("useCastAvailable", () => {
+    it("returns false when no devices", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const wrapper = createWrapper();
@@ -175,7 +187,7 @@ describe('Cast-Kit React Hooks', () => {
       expect(result.current).toBe(false);
     });
 
-    it('returns true when devices available', () => {
+    it("returns true when devices available", () => {
       initCastStore(CONNECTED_STATE);
 
       const wrapper = createWrapper();
@@ -185,38 +197,38 @@ describe('Cast-Kit React Hooks', () => {
     });
   });
 
-  describe('CastButton (render prop)', () => {
-    it('renders nothing when not available', () => {
+  describe("CastButton (render prop)", () => {
+    it("renders nothing when not available", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const renderFn = vi.fn(() => null);
       const { container } = render(
         <CastProvider>
           <CastButton>{renderFn}</CastButton>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).not.toHaveBeenCalled();
-      expect(container.innerHTML).toBe('');
+      expect(container.innerHTML).toBe("");
     });
 
-    it('calls render prop with disconnected state when devices available', () => {
+    it("calls render prop with disconnected state when devices available", () => {
       initCastStore({
         ...CAST_INITIAL_STATE,
         isAvailable: true,
-        devices: [{ id: 'tv-1', name: 'TV 1', type: 'chromecast' }],
+        devices: [{ id: "tv-1", name: "TV 1", type: "chromecast" }],
       });
 
       const renderFn = vi.fn(() => <button>Cast</button>);
       render(
         <CastProvider>
           <CastButton>{renderFn}</CastButton>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'disconnected',
+          status: "disconnected",
           deviceCount: 1,
           deviceName: null,
           error: null,
@@ -225,63 +237,63 @@ describe('Cast-Kit React Hooks', () => {
           startCasting: expect.any(Function),
           stopCasting: expect.any(Function),
           showPicker: expect.any(Function),
-        })
+        }),
       );
     });
 
-    it('calls render prop with connected state', () => {
+    it("calls render prop with connected state", () => {
       initCastStore(CONNECTED_STATE);
 
       const renderFn = vi.fn(() => <span>Connected</span>);
       render(
         <CastProvider>
           <CastButton>{renderFn}</CastButton>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'connected',
-          deviceName: 'Living Room TV',
+          status: "connected",
+          deviceName: "Living Room TV",
         }),
-        expect.any(Object)
+        expect.any(Object),
       );
     });
   });
 
-  describe('DeviceList (render prop)', () => {
-    it('calls render prop with devices and onSelect', () => {
+  describe("DeviceList (render prop)", () => {
+    it("calls render prop with devices and onSelect", () => {
       initCastStore(CONNECTED_STATE);
 
       const renderFn = vi.fn(() => <ul />);
       render(
         <CastProvider>
           <DeviceList>{renderFn}</DeviceList>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).toHaveBeenCalledWith(
         expect.objectContaining({
           devices: expect.arrayContaining([
-            expect.objectContaining({ id: 'tv-1', name: 'Living Room TV' }),
-            expect.objectContaining({ id: 'tv-2', name: 'Bedroom TV' }),
+            expect.objectContaining({ id: "tv-1", name: "Living Room TV" }),
+            expect.objectContaining({ id: "tv-2", name: "Bedroom TV" }),
           ]),
-          connectedDeviceId: 'tv-1',
+          connectedDeviceId: "tv-1",
         }),
         expect.objectContaining({
           selectDevice: expect.any(Function),
-        })
+        }),
       );
     });
 
-    it('renders nothing when no devices available', () => {
+    it("renders nothing when no devices available", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const renderFn = vi.fn(() => null);
       render(
         <CastProvider>
           <DeviceList>{renderFn}</DeviceList>
-        </CastProvider>
+        </CastProvider>,
       );
 
       // No devices = don't call render prop
@@ -289,116 +301,116 @@ describe('Cast-Kit React Hooks', () => {
     });
   });
 
-  describe('CastStatus (render prop)', () => {
-    it('renders nothing when disconnected', () => {
+  describe("CastStatus (render prop)", () => {
+    it("renders nothing when disconnected", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const renderFn = vi.fn(() => null);
       render(
         <CastProvider>
           <CastStatus>{renderFn}</CastStatus>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).not.toHaveBeenCalled();
     });
 
-    it('calls render prop with connecting state', () => {
+    it("calls render prop with connecting state", () => {
       initCastStore({
         ...CAST_INITIAL_STATE,
         isAvailable: true,
-        session: { ...CAST_INITIAL_STATE.session, status: 'connecting', deviceId: 'tv-1' },
+        session: { ...CAST_INITIAL_STATE.session, status: "connecting", deviceId: "tv-1" },
       });
 
       const renderFn = vi.fn(() => <span>Connecting...</span>);
       render(
         <CastProvider>
           <CastStatus>{renderFn}</CastStatus>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'connecting',
+          status: "connecting",
           deviceName: null,
           error: null,
-        })
+        }),
       );
     });
 
-    it('calls render prop with connected state and device name', () => {
+    it("calls render prop with connected state and device name", () => {
       initCastStore(CONNECTED_STATE);
 
       const renderFn = vi.fn(() => <span>Casting to TV</span>);
       render(
         <CastProvider>
           <CastStatus>{renderFn}</CastStatus>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'connected',
-          deviceName: 'Living Room TV',
-        })
+          status: "connected",
+          deviceName: "Living Room TV",
+        }),
       );
     });
 
-    it('calls render prop with error', () => {
+    it("calls render prop with error", () => {
       initCastStore({
         ...CONNECTED_STATE,
-        error: 'Stream ended unexpectedly',
+        error: "Stream ended unexpectedly",
       });
 
       const renderFn = vi.fn(() => <span>Error</span>);
       render(
         <CastProvider>
           <CastStatus>{renderFn}</CastStatus>
-        </CastProvider>
+        </CastProvider>,
       );
 
       expect(renderFn).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: 'Stream ended unexpectedly',
-        })
+          error: "Stream ended unexpectedly",
+        }),
       );
     });
   });
 
-  describe('useCastDispatch', () => {
-    it('dispatches events to the cast store', () => {
+  describe("useCastDispatch", () => {
+    it("dispatches events to the cast store", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useCastDispatch(), { wrapper });
 
       act(() => {
-        result.current({ type: 'SCAN_DEVICES' });
+        result.current({ type: "SCAN_DEVICES" });
       });
 
       const postMessage = (window as any).ReactNativeWebView.postMessage;
       const lastCall = postMessage.mock.calls[postMessage.mock.calls.length - 1][0];
       const parsed = JSON.parse(lastCall);
-      expect(parsed.type).toBe('EVENT');
-      expect(parsed.storeKey).toBe('cast');
-      expect(parsed.event.type).toBe('SCAN_DEVICES');
+      expect(parsed.type).toBe("EVENT");
+      expect(parsed.storeKey).toBe("cast");
+      expect(parsed.event.type).toBe("SCAN_DEVICES");
     });
 
-    it('dispatches START_CASTING with deviceId', () => {
+    it("dispatches START_CASTING with deviceId", () => {
       initCastStore(CAST_INITIAL_STATE);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useCastDispatch(), { wrapper });
 
       act(() => {
-        result.current({ type: 'START_CASTING', deviceId: 'tv-1' });
+        result.current({ type: "START_CASTING", deviceId: "tv-1" });
       });
 
       const postMessage = (window as any).ReactNativeWebView.postMessage;
       const lastCall = postMessage.mock.calls[postMessage.mock.calls.length - 1][0];
       const parsed = JSON.parse(lastCall);
-      expect(parsed.event.type).toBe('START_CASTING');
-      expect(parsed.event.deviceId).toBe('tv-1');
+      expect(parsed.event.type).toBe("START_CASTING");
+      expect(parsed.event.deviceId).toBe("tv-1");
     });
   });
 });

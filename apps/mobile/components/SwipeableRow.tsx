@@ -1,12 +1,6 @@
-import React, { useRef } from 'react';
-import {
-  Animated,
-  PanResponder,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import type React from "react";
+import { useRef } from "react";
+import { Animated, PanResponder, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const ACTION_WIDTH = 80;
 const SWIPE_THRESHOLD = ACTION_WIDTH * 0.6;
@@ -46,7 +40,7 @@ export function SwipeableRow({ children, onClose, testID }: SwipeableRowProps) {
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   const handleClose = () => {
@@ -85,32 +79,32 @@ export function SwipeableRow({ children, onClose, testID }: SwipeableRowProps) {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   },
   actionContainer: {
-    position: 'absolute',
+    position: "absolute",
     right: 0,
     top: 0,
     bottom: 0,
     width: ACTION_WIDTH,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   closeAction: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#DC2626',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    backgroundColor: "#DC2626",
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 14,
   },
   closeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   content: {
-    backgroundColor: '#0A0A0F',
+    backgroundColor: "#0A0A0F",
   },
 });

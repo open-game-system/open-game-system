@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { handleScheduled } from "../../src/scheduled";
 
 /**
@@ -11,11 +11,7 @@ import { handleScheduled } from "../../src/scheduled";
 
 const GAME_ID = "trivia-jam";
 
-async function insertSession(
-  sessionId: string,
-  status: string,
-  updatedAtMinutesAgo: number
-) {
+async function insertSession(sessionId: string, status: string, updatedAtMinutesAgo: number) {
   const updatedAt = new Date(Date.now() - updatedAtMinutesAgo * 60 * 1000)
     .toISOString()
     .replace("T", " ")
@@ -24,7 +20,7 @@ async function insertSession(
 
   await env.DB.prepare(
     `INSERT INTO cast_sessions (session_id, game_id, device_id, view_url, stream_session_id, stream_url, status, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       sessionId,
@@ -34,15 +30,13 @@ async function insertSession(
       sessionId,
       `https://api.test/api/v1/cast/stream/${sessionId}`,
       status,
-      updatedAt
+      updatedAt,
     )
     .run();
 }
 
 async function getSessionStatus(sessionId: string): Promise<string | null> {
-  const row = await env.DB.prepare(
-    "SELECT status FROM cast_sessions WHERE session_id = ?"
-  )
+  const row = await env.DB.prepare("SELECT status FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<{ status: string }>();
   return row?.status ?? null;
@@ -114,9 +108,7 @@ describe("Scheduled Handler — D1 Integration", () => {
         .replace("T", " ")
         .replace("Z", "")
         .slice(0, 19);
-      await env.DB.prepare(
-        "UPDATE cast_sessions SET updated_at = ? WHERE session_id = ?"
-      )
+      await env.DB.prepare("UPDATE cast_sessions SET updated_at = ? WHERE session_id = ?")
         .bind(tenMinAgo, "session-lifecycle")
         .run();
 

@@ -1,35 +1,21 @@
 import {
   BridgedWebView,
-  createNativeBridgeContext,
   createNativeBridge,
-  NativeBridge,
+  createNativeBridgeContext,
+  type NativeBridge,
 } from "@open-game-system/app-bridge-react-native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  PanResponder,
-  Platform,
-  StyleSheet,
-  View,
-} from "react-native";
-import { StatusBar } from "expo-status-bar";
-import GoogleCast, { useDevices } from "react-native-google-cast";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  consumePendingGameUrl,
-  subscribeToGameUrl,
-} from "../services/game-url-store";
-import {
-  createCastStore,
-  type CastStores,
-  type CastDevice,
-} from "../services/cast-store";
-import { addRecentGame } from "../services/game-history";
-import { findGameByUrl } from "../services/game-directory";
-import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Dimensions, PanResponder, Platform, StyleSheet, View } from "react-native";
+import GoogleCast, { useDevices } from "react-native-google-cast";
 import { GameErrorScreen } from "../components/GameErrorScreen";
+import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
+import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
+import { findGameByUrl } from "../services/game-directory";
+import { addRecentGame } from "../services/game-history";
+import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
@@ -57,7 +43,7 @@ export default function GameScreen() {
         android: { uri: "http://10.0.2.2:8787" },
         default: { uri: "http://localhost:8787" },
       }),
-    []
+    [],
   );
 
   const initialSource = useMemo(() => {
@@ -82,8 +68,11 @@ export default function GameScreen() {
   const [hasError, setHasError] = useState(false);
   const gameInfo = useMemo(() => findGameByUrl(webviewSource.uri), [webviewSource.uri]);
   const originDomain = useMemo(() => {
-    try { return new URL(webviewSource.uri).hostname; }
-    catch { return webviewSource.uri; }
+    try {
+      return new URL(webviewSource.uri).hostname;
+    } catch {
+      return webviewSource.uri;
+    }
   }, [webviewSource.uri]);
 
   // --- Handlers ---
@@ -137,8 +126,7 @@ export default function GameScreen() {
     }));
     const current = castStore.getSnapshot().devices;
     const changed =
-      castDevices.length !== current.length ||
-      castDevices.some((d, i) => d.id !== current[i]?.id);
+      castDevices.length !== current.length || castDevices.some((d, i) => d.id !== current[i]?.id);
     if (changed) {
       castStore.dispatch({ type: "DEVICES_UPDATED", devices: castDevices });
     }
@@ -163,8 +151,7 @@ export default function GameScreen() {
   // --- Swipe-back gesture ---
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: (evt) =>
-        evt.nativeEvent.pageX < EDGE_WIDTH,
+      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.pageX < EDGE_WIDTH,
       onMoveShouldSetPanResponder: (evt, gs) =>
         evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
       onPanResponderMove: (_, gs) => {
@@ -173,15 +160,18 @@ export default function GameScreen() {
       onPanResponderRelease: (_, gs) => {
         if (gs.dx > SWIPE_THRESHOLD) {
           Animated.timing(translateX, {
-            toValue: SCREEN_WIDTH, duration: 200, useNativeDriver: true,
+            toValue: SCREEN_WIDTH,
+            duration: 200,
+            useNativeDriver: true,
           }).start(() => router.back());
         } else {
           Animated.spring(translateX, {
-            toValue: 0, useNativeDriver: true,
+            toValue: 0,
+            useNativeDriver: true,
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   // --- Render ---
@@ -225,10 +215,7 @@ export default function GameScreen() {
           </CastContext.StoreProvider>
 
           {!isLoading && showSwipeHint && (
-            <SwipeHintOverlay
-              visible={showSwipeHint}
-              onDismiss={dismissSwipeHint}
-            />
+            <SwipeHintOverlay visible={showSwipeHint} onDismiss={dismissSwipeHint} />
           )}
 
           {isLoading && (

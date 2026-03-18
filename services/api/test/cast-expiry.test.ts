@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { handleScheduled, type ScheduledEnv } from "../src/scheduled";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../src/index";
+import { handleScheduled, type ScheduledEnv } from "../src/scheduled";
 import { OgsErrorSchema } from "../src/schemas";
 
 const VALID_API_KEY = { key: "valid-key", game_id: "trivia-jam", game_name: "Trivia Jam" };
@@ -18,10 +18,9 @@ function minutesAgo(n: number): string {
   return d.toISOString().replace("T", " ").replace("Z", "").slice(0, 19);
 }
 
-function createScheduledMockEnv(opts: {
-  activeSessions?: unknown[];
-  idleSessions?: unknown[];
-} = {}) {
+function createScheduledMockEnv(
+  opts: { activeSessions?: unknown[]; idleSessions?: unknown[] } = {},
+) {
   const { activeSessions = [], idleSessions = [] } = opts;
 
   const updateCalls: Array<{ sql: string; bindings: unknown[] }> = [];
@@ -143,12 +142,32 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
     it("processes multiple active and idle sessions", async () => {
       const { env, updateCalls } = createScheduledMockEnv({
         activeSessions: [
-          { session_id: "active-1", stream_session_id: "s-1", status: "active", updated_at: minutesAgo(31) },
-          { session_id: "active-2", stream_session_id: "s-2", status: "active", updated_at: minutesAgo(45) },
+          {
+            session_id: "active-1",
+            stream_session_id: "s-1",
+            status: "active",
+            updated_at: minutesAgo(31),
+          },
+          {
+            session_id: "active-2",
+            stream_session_id: "s-2",
+            status: "active",
+            updated_at: minutesAgo(45),
+          },
         ],
         idleSessions: [
-          { session_id: "idle-1", stream_session_id: "s-3", status: "idle", updated_at: minutesAgo(6) },
-          { session_id: "idle-2", stream_session_id: "s-4", status: "idle", updated_at: minutesAgo(10) },
+          {
+            session_id: "idle-1",
+            stream_session_id: "s-3",
+            status: "idle",
+            updated_at: minutesAgo(6),
+          },
+          {
+            session_id: "idle-2",
+            stream_session_id: "s-4",
+            status: "idle",
+            updated_at: minutesAgo(10),
+          },
         ],
       });
 
@@ -188,7 +207,6 @@ describe("Cast Session Auto-Expiry (Scheduled Handler)", () => {
 
 describe("Resuming an idle session", () => {
   it("reactivates an idle session when state is pushed", async () => {
-
     const updateRun = vi.fn().mockResolvedValue({ success: true });
 
     const env = {
@@ -234,7 +252,7 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      };
+    };
 
     const res = await app.request(
       "/api/v1/cast/sessions/session-idle/state",
@@ -290,7 +308,7 @@ describe("Resuming an idle session", () => {
         }),
       },
       OGS_JWT_SECRET: "test-jwt-secret",
-      };
+    };
 
     const res = await app.request(
       "/api/v1/cast/sessions/session-ended/state",

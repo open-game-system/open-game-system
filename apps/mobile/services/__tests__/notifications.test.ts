@@ -1,17 +1,17 @@
-import {
-  getOrCreateDeviceId,
-  registerForPushNotifications,
-  registerDeviceWithAPI,
-  initializePushNotifications,
-  addPushTokenListener,
-  getGameUrlFromNotification,
-} from "../notifications";
+import Constants from "expo-constants";
+import * as Crypto from "expo-crypto";
 import * as Notifications from "expo-notifications";
 // Device is mocked via mockDevice variable above the jest.mock call
 import * as SecureStore from "expo-secure-store";
-import * as Crypto from "expo-crypto";
-import Constants from "expo-constants";
 import { Platform } from "react-native";
+import {
+  addPushTokenListener,
+  getGameUrlFromNotification,
+  getOrCreateDeviceId,
+  initializePushNotifications,
+  registerDeviceWithAPI,
+  registerForPushNotifications,
+} from "../notifications";
 
 jest.mock("expo-notifications", () => ({
   setNotificationHandler: jest.fn(),
@@ -65,7 +65,6 @@ beforeEach(() => {
 });
 
 describe("notifications", () => {
-
   describe("getOrCreateDeviceId", () => {
     it("returns existing device ID from SecureStore", async () => {
       (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("existing-uuid");
@@ -84,10 +83,7 @@ describe("notifications", () => {
       const result = await getOrCreateDeviceId();
 
       expect(result).toBe("new-uuid-123");
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith(
-        "ogs_device_id",
-        "new-uuid-123"
-      );
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith("ogs_device_id", "new-uuid-123");
     });
   });
 
@@ -99,9 +95,7 @@ describe("notifications", () => {
       const result = await registerForPushNotifications();
 
       expect(result).toBeNull();
-      expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[Notifications]")
-      );
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("[Notifications]"));
       logSpy.mockRestore();
     });
 
@@ -149,7 +143,7 @@ describe("notifications", () => {
 
       expect(result).toBeNull();
       expect(logSpy).toHaveBeenCalledWith(
-        expect.stringContaining("[Notifications] Permission denied")
+        expect.stringContaining("[Notifications] Permission denied"),
       );
       logSpy.mockRestore();
     });
@@ -168,9 +162,7 @@ describe("notifications", () => {
       const result = await registerForPushNotifications();
 
       expect(result).toBeNull();
-      expect(errorSpy).toHaveBeenCalledWith(
-        "[Notifications] No EAS project ID found"
-      );
+      expect(errorSpy).toHaveBeenCalledWith("[Notifications] No EAS project ID found");
       errorSpy.mockRestore();
 
       (Constants as any).expoConfig = originalExpoConfig;
@@ -273,7 +265,7 @@ describe("notifications", () => {
           importance: 5, // AndroidImportance.MAX
           vibrationPattern: [0, 250, 250, 250],
           lightColor: "#FF231F7C",
-        })
+        }),
       );
 
       Object.defineProperty(Platform, "OS", { value: originalOS, configurable: true });
@@ -309,22 +301,16 @@ describe("notifications", () => {
       const result = await registerDeviceWithAPI("device_xyz", "push-token-123");
 
       expect(result).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.opengame.org/api/v1/devices/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ogsDeviceId: "device_xyz",
-            platform: Platform.OS,
-            pushToken: "push-token-123",
-          }),
-        }
-      );
-      expect(logSpy).toHaveBeenCalledWith(
-        "[Notifications] Device registered:",
-        expect.any(Object)
-      );
+      expect(mockFetch).toHaveBeenCalledWith("https://api.opengame.org/api/v1/devices/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ogsDeviceId: "device_xyz",
+          platform: Platform.OS,
+          pushToken: "push-token-123",
+        }),
+      });
+      expect(logSpy).toHaveBeenCalledWith("[Notifications] Device registered:", expect.any(Object));
       logSpy.mockRestore();
     });
 
@@ -340,7 +326,7 @@ describe("notifications", () => {
       expect(result).toBe(false);
       expect(errorSpy).toHaveBeenCalledWith(
         "[Notifications] Device registration failed:",
-        expect.any(Object)
+        expect.any(Object),
       );
       errorSpy.mockRestore();
     });
@@ -354,7 +340,7 @@ describe("notifications", () => {
       expect(result).toBe(false);
       expect(errorSpy).toHaveBeenCalledWith(
         "[Notifications] Device registration error:",
-        expect.any(Error)
+        expect.any(Error),
       );
       errorSpy.mockRestore();
     });
@@ -402,12 +388,10 @@ describe("notifications", () => {
       const mockRemove = { remove: jest.fn() };
       let capturedCallback: (token: { data: string }) => void;
 
-      (Notifications.addPushTokenListener as jest.Mock).mockImplementation(
-        (cb) => {
-          capturedCallback = cb;
-          return mockRemove;
-        }
-      );
+      (Notifications.addPushTokenListener as jest.Mock).mockImplementation((cb) => {
+        capturedCallback = cb;
+        return mockRemove;
+      });
 
       const subscription = addPushTokenListener("device-123");
 
@@ -426,7 +410,7 @@ describe("notifications", () => {
         "https://api.opengame.org/api/v1/devices/register",
         expect.objectContaining({
           body: expect.stringContaining("new-push-token"),
-        })
+        }),
       );
     });
   });
@@ -441,9 +425,7 @@ describe("notifications", () => {
         },
       } as unknown as Notifications.Notification;
 
-      expect(getGameUrlFromNotification(notification)).toBe(
-        "https://triviajam.tv/games/abc123"
-      );
+      expect(getGameUrlFromNotification(notification)).toBe("https://triviajam.tv/games/abc123");
     });
 
     it("returns null when no URL in notification data", () => {

@@ -1,10 +1,18 @@
-import React, { useMemo, useCallback } from 'react';
-import { createBridgeContext } from '@open-game-system/app-bridge-react';
-import { getCastBridge, type CastStores, type CastState, type CastEvents, type CastDevice, type CastSession } from '@open-game-system/cast-kit-core';
+import { createBridgeContext } from "@open-game-system/app-bridge-react";
+import {
+  type CastDevice,
+  type CastEvents,
+  type CastSession,
+  type CastState,
+  type CastStores,
+  getCastBridge,
+} from "@open-game-system/cast-kit-core";
+import type React from "react";
+import { useCallback, useMemo } from "react";
 
 // Create the bridge context for cast stores
 const OgsCastContext = createBridgeContext<CastStores>();
-const CastStoreContext = OgsCastContext.createStoreContext('cast');
+const CastStoreContext = OgsCastContext.createStoreContext("cast");
 
 /**
  * Provider that initializes the app-bridge and exposes the cast store.
@@ -17,9 +25,7 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <OgsCastContext.Provider bridge={bridge}>
-      <CastStoreContext.Provider>
-        {children}
-      </CastStoreContext.Provider>
+      <CastStoreContext.Provider>{children}</CastStoreContext.Provider>
     </OgsCastContext.Provider>
   );
 }
@@ -62,16 +68,13 @@ export function useCastAvailable(): boolean {
  */
 export function useCastDispatch(): (event: CastEvents) => void {
   const store = CastStoreContext.useStore();
-  return useCallback(
-    (event: CastEvents) => store.dispatch(event),
-    [store]
-  );
+  return useCallback((event: CastEvents) => store.dispatch(event), [store]);
 }
 
 // ─── Render-prop components ───
 
 interface CastButtonState {
-  status: 'disconnected' | 'connecting' | 'connected';
+  status: "disconnected" | "connecting" | "connected";
   deviceCount: number;
   deviceName: string | null;
   error: string | null;
@@ -88,7 +91,9 @@ interface CastButtonActions {
  * Renders nothing when no devices are available.
  * When devices are available, calls the render function with state and actions.
  */
-export function CastButton({ children }: {
+export function CastButton({
+  children,
+}: {
   children: (state: CastButtonState, actions: CastButtonActions) => React.ReactElement | null;
 }) {
   const isAvailable = useCastAvailable();
@@ -100,9 +105,9 @@ export function CastButton({ children }: {
   if (!isAvailable) return null;
 
   const actions: CastButtonActions = {
-    startCasting: (deviceId: string) => dispatch({ type: 'START_CASTING', deviceId }),
-    stopCasting: () => dispatch({ type: 'STOP_CASTING' }),
-    showPicker: () => dispatch({ type: 'SHOW_CAST_PICKER' }),
+    startCasting: (deviceId: string) => dispatch({ type: "START_CASTING", deviceId }),
+    stopCasting: () => dispatch({ type: "STOP_CASTING" }),
+    showPicker: () => dispatch({ type: "SHOW_CAST_PICKER" }),
   };
 
   return children(
@@ -129,7 +134,9 @@ interface DeviceListActions {
  * Headless render-prop component for the device list.
  * Renders nothing when no devices are available.
  */
-export function DeviceList({ children }: {
+export function DeviceList({
+  children,
+}: {
   children: (state: DeviceListState, actions: DeviceListActions) => React.ReactElement | null;
 }) {
   const devices = useCastDevices();
@@ -144,13 +151,13 @@ export function DeviceList({ children }: {
       connectedDeviceId: session.deviceId,
     },
     {
-      selectDevice: (deviceId: string) => dispatch({ type: 'START_CASTING', deviceId }),
+      selectDevice: (deviceId: string) => dispatch({ type: "START_CASTING", deviceId }),
     },
   );
 }
 
 interface CastStatusState {
-  status: 'disconnected' | 'connecting' | 'connected';
+  status: "disconnected" | "connecting" | "connected";
   deviceName: string | null;
   error: string | null;
 }
@@ -159,13 +166,15 @@ interface CastStatusState {
  * Headless render-prop component for cast status display.
  * Renders nothing when disconnected and no error.
  */
-export function CastStatus({ children }: {
+export function CastStatus({
+  children,
+}: {
   children: (state: CastStatusState) => React.ReactElement | null;
 }) {
   const session = useCastSession();
   const error = CastStoreContext.useSelector((s) => s.error);
 
-  if (session.status === 'disconnected' && !error) return null;
+  if (session.status === "disconnected" && !error) return null;
 
   return children({
     status: session.status,
@@ -175,4 +184,15 @@ export function CastStatus({ children }: {
 }
 
 // Re-export types for convenience
-export type { CastState, CastEvents, CastDevice, CastSession, CastStores, CastButtonState, CastButtonActions, CastStatusState, DeviceListState, DeviceListActions };
+export type {
+  CastButtonActions,
+  CastButtonState,
+  CastDevice,
+  CastEvents,
+  CastSession,
+  CastState,
+  CastStatusState,
+  CastStores,
+  DeviceListActions,
+  DeviceListState,
+};

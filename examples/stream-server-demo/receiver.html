@@ -211,12 +211,12 @@
     
     <script>
         let peer = null;
-        let currentConnection = null;
+        const _currentConnection = null;
         let receivedCall = null;
         let isListening = false;
         let callHandlersBound = false;
         let currentTraceId = null;
-        const sessionId = 'session-' + Math.random().toString(36).substring(2, 15);
+        const sessionId = `session-${Math.random().toString(36).substring(2, 15)}`;
         const searchParams = new URLSearchParams(window.location.search);
         
         const urlInput = document.getElementById('urlInput');
@@ -232,7 +232,7 @@
         const remoteVideo = document.getElementById('remoteVideo');
         
         // Generate a random receiver ID
-        const receiverId = 'receiver-' + Math.random().toString(36).substring(2, 15);
+        const receiverId = `receiver-${Math.random().toString(36).substring(2, 15)}`;
         receiverIdDisplay.value = receiverId;
         
         function updateStatus(message, type = 'disconnected') {
@@ -305,7 +305,7 @@
             if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
                 return globalThis.crypto.randomUUID();
             }
-            return 'trace-' + Math.random().toString(36).slice(2) + '-' + Date.now();
+            return `trace-${Math.random().toString(36).slice(2)}-${Date.now()}`;
         }
         
         async function startStreamAndListen() {
@@ -345,7 +345,7 @@
                 });
                 const icePayload = await iceResponse.json();
                 if (!iceResponse.ok) {
-                    throw new Error((icePayload.error || 'Failed to load ICE servers') + ` (trace ${icePayload.traceId || currentTraceId})`);
+                    throw new Error(`${icePayload.error || 'Failed to load ICE servers'} (trace ${icePayload.traceId || currentTraceId})`);
                 }
                 const iceServers = Array.isArray(icePayload.iceServers) ? icePayload.iceServers : [];
                 console.log('🧊 ICE servers loaded:', iceServers);
@@ -396,7 +396,7 @@
                 console.log('🧭 Stream response trace ID:', responseTraceId);
                 
                 if (result.status !== 'success') {
-                    throw new Error((result.message || 'Failed to start stream') + ` (trace ${responseTraceId})`);
+                    throw new Error(`${result.message || 'Failed to start stream'} (trace ${responseTraceId})`);
                 }
                 
                 console.log('✅ Stream started:', result.srcPeerId, 'trace:', responseTraceId);
@@ -408,7 +408,7 @@
                 
             } catch (error) {
                 console.error('❌ Failed to start stream:', error);
-                updateStatus('❌ Failed to start stream: ' + error.message, 'error');
+                updateStatus(`❌ Failed to start stream: ${error.message}`, 'error');
                 cleanup();
             }
         }
@@ -422,7 +422,7 @@
             
             peer.on('call', (call) => {
                 console.log('📞 Receiving call from:', call.peer);
-                updateStatus('📡 Receiving stream from: ' + call.peer, 'connecting');
+                updateStatus(`📡 Receiving stream from: ${call.peer}`, 'connecting');
                 const peerConnection = call.peerConnection || call._negotiator?._pc || null;
                 if (peerConnection) {
                     console.log('📡 Peer connection object detected');
@@ -464,7 +464,7 @@
                         }))
                     });
                     
-                    updateStatus('✅ Stream connected! Showing video from: ' + call.peer, 'connected');
+                    updateStatus(`✅ Stream connected! Showing video from: ${call.peer}`, 'connected');
                     
                     // Stop any existing video first
                     if (remoteVideo.srcObject) {
@@ -534,7 +534,7 @@
                                 };
                                 remoteVideo.addEventListener('click', playOnClick);
                             } else {
-                                updateStatus('📹 Video stream received but playback failed: ' + error.message, 'error');
+                                updateStatus(`📹 Video stream received but playback failed: ${error.message}`, 'error');
                             }
                         });
                     } else {
@@ -597,7 +597,7 @@
                 
                 call.on('error', (error) => {
                     console.error('❌ Call error:', error);
-                    updateStatus('Call error: ' + error.message, 'error');
+                    updateStatus(`Call error: ${error.message}`, 'error');
                     resetToListening();
                 });
             });
@@ -608,7 +608,7 @@
             });
         }
         
-        function startListening() {
+        function _startListening() {
             updateStatus('Initializing receiver...', 'connecting');
             startListeningBtn.disabled = true;
             isListening = true;
@@ -639,7 +639,7 @@
                 return;
             }
             
-            updateStatus('Attempting to connect to: ' + sourcePeerId, 'connecting');
+            updateStatus(`Attempting to connect to: ${sourcePeerId}`, 'connecting');
             
             // Try to call the source peer
             try {
@@ -647,7 +647,7 @@
                 if (call) {
                     call.on('stream', (remoteStream) => {
                         console.log('🎥 Manual connection - received stream');
-                        updateStatus('✅ Manually connected to: ' + sourcePeerId, 'connected');
+                        updateStatus(`✅ Manually connected to: ${sourcePeerId}`, 'connected');
                         remoteVideo.srcObject = remoteStream;
                         videoContainer.style.display = 'block';
                         disconnectBtn.disabled = false;
@@ -655,19 +655,19 @@
                     
                     call.on('error', (error) => {
                         console.error('Manual call error:', error);
-                        updateStatus('Manual connection failed: ' + error.message, 'error');
+                        updateStatus(`Manual connection failed: ${error.message}`, 'error');
                     });
                     
                     receivedCall = call;
                 } else {
-                    updateStatus('Failed to initiate call to: ' + sourcePeerId, 'error');
+                    updateStatus(`Failed to initiate call to: ${sourcePeerId}`, 'error');
                 }
             } catch (error) {
-                updateStatus('Error calling peer: ' + error.message, 'error');
+                updateStatus(`Error calling peer: ${error.message}`, 'error');
             }
         }
         
-        function disconnect() {
+        function _disconnect() {
             updateStatus('Disconnecting...', 'connecting');
             
             if (receivedCall) {

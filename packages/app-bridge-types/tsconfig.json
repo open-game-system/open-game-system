@@ -18,4 +18,4 @@
     "noImplicitAny": false
   },
   "include": ["src", "src/**/*.d.ts"]
-} 
+}

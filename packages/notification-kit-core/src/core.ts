@@ -1,4 +1,4 @@
-import { createWebBridge } from '@open-game-system/app-bridge-web';
+import { createWebBridge } from "@open-game-system/app-bridge-web";
 
 /**
  * Shared store definition for the OGS ecosystem.
@@ -9,9 +9,7 @@ export interface SystemState {
   ogsDeviceId: string | null;
 }
 
-export type SystemEvents =
-  | { type: 'INITIALIZE' }
-  | { type: 'LOGOUT' };
+export type SystemEvents = { type: "INITIALIZE" } | { type: "LOGOUT" };
 
 export type OgsStores = {
   system: {
@@ -24,7 +22,7 @@ let bridge: any = null;
 
 // Initialize the bridge singleton
 export function getBridge() {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   if (!bridge) {
     bridge = createWebBridge<OgsStores>();
   }
@@ -48,14 +46,14 @@ export function isOGSWebView(): boolean {
 // Gets the ogsDeviceId from the system store snapshot
 export function getDeviceId(): string | null {
   const b = getBridge();
-  const systemStore = b?.getStore('system');
+  const systemStore = b?.getStore("system");
   return systemStore?.getSnapshot()?.ogsDeviceId ?? null;
 }
 
 // Subscribe to device ID changes via the system store
 export function onDeviceIdChange(callback: (deviceId: string | null) => void): () => void {
   const b = getBridge();
-  const systemStore = b?.getStore('system');
+  const systemStore = b?.getStore("system");
   if (!systemStore) return () => {};
 
   return systemStore.subscribe((state: SystemState) => {

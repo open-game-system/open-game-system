@@ -83,7 +83,7 @@ export async function getInitialGameUrl(): Promise<string | null> {
  * Returns an event subscription that should be cleaned up on unmount.
  */
 export function addDeepLinkListener(
-  callback: (gameUrl: string) => void
+  callback: (gameUrl: string) => void,
 ): ReturnType<typeof Linking.addEventListener> {
   return Linking.addEventListener("url", (event) => {
     console.log("[DeepLinks] Incoming URL:", event.url);

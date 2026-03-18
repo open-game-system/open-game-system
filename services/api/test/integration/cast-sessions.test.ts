@@ -1,5 +1,5 @@
 import { env, SELF } from "cloudflare:test";
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 const API_KEY = "test-api-key";
 const headers = {
@@ -35,9 +35,7 @@ describe("Cast Sessions — D1 Integration", () => {
       expect(body.sessionId).toBeTruthy();
 
       // Verify it's in D1
-      const row = await env.DB.prepare(
-        "SELECT * FROM cast_sessions WHERE session_id = ?"
-      )
+      const row = await env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
         .bind(body.sessionId)
         .first();
 
@@ -77,24 +75,20 @@ describe("Cast Sessions — D1 Integration", () => {
   describe("GET /api/v1/cast/sessions/:id", () => {
     it("returns session details from D1", async () => {
       // Create a session first
-      const createRes = await SELF.fetch(
-        "https://api.test/api/v1/cast/sessions",
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            deviceId: "tv-1",
-            viewUrl: "https://triviajam.tv/spectate/xyz",
-          }),
-        }
-      );
+      const createRes = await SELF.fetch("https://api.test/api/v1/cast/sessions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          deviceId: "tv-1",
+          viewUrl: "https://triviajam.tv/spectate/xyz",
+        }),
+      });
       const { sessionId } = (await createRes.json()) as { sessionId: string };
 
       // Get it
-      const res = await SELF.fetch(
-        `https://api.test/api/v1/cast/sessions/${sessionId}`,
-        { headers }
-      );
+      const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+        headers,
+      });
 
       expect(res.status).toBe(200);
       const body = (await res.json()) as { sessionId: string; status: string };
@@ -103,10 +97,9 @@ describe("Cast Sessions — D1 Integration", () => {
     });
 
     it("returns 404 for non-existent session", async () => {
-      const res = await SELF.fetch(
-        "https://api.test/api/v1/cast/sessions/non-existent-id",
-        { headers }
-      );
+      const res = await SELF.fetch("https://api.test/api/v1/cast/sessions/non-existent-id", {
+        headers,
+      });
 
       expect(res.status).toBe(404);
     });
@@ -115,33 +108,28 @@ describe("Cast Sessions — D1 Integration", () => {
   describe("DELETE /api/v1/cast/sessions/:id", () => {
     it("marks session as ended in D1", async () => {
       // Create a session
-      const createRes = await SELF.fetch(
-        "https://api.test/api/v1/cast/sessions",
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            deviceId: "tv-1",
-            viewUrl: "https://triviajam.tv/spectate/xyz",
-          }),
-        }
-      );
+      const createRes = await SELF.fetch("https://api.test/api/v1/cast/sessions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          deviceId: "tv-1",
+          viewUrl: "https://triviajam.tv/spectate/xyz",
+        }),
+      });
       const { sessionId } = (await createRes.json()) as { sessionId: string };
 
       // Delete it
-      const res = await SELF.fetch(
-        `https://api.test/api/v1/cast/sessions/${sessionId}`,
-        { method: "DELETE", headers }
-      );
+      const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers,
+      });
 
       expect(res.status).toBe(200);
       const body = (await res.json()) as { status: string };
       expect(body.status).toBe("ended");
 
       // Verify in D1
-      const row = await env.DB.prepare(
-        "SELECT status FROM cast_sessions WHERE session_id = ?"
-      )
+      const row = await env.DB.prepare("SELECT status FROM cast_sessions WHERE session_id = ?")
         .bind(sessionId)
         .first<{ status: string }>();
 
@@ -150,28 +138,25 @@ describe("Cast Sessions — D1 Integration", () => {
 
     it("delete is idempotent", async () => {
       // Create and delete
-      const createRes = await SELF.fetch(
-        "https://api.test/api/v1/cast/sessions",
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            deviceId: "tv-1",
-            viewUrl: "https://triviajam.tv/spectate/xyz",
-          }),
-        }
-      );
+      const createRes = await SELF.fetch("https://api.test/api/v1/cast/sessions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          deviceId: "tv-1",
+          viewUrl: "https://triviajam.tv/spectate/xyz",
+        }),
+      });
       const { sessionId } = (await createRes.json()) as { sessionId: string };
 
       // Delete twice
-      await SELF.fetch(
-        `https://api.test/api/v1/cast/sessions/${sessionId}`,
-        { method: "DELETE", headers }
-      );
-      const res = await SELF.fetch(
-        `https://api.test/api/v1/cast/sessions/${sessionId}`,
-        { method: "DELETE", headers }
-      );
+      await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers,
+      });
+      const res = await SELF.fetch(`https://api.test/api/v1/cast/sessions/${sessionId}`, {
+        method: "DELETE",
+        headers,
+      });
 
       expect(res.status).toBe(200);
       const body = (await res.json()) as { status: string };

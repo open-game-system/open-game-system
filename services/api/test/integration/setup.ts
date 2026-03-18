@@ -45,8 +45,6 @@ for (const stmt of statements) {
 }
 
 // Seed test API key
-await env.DB.prepare(
-  "INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES (?, ?, ?)"
-)
+await env.DB.prepare("INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES (?, ?, ?)")
   .bind("test-api-key", "trivia-jam", "Trivia Jam")
   .run();

@@ -1,7 +1,7 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useImperativeHandle } from "react";
 
 // Import the actual (mocked by jest-expo) View
-const View = require('react-native').View;
+const View = require("react-native").View;
 
 // Define the mock methods we need
 const mockWebViewRefMethods = {
@@ -14,7 +14,7 @@ const mockWebViewRefMethods = {
 // Create the mock component using forwardRef
 const MockWebViewComponent = forwardRef((props, ref) => {
   // Expose mock methods via useImperativeHandle
-  useImperativeHandle(ref, () => (mockWebViewRefMethods));
+  useImperativeHandle(ref, () => mockWebViewRefMethods);
 
   // Simulate onLoadEnd or other events if needed by tests
   // useEffect(() => {
@@ -22,7 +22,7 @@ const MockWebViewComponent = forwardRef((props, ref) => {
   // }, [props.onLoadEnd]);
 
   // Render a simple View to act as the placeholder
-  return <View {...props} />; 
+  return <View {...props} />;
 });
 
 // Export the component directly
@@ -33,4 +33,4 @@ export const WebView = MockWebViewComponent;
 // Object.assign(WebView, mockWebViewRefMethods);
 
 // Mock any other exports from the original module if necessary
-// export const otherExport = jest.fn(); 
+// export const otherExport = jest.fn();

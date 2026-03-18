@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest"; // Use vitest imports
+import type { State, Store } from "@open-game-system/app-bridge-types";
+import { describe, expect, it, vi } from "vitest"; // Use vitest imports
 import { createStore } from "../index"; // Adjust path as needed
-import type { State, Event, Store } from "@open-game-system/app-bridge-types";
 
 // --- Test Setup ---
 interface TestState extends State {
@@ -92,7 +92,7 @@ describe("createStore", () => {
         event: Extract<TestEvents, { type: "DECREMENT" }>,
         store: Store<TestState, TestEvents>,
       ) => Promise<void>
-    >(async (event, store) => {
+    >(async (_event, store) => {
       await delay(10);
       expect(store.getSnapshot().count).toBe(1);
     });
@@ -137,7 +137,7 @@ describe("createStore", () => {
         event: Extract<TestEvents, { type: "DECREMENT" }>,
         store: Store<TestState, TestEvents>,
       ) => Promise<void>
-    >(async (event, store) => {
+    >(async (_event, _store) => {
       await delay(5);
     });
 
@@ -216,7 +216,7 @@ describe("createStore", () => {
         event: Extract<TestEvents, { type: "ASYNC_START" }>,
         store: Store<TestState, TestEvents>,
       ) => void
-    >((event, store) => {
+    >((_event, store) => {
       listenerPromise = (async () => {
         expect(store.getSnapshot().asyncOpStatus).toBe("pending");
         await delay(20);
@@ -267,7 +267,7 @@ describe("createStore", () => {
         event: Extract<TestEvents, { type: "INCREMENT" }>,
         store: Store<TestState, TestEvents>,
       ) => Promise<void>
-    >(async (event, store) => {
+    >(async (_event, _store) => {
       await delay(5);
       throw new Error("Listener Error!");
     });

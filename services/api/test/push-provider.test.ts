@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ExpoPushProvider } from "../src/providers/push";
 
 // Mock fetch globally
@@ -185,6 +185,6 @@ describe("ExpoPushProvider", () => {
     });
 
     const headers = mockFetch.mock.calls[0][1].headers;
-    expect(headers["Authorization"]).toBe("Bearer expo-access-token-xyz");
+    expect(headers.Authorization).toBe("Bearer expo-access-token-xyz");
   });
 });

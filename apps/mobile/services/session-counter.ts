@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SESSION_COUNT_KEY = '@ogs/session_count';
+const SESSION_COUNT_KEY = "@ogs/session_count";
 const SWIPE_HINT_THRESHOLD = 5;
 
 export async function getSessionCount(): Promise<number> {

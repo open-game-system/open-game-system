@@ -1,4 +1,4 @@
-import type { Operation } from 'fast-json-patch';
+import type { Operation } from "fast-json-patch";
 
 // Core types for Stream Kit based on OGS Spec and Drafts
 
@@ -50,22 +50,26 @@ export interface StreamEvent {
 /**
  * Specific input event types that might be forwarded from client to server.
  */
-export type InputStreamEvent = StreamEvent & ({
-  type: "interaction";
-  data: {
-    action: string; // e.g., 'click', 'keypress', 'select'
-    position?: { x: number; y: number };
-    key?: string;
-    entityId?: string;
-    [key: string]: any; // Allow additional custom data
-  };
-} | {
-  type: "command";
-  data: {
-    command: string;
-    args?: any[];
-  };
-});
+export type InputStreamEvent = StreamEvent &
+  (
+    | {
+        type: "interaction";
+        data: {
+          action: string; // e.g., 'click', 'keypress', 'select'
+          position?: { x: number; y: number };
+          key?: string;
+          entityId?: string;
+          [key: string]: any; // Allow additional custom data
+        };
+      }
+    | {
+        type: "command";
+        data: {
+          command: string;
+          args?: any[];
+        };
+      }
+  );
 
 /**
  * Represents the state object maintained by the stream-kit-server for each session.
@@ -75,13 +79,15 @@ export interface ServerStreamSessionState extends StreamState {
   streamId: string;
   targetUrl: string;
   clientConnected: boolean; // Is there an active SSE connection?
-  instanceInfo?: { // Info about the browser instance
+  instanceInfo?: {
+    // Info about the browser instance
     pid?: number;
     startTime: number;
     viewport: { width: number; height: number };
   };
-  webrtc?: { // State related to WebRTC setup
-    signalingState: 'idle' | 'negotiating' | 'connected' | 'failed';
+  webrtc?: {
+    // State related to WebRTC setup
+    signalingState: "idle" | "negotiating" | "connected" | "failed";
     iceGatheringState?: RTCIceGatheringState;
     connectionState?: RTCPeerConnectionState;
   };
@@ -124,7 +130,7 @@ export interface RenderStream {
   start: () => Promise<void>;
   end: () => Promise<void>;
   send: (event: InputStreamEvent) => void;
-  update: (updates: { renderOptions?: RenderOptions, sceneData?: any }) => Promise<void>;
+  update: (updates: { renderOptions?: RenderOptions; sceneData?: any }) => Promise<void>;
   subscribe: (listener: (state: StreamState) => void) => () => void;
   getVideoElement: () => HTMLVideoElement | null;
   destroy: () => void;
@@ -152,10 +158,13 @@ export interface StreamClient {
   /**
    * Updates a stream session.
    */
-  updateStream: (sessionId: string, updates: { renderOptions?: RenderOptions, sceneData?: any }) => Promise<void>;
+  updateStream: (
+    sessionId: string,
+    updates: { renderOptions?: RenderOptions; sceneData?: any },
+  ) => Promise<void>;
 
   /**
    * Creates a new render stream instance.
    */
-  createRenderStream: (params: Omit<CreateRenderStreamParams, 'client'>) => RenderStream;
-} 
+  createRenderStream: (params: Omit<CreateRenderStreamParams, "client">) => RenderStream;
+}

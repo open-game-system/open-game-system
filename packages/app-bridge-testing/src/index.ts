@@ -1,14 +1,12 @@
-import type { WebView, State, Event } from '@open-game-system/app-bridge-types';
+import type { Event, State, WebView } from "@open-game-system/app-bridge-types";
 
 /**
  * Base type for state objects
  */
-export type { State };
-
 /**
  * Base type for event objects
  */
-export type { Event };
+export type { Event, State };
 
 /**
  * Store interface with standard methods
@@ -39,9 +37,12 @@ export interface MockStore<TState extends State = State, TEvent extends Event = 
   /**
    * Add the 'on' method signature to satisfy the Store interface
    */
-  on: <EventType extends TEvent['type']>(
+  on: <EventType extends TEvent["type"]>(
     eventType: EventType,
-    listener: (event: Extract<TEvent, { type: EventType }>, store: Store<TState, TEvent>) => Promise<void> | void
+    listener: (
+      event: Extract<TEvent, { type: EventType }>,
+      store: Store<TState, TEvent>,
+    ) => Promise<void> | void,
   ) => () => void;
 }
 
@@ -49,9 +50,7 @@ export interface MockStore<TState extends State = State, TEvent extends Event = 
  * Configuration options for creating a mock bridge
  * @template TStores Store definitions for the bridge
  */
-export interface MockBridgeConfig<
-  TStores extends BridgeStores = BridgeStores
-> {
+export interface MockBridgeConfig<TStores extends BridgeStores = BridgeStores> {
   /**
    * Whether the bridge is supported in the current environment
    */
@@ -80,7 +79,7 @@ export interface Bridge<TStores extends BridgeStores = BridgeStores> {
    * Returns undefined if the store doesn't exist
    */
   getStore: <K extends keyof TStores>(
-    storeKey: K
+    storeKey: K,
   ) => Store<TStores[K]["state"], TStores[K]["events"]> | undefined;
 
   /**
@@ -94,14 +93,13 @@ export interface Bridge<TStores extends BridgeStores = BridgeStores> {
  * Extended Bridge interface with additional testing utilities
  * @template TStores Store definitions for the bridge
  */
-export interface MockBridge<TStores extends BridgeStores>
-  extends Bridge<TStores> {
+export interface MockBridge<TStores extends BridgeStores> extends Bridge<TStores> {
   /**
    * Get a store by its key
    * Returns undefined if the store doesn't exist
    */
   getStore: <K extends keyof TStores>(
-    storeKey: K
+    storeKey: K,
   ) => MockStore<TStores[K]["state"], TStores[K]["events"]> | undefined;
 
   /**
@@ -120,10 +118,7 @@ export interface MockBridge<TStores extends BridgeStores>
    * Set the state of a store
    * Creates the store if it doesn't already exist
    */
-  setState: <K extends keyof TStores>(
-    storeKey: K,
-    state: TStores[K]["state"]
-  ) => void;
+  setState: <K extends keyof TStores>(storeKey: K, state: TStores[K]["state"]) => void;
 
   /**
    * Check if the bridge is supported
@@ -161,7 +156,7 @@ export interface MockBridge<TStores extends BridgeStores>
    */
   setStore: <K extends keyof TStores>(
     key: K,
-    store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined
+    store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined,
   ) => void;
 }
 
@@ -175,7 +170,7 @@ export interface MockBridge<TStores extends BridgeStores>
  * @returns A MockBridge instance with additional testing utilities
  */
 export function createMockBridge<TStores extends BridgeStores>(
-  config: MockBridgeConfig<TStores> = {}
+  config: MockBridgeConfig<TStores> = {},
 ): MockBridge<TStores> {
   const stores = new Map<keyof TStores, MockStore<any, any>>();
   const stateByStore = new Map<keyof TStores, TStores[keyof TStores]["state"]>();
@@ -183,8 +178,8 @@ export function createMockBridge<TStores extends BridgeStores>(
   const storeListeners = new Set<() => void>();
   const eventHistory = new Map<keyof TStores, any[]>();
   const eventListeners = new Map<
-      keyof TStores,
-      Map<string, Set<(event: any, store: Store<any, any>) => Promise<void> | void>>
+    keyof TStores,
+    Map<string, Set<(event: any, store: Store<any, any>) => Promise<void> | void>>
   >();
 
   const webViews = new Set<WebView>();
@@ -207,31 +202,37 @@ export function createMockBridge<TStores extends BridgeStores>(
   };
 
   const notifyEventListeners = (
-      storeKey: keyof TStores,
-      eventType: string,
-      event: TStores[keyof TStores]["events"],
-      storeInstance: Store<any, any>
+    storeKey: keyof TStores,
+    eventType: string,
+    event: TStores[keyof TStores]["events"],
+    storeInstance: Store<any, any>,
   ) => {
-      const storeEventListeners = eventListeners.get(storeKey);
-      const listeners = storeEventListeners?.get(eventType);
-      if (listeners) {
-          listeners.forEach(listener => {
-              try {
-                  const result = listener(event, storeInstance);
-                  if (result instanceof Promise) {
-                      result.catch(error => {
-                          console.error(`[Mock Bridge] Unhandled promise rejection in async event listener for type "${eventType}" on store "${String(storeKey)}":`, error);
-                      });
-                  }
-              } catch (error) {
-                  console.error(`[Mock Bridge] Error in event listener for type "${eventType}" on store "${String(storeKey)}":`, error);
-              }
-          });
-      }
+    const storeEventListeners = eventListeners.get(storeKey);
+    const listeners = storeEventListeners?.get(eventType);
+    if (listeners) {
+      listeners.forEach((listener) => {
+        try {
+          const result = listener(event, storeInstance);
+          if (result instanceof Promise) {
+            result.catch((error) => {
+              console.error(
+                `[Mock Bridge] Unhandled promise rejection in async event listener for type "${eventType}" on store "${String(storeKey)}":`,
+                error,
+              );
+            });
+          }
+        } catch (error) {
+          console.error(
+            `[Mock Bridge] Error in event listener for type "${eventType}" on store "${String(storeKey)}":`,
+            error,
+          );
+        }
+      });
+    }
   };
 
   const getOrCreateStore = <K extends keyof TStores>(
-    storeKey: K
+    storeKey: K,
   ): MockStore<TStores[K]["state"], TStores[K]["events"]> => {
     if (stores.has(storeKey)) {
       return stores.get(storeKey)! as MockStore<TStores[K]["state"], TStores[K]["events"]>;
@@ -239,7 +240,7 @@ export function createMockBridge<TStores extends BridgeStores>(
 
     // Ensure state is tracked if not already
     if (!stateByStore.has(storeKey) && config.initialState?.[storeKey]) {
-        stateByStore.set(storeKey, config.initialState[storeKey]!);
+      stateByStore.set(storeKey, config.initialState[storeKey]!);
     }
 
     // Create the actual store object with all methods
@@ -257,9 +258,9 @@ export function createMockBridge<TStores extends BridgeStores>(
         listeners.add(listener);
         // Notify immediately with current state
         if (stateByStore.has(storeKey)) {
-             listener(stateByStore.get(storeKey)!);
+          listener(stateByStore.get(storeKey)!);
         } else if (config.initialState?.[storeKey]) {
-             listener(config.initialState[storeKey]!);
+          listener(config.initialState[storeKey]!);
         }
         return () => {
           listeners.delete(listener);
@@ -267,7 +268,8 @@ export function createMockBridge<TStores extends BridgeStores>(
       },
 
       // Mock dispatch only records history and notifies listeners
-      dispatch: (event: TStores[K]["events"]): void => { // Dispatch is void
+      dispatch: (event: TStores[K]["events"]): void => {
+        // Dispatch is void
         if (!eventHistory.has(storeKey)) {
           eventHistory.set(storeKey, []);
         }
@@ -277,25 +279,25 @@ export function createMockBridge<TStores extends BridgeStores>(
       },
 
       produce: (producer: (state: TStores[K]["state"]) => void): void => {
-        let currentState = stateByStore.get(storeKey) ?? config.initialState?.[storeKey]!;
+        const currentState = stateByStore.get(storeKey) ?? config.initialState?.[storeKey]!;
         // Create a mutable copy for the producer
         const draft = { ...currentState };
         producer(draft);
         // Check if state actually changed to avoid unnecessary notifications
         if (JSON.stringify(draft) !== JSON.stringify(currentState)) {
-            stateByStore.set(storeKey, draft);
-            notifyStateListeners(storeKey);
+          stateByStore.set(storeKey, draft);
+          notifyStateListeners(storeKey);
         }
       },
 
       reset: (): void => {
         const initialStateForKey = config.initialState?.[storeKey];
         if (initialStateForKey !== undefined) {
-             stateByStore.set(storeKey, initialStateForKey);
-             notifyStateListeners(storeKey);
+          stateByStore.set(storeKey, initialStateForKey);
+          notifyStateListeners(storeKey);
         } else {
-            stateByStore.delete(storeKey);
-            // Consider if stateListeners should be notified of deletion/undefined state
+          stateByStore.delete(storeKey);
+          // Consider if stateListeners should be notified of deletion/undefined state
         }
         // Clear history on reset
         eventHistory.delete(storeKey);
@@ -307,39 +309,42 @@ export function createMockBridge<TStores extends BridgeStores>(
       },
 
       // Implement the 'on' method for the mock store
-      on: <EventType extends TStores[K]["events"]['type']>(
+      on: <EventType extends TStores[K]["events"]["type"]>(
         eventType: EventType,
         listener: (
-            event: Extract<TStores[K]["events"], { type: EventType }>,
-            store: Store<TStores[K]["state"], TStores[K]["events"]> // Use base Store type here
-        ) => Promise<void> | void
+          event: Extract<TStores[K]["events"], { type: EventType }>,
+          store: Store<TStores[K]["state"], TStores[K]["events"]>, // Use base Store type here
+        ) => Promise<void> | void,
       ): (() => void) => {
         if (!eventListeners.has(storeKey)) {
-            eventListeners.set(storeKey, new Map());
+          eventListeners.set(storeKey, new Map());
         }
         const storeEventListeners = eventListeners.get(storeKey)!;
         const eventTypeStr = eventType as string;
 
         if (!storeEventListeners.has(eventTypeStr)) {
-            storeEventListeners.set(eventTypeStr, new Set());
+          storeEventListeners.set(eventTypeStr, new Set());
         }
         const listenersForEvent = storeEventListeners.get(eventTypeStr)!;
 
         // Cast listener type for storage
-        const typedListener = listener as (event: any, store: Store<any, any>) => Promise<void> | void;
+        const typedListener = listener as (
+          event: any,
+          store: Store<any, any>,
+        ) => Promise<void> | void;
         listenersForEvent.add(typedListener);
 
         return () => {
-            listenersForEvent.delete(typedListener);
-            // Clean up maps if sets become empty
-            if (listenersForEvent.size === 0) {
-                storeEventListeners.delete(eventTypeStr);
-            }
-            if (storeEventListeners.size === 0) {
-                eventListeners.delete(storeKey);
-            }
+          listenersForEvent.delete(typedListener);
+          // Clean up maps if sets become empty
+          if (listenersForEvent.size === 0) {
+            storeEventListeners.delete(eventTypeStr);
+          }
+          if (storeEventListeners.size === 0) {
+            eventListeners.delete(storeKey);
+          }
         };
-      }
+      },
     };
 
     stores.set(storeKey, storeInstance);
@@ -349,9 +354,9 @@ export function createMockBridge<TStores extends BridgeStores>(
   // Initialize state tracking from config
   if (config.initialState) {
     for (const [key, state] of Object.entries(config.initialState)) {
-       if (state !== undefined) {
-         stateByStore.set(key as keyof TStores, state);
-       }
+      if (state !== undefined) {
+        stateByStore.set(key as keyof TStores, state);
+      }
     }
   }
 
@@ -361,7 +366,7 @@ export function createMockBridge<TStores extends BridgeStores>(
 
     // Modify getStore to check for state before creating/returning
     getStore: <K extends keyof TStores>(
-      storeKey: K
+      storeKey: K,
     ): MockStore<TStores[K]["state"], TStores[K]["events"]> | undefined => {
       // Only return a store if we actually have tracked state for it
       if (!stateByStore.has(storeKey)) {
@@ -385,27 +390,25 @@ export function createMockBridge<TStores extends BridgeStores>(
     reset: (storeKey?: keyof TStores): void => {
       const storeKeysToReset = storeKey ? [storeKey] : Array.from(stores.keys());
       let availabilityChanged = false;
-      storeKeysToReset.forEach(key => {
-          const store = stores.get(key);
-          const hadStateBefore = stateByStore.has(key);
-          store?.reset(); // Calls mock store's reset which updates stateByStore
-          eventHistory.delete(key);
-          if (hadStateBefore && !stateByStore.has(key)) {
-              availabilityChanged = true; // Became unavailable
-          }
+      storeKeysToReset.forEach((key) => {
+        const store = stores.get(key);
+        const hadStateBefore = stateByStore.has(key);
+        store?.reset(); // Calls mock store's reset which updates stateByStore
+        eventHistory.delete(key);
+        if (hadStateBefore && !stateByStore.has(key)) {
+          availabilityChanged = true; // Became unavailable
+        }
       });
-      if (storeKey === undefined) { // Full reset
-          eventHistory.clear();
+      if (storeKey === undefined) {
+        // Full reset
+        eventHistory.clear();
       }
       if (availabilityChanged) {
-          notifyStoreListeners();
+        notifyStoreListeners();
       }
     },
 
-    setState: <K extends keyof TStores>(
-      storeKey: K,
-      state: TStores[K]["state"]
-    ): void => {
+    setState: <K extends keyof TStores>(storeKey: K, state: TStores[K]["state"]): void => {
       const storeExisted = stateByStore.has(storeKey);
       const store = getOrCreateStore(storeKey);
       store.setState(state); // This updates stateByStore and notifies state listeners
@@ -417,45 +420,45 @@ export function createMockBridge<TStores extends BridgeStores>(
 
     setStore: <K extends keyof TStores>(
       key: K,
-      store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined
+      store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined,
     ): void => {
-       const storeExisted = stateByStore.has(key);
+      const storeExisted = stateByStore.has(key);
       if (store === undefined) {
-          stores.delete(key);
-          stateByStore.delete(key);
-          eventListeners.delete(key);
-          stateListeners.delete(key);
-          eventHistory.delete(key);
-          if (storeExisted) {
-              notifyStoreListeners(); // Notify became unavailable
-          }
+        stores.delete(key);
+        stateByStore.delete(key);
+        eventListeners.delete(key);
+        stateListeners.delete(key);
+        eventHistory.delete(key);
+        if (storeExisted) {
+          notifyStoreListeners(); // Notify became unavailable
+        }
       } else {
-          stateByStore.set(key, store.getSnapshot());
-          getOrCreateStore(key); // Ensure mock store exists
-          if (!storeExisted) {
-              notifyStoreListeners(); // Notify became available
-          }
+        stateByStore.set(key, store.getSnapshot());
+        getOrCreateStore(key); // Ensure mock store exists
+        if (!storeExisted) {
+          notifyStoreListeners(); // Notify became available
+        }
       }
     },
 
     handleWebMessage: (message: string | { nativeEvent: { data: string } }) => {
-      const data = typeof message === 'string' ? message : message.nativeEvent.data;
+      const data = typeof message === "string" ? message : message.nativeEvent.data;
       try {
         const parsedMessage = JSON.parse(data);
-        if (parsedMessage.type === 'BRIDGE_READY') {
+        if (parsedMessage.type === "BRIDGE_READY") {
           const webView = webViews.values().next().value;
           if (webView) {
             readyWebViews.add(webView);
             notifyReadyStateListeners();
           }
-        } else if (parsedMessage.type === 'EVENT') {
+        } else if (parsedMessage.type === "EVENT") {
           const store = stores.get(parsedMessage.storeKey as keyof TStores);
           if (store) {
             store.dispatch(parsedMessage.event);
           }
         }
       } catch (e) {
-        console.warn('Failed to parse WebView message:', e);
+        console.warn("Failed to parse WebView message:", e);
       }
     },
 
@@ -481,4 +484,4 @@ export function createMockBridge<TStores extends BridgeStores>(
 
     isWebViewReady: () => readyWebViews.size > 0,
   };
-} 
+}

@@ -1,10 +1,10 @@
-export { isOGSWebView, getDeviceId, onDeviceIdChange, getBridge, _resetBridge } from './core';
-export type { SystemState, SystemEvents, OgsStores } from './core';
+export type { OgsStores, SystemEvents, SystemState } from "./core";
+export { _resetBridge, getBridge, getDeviceId, isOGSWebView, onDeviceIdChange } from "./core";
 export type {
+  BulkSendNotificationParams,
+  NotificationError,
   NotificationKitConfig,
   NotificationPayload,
-  SendNotificationParams,
-  BulkSendNotificationParams,
   NotificationResult,
-  NotificationError,
-} from './types';
+  SendNotificationParams,
+} from "./types";
