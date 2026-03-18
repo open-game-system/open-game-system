@@ -1,4 +1,4 @@
-export { isOGSWebView, getDeviceId, onDeviceIdChange, getBridge } from './core';
+export { isOGSWebView, getDeviceId, onDeviceIdChange, getBridge, _resetBridge } from './core';
 export type { SystemState, SystemEvents, OgsStores } from './core';
 export type {
   NotificationKitConfig,

@@ -59,6 +59,48 @@ async function makeDeviceToken(deviceId: string): Promise<string> {
 }
 
 describe("Notifications endpoint", () => {
+  // JSON body validation
+  it("returns 400 for malformed JSON body", async () => {
+    const env = createMockEnv({ key: "valid-key", game_id: "game-1", game_name: "Test Game" });
+    const res = await app.request(
+      "/api/v1/notifications/send",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer valid-key",
+        },
+        body: "not json{{{",
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+    const body = OgsErrorSchema.parse(await res.json());
+    expect(body.error.code).toBe("invalid_body");
+  });
+
+  it("returns 401 for non-Bearer auth scheme", async () => {
+    const env = createMockEnv();
+    const res = await app.request(
+      "/api/v1/notifications/send",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Basic dXNlcjpwYXNz",
+        },
+        body: JSON.stringify({
+          deviceToken: "some-token",
+          notification: { title: "Test", body: "Hello" },
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(401);
+    const body = OgsErrorSchema.parse(await res.json());
+    expect(body.error.code).toBe("invalid_auth");
+  });
+
   // Auth tests
   it("returns 401 without auth", async () => {
     const env = createMockEnv();

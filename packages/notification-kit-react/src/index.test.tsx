@@ -2,9 +2,13 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { NotificationProvider, useNotifications } from './index';
+import { _resetBridge } from '@open-game-system/notification-kit-core';
 
 describe('Notification React Hook (Bridge-backed)', () => {
   beforeEach(() => {
+    // Reset the bridge singleton so each test gets a fresh instance
+    // that picks up the current window.ReactNativeWebView state
+    _resetBridge();
     vi.stubGlobal('ReactNativeWebView', {
       postMessage: vi.fn(),
     });
@@ -16,6 +20,7 @@ describe('Notification React Hook (Bridge-backed)', () => {
   });
 
   it('provides default values when not in OGS app', () => {
+    _resetBridge();
     vi.stubGlobal('ReactNativeWebView', undefined);
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -29,9 +34,7 @@ describe('Notification React Hook (Bridge-backed)', () => {
     expect(result.current.deviceId).toBe(null);
   });
 
-  // TODO: Fix — bridge subscription in NotificationProvider doesn't fire
-  // in test environment. Needs investigation into createBridgeContext test harness.
-  it.skip('reads device ID from bridge messages', async () => {
+  it('reads device ID from bridge messages', async () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <NotificationProvider>{children}</NotificationProvider>
     );

@@ -31,6 +31,14 @@ export function getBridge() {
   return bridge;
 }
 
+/**
+ * Reset the bridge singleton. For testing only.
+ * @internal
+ */
+export function _resetBridge() {
+  bridge = null;
+}
+
 // Detects if running inside OGS WebView by checking bridge support
 export function isOGSWebView(): boolean {
   const b = getBridge();

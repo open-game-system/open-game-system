@@ -85,6 +85,53 @@ describe("ExpoPushProvider", () => {
     expect(result.deviceActive).toBe(false);
   });
 
+  it("falls back to message when details.error is missing", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: [
+            {
+              status: "error",
+              message: "InvalidCredentials",
+            },
+          ],
+        }),
+    });
+
+    const result = await provider.send("ExponentPushToken[abc]", {
+      title: "Test",
+      body: "Test",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("InvalidCredentials");
+    expect(result.deviceActive).toBe(false);
+  });
+
+  it("falls back to default message when details and message are missing", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          data: [
+            {
+              status: "error",
+            },
+          ],
+        }),
+    });
+
+    const result = await provider.send("ExponentPushToken[abc]", {
+      title: "Test",
+      body: "Test",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Unknown Expo push error");
+    expect(result.deviceActive).toBe(true);
+  });
+
   it("marks device as active for non-device errors", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

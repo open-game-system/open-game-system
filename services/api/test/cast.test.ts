@@ -122,6 +122,25 @@ describe("Cast Sessions API", () => {
       const body = OgsErrorSchema.parse(await res.json());
       expect(body.error.code).toBe("invalid_api_key");
     });
+
+    it("returns 401 for non-Bearer auth scheme", async () => {
+      const env = createMockEnv();
+      const res = await app.request(
+        "/api/v1/cast/sessions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Basic dXNlcjpwYXNz",
+          },
+          body: JSON.stringify({ deviceId: "tv-1", viewUrl: "https://triviajam.com/tv" }),
+        },
+        env,
+      );
+      expect(res.status).toBe(401);
+      const body = OgsErrorSchema.parse(await res.json());
+      expect(body.error.code).toBe("invalid_auth");
+    });
   });
 
   // ─── Create Session ───
