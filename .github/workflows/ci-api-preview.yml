@@ -105,7 +105,7 @@ jobs:
         working-directory: services/api
         run: |
           set -euo pipefail
-          npx wrangler deploy --config .wrangler/preview-wrangler.toml > /tmp/wrangler-deploy.log 2>&1 || {
+          npx wrangler deploy --config .wrangler/preview-wrangler.jsonc > /tmp/wrangler-deploy.log 2>&1 || {
             cat /tmp/wrangler-deploy.log
             exit 1
           }
