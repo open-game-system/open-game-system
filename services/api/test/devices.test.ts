@@ -1,6 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import app from "../src/index";
-import { OgsErrorSchema, RegisterDeviceResponseSchema, DeviceTokenPayloadSchema } from "../src/schemas";
+import {
+  DeviceTokenPayloadSchema,
+  OgsErrorSchema,
+  RegisterDeviceResponseSchema,
+} from "../src/schemas";
 
 const JWT_SECRET = "test-jwt-secret";
 

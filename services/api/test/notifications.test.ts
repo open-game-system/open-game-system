@@ -1,7 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../src/index";
-import { OgsErrorSchema, SendNotificationResponseSchema, PushFailedResponseSchema } from "../src/schemas";
 import { signJwt } from "../src/lib/jwt";
+import {
+  OgsErrorSchema,
+  PushFailedResponseSchema,
+  SendNotificationResponseSchema,
+} from "../src/schemas";
 
 const JWT_SECRET = "test-jwt-secret";
 
@@ -59,6 +63,48 @@ async function makeDeviceToken(deviceId: string): Promise<string> {
 }
 
 describe("Notifications endpoint", () => {
+  // JSON body validation
+  it("returns 400 for malformed JSON body", async () => {
+    const env = createMockEnv({ key: "valid-key", game_id: "game-1", game_name: "Test Game" });
+    const res = await app.request(
+      "/api/v1/notifications/send",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer valid-key",
+        },
+        body: "not json{{{",
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+    const body = OgsErrorSchema.parse(await res.json());
+    expect(body.error.code).toBe("invalid_body");
+  });
+
+  it("returns 401 for non-Bearer auth scheme", async () => {
+    const env = createMockEnv();
+    const res = await app.request(
+      "/api/v1/notifications/send",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Basic dXNlcjpwYXNz",
+        },
+        body: JSON.stringify({
+          deviceToken: "some-token",
+          notification: { title: "Test", body: "Hello" },
+        }),
+      },
+      env,
+    );
+    expect(res.status).toBe(401);
+    const body = OgsErrorSchema.parse(await res.json());
+    expect(body.error.code).toBe("invalid_auth");
+  });
+
   // Auth tests
   it("returns 401 without auth", async () => {
     const env = createMockEnv();
@@ -145,7 +191,7 @@ describe("Notifications endpoint", () => {
   it("returns 401 for tampered device token", async () => {
     const env = createMockEnv({ key: "valid-key", game_id: "game-1", game_name: "Test Game" });
     const validToken = await makeDeviceToken("device-1");
-    const tamperedToken = validToken.slice(0, -5) + "XXXXX";
+    const tamperedToken = `${validToken.slice(0, -5)}XXXXX`;
 
     const res = await app.request(
       "/api/v1/notifications/send",
@@ -253,9 +299,16 @@ describe("Notifications endpoint", () => {
   it("cleans up device on DeviceNotRegistered and returns deviceActive false", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({
-        data: [{ status: "error", message: "DeviceNotRegistered", details: { error: "DeviceNotRegistered" } }],
-      }),
+      json: () =>
+        Promise.resolve({
+          data: [
+            {
+              status: "error",
+              message: "DeviceNotRegistered",
+              details: { error: "DeviceNotRegistered" },
+            },
+          ],
+        }),
     });
 
     const env = createMockEnv(
@@ -283,8 +336,9 @@ describe("Notifications endpoint", () => {
     expect(body.deviceActive).toBe(false);
 
     // Verify DELETE was called
-    const deleteCalls = (env.DB.prepare as ReturnType<typeof vi.fn>).mock.calls
-      .filter((args: unknown[]) => typeof args[0] === "string" && args[0].includes("DELETE"));
+    const deleteCalls = (env.DB.prepare as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (args: unknown[]) => typeof args[0] === "string" && args[0].includes("DELETE"),
+    );
     expect(deleteCalls.length).toBe(1);
   });
 });

@@ -18,7 +18,7 @@ export default function CatchAll() {
   useEffect(() => {
     const segments = params.unmatched;
     if (Array.isArray(segments)) {
-      const path = "/" + segments.join("/");
+      const path = `/${segments.join("/")}`;
       if (GAME_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
         setGameUrl(`https://${DEFAULT_GAME_DOMAIN}${path}`);
       }

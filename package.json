@@ -9,8 +9,11 @@
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "lint:fix": "prettier --write .",
-    "clean": "turbo run clean"
+    "lint:fix": "biome check --write .",
+    "clean": "turbo run clean",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "turbo run build && changeset publish"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -20,10 +23,12 @@
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "@changesets/changelog-github": "^0.6.0",
+    "@changesets/cli": "^2.30.0",
     "@stryker-mutator/core": "^9.6.0",
     "@stryker-mutator/vitest-runner": "^9.6.0",
-    "prettier": "^3.8.1",
-    "tsdown": "^0.21.2",
+    "tsdown": "^0.21.4",
     "turbo": "^2.8.17",
     "typescript": "^5.9.3"
   }

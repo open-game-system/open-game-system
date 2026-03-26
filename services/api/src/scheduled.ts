@@ -16,19 +16,8 @@ interface ScheduledDB {
   };
 }
 
-/**
- * Narrow DO namespace interface for scheduled handler.
- */
-interface ScheduledDONamespace {
-  idFromName(name: string): { toString(): string };
-  get(id: { toString(): string }): {
-    fetch(request: Request): Promise<Response>;
-  };
-}
-
 export interface ScheduledEnv {
   DB: ScheduledDB;
-  STREAM_CONTAINER: ScheduledDONamespace;
 }
 
 /**
@@ -73,20 +62,8 @@ export async function handleScheduled(env: ScheduledEnv): Promise<void> {
     .all<Pick<CastSessionRow, "session_id" | "stream_session_id">>();
 
   for (const session of staleIdle.results) {
-    // Tear down stream container via DO (best effort)
-    if (session.stream_session_id) {
-      try {
-        const doId = env.STREAM_CONTAINER.idFromName(`session-${session.session_id}`);
-        const stub = env.STREAM_CONTAINER.get(doId);
-
-        await stub.fetch(new Request(`https://stream-container/sessions/${session.stream_session_id}`, {
-          method: "DELETE",
-        }));
-      } catch {
-        // Best effort — session ends regardless of teardown success
-      }
-    }
-
+    // Container auto-sleeps via sleepAfter — no explicit teardown needed.
+    // Just mark the session as ended in the database.
     await env.DB.prepare(
       "UPDATE cast_sessions SET status = 'ended', updated_at = datetime('now') WHERE session_id = ?",
     )

@@ -38,7 +38,5 @@
     "../../packages/app-bridge-react/src/**/*",
     "../../packages/app-bridge-testing/src/**/*"
   ],
-  "references": [
-    { "path": "./tsconfig.node.json" }
-  ]
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

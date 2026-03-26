@@ -8,19 +8,22 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:watch": "vitest",
     "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql",
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "hono": "^4.12.7",
+    "@cloudflare/containers": "^0.1.1",
+    "hono": "^4.12.8",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260313.1",
+    "@cloudflare/vitest-pool-workers": "^0.13.2",
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "@playwright/test": "^1.58.2",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
-    "@playwright/test": "^1.52.0",
-    "wrangler": "^4.73.0"
+    "wrangler": "^4.75.0"
   }
 }

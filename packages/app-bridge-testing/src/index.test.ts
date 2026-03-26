@@ -1,14 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { createMockBridge, BridgeStores, State } from "./index";
+import { type BridgeStores, createMockBridge, type State } from "./index";
 
 interface CounterState extends State {
   value: number;
 }
 
-type CounterEvents =
-  | { type: "INCREMENT" }
-  | { type: "DECREMENT" }
-  | { type: "SET"; value: number };
+type CounterEvents = { type: "INCREMENT" } | { type: "DECREMENT" } | { type: "SET"; value: number };
 
 interface UserState extends State {
   name: string;
@@ -59,10 +56,7 @@ describe("createMockBridge", () => {
     expect(bridge.getHistory("counter")).toEqual([{ type: "INCREMENT" }]);
 
     counterStore.dispatch({ type: "DECREMENT" });
-    expect(bridge.getHistory("counter")).toEqual([
-      { type: "INCREMENT" },
-      { type: "DECREMENT" },
-    ]);
+    expect(bridge.getHistory("counter")).toEqual([{ type: "INCREMENT" }, { type: "DECREMENT" }]);
 
     counterStore.dispatch({ type: "SET", value: 42 });
     expect(bridge.getHistory("counter")).toEqual([
@@ -251,4 +245,4 @@ describe("createMockBridge", () => {
       counterStore.dispatch({ type: "SET" });
     });
   });
-}); 
+});

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.7/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedImports": "warn",
+        "noUnusedVariables": "warn"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "useIterableCallbackReturn": "warn",
+        "noArrayIndexKey": "warn",
+        "noDocumentCookie": "warn"
+      },
+      "a11y": {
+        "recommended": false
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "warn"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "semicolons": "always",
+      "quoteStyle": "double",
+      "trailingCommas": "all"
+    }
+  },
+  "css": {
+    "linter": { "enabled": false },
+    "formatter": { "enabled": false }
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.expo",
+      "!**/ios",
+      "!**/android",
+      "!**/coverage",
+      "!**/reports",
+      "!**/.changeset",
+      "!**/*.min.js",
+      "!**/*.css",
+      "!**/.claude",
+      "!**/.stryker-tmp",
+      "!**/.nightshift"
+    ]
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off"
+          }
+        }
+      }
+    }
+  ]
+}

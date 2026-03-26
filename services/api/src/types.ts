@@ -1,7 +1,9 @@
+import type { StreamContainer } from "./stream-container";
+
 export interface Env {
   DB: D1Database;
   OGS_JWT_SECRET: string;
-  STREAM_CONTAINER: DurableObjectNamespace;
+  STREAM_CONTAINER: DurableObjectNamespace<StreamContainer>;
   CLOUDFLARE_TURN_API_TOKEN: string;
   CLOUDFLARE_TURN_KEY_ID: string;
   DEBUG_STATE_TOKEN?: string;

@@ -4,10 +4,7 @@ const previewUrl = process.env.E2E_API_PREVIEW_URL;
 const apiKey = process.env.E2E_API_KEY;
 
 test.describe("Cast API E2E — no auth required", () => {
-  test.skip(
-    !previewUrl,
-    "E2E_API_PREVIEW_URL is required for preview API tests"
-  );
+  test.skip(!previewUrl, "E2E_API_PREVIEW_URL is required for preview API tests");
 
   test("health check returns ok", async ({ request }) => {
     const res = await request.get(`${previewUrl}/api/v1/health`);
@@ -46,19 +43,15 @@ test.describe("Cast API E2E — no auth required", () => {
   });
 
   test("rejects state push without auth", async ({ request }) => {
-    const res = await request.post(
-      `${previewUrl}/api/v1/cast/sessions/any-id/state`,
-      { data: { state: { round: 1 } } }
-    );
+    const res = await request.post(`${previewUrl}/api/v1/cast/sessions/any-id/state`, {
+      data: { state: { round: 1 } },
+    });
     expect(res.status()).toBe(401);
   });
 });
 
 test.describe("Cast API E2E — with auth", () => {
-  test.skip(
-    !previewUrl || !apiKey,
-    "E2E_API_PREVIEW_URL and E2E_API_KEY are required"
-  );
+  test.skip(!previewUrl || !apiKey, "E2E_API_PREVIEW_URL and E2E_API_KEY are required");
 
   test("rejects cast session with missing fields", async ({ request }) => {
     const res = await request.post(`${previewUrl}/api/v1/cast/sessions`, {
@@ -81,33 +74,28 @@ test.describe("Cast API E2E — with auth", () => {
   });
 
   test("returns 404 for nonexistent session", async ({ request }) => {
-    const res = await request.get(
-      `${previewUrl}/api/v1/cast/sessions/does-not-exist`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
+    const res = await request.get(`${previewUrl}/api/v1/cast/sessions/does-not-exist`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body.error.code).toBe("session_not_found");
   });
 
   test("returns 404 for state update on nonexistent session", async ({ request }) => {
-    const res = await request.post(
-      `${previewUrl}/api/v1/cast/sessions/does-not-exist/state`,
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        data: { state: { round: 1 } },
-      }
-    );
+    const res = await request.post(`${previewUrl}/api/v1/cast/sessions/does-not-exist/state`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      data: { state: { round: 1 } },
+    });
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body.error.code).toBe("session_not_found");
   });
 
   test("returns 404 for deleting nonexistent session", async ({ request }) => {
-    const res = await request.delete(
-      `${previewUrl}/api/v1/cast/sessions/does-not-exist`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
+    const res = await request.delete(`${previewUrl}/api/v1/cast/sessions/does-not-exist`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body.error.code).toBe("session_not_found");

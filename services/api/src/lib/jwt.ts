@@ -19,19 +19,13 @@ function base64UrlDecode(data: string): string {
 }
 
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    ALGORITHM,
-    false,
-    ["sign", "verify"]
-  );
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(secret), ALGORITHM, false, [
+    "sign",
+    "verify",
+  ]);
 }
 
-export async function signJwt(
-  payload: Record<string, unknown>,
-  secret: string
-): Promise<string> {
+export async function signJwt(payload: Record<string, unknown>, secret: string): Promise<string> {
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
   const signingInput = `${HEADER}.${encodedPayload}`;
 
@@ -39,7 +33,7 @@ export async function signJwt(
   const signature = await crypto.subtle.sign(
     ALGORITHM.name,
     key,
-    new TextEncoder().encode(signingInput)
+    new TextEncoder().encode(signingInput),
   );
 
   const encodedSignature = btoa(String.fromCharCode(...new Uint8Array(signature)))
@@ -52,7 +46,7 @@ export async function signJwt(
 
 export async function verifyJwt(
   token: string,
-  secret: string
+  secret: string,
 ): Promise<Record<string, unknown> | null> {
   const parts = token.split(".");
   if (parts.length !== 3) return null;
@@ -70,7 +64,7 @@ export async function verifyJwt(
     ALGORITHM.name,
     key,
     sigBytes,
-    new TextEncoder().encode(signingInput)
+    new TextEncoder().encode(signingInput),
   );
 
   if (!valid) return null;

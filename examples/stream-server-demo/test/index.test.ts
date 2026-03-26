@@ -44,28 +44,29 @@ describe("bun-stream-server worker", () => {
   });
 
   it("returns normalized TURN ice servers", async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          iceServers: [
-            {
-              urls: [
-                "stun:stun.cloudflare.com:3478",
-                "turn:turn.cloudflare.com:53?transport=udp",
-              ],
-            },
-            {
-              urls: "turn:turn.cloudflare.com:5349?transport=tcp",
-              username: "user",
-              credential: "pass",
-            },
-          ],
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      )
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            iceServers: [
+              {
+                urls: [
+                  "stun:stun.cloudflare.com:3478",
+                  "turn:turn.cloudflare.com:53?transport=udp",
+                ],
+              },
+              {
+                urls: "turn:turn.cloudflare.com:5349?transport=tcp",
+                username: "user",
+                credential: "pass",
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -76,7 +77,7 @@ describe("bun-stream-server worker", () => {
           "x-stream-trace-id": "trace-ice-1",
         },
       }),
-      env
+      env,
     );
 
     expect(response.status).toBe(200);
@@ -103,7 +104,7 @@ describe("bun-stream-server worker", () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ ttl: 300 }),
-      }
+      },
     );
   });
 
@@ -116,7 +117,7 @@ describe("bun-stream-server worker", () => {
           "x-stream-trace-id": "trace-debug-blocked",
         },
       }),
-      env
+      env,
     );
 
     expect(response.status).toBe(403);
@@ -138,7 +139,7 @@ describe("bun-stream-server worker", () => {
           "x-debug-token": "top-secret",
         },
       }),
-      env
+      env,
     );
 
     expect(response.status).toBe(200);
@@ -146,9 +147,7 @@ describe("bun-stream-server worker", () => {
     expect(container.stubFetch).toHaveBeenCalledOnce();
 
     const forwardedRequest = container.calls[0];
-    expect(forwardedRequest.headers.get("x-stream-trace-id")).toBe(
-      "trace-debug-allowed"
-    );
+    expect(forwardedRequest.headers.get("x-stream-trace-id")).toBe("trace-debug-allowed");
   });
 
   it("routes requests to a session-scoped durable object when a session header is present", async () => {
@@ -168,15 +167,13 @@ describe("bun-stream-server worker", () => {
           iceServers: [],
         }),
       }),
-      env
+      env,
     );
 
     expect(response.status).toBe(200);
     expect(container.idFromName).toHaveBeenCalledWith("session-receiver-session-1");
 
     const forwardedRequest = container.calls[0];
-    expect(forwardedRequest.headers.get("x-stream-session-id")).toBe(
-      "receiver-session-1"
-    );
+    expect(forwardedRequest.headers.get("x-stream-session-id")).toBe("receiver-session-1");
   });
 });

@@ -13,10 +13,7 @@ export interface PushResult {
 }
 
 export interface PushProvider {
-  send(
-    pushToken: string,
-    notification: PushNotification
-  ): Promise<PushResult>;
+  send(pushToken: string, notification: PushNotification): Promise<PushResult>;
 }
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
@@ -35,16 +32,13 @@ export class ExpoPushProvider implements PushProvider {
     this.accessToken = accessToken;
   }
 
-  async send(
-    pushToken: string,
-    notification: PushNotification
-  ): Promise<PushResult> {
+  async send(pushToken: string, notification: PushNotification): Promise<PushResult> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
     if (this.accessToken) {
-      headers["Authorization"] = `Bearer ${this.accessToken}`;
+      headers.Authorization = `Bearer ${this.accessToken}`;
     }
 
     const body = {
@@ -61,7 +55,7 @@ export class ExpoPushProvider implements PushProvider {
         body: JSON.stringify(body),
       });
 
-      const result = await response.json() as {
+      const result = (await response.json()) as {
         data: Array<{
           status: "ok" | "error";
           id?: string;
@@ -104,7 +98,7 @@ export class ExpoPushProvider implements PushProvider {
  */
 export function getProviderForPlatform(
   _platform: "ios" | "android",
-  accessToken?: string
+  accessToken?: string,
 ): PushProvider {
   return new ExpoPushProvider(accessToken);
 }

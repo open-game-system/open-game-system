@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import type { Env, DeviceRow } from "../types";
-import { SendNotificationSchema, DeviceTokenPayloadSchema } from "../schemas";
 import { verifyJwt } from "../lib/jwt";
 import { getProviderForPlatform } from "../providers/push";
+import { DeviceTokenPayloadSchema, SendNotificationSchema } from "../schemas";
+import type { DeviceRow, Env } from "../types";
 
 const notifications = new Hono<{ Bindings: Env }>();
 
@@ -18,7 +18,7 @@ notifications.post("/send", async (c) => {
   } catch {
     return c.json(
       { error: { code: "invalid_body", message: "Request body must be valid JSON", status: 400 } },
-      400
+      400,
     );
   }
 
@@ -33,7 +33,7 @@ notifications.post("/send", async (c) => {
           status: 400,
         },
       },
-      400
+      400,
     );
   }
 
@@ -50,7 +50,7 @@ notifications.post("/send", async (c) => {
           status: 401,
         },
       },
-      401
+      401,
     );
   }
 
@@ -64,7 +64,7 @@ notifications.post("/send", async (c) => {
           status: 401,
         },
       },
-      401
+      401,
     );
   }
 
@@ -72,7 +72,7 @@ notifications.post("/send", async (c) => {
 
   // Look up the device
   const device = await c.env.DB.prepare(
-    "SELECT ogs_device_id, platform, push_token FROM devices WHERE ogs_device_id = ?"
+    "SELECT ogs_device_id, platform, push_token FROM devices WHERE ogs_device_id = ?",
   )
     .bind(deviceId)
     .first<DeviceRow>();
@@ -86,7 +86,7 @@ notifications.post("/send", async (c) => {
           status: 404,
         },
       },
-      404
+      404,
     );
   }
 
@@ -100,11 +100,7 @@ notifications.post("/send", async (c) => {
 
   if (!result.success) {
     if (!result.deviceActive) {
-      await c.env.DB.prepare(
-        "DELETE FROM devices WHERE ogs_device_id = ?"
-      )
-        .bind(deviceId)
-        .run();
+      await c.env.DB.prepare("DELETE FROM devices WHERE ogs_device_id = ?").bind(deviceId).run();
     }
 
     return c.json(
@@ -116,7 +112,7 @@ notifications.post("/send", async (c) => {
         },
         deviceActive: result.deviceActive,
       },
-      502
+      502,
     );
   }
 

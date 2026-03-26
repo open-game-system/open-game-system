@@ -33,5 +33,8 @@ jobs:
       - name: Typecheck API
         run: pnpm --filter @open-game-system/api typecheck
 
-      - name: Test API
+      - name: Unit Tests
         run: pnpm --filter @open-game-system/api test
+
+      - name: D1 Integration Tests
+        run: pnpm --filter @open-game-system/api test:integration

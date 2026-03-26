@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { Env, CastSessionRow } from "../types";
-import { CreateCastSessionSchema, CastStateUpdateSchema } from "../schemas";
+import { CastStateUpdateSchema, CreateCastSessionSchema } from "../schemas";
+import type { CastSessionRow, Env } from "../types";
 
 type CastEnv = { Bindings: Env; Variables: { gameId: string; gameName: string } };
 
@@ -29,13 +29,25 @@ cast.post("/sessions", async (c) => {
 
     if (hasDeviceId && hasViewUrl) {
       return c.json(
-        { error: { code: "invalid_view_url", message: "viewUrl must be a valid HTTPS URL", status: 400 } },
+        {
+          error: {
+            code: "invalid_view_url",
+            message: "viewUrl must be a valid HTTPS URL",
+            status: 400,
+          },
+        },
         400,
       );
     }
 
     return c.json(
-      { error: { code: "missing_fields", message: "deviceId and viewUrl (HTTPS) are required", status: 400 } },
+      {
+        error: {
+          code: "missing_fields",
+          message: "deviceId and viewUrl (HTTPS) are required",
+          status: 400,
+        },
+      },
       400,
     );
   }
@@ -44,42 +56,11 @@ cast.post("/sessions", async (c) => {
   const gameId = c.get("gameId");
   const sessionId = crypto.randomUUID();
 
-  // Provision stream-kit container via Durable Object
-  let streamSessionId: string;
-  let streamUrl: string;
-
-  try {
-    const doId = c.env.STREAM_CONTAINER.idFromName(`session-${sessionId}`);
-    const stub = c.env.STREAM_CONTAINER.get(doId);
-
-    const streamRes = await stub.fetch(new Request("https://stream-container/start-stream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: viewUrl }),
-    }));
-
-    if (!streamRes.ok) {
-      return c.json(
-        { error: { code: "stream_provisioning_failed", message: "Failed to provision stream container", status: 502 } },
-        502,
-      );
-    }
-
-    const streamData = (await streamRes.json()) as { sessionId?: string; streamUrl?: string };
-    if (!streamData.sessionId || !streamData.streamUrl) {
-      return c.json(
-        { error: { code: "stream_provisioning_failed", message: "Invalid response from stream server", status: 502 } },
-        502,
-      );
-    }
-    streamSessionId = streamData.sessionId;
-    streamUrl = streamData.streamUrl;
-  } catch {
-    return c.json(
-      { error: { code: "stream_provisioning_failed", message: "Failed to reach stream server", status: 502 } },
-      502,
-    );
-  }
+  // The receiver proxies through the API to reach the stream container.
+  // Each cast session gets its own container instance (keyed by sessionId).
+  const streamSessionId = sessionId;
+  const apiOrigin = new URL(c.req.url).origin;
+  const streamUrl = `${apiOrigin}/api/v1/cast/stream/${sessionId}`;
 
   // Persist session
   await c.env.DB.prepare(
@@ -107,9 +88,7 @@ cast.get("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   const gameId = c.get("gameId");
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
@@ -154,15 +133,19 @@ cast.post("/sessions/:id/state", async (c) => {
     );
   }
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
-  if (!session || session.game_id !== gameId || (session.status !== "active" && session.status !== "idle")) {
+  if (
+    !session ||
+    session.game_id !== gameId ||
+    (session.status !== "active" && session.status !== "idle")
+  ) {
     return c.json(
-      { error: { code: "session_not_found", message: "Active cast session not found", status: 404 } },
+      {
+        error: { code: "session_not_found", message: "Active cast session not found", status: 404 },
+      },
       404,
     );
   }
@@ -176,20 +159,18 @@ cast.post("/sessions/:id/state", async (c) => {
       .run();
   }
 
-  // Forward state to stream container DO (best effort — don't break the response)
-  if (session.stream_session_id) {
-    try {
-      const doId = c.env.STREAM_CONTAINER.idFromName(`session-${sessionId}`);
-      const stub = c.env.STREAM_CONTAINER.get(doId);
-
-      await stub.fetch(new Request(`https://stream-container/sessions/${session.stream_session_id}/state`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
-      }));
-    } catch {
-      // Best effort — state forwarding failure doesn't break the API response
-    }
+  // Forward state to stream container (best effort)
+  try {
+    const container = c.env.STREAM_CONTAINER.get(
+      c.env.STREAM_CONTAINER.idFromName(session.stream_session_id!),
+    );
+    await container.fetch("http://container/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(parsed.data),
+    });
+  } catch {
+    // Best effort — state forwarding failure doesn't break the API response
   }
 
   return c.json({ status: "ok" });
@@ -203,9 +184,7 @@ cast.delete("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   const gameId = c.get("gameId");
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
@@ -221,19 +200,8 @@ cast.delete("/sessions/:id", async (c) => {
     return c.json({ status: "ended" as const });
   }
 
-  // Tear down stream container via DO
-  if (session.stream_session_id) {
-    try {
-      const doId = c.env.STREAM_CONTAINER.idFromName(`session-${sessionId}`);
-      const stub = c.env.STREAM_CONTAINER.get(doId);
-
-      await stub.fetch(new Request(`https://stream-container/sessions/${session.stream_session_id}`, {
-        method: "DELETE",
-      }));
-    } catch {
-      // Best effort teardown — session is ending regardless
-    }
-  }
+  // The container will auto-sleep via sleepAfter config.
+  // No explicit teardown needed — the Container class handles lifecycle.
 
   // Mark session as ended
   await c.env.DB.prepare(
@@ -243,6 +211,45 @@ cast.delete("/sessions/:id", async (c) => {
     .run();
 
   return c.json({ status: "ended" as const });
+});
+
+/**
+ * ALL /api/v1/cast/stream/:sessionId/*
+ * Proxies requests from the cast receiver to the stream container.
+ * The receiver calls /start-stream, /ice-servers, etc. through this proxy.
+ * No API key required — the receiver on Chromecast doesn't have one.
+ */
+cast.all("/stream/:sessionId/*", async (c) => {
+  const sessionId = c.req.param("sessionId");
+  const containerBinding = c.env.STREAM_CONTAINER;
+
+  if (!containerBinding) {
+    return c.json(
+      {
+        error: {
+          code: "stream_not_configured",
+          message: "Stream container not configured",
+          status: 502,
+        },
+      },
+      502,
+    );
+  }
+
+  // Get or create a container instance for this session
+  const container = containerBinding.get(containerBinding.idFromName(sessionId));
+
+  // Forward the request to the container, stripping the proxy prefix
+  const originalUrl = new URL(c.req.url);
+  const proxyPath = originalUrl.pathname.replace(`/api/v1/cast/stream/${sessionId}`, "");
+  const containerUrl = new URL(proxyPath || "/", "http://container");
+  containerUrl.search = originalUrl.search;
+
+  return container.fetch(containerUrl.toString(), {
+    method: c.req.method,
+    headers: c.req.raw.headers,
+    body: c.req.method !== "GET" && c.req.method !== "HEAD" ? c.req.raw.body : undefined,
+  });
 });
 
 export default cast;

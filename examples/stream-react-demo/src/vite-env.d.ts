@@ -2,11 +2,11 @@
 
 // Augment ImportMeta for Vitest env variables
 interface ImportMetaEnv {
-  [key: string]: unknown
-  VITEST?: boolean
+  [key: string]: unknown;
+  VITEST?: boolean;
   // Add other environment variables here if needed
 }
 
 interface ImportMeta {
-  readonly env: ImportMetaEnv
-} 
+  readonly env: ImportMetaEnv;
+}

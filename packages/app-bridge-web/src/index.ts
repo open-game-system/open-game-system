@@ -1,11 +1,11 @@
-import { applyPatch } from "fast-json-patch";
 import type {
   Bridge,
   BridgeStores,
   Event,
-  Store,
   Operation,
+  Store,
 } from "@open-game-system/app-bridge-types";
+import { applyPatch } from "fast-json-patch";
 
 export type { BridgeStores, State } from "@open-game-system/app-bridge-types";
 
@@ -16,16 +16,18 @@ export type WebToNativeMessage =
   | { type: "EVENT"; storeKey: string; event: Event }
   | { type: "BRIDGE_READY" };
 
-export type NativeToWebMessage<TStores extends BridgeStores = BridgeStores> = {
-  type: "STATE_INIT";
-  storeKey: keyof TStores;
-  data: TStores[keyof TStores]["state"];
-} | {
-  type: "STATE_UPDATE";
-  storeKey: keyof TStores;
-  data?: TStores[keyof TStores]["state"];
-  operations?: Operation[];
-};
+export type NativeToWebMessage<TStores extends BridgeStores = BridgeStores> =
+  | {
+      type: "STATE_INIT";
+      storeKey: keyof TStores;
+      data: TStores[keyof TStores]["state"];
+    }
+  | {
+      type: "STATE_UPDATE";
+      storeKey: keyof TStores;
+      data?: TStores[keyof TStores]["state"];
+      operations?: Operation[];
+    };
 
 export interface WebViewBridge {
   postMessage: (message: string) => void;
@@ -44,14 +46,9 @@ declare global {
  * @template TStores Store definitions for the bridge
  * @returns A Bridge instance
  */
-export function createWebBridge<
-  TStores extends BridgeStores
->(): Bridge<TStores> {
+export function createWebBridge<TStores extends BridgeStores>(): Bridge<TStores> {
   // Internal state storage
-  const stateByStore = new Map<
-    keyof TStores,
-    TStores[keyof TStores]["state"]
-  >();
+  const stateByStore = new Map<keyof TStores, TStores[keyof TStores]["state"]>();
 
   // Store instances by key
   const stores = new Map<
@@ -88,17 +85,22 @@ export function createWebBridge<
 
   // Handle messages from native
   if (typeof window !== "undefined" && window.ReactNativeWebView) {
-    console.log("[Web Bridge] ReactNativeWebView detected. Adding message listener and sending BRIDGE_READY.");
+    console.log(
+      "[Web Bridge] ReactNativeWebView detected. Adding message listener and sending BRIDGE_READY.",
+    );
     // Send bridge ready message
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: "BRIDGE_READY" }));
 
     const messageHandler = (event: MessageEvent) => {
-      // console.log("[Web Bridge] Received raw message event:", event); // Log raw event
+      console.log("[Web Bridge] Received raw message event:", event);
       try {
         const message = JSON.parse(event.data) as NativeToWebMessage;
-        // console.log("[Web Bridge] Parsed message data:", message); // Log parsed message
+        console.log("[Web Bridge] Parsed message data:", message);
         if (message.type === "STATE_INIT") {
-          // console.log(`[Web Bridge] Handling STATE_INIT for store '${String(message.storeKey)}'`, message.data); // Log init handling
+          console.log(
+            `[Web Bridge] Handling STATE_INIT for store '${String(message.storeKey)}'`,
+            message.data,
+          );
           if (message.data === null) {
             // Remove state when receiving null data
             stateByStore.delete(message.storeKey as keyof TStores);
@@ -117,16 +119,14 @@ export function createWebBridge<
             notifyStoreListeners();
           } else if (message.operations) {
             // Apply patch operations
-            const currentState = stateByStore.get(
-              message.storeKey as keyof TStores
-            );
+            const currentState = stateByStore.get(message.storeKey as keyof TStores);
             if (currentState) {
               const result = applyPatch(currentState, message.operations);
-              stateByStore.set(
-                message.storeKey as keyof TStores,
-                result.newDocument
+              stateByStore.set(message.storeKey as keyof TStores, result.newDocument);
+              console.log(
+                `[Web Bridge] State updated for store '${String(message.storeKey)}' via patch:`,
+                result.newDocument,
               );
-              // console.log(`[Web Bridge] State updated for store '${String(message.storeKey)}' via patch:`, result.newDocument); // Log state after patch
               notifyStateListeners(message.storeKey as keyof TStores);
             }
           }
@@ -140,7 +140,6 @@ export function createWebBridge<
 
     // Optional: Add cleanup function if the bridge instance can be destroyed
     // () => window.removeEventListener("message", messageHandler);
-
   } else {
     console.warn("[Web Bridge] ReactNativeWebView NOT detected.");
   }
@@ -150,15 +149,14 @@ export function createWebBridge<
      * Check if the bridge is supported
      * For web bridge, this checks if ReactNativeWebView is available
      */
-    isSupported: () =>
-      typeof window !== "undefined" && !!window.ReactNativeWebView,
+    isSupported: () => typeof window !== "undefined" && !!window.ReactNativeWebView,
 
     /**
      * Get a store by its key
      * Returns undefined if the store doesn't exist
      */
     getStore: <K extends keyof TStores>(
-      storeKey: K
+      storeKey: K,
     ): Store<TStores[K]["state"], TStores[K]["events"]> | undefined => {
       // Only return a store if we have state for it
       if (!stateByStore.has(storeKey)) return undefined;
@@ -191,9 +189,7 @@ export function createWebBridge<
           dispatch: async (event: TStores[K]["events"]): Promise<void> => {
             console.log(`[Web Bridge] Dispatching event for store ${String(storeKey)}:`, event);
             if (!window.ReactNativeWebView) {
-              console.warn(
-                "[Web Bridge] Cannot dispatch events: ReactNativeWebView not available"
-              );
+              console.warn("[Web Bridge] Cannot dispatch events: ReactNativeWebView not available");
               return;
             }
             const message: WebToNativeMessage = {
@@ -209,17 +205,19 @@ export function createWebBridge<
             console.warn("[Web Bridge] Reset operation not supported in web bridge");
           },
           // Add 'on' method to satisfy the interface
-          on: <EventType extends TStores[K]["events"]['type']>(
+          on: <EventType extends TStores[K]["events"]["type"]>(
             eventType: EventType,
             _listener: (
               event: Extract<TStores[K]["events"], { type: EventType }>,
-              store: Store<TStores[K]["state"], TStores[K]["events"]>
-            ) => Promise<void> | void
+              store: Store<TStores[K]["state"], TStores[K]["events"]>,
+            ) => Promise<void> | void,
           ): (() => void) => {
-              console.warn(`[Web Bridge] store.on("${eventType}", ...) was called, but listeners added on the web side are not executed. Add listeners on the native side or via the store's 'on' config.`);
-              // Return a no-op unsubscribe function
-              return () => {};
-          }
+            console.warn(
+              `[Web Bridge] store.on("${eventType}", ...) was called, but listeners added on the web side are not executed. Add listeners on the native side or via the store's 'on' config.`,
+            );
+            // Return a no-op unsubscribe function
+            return () => {};
+          },
         };
         stores.set(storeKey, storeImpl);
         store = storeImpl;
@@ -233,7 +231,7 @@ export function createWebBridge<
      */
     setStore: <K extends keyof TStores>(
       key: K,
-      store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined
+      store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined,
     ) => {
       if (store === undefined) {
         stores.delete(key);
@@ -259,4 +257,4 @@ export function createWebBridge<
       };
     },
   };
-} 
+}

@@ -1,9 +1,4 @@
-import {
-  createCastStore,
-  CAST_INITIAL_STATE,
-  type NativeCastState,
-  type NativeCastEvents,
-} from "../cast-store";
+import { CAST_INITIAL_STATE, createCastStore } from "../cast-store";
 
 // Mock react-native-google-cast
 jest.mock("react-native-google-cast", () => ({
@@ -59,9 +54,7 @@ describe("cast-store", () => {
       const store = createCastStore();
       store.dispatch({
         type: "DEVICES_UPDATED",
-        devices: [
-          { id: "tv-1", name: "Living Room TV", type: "chromecast" },
-        ],
+        devices: [{ id: "tv-1", name: "Living Room TV", type: "chromecast" }],
       });
 
       const state = store.getSnapshot();

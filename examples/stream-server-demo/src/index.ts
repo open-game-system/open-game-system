@@ -1,9 +1,6 @@
-import crypto from "crypto";
-import { Buffer } from "buffer";
-import {
-  parseTurnCredentialsResponse,
-  type IceServerConfig,
-} from "./protocol";
+import { Buffer } from "node:buffer";
+import crypto from "node:crypto";
+import { type IceServerConfig, parseTurnCredentialsResponse } from "./protocol";
 
 const OPEN_CONTAINER_PORT = 8080;
 const STREAM_INSTANCE_NAME = "default-singleton-debug-v3";
@@ -36,25 +33,27 @@ function withSessionHeader(response: Response, sessionId: string | null): Respon
 }
 
 export function normalizeIceServers(iceServers: IceServerConfig[]): IceServerConfig[] {
-  return iceServers.map((server) => {
-    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
-    const filteredUrls = urls.filter((url) => {
-      const normalizedUrl = url.toLowerCase();
-      return !(
-        normalizedUrl.includes(":53?") ||
-        normalizedUrl.endsWith(":53") ||
-        normalizedUrl.includes(":53#") ||
-        normalizedUrl.includes(":53/")
-      );
+  return iceServers
+    .map((server) => {
+      const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+      const filteredUrls = urls.filter((url) => {
+        const normalizedUrl = url.toLowerCase();
+        return !(
+          normalizedUrl.includes(":53?") ||
+          normalizedUrl.endsWith(":53") ||
+          normalizedUrl.includes(":53#") ||
+          normalizedUrl.includes(":53/")
+        );
+      });
+      return {
+        ...server,
+        urls: filteredUrls,
+      };
+    })
+    .filter((server) => {
+      const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+      return urls.length > 0;
     });
-    return {
-      ...server,
-      urls: filteredUrls,
-    };
-  }).filter((server) => {
-    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
-    return urls.length > 0;
-  });
 }
 
 function timingSafeMatches(actual: string, expected: string): boolean {
@@ -106,7 +105,7 @@ export function resolveSessionId(request: Request): string | null {
 
 export async function generateTurnIceServers(
   env: Env,
-  traceId: string
+  traceId: string,
 ): Promise<IceServerConfig[]> {
   const apiToken = env.CLOUDFLARE_TURN_API_TOKEN;
   const turnKeyId = env.CLOUDFLARE_TURN_KEY_ID;
@@ -125,7 +124,7 @@ export async function generateTurnIceServers(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ ttl: TURN_TTL_SECONDS }),
-    }
+    },
   );
 
   const bodyText = await response.text();
@@ -150,22 +149,22 @@ async function startAndWaitForPort(
   container: Container,
   portToAwait: number,
   traceId: string,
-  maxTries = 120
+  maxTries = 120,
 ) {
   const port = container.getTcpPort(portToAwait);
-  let monitor;
+  let _monitor;
 
   for (let i = 0; i < maxTries; i++) {
     try {
       if (!container.running) {
-        // @ts-ignore - enableInternet is required for Puppeteer to reach external websites
+        // @ts-expect-error - enableInternet is required for Puppeteer to reach external websites
         container.start({ enableInternet: true });
-        monitor = container.monitor();
+        _monitor = container.monitor();
         logTrace(traceId, "container_start_requested", { try: i + 1, port: portToAwait });
       }
-      
-      const res = await port.fetch("http://localhost:8080/ping", { 
-        // @ts-ignore
+
+      const res = await port.fetch("http://localhost:8080/ping", {
+        // @ts-expect-error
         signal: AbortSignal.timeout(1500),
         headers: {
           "x-stream-trace-id": traceId,
@@ -197,9 +196,7 @@ async function startAndWaitForPort(
       throw err;
     }
   }
-  throw new Error(
-    `could not check container healthiness after ${maxTries} tries`
-  );
+  throw new Error(`could not check container healthiness after ${maxTries} tries`);
 }
 
 async function waitForLocalhost(port: number, maxTries = 10) {
@@ -212,16 +209,14 @@ async function waitForLocalhost(port: number, maxTries = 10) {
       await new Promise((res) => setTimeout(res, 300));
     }
   }
-  throw new Error(
-    `could not connect to localhost:${port} after ${maxTries} tries`
-  );
+  throw new Error(`could not connect to localhost:${port} after ${maxTries} tries`);
 }
 
 async function proxyFetch(
   container: Container,
   request: Request,
   portNumber: number,
-  traceId: string
+  traceId: string,
 ): Promise<Response> {
   const headers = new Headers(request.headers);
   headers.set("x-stream-trace-id", traceId);
@@ -252,7 +247,7 @@ export class StreamContainer implements DurableObject {
 
   constructor(
     private readonly ctx: DurableObjectState,
-    private readonly env: Env
+    readonly _env: Env,
   ) {}
 
   private async ensureRunning(traceId: string) {
@@ -262,7 +257,7 @@ export class StreamContainer implements DurableObject {
     }
 
     if (this.waitPromise) return this.waitPromise;
-    
+
     this.waitPromise = (async () => {
       if (!this.ctx.container) {
         logTrace(traceId, "do_localhost_mode");
@@ -272,7 +267,7 @@ export class StreamContainer implements DurableObject {
         await startAndWaitForPort(this.ctx.container, OPEN_CONTAINER_PORT, traceId);
       }
     })();
-    
+
     return this.waitPromise;
   }
 
@@ -284,14 +279,14 @@ export class StreamContainer implements DurableObject {
       method: request.method,
       path: url.pathname,
     });
-    
+
     try {
       await this.ensureRunning(traceId);
 
       if (!this.ctx.container) {
         // No container, proxy to localhost:8080
         logTrace(traceId, "do_proxy_local", { method: request.method, path: url.pathname });
-        const localUrl = request.url.replace(new URL(request.url).origin, 'http://localhost:8080');
+        const localUrl = request.url.replace(new URL(request.url).origin, "http://localhost:8080");
         const response = await fetch(localUrl, {
           method: request.method,
           headers: new Headers(request.headers),
@@ -306,12 +301,7 @@ export class StreamContainer implements DurableObject {
       } else {
         // Use the container
         logTrace(traceId, "do_proxy_container", { method: request.method, path: url.pathname });
-        const res = await proxyFetch(
-          this.ctx.container,
-          request,
-          OPEN_CONTAINER_PORT,
-          traceId
-        );
+        const res = await proxyFetch(this.ctx.container, request, OPEN_CONTAINER_PORT, traceId);
         const tracedResponse = withTraceHeader(res, traceId);
         logTrace(traceId, "do_response_sent", {
           status: tracedResponse.status,
@@ -320,10 +310,7 @@ export class StreamContainer implements DurableObject {
         return tracedResponse;
       }
     } catch (error) {
-      if (
-        this.ctx.container &&
-        (error as Error).message.includes("container is not running")
-      ) {
+      if (this.ctx.container && (error as Error).message.includes("container is not running")) {
         logTrace(traceId, "do_retry_after_container_stopped");
         this.waitPromise = null;
         await this.ensureRunning(traceId);
@@ -332,7 +319,7 @@ export class StreamContainer implements DurableObject {
           this.ctx.container,
           request,
           OPEN_CONTAINER_PORT,
-          traceId
+          traceId,
         );
         const tracedResponse = withTraceHeader(retriedResponse, traceId);
         logTrace(traceId, "do_response_sent_after_retry", {
@@ -348,7 +335,10 @@ export class StreamContainer implements DurableObject {
       });
       return createJsonResponse(
         {
-          error: (!this.ctx.container ? "Local server" : "Container") + " error: " + (error as Error).message,
+          error:
+            (!this.ctx.container ? "Local server" : "Container") +
+            " error: " +
+            (error as Error).message,
           traceId,
         },
         {
@@ -356,7 +346,7 @@ export class StreamContainer implements DurableObject {
           headers: {
             "x-stream-trace-id": traceId,
           },
-        }
+        },
       );
     }
   }
@@ -388,12 +378,16 @@ export default {
               headers: {
                 ...buildCorsHeaders("GET, OPTIONS"),
               },
-            }
+            },
           ),
-          traceId
+          traceId,
         );
         const tracedResponse = withSessionHeader(response, sessionId);
-        logTrace(traceId, "worker_response_sent", { status: tracedResponse.status, path: url.pathname, sessionId });
+        logTrace(traceId, "worker_response_sent", {
+          status: tracedResponse.status,
+          path: url.pathname,
+          sessionId,
+        });
         return tracedResponse;
       } catch (error) {
         const response = withTraceHeader(
@@ -404,12 +398,16 @@ export default {
               headers: {
                 ...buildCorsHeaders("GET, OPTIONS"),
               },
-            }
+            },
           ),
-          traceId
+          traceId,
         );
         const tracedResponse = withSessionHeader(response, sessionId);
-        logTrace(traceId, "worker_response_sent", { status: tracedResponse.status, path: url.pathname, sessionId });
+        logTrace(traceId, "worker_response_sent", {
+          status: tracedResponse.status,
+          path: url.pathname,
+          sessionId,
+        });
         return tracedResponse;
       }
     }
@@ -421,9 +419,9 @@ export default {
           {
             status: 403,
             headers: buildCorsHeaders("GET, OPTIONS"),
-          }
+          },
         ),
-        traceId
+        traceId,
       );
       const tracedResponse = withSessionHeader(response, sessionId);
       logTrace(traceId, "worker_response_sent", {
@@ -441,10 +439,14 @@ export default {
           status: 204,
           headers: buildCorsHeaders("GET, POST, OPTIONS"),
         }),
-        traceId
+        traceId,
       );
       const tracedResponse = withSessionHeader(response, sessionId);
-      logTrace(traceId, "worker_response_sent", { status: tracedResponse.status, path: url.pathname, sessionId });
+      logTrace(traceId, "worker_response_sent", {
+        status: tracedResponse.status,
+        path: url.pathname,
+        sessionId,
+      });
       return tracedResponse;
     }
 
@@ -460,9 +462,13 @@ export default {
 
     const response = withSessionHeader(
       withTraceHeader(await stub.fetch(forwardedRequest), traceId),
-      sessionId
+      sessionId,
     );
-    logTrace(traceId, "worker_response_sent", { status: response.status, path: url.pathname, sessionId });
+    logTrace(traceId, "worker_response_sent", {
+      status: response.status,
+      path: url.pathname,
+      sessionId,
+    });
     return response;
   },
 };

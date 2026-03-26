@@ -28,7 +28,6 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      background: #000;
     }
 
     #status-overlay {
@@ -38,13 +37,12 @@
       width: 100%;
       height: 100%;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      gap: 16px;
+      background: rgba(0, 0, 0, 0.85);
       z-index: 10;
-      background: #000;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s;
     }
 
     #status-overlay.hidden {
@@ -52,24 +50,21 @@
       pointer-events: none;
     }
 
-    .status-text {
-      font-size: 24px;
-      font-weight: 300;
-      letter-spacing: 0.02em;
-      text-align: center;
-    }
-
     .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,255,255,0.3);
       border-top-color: #fff;
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-text {
+      font-size: 18px;
+      color: rgba(255,255,255,0.8);
     }
   </style>
 </head>
@@ -83,21 +78,27 @@
     <div class="status-text" id="status-text">Connecting to game stream...</div>
   </div>
 
+  <!-- PeerJS for WebRTC signaling -->
+  <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
+
   <script>
     /**
      * OGS Cast Receiver
      *
      * Minimal receiver page for Chromecast/AirPlay.
-     * Connects to a WebRTC stream from a stream-kit container
-     * and displays the video full-screen.
+     * Uses PeerJS for WebRTC signaling to receive a video stream
+     * from a stream-kit container and display it full-screen.
      *
      * Launch params (URL query string):
-     *   streamUrl  — WebSocket URL for WebRTC signaling
-     *   iceServers — JSON-encoded array of ICE server configs (optional)
+     *   streamServerUrl — Base URL of the stream-kit server
+     *   viewUrl         — URL to render on the stream server
+     *   iceServers      — JSON-encoded array of ICE server configs (optional)
+     *
+     * Legacy params (for backward compatibility):
+     *   streamUrl       — If provided, treated as streamServerUrl base
      */
 
-    const CONNECTION_TIMEOUT_MS = 15000;
-    const RECONNECT_TIMEOUT_MS = 10000;
+    const CONNECTION_TIMEOUT_MS = 30000;
 
     // DOM elements
     const video = document.getElementById('stream-video');
@@ -106,16 +107,15 @@
     const spinner = document.getElementById('spinner');
 
     // State
-    let peerConnection = null;
-    let signalingSocket = null;
+    let peer = null;
+    let currentCall = null;
     let connectionTimer = null;
-    let reconnectTimer = null;
     let isConnected = false;
 
-    // Parse launch params
     function getLaunchParams() {
       const params = new URLSearchParams(window.location.search);
-      const streamUrl = params.get('streamUrl');
+      const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || '';
+      const viewUrl = params.get('viewUrl') || '';
       let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
 
       const iceParam = params.get('iceServers');
@@ -127,10 +127,10 @@
         }
       }
 
-      return { streamUrl, iceServers };
+      return { streamServerUrl, viewUrl, iceServers };
     }
 
-    function setStatus(text, showSpinner) {
+    function setStatus(text, showSpinner = true) {
       statusText.textContent = text;
       spinner.style.display = showSpinner ? 'block' : 'none';
       overlay.classList.remove('hidden');
@@ -158,173 +158,138 @@
 
     function cleanup() {
       clearConnectionTimeout();
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
+      if (currentCall) {
+        currentCall.close();
+        currentCall = null;
       }
-      if (signalingSocket) {
-        signalingSocket.close();
-        signalingSocket = null;
-      }
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
+      if (peer) {
+        peer.destroy();
+        peer = null;
       }
     }
 
-    async function attemptIceRestart() {
-      if (!peerConnection || !signalingSocket) return;
+    async function startReceiving() {
+      const { streamServerUrl, viewUrl, iceServers } = getLaunchParams();
 
-      setStatus('Reconnecting...', true);
-
-      reconnectTimer = setTimeout(() => {
-        setStatus('Connection lost', false);
-        cleanup();
-      }, RECONNECT_TIMEOUT_MS);
-
-      try {
-        const offer = await peerConnection.createOffer({ iceRestart: true });
-        await peerConnection.setLocalDescription(offer);
-        signalingSocket.send(JSON.stringify({
-          type: 'offer',
-          sdp: peerConnection.localDescription,
-        }));
-      } catch (e) {
-        console.error('[Receiver] ICE restart failed:', e);
-        setStatus('Connection lost', false);
-        cleanup();
+      if (!streamServerUrl) {
+        setStatus('Unable to connect to game stream', false);
+        console.error('[Receiver] No streamServerUrl provided');
+        return;
       }
-    }
 
-    async function connect(streamUrl, iceServers) {
-      setStatus('Connecting to game stream...', true);
+      console.log('[Receiver] Stream server:', streamServerUrl);
+      console.log('[Receiver] View URL:', viewUrl);
+      console.log('[Receiver] ICE servers:', iceServers);
+
+      setStatus('Connecting to game stream...');
       startConnectionTimeout();
 
-      // Create peer connection
-      peerConnection = new RTCPeerConnection({ iceServers });
-
-      // Receive video track
-      peerConnection.addTransceiver('video', { direction: 'recvonly' });
-
-      peerConnection.ontrack = (event) => {
-        if (event.track.kind === 'video') {
-          video.srcObject = event.streams[0];
-          video.play().catch((e) => {
-            console.warn('[Receiver] Autoplay blocked:', e);
-          });
+      try {
+        // Step 1: Fetch ICE servers from stream server (if available)
+        let resolvedIceServers = iceServers;
+        try {
+          const iceEndpoint = `${streamServerUrl.replace(/\/$/, '')}/ice-servers`;
+          const iceRes = await fetch(iceEndpoint);
+          if (iceRes.ok) {
+            const iceData = await iceRes.json();
+            if (Array.isArray(iceData.iceServers)) {
+              resolvedIceServers = iceData.iceServers;
+              console.log('[Receiver] Got ICE servers from stream server:', resolvedIceServers);
+            }
+          }
+        } catch (e) {
+          console.log('[Receiver] Could not fetch ICE servers, using defaults');
         }
-      };
 
-      // Connection state changes
-      peerConnection.onconnectionstatechange = () => {
-        const state = peerConnection.connectionState;
-        console.log('[Receiver] Connection state:', state);
+        // Step 2: Create PeerJS peer
+        const receiverId = `receiver-${crypto.randomUUID()}`;
+        console.log('[Receiver] Creating PeerJS peer:', receiverId);
 
-        switch (state) {
-          case 'connected':
-            isConnected = true;
+        peer = new Peer(receiverId, {
+          debug: 2,
+          config: { iceServers: resolvedIceServers }
+        });
+
+        // Wait for peer to be ready
+        await new Promise((resolve, reject) => {
+          peer.on('open', (id) => {
+            console.log('[Receiver] PeerJS connected with ID:', id);
+            resolve(id);
+          });
+          peer.on('error', (err) => {
+            console.error('[Receiver] PeerJS error:', err);
+            reject(err);
+          });
+        });
+
+        // Step 3: Listen for incoming calls BEFORE requesting stream
+        peer.on('call', (call) => {
+          console.log('[Receiver] Incoming call from:', call.peer);
+          currentCall = call;
+
+          // Answer the call (no local stream to send)
+          call.answer();
+
+          call.on('stream', (remoteStream) => {
+            console.log('[Receiver] Received remote stream');
             clearConnectionTimeout();
-            if (reconnectTimer) {
-              clearTimeout(reconnectTimer);
-              reconnectTimer = null;
-            }
+            isConnected = true;
+
+            video.srcObject = remoteStream;
+            video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
             hideOverlay();
-            break;
+          });
 
-          case 'disconnected':
-          case 'failed':
-            if (isConnected) {
-              isConnected = false;
-              attemptIceRestart();
-            }
-            break;
-
-          case 'closed':
+          call.on('close', () => {
+            console.log('[Receiver] Call closed');
             isConnected = false;
             setStatus('Cast session ended', false);
-            cleanup();
-            break;
-        }
-      };
+          });
 
-      // ICE candidate handling
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate && signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
-          signalingSocket.send(JSON.stringify({
-            type: 'ice-candidate',
-            candidate: event.candidate,
-          }));
-        }
-      };
+          call.on('error', (err) => {
+            console.error('[Receiver] Call error:', err);
+            setStatus('Stream error', false);
+          });
+        });
 
-      // Connect signaling WebSocket
-      try {
-        signalingSocket = new WebSocket(streamUrl);
-      } catch (e) {
+        // Step 4: Request stream from server
+        setStatus('Starting stream...');
+        const startEndpoint = `${streamServerUrl.replace(/\/$/, '')}/start-stream`;
+        console.log('[Receiver] Requesting stream from:', startEndpoint);
+
+        const streamRes = await fetch(startEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: viewUrl || 'about:blank',
+            peerId: receiverId,
+            iceServers: resolvedIceServers
+          })
+        });
+
+        if (!streamRes.ok) {
+          const errText = await streamRes.text().catch(() => 'unknown error');
+          throw new Error(`Stream server returned ${streamRes.status}: ${errText}`);
+        }
+
+        const streamData = await streamRes.json();
+        console.log('[Receiver] Stream started:', streamData);
+
+        if (streamData.status !== 'success') {
+          throw new Error(streamData.error || 'Stream server returned non-success status');
+        }
+
+        setStatus('Waiting for video stream...');
+
+      } catch (err) {
+        console.error('[Receiver] Failed to start stream:', err);
+        clearConnectionTimeout();
         setStatus('Unable to connect to game stream', false);
-        cleanup();
-        return;
       }
-
-      signalingSocket.onopen = () => {
-        console.log('[Receiver] Signaling connected');
-      };
-
-      signalingSocket.onmessage = async (event) => {
-        let message;
-        try {
-          message = JSON.parse(event.data);
-        } catch (e) {
-          console.warn('[Receiver] Invalid signaling message:', e);
-          return;
-        }
-
-        if (message.type === 'offer') {
-          await peerConnection.setRemoteDescription(
-            new RTCSessionDescription(message.sdp)
-          );
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-          signalingSocket.send(JSON.stringify({
-            type: 'answer',
-            sdp: peerConnection.localDescription,
-          }));
-        }
-
-        if (message.type === 'ice-candidate' && message.candidate) {
-          await peerConnection.addIceCandidate(
-            new RTCIceCandidate(message.candidate)
-          );
-        }
-      };
-
-      signalingSocket.onerror = (error) => {
-        console.error('[Receiver] Signaling error:', error);
-        if (!isConnected) {
-          setStatus('Unable to connect to game stream', false);
-          cleanup();
-        }
-      };
-
-      signalingSocket.onclose = () => {
-        console.log('[Receiver] Signaling closed');
-        if (!isConnected) {
-          setStatus('Unable to connect to game stream', false);
-        }
-      };
     }
 
-    // Initialize
-    (function init() {
-      const { streamUrl, iceServers } = getLaunchParams();
-
-      if (!streamUrl) {
-        setStatus('No stream URL provided', false);
-        return;
-      }
-
-      connect(streamUrl, iceServers);
-    })();
+    // Start receiving when page loads
+    startReceiving();
   </script>
 </body>
 </html>

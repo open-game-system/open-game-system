@@ -1,16 +1,16 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
     deps: {
-      inline: ['@open-game-system/app-bridge', 'fast-json-patch'],
+      inline: ["@open-game-system/app-bridge", "fast-json-patch"],
       optimizer: {
         web: {
-          include: ['@open-game-system/app-bridge', 'fast-json-patch']
-        }
-      }
-    }
+          include: ["@open-game-system/app-bridge", "fast-json-patch"],
+        },
+      },
+    },
   },
 });

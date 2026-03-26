@@ -1,19 +1,17 @@
-import {
-  State,
-  Event,
-  Store,
-  CreateStore,
-  StoreConfig,
-  Producer,
-  NativeBridge,
-  StoreOnConfig,
+import type {
+  BridgeStores,
   WebView as BridgeWebView,
-  WebToNativeMessage,
+  CreateStore,
+  Event,
+  NativeBridge,
   NativeToWebMessage,
-  BridgeStores
+  State,
+  Store,
+  StoreConfig,
+  WebToNativeMessage,
 } from "@open-game-system/app-bridge-types";
-import { produce } from "immer";
 import { compare } from "fast-json-patch";
+import { produce } from "immer";
 
 // Re-export BridgeWebView as WebView for consistency within this package if needed
 export type WebView = BridgeWebView;
@@ -21,36 +19,39 @@ export type WebView = BridgeWebView;
 /**
  * Creates a new store with the given configuration according to Plan v4.
  */
-export const createStore: CreateStore = <
-  S extends State,
-  E extends Event
->(
-  config: StoreConfig<S, E>
+export const createStore: CreateStore = <S extends State, E extends Event>(
+  config: StoreConfig<S, E>,
 ): Store<S, E> => {
   let currentState = config.initialState;
   const stateListeners = new Set<(state: S) => void>();
-  const eventListeners = new Map<string, Set<(event: E, store: Store<S, E>) => Promise<void> | void>>();
+  const eventListeners = new Map<
+    string,
+    Set<(event: E, store: Store<S, E>) => Promise<void> | void>
+  >();
 
   let storeInstance: Store<S, E>;
 
   const notifyStateListeners = () => {
-    stateListeners.forEach(listener => listener(currentState));
+    stateListeners.forEach((listener) => listener(currentState));
   };
 
-  const notifyEventListeners = (eventType: E['type'], event: E) => {
+  const notifyEventListeners = (eventType: E["type"], event: E) => {
     const listeners = eventListeners.get(eventType as string);
     if (listeners) {
-      listeners.forEach(listener => {
-          try {
-              const result = listener(event, storeInstance);
-              if (result instanceof Promise) {
-                  result.catch(error => {
-                     console.error(`[Native Store] Unhandled promise rejection in async event listener for type "${eventType}":`, error);
-                  });
-              }
-          } catch (error) {
-              console.error(`[Native Store] Error in event listener for type "${eventType}":`, error);
+      listeners.forEach((listener) => {
+        try {
+          const result = listener(event, storeInstance);
+          if (result instanceof Promise) {
+            result.catch((error) => {
+              console.error(
+                `[Native Store] Unhandled promise rejection in async event listener for type "${eventType}":`,
+                error,
+              );
+            });
           }
+        } catch (error) {
+          console.error(`[Native Store] Error in event listener for type "${eventType}":`, error);
+        }
       });
     }
   };
@@ -65,8 +66,8 @@ export const createStore: CreateStore = <
           config.producer!(draft, event);
         });
         if (nextState !== currentState) {
-            currentState = nextState;
-            stateChanged = true;
+          currentState = nextState;
+          stateChanged = true;
         }
       }
 
@@ -74,7 +75,7 @@ export const createStore: CreateStore = <
         notifyStateListeners();
       }
 
-      notifyEventListeners(event.type as E['type'], event);
+      notifyEventListeners(event.type as E["type"], event);
     },
 
     subscribe: (listener: (state: S) => void) => {
@@ -85,11 +86,14 @@ export const createStore: CreateStore = <
       };
     },
 
-    on: <EventType extends E['type']>(
+    on: <EventType extends E["type"]>(
       eventType: EventType,
-      listener: (event: Extract<E, { type: EventType }>, store: Store<S, E>) => Promise<void> | void
+      listener: (
+        event: Extract<E, { type: EventType }>,
+        store: Store<S, E>,
+      ) => Promise<void> | void,
     ): (() => void) => {
-       const eventTypeStr = eventType as string;
+      const eventTypeStr = eventType as string;
       if (!eventListeners.has(eventTypeStr)) {
         eventListeners.set(eventTypeStr, new Set());
       }
@@ -108,17 +112,17 @@ export const createStore: CreateStore = <
     reset: () => {
       currentState = config.initialState;
       notifyStateListeners();
-    }
+    },
   };
 
   if (config.on) {
     for (const eventType in config.on) {
-       if (Object.prototype.hasOwnProperty.call(config.on, eventType)) {
-           const listener = config.on[eventType as E['type']];
-           if (listener) {
-               storeInstance.on(eventType as E['type'], listener);
-           }
-       }
+      if (Object.prototype.hasOwnProperty.call(config.on, eventType)) {
+        const listener = config.on[eventType as E["type"]];
+        if (listener) {
+          storeInstance.on(eventType as E["type"], listener);
+        }
+      }
     }
   }
 
@@ -129,14 +133,17 @@ export const createStore: CreateStore = <
  * Creates a native bridge instance using the BridgeWebView type from types package.
  */
 export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge<TStores> {
-  const stores = new Map<keyof TStores, Store<TStores[keyof TStores]["state"], TStores[keyof TStores]["events"]>>();
+  const stores = new Map<
+    keyof TStores,
+    Store<TStores[keyof TStores]["state"], TStores[keyof TStores]["events"]>
+  >();
   const webViews = new Set<BridgeWebView>();
   const readyWebViews = new Set<BridgeWebView>();
   const readyStateListeners = new Map<BridgeWebView, Set<(isReady: boolean) => void>>();
   const storeListeners = new Set<() => void>();
 
   const notifyStoreListeners = () => {
-    storeListeners.forEach(listener => listener());
+    storeListeners.forEach((listener) => listener());
   };
 
   const notifyReadyStateListeners = (webView: BridgeWebView, isReady: boolean) => {
@@ -150,17 +157,14 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
     const messageString = JSON.stringify(message);
     webViews.forEach((webView) => {
       if (webView.postMessage) {
-         webView.postMessage(messageString);
+        webView.postMessage(messageString);
       } else {
-         console.warn("[Native Bridge] WebView instance lacks postMessage method.");
+        console.warn("[Native Bridge] WebView instance lacks postMessage method.");
       }
     });
   };
 
-  const processWebViewMessage = (
-    data: string,
-    sourceWebView?: BridgeWebView
-  ): void => {
+  const processWebViewMessage = (data: string, sourceWebView?: BridgeWebView): void => {
     let parsedData: WebToNativeMessage;
     try {
       parsedData = JSON.parse(data);
@@ -169,31 +173,43 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
       return;
     }
 
-    if (!parsedData || typeof parsedData !== 'object' || !('type' in parsedData)) {
+    if (!parsedData || typeof parsedData !== "object" || !("type" in parsedData)) {
       console.warn("[Native Bridge] Invalid message format:", parsedData);
       return;
     }
 
+    console.log("[Native Bridge] Received message:", parsedData.type);
     switch (parsedData.type) {
       case "BRIDGE_READY": {
+        console.log(
+          "[Native Bridge] BRIDGE_READY received. Registered stores:",
+          Array.from(stores.keys()),
+        );
         const targetWebViews = sourceWebView ? [sourceWebView] : Array.from(webViews);
-        targetWebViews.forEach(webView => {
-            if (!webView) return;
-            readyWebViews.add(webView);
-            notifyReadyStateListeners(webView, true);
-            stores.forEach((store, key) => {
-                const initMessage = JSON.stringify({
-                    type: "STATE_INIT",
-                    storeKey: key,
-                    data: store.getSnapshot(),
-                });
-                if (webView.postMessage) webView.postMessage(initMessage);
+        console.log("[Native Bridge] Sending STATE_INIT to", targetWebViews.length, "webview(s)");
+        targetWebViews.forEach((webView) => {
+          if (!webView) return;
+          readyWebViews.add(webView);
+          notifyReadyStateListeners(webView, true);
+          stores.forEach((store, key) => {
+            const snapshot = store.getSnapshot();
+            console.log(
+              `[Native Bridge] Sending STATE_INIT for store '${String(key)}':`,
+              JSON.stringify(snapshot),
+            );
+            const initMessage = JSON.stringify({
+              type: "STATE_INIT",
+              storeKey: key,
+              data: snapshot,
             });
+            if (webView.postMessage) webView.postMessage(initMessage);
+          });
         });
         break;
       }
       case "EVENT": {
         const { storeKey, event } = parsedData;
+        console.log(`[Native Bridge] EVENT for store '${storeKey}':`, JSON.stringify(event));
         const store = stores.get(storeKey as keyof TStores) as Store<any, typeof event> | undefined;
         if (store) {
           store.dispatch(event);
@@ -212,7 +228,7 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
 
     setStore: <K extends keyof TStores>(
       key: K,
-      store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined
+      store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined,
     ) => {
       if (store === undefined) {
         stores.delete(key);
@@ -250,8 +266,7 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
     },
 
     handleWebMessage: (message: string | { nativeEvent: { data: string } }) => {
-      const messageData =
-        typeof message === "string" ? message : message.nativeEvent.data;
+      const messageData = typeof message === "string" ? message : message.nativeEvent.data;
       processWebViewMessage(messageData, undefined);
     },
 
@@ -259,12 +274,12 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
       if (!webView) return () => {};
       webViews.add(webView);
       stores.forEach((store, key) => {
-         const initMessage = JSON.stringify({
-            type: "STATE_INIT",
-            storeKey: key,
-            data: store.getSnapshot(),
-         });
-         if (webView.postMessage) webView.postMessage(initMessage);
+        const initMessage = JSON.stringify({
+          type: "STATE_INIT",
+          storeKey: key,
+          data: store.getSnapshot(),
+        });
+        if (webView.postMessage) webView.postMessage(initMessage);
       });
       return () => {
         webViews.delete(webView);
@@ -282,7 +297,7 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
 
     subscribeToReadyState: (
       webView: BridgeWebView | null | undefined,
-      callback: (isReady: boolean) => void
+      callback: (isReady: boolean) => void,
     ) => {
       if (!webView) {
         callback(false);

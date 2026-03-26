@@ -1,25 +1,21 @@
-
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import NavBar from "@/components/NavBar";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Footer from "@/components/Footer";
+import NavBar from "@/components/NavBar";
+import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
+    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen">
       <NavBar />
-      
+
       <div className="flex-grow flex items-center justify-center section-padding">
         <div className="text-center max-w-md">
           <h1 className="text-8xl font-bold font-orbitron text-primary mb-4">404</h1>
@@ -35,7 +31,7 @@ const NotFound = () => {
           </Button>
         </div>
       </div>
-      
+
       <Footer />
     </div>
   );
