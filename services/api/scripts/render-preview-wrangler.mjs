@@ -46,7 +46,7 @@ const config = {
   containers: [
     {
       name: "codeflare-containers",
-      image: "./container/Dockerfile",
+      image: "../container/Dockerfile",
       class_name: "StreamContainer",
       max_instances: 2,
     },
