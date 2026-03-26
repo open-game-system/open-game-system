@@ -45,7 +45,7 @@ const config = {
   ],
   containers: [
     {
-      name: "codeflare-containers",
+      name: `codeflare-containers-pr-${prNumber}`,
       image: "../container/Dockerfile",
       class_name: "StreamContainer",
       max_instances: 2,
