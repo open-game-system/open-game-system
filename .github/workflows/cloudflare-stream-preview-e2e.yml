@@ -23,7 +23,6 @@ jobs:
       STREAM_KIT_TURN_API_TOKEN: ${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}
       STREAM_KIT_TURN_KEY_ID: ${{ secrets.CLOUDFLARE_TURN_KEY_ID }}
       STREAM_KIT_DEBUG_STATE_TOKEN: ${{ secrets.DEBUG_STATE_TOKEN }}
-      STREAM_KIT_PREVIEW_CONTAINER_SCRIPT: bun-stream-server
     steps:
       - uses: actions/checkout@v4
 
