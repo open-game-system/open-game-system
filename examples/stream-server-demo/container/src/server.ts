@@ -23,7 +23,7 @@ import http from "node:http";
 import url from "node:url";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
-import { type IceServerConfig, parseStartStreamRequest } from "../../src/protocol";
+import { type IceServerConfig, parseStartStreamRequest } from "./protocol";
 
 // TypeScript declaration for browser window extensions
 declare global {

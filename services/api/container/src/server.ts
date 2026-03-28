@@ -26,7 +26,7 @@ import url from 'url';
 import {
   parseStartStreamRequest,
   type IceServerConfig,
-} from '../../src/protocol';
+} from './protocol';
 
 // TypeScript declaration for browser window extensions
 declare global {
