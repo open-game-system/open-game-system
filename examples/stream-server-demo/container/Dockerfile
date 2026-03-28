@@ -31,11 +31,7 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
-    xvfb \
     && rm -rf /var/lib/apt/lists/*
-
-# Set up virtual display for Chrome (tabCapture needs a compositor)
-ENV DISPLAY=:99
 
 # Mark that we're running in Docker for Chrome configuration
 ENV DOCKER_ENVIRONMENT=true
@@ -59,4 +55,4 @@ COPY . .
 EXPOSE 8080
 # Expose UDP port range for WebRTC media connections
 EXPOSE 40000-40100/udp
-CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac &>/dev/null & exec npm start"]
+CMD ["npm", "start"]
