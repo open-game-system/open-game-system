@@ -95,6 +95,13 @@ jobs:
           sleep 5
           curl -s http://localhost:8788/api/v1/health
 
+      # Serve cast-receiver over HTTP (file:// blocks fetch to localhost)
+      - name: Start receiver HTTP server
+        run: |
+          npx http-server examples/cast-receiver -p 8888 --cors -s &
+          sleep 2
+          curl -s http://localhost:8888/receiver.html > /dev/null && echo "Receiver server ready"
+
       # Run E2E tests
       - name: Run cast E2E tests
         working-directory: services/api
@@ -103,6 +110,7 @@ jobs:
           E2E_API_URL: http://localhost:8788
           E2E_API_KEY: ci-test-key
           E2E_STREAM_SERVER_URL: http://localhost:8080
+          E2E_RECEIVER_BASE_URL: http://localhost:8888
           PEERJS_HOST: localhost
           PEERJS_PORT: "9000"
 
