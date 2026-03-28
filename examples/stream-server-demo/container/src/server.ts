@@ -140,7 +140,7 @@ function buildLaunchOptions() {
   const absoluteExtensionPath = require("node:path").resolve(EXTENSION_PATH);
 
   return {
-    headless: "new" as any, // headless:new works for tab capture in containers
+    headless: false, // headless:false + Xvfb enables real tab capture with video frames
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",

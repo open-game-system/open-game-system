@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
 
-# Install Chromium and dependencies
+# Install Chromium, Xvfb, and dependencies
 RUN apt-get update && apt-get install -y \
     chromium \
     chromium-driver \
@@ -31,11 +31,15 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Chromium path for Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+# Virtual display for Chrome (headless:false + Xvfb enables tab capture)
+ENV DISPLAY=:99
 
 # Mark that we're running in Docker for Chrome configuration
 ENV DOCKER_ENVIRONMENT=true
@@ -55,8 +59,7 @@ RUN npm ci
 # Copy source and extension
 COPY . .
 
-# Run the app using tsx to handle TypeScript
+# Start Xvfb then the app
 EXPOSE 8080
-# Expose UDP port range for WebRTC media connections
 EXPOSE 40000-40100/udp
-CMD ["npm", "start"]
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac &>/dev/null & exec npm start"]
