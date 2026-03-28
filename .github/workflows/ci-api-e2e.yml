@@ -107,6 +107,16 @@ jobs:
             sleep 1
           done
 
+      # Pre-warm Chrome browser (first launch with extensions is slow)
+      - name: Warm up stream server Chrome
+        run: |
+          echo "Triggering Chrome warm-up via /start-stream..."
+          curl -s -X POST http://localhost:8080/start-stream \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://example.com","peerId":"warmup-peer"}' \
+            --max-time 90 || true
+          echo "Chrome warm-up complete"
+
       # Run E2E tests
       - name: Run cast E2E tests
         working-directory: services/api
