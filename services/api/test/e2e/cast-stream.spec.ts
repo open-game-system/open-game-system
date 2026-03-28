@@ -24,6 +24,8 @@ const apiKey = process.env.E2E_API_KEY;
 const spectateUrl = process.env.E2E_SPECTATE_URL || "https://triviajam.tv";
 // For video tests: direct stream server URL (Container proxy doesn't work on macOS local dev)
 const streamServerUrl = process.env.E2E_STREAM_SERVER_URL || "http://localhost:8080";
+const peerHost = process.env.PEERJS_HOST || "";
+const peerPort = process.env.PEERJS_PORT || "";
 
 test.describe("Cast Stream — Container Provisioning", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
@@ -119,7 +121,8 @@ test.describe("Cast Stream — WebRTC Signaling", () => {
   test("receiver connects to stream server and receives video via PeerJS", async ({ page }) => {
     // Use direct stream server URL for testing (Container proxy has macOS limitations)
     const receiverPath = `${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html`;
-    const receiverUrl = `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
+    const peerParams = peerHost ? `&peerHost=${encodeURIComponent(peerHost)}&peerPort=${encodeURIComponent(peerPort)}` : "";
+    const receiverUrl = `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams}`;
 
     console.log("[Test] Loading receiver:", receiverUrl);
     await page.goto(receiverUrl);
@@ -233,8 +236,9 @@ test.describe("Cast Receiver — WebRTC Display", () => {
   test("receiver connects to stream server and displays video full-screen", async ({ page }) => {
     // Use direct stream server URL for video test
     const receiverPath = `${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html`;
+    const peerParams2 = peerHost ? `&peerHost=${encodeURIComponent(peerHost)}&peerPort=${encodeURIComponent(peerPort)}` : "";
     await page.goto(
-      `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`,
+      `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams2}`,
     );
 
     // Wait for video to have srcObject (up to 45 seconds)

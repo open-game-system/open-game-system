@@ -116,6 +116,8 @@
       const params = new URLSearchParams(window.location.search);
       const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || '';
       const viewUrl = params.get('viewUrl') || '';
+      const peerHost = params.get('peerHost') || '';
+      const peerPort = params.get('peerPort') ? parseInt(params.get('peerPort'), 10) : 0;
       let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
 
       const iceParam = params.get('iceServers');
@@ -127,7 +129,7 @@
         }
       }
 
-      return { streamServerUrl, viewUrl, iceServers };
+      return { streamServerUrl, viewUrl, iceServers, peerHost, peerPort };
     }
 
     function setStatus(text, showSpinner = true) {
@@ -169,7 +171,7 @@
     }
 
     async function startReceiving() {
-      const { streamServerUrl, viewUrl, iceServers } = getLaunchParams();
+      const { streamServerUrl, viewUrl, iceServers, peerHost, peerPort } = getLaunchParams();
 
       if (!streamServerUrl) {
         setStatus('Unable to connect to game stream', false);
@@ -205,10 +207,17 @@
         const receiverId = `receiver-${crypto.randomUUID()}`;
         console.log('[Receiver] Creating PeerJS peer:', receiverId);
 
-        peer = new Peer(receiverId, {
+        const peerOptions = {
           debug: 2,
           config: { iceServers: resolvedIceServers }
-        });
+        };
+        if (peerHost) {
+          peerOptions.host = peerHost;
+          peerOptions.port = peerPort || 9000;
+          peerOptions.path = '/';
+          peerOptions.secure = false;
+        }
+        peer = new Peer(receiverId, peerOptions);
 
         // Wait for peer to be ready
         await new Promise((resolve, reject) => {

@@ -52,9 +52,19 @@ jobs:
           Xvfb :99 -screen 0 1920x1080x24 &
           echo "DISPLAY=:99" >> $GITHUB_ENV
 
+      # Start local PeerJS signaling server (avoids flaky 0.peerjs.com)
+      - name: Start PeerJS server
+        run: |
+          npx peer --port 9000 &
+          sleep 3
+          echo "PeerJS server started on port 9000"
+
       # Start stream server in background (after Xvfb)
       - name: Start stream server
         working-directory: examples/stream-server-demo/container
+        env:
+          PEERJS_HOST: localhost
+          PEERJS_PORT: "9000"
         run: |
           npx tsx src/server.ts &
           sleep 10
@@ -86,6 +96,8 @@ jobs:
           E2E_API_URL: http://localhost:8788
           E2E_API_KEY: ci-test-key
           E2E_STREAM_SERVER_URL: http://localhost:8080
+          PEERJS_HOST: localhost
+          PEERJS_PORT: "9000"
 
       - name: Upload test results
         if: always()

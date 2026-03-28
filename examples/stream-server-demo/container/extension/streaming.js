@@ -645,12 +645,19 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [] }) {
     console.log(`[PEERJS] Creating peer with ID: "${srcPeerId}"`);
     console.log(`[PEERJS] Peer constructor available:`, typeof Peer !== "undefined");
 
-    const peer = new Peer(srcPeerId, {
+    const peerOptions = {
       debug: 3,
       config: {
         iceServers: Array.isArray(iceServers) ? iceServers : [],
       },
-    });
+    };
+    if (params.peerHost) {
+      peerOptions.host = params.peerHost;
+      peerOptions.port = params.peerPort || 9000;
+      peerOptions.path = '/';
+      peerOptions.secure = false;
+    }
+    const peer = new Peer(srcPeerId, peerOptions);
     console.log(`[PEERJS] Peer object created:`, peer);
 
     // Wait for peer to connect to PeerJS signaling server

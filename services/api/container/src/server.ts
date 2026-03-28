@@ -957,7 +957,13 @@ async function handleStartStream(
     logTrace(traceId, 'extension_console_probe_complete');
 
     const srcPeerId = crypto.randomUUID();
-    const peers = { srcPeerId, destPeerId, iceServers: Array.isArray(iceServers) ? iceServers : [] };
+    const peers = {
+      srcPeerId,
+      destPeerId,
+      iceServers: Array.isArray(iceServers) ? iceServers : [],
+      peerHost: process.env.PEERJS_HOST || "",
+      peerPort: parseInt(process.env.PEERJS_PORT || "0", 10),
+    };
 
     // Initialize streaming in extension page
     logTrace(traceId, 'extension_initialize_start', {

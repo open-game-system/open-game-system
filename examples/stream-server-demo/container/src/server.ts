@@ -1001,6 +1001,8 @@ async function handleStartStream(
       srcPeerId,
       destPeerId,
       iceServers: Array.isArray(iceServers) ? iceServers : [],
+      peerHost: process.env.PEERJS_HOST || "",
+      peerPort: parseInt(process.env.PEERJS_PORT || "0", 10),
     };
 
     // Initialize streaming in extension page
