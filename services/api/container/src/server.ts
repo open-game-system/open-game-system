@@ -139,7 +139,7 @@ function buildLaunchOptions() {
   const absoluteExtensionPath = require('path').resolve(EXTENSION_PATH);
   
   return {
-    headless: false, // headless:false + Xvfb enables real tab capture with video frames
+    headless: 'new' as any, // Chrome 146 headless:new supports extensions and tab capture
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -393,7 +393,7 @@ async function launchBrowserWithExtension(): Promise<Browser> {
   try {
     console.log('🔍 Starting basic browser launch with new headless mode...');
     const testBrowser1 = await puppeteer.launch({
-      headless: false, // headless:false + Xvfb enables real tab capture with video frames
+      headless: 'new' as any, // Chrome 146 headless:new supports extensions and tab capture
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',
