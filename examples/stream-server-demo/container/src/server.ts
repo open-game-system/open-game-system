@@ -140,7 +140,7 @@ function buildLaunchOptions() {
   const absoluteExtensionPath = require("node:path").resolve(EXTENSION_PATH);
 
   return {
-    headless: process.env.DISPLAY ? false : ("new" as any), // Use real display when Xvfb available, headless otherwise
+    headless: "new" as any, // headless:new works for tab capture in containers
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",

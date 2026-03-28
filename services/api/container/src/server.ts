@@ -139,7 +139,7 @@ function buildLaunchOptions() {
   const absoluteExtensionPath = require('path').resolve(EXTENSION_PATH);
   
   return {
-    headless: process.env.DISPLAY ? false : ('new' as any), // Use real display when Xvfb available, headless otherwise
+    headless: 'new' as any, // headless:new works for tab capture in containers
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -392,7 +392,7 @@ async function launchBrowserWithExtension(): Promise<Browser> {
   try {
     console.log('🔍 Starting basic browser launch with new headless mode...');
     const testBrowser1 = await puppeteer.launch({
-      headless: process.env.DISPLAY ? false : ('new' as any), // Use real display when Xvfb available, headless otherwise
+      headless: 'new' as any, // headless:new works for tab capture in containers
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',

@@ -14,16 +14,16 @@ RUN apt-get update && apt-get install -y \
     && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
     && apt-get install -y nodejs
 
-# Install Chrome/Chromium runtime dependencies (but NOT system chromium —
-# Puppeteer downloads its own compatible Chrome version)
+# Install Chromium and dependencies
 RUN apt-get update && apt-get install -y \
+    chromium \
+    chromium-driver \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libatspi2.0-0 \
     libdrm2 \
-    libgbm1 \
     libgtk-3-0 \
     libnspr4 \
     libnss3 \
@@ -32,6 +32,10 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
+
+# Set Chromium path for Puppeteer
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Mark that we're running in Docker for Chrome configuration
 ENV DOCKER_ENVIRONMENT=true
@@ -45,7 +49,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (Puppeteer will download compatible Chrome)
+# Install dependencies
 RUN npm ci
 
 # Copy source and extension
