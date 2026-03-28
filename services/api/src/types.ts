@@ -6,6 +6,8 @@ export interface Env {
   STREAM_CONTAINER: DurableObjectNamespace<StreamContainer>;
   CLOUDFLARE_TURN_API_TOKEN: string;
   CLOUDFLARE_TURN_KEY_ID: string;
+  CLOUDFLARE_REALTIME_APP_ID: string;
+  CLOUDFLARE_REALTIME_APP_SECRET: string;
   DEBUG_STATE_TOKEN?: string;
 }
 
