@@ -143,7 +143,7 @@ function removeConnection(peerId) {
   );
 }
 
-async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [] }) {
+async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "", peerPort = 0 }) {
   console.log(`[INITIALIZE] ========== STARTING INITIALIZATION ==========`);
   console.log(`[INITIALIZE] Function called with params:`, { srcPeerId, destPeerId });
   console.log(`[INITIALIZE] srcPeerId type: ${typeof srcPeerId}, value: "${srcPeerId}"`);
@@ -651,9 +651,9 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [] }) {
         iceServers: Array.isArray(iceServers) ? iceServers : [],
       },
     };
-    if (params.peerHost) {
-      peerOptions.host = params.peerHost;
-      peerOptions.port = params.peerPort || 9000;
+    if (peerHost) {
+      peerOptions.host = peerHost;
+      peerOptions.port = peerPort || 9000;
       peerOptions.path = '/';
       peerOptions.secure = false;
     }
