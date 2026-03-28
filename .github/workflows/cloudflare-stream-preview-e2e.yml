@@ -124,6 +124,15 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --dir examples/stream-server-demo exec playwright install --with-deps chromium
 
+      - name: Warm up deployed container (Chrome cold start is slow)
+        run: |
+          echo "Warming up container at $E2E_STREAM_SERVER_URL..."
+          curl -s -X POST "$E2E_STREAM_SERVER_URL/start-stream" \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://example.com","peerId":"warmup-peer"}' \
+            --max-time 120 || true
+          echo "Container warm-up complete"
+
       - name: Run deployed stream smoke
         run: pnpm --dir examples/stream-server-demo test:e2e
 
