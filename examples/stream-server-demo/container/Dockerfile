@@ -44,8 +44,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (Puppeteer downloads Chrome ~146)
+# Install dependencies
 RUN npm ci
+
+# Explicitly download Chrome for Puppeteer (postinstall may be skipped)
+RUN npx puppeteer browsers install chrome
 
 # Copy source and extension
 COPY . .
