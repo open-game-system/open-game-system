@@ -140,7 +140,7 @@ function buildLaunchOptions() {
   const absoluteExtensionPath = require("node:path").resolve(EXTENSION_PATH);
 
   return {
-    headless: "new" as any, // Use new headless mode for better container and extension support
+    headless: false, // Must be false — chrome.tabCapture needs a compositor to produce video frames
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",

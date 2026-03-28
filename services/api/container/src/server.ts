@@ -139,7 +139,7 @@ function buildLaunchOptions() {
   const absoluteExtensionPath = require('path').resolve(EXTENSION_PATH);
   
   return {
-    headless: 'new' as any, // Use new headless mode for better container and extension support
+    headless: false, // Must be false — chrome.tabCapture needs a compositor to produce video frames
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -392,7 +392,7 @@ async function launchBrowserWithExtension(): Promise<Browser> {
   try {
     console.log('🔍 Starting basic browser launch with new headless mode...');
     const testBrowser1 = await puppeteer.launch({
-      headless: 'new' as any, // Use new headless mode
+      headless: false, // Must be false — chrome.tabCapture needs a compositor
       args: [
         '--no-sandbox', 
         '--disable-setuid-sandbox',

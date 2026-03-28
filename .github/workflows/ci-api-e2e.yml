@@ -56,8 +56,15 @@ jobs:
       - name: Start PeerJS server
         run: |
           npx peer --port 9000 &
-          sleep 3
-          echo "PeerJS server started on port 9000"
+          # Wait for PeerJS server to be ready (npx needs to download first)
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:9000/ > /dev/null 2>&1; then
+              echo "PeerJS server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          curl -s http://localhost:9000/ || echo "WARNING: PeerJS server may not be ready"
 
       # Start stream server in background (after Xvfb)
       - name: Start stream server
