@@ -126,6 +126,11 @@ test.describe("Cast Stream — WebRTC Signaling", () => {
       : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams}`;
 
     console.log("[Test] Loading receiver:", receiverUrl);
+
+    // Capture browser console logs for debugging
+    page.on("console", (msg) => console.log(`[Receiver Console] ${msg.type()}: ${msg.text()}`));
+    page.on("pageerror", (err) => console.log(`[Receiver Error] ${err.message}`));
+
     await page.goto(receiverUrl);
 
     // Wait for the receiver to connect and display video (up to 45s)
@@ -139,6 +144,12 @@ test.describe("Cast Stream — WebRTC Signaling", () => {
       )
       .then(() => true)
       .catch(() => false);
+
+    // Dump final page state for debugging
+    if (!gotVideo) {
+      const statusText = await page.locator("#status-text").textContent().catch(() => "N/A");
+      console.log("[Test] Video not received. Status text:", statusText);
+    }
 
     expect(gotVideo).toBe(true);
   });
