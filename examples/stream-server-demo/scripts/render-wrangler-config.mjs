@@ -43,6 +43,7 @@ if (!containerScriptName) {
       image: imagePath,
       class_name: "StreamContainer",
       max_instances: 2,
+      instance_type: "standard",
     },
   ];
   config.migrations = [
