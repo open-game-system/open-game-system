@@ -118,6 +118,7 @@ test.describe("Cast Stream — Container Provisioning", () => {
 
 test.describe("Cast Stream — WebRTC Signaling", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
+  test.skip(!streamServerUrl.includes("localhost"), "WebRTC video tests require local stream server");
 
   test("receiver connects to stream server and receives video via PeerJS", async ({ page }) => {
     const peerParams = peerHost ? `&peerHost=${encodeURIComponent(peerHost)}&peerPort=${encodeURIComponent(peerPort)}` : "";
@@ -246,6 +247,7 @@ test.describe("Cast Receiver — WebRTC Display", () => {
   });
 
   test("receiver connects to stream server and displays video full-screen", async ({ page }) => {
+    test.skip(!streamServerUrl.includes("localhost"), "WebRTC video tests require local stream server");
     const peerParams2 = peerHost ? `&peerHost=${encodeURIComponent(peerHost)}&peerPort=${encodeURIComponent(peerPort)}` : "";
     const receiverUrl2 = receiverBaseUrl
       ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams2}`
