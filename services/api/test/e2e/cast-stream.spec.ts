@@ -19,7 +19,7 @@ import { expect, test } from "@playwright/test";
  * - E2E_SPECTATE_URL: A valid HTTPS URL to render (default: https://triviajam.tv)
  */
 
-const apiUrl = process.env.E2E_API_URL || "http://localhost:8787";
+const apiUrl = process.env.E2E_API_PREVIEW_URL || process.env.E2E_API_URL || "http://localhost:8787";
 const apiKey = process.env.E2E_API_KEY;
 const spectateUrl = process.env.E2E_SPECTATE_URL || "https://triviajam.tv";
 // For video tests: direct stream server URL (Container proxy doesn't work on macOS local dev)
