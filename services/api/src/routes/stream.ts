@@ -160,7 +160,11 @@ stream.get("/health", async (c) => {
 
   const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
   const stub = c.env.STREAM_CONTAINER.get(id);
-  const forwardedRequest = new Request(c.req.raw, {
+  // Rewrite URL to strip the /api/v1/stream prefix — container expects bare paths
+  const containerUrl = new URL(c.req.url);
+  containerUrl.pathname = "/health";
+  const forwardedRequest = new Request(containerUrl.toString(), {
+    method: c.req.method,
     headers: new Headers(c.req.raw.headers),
   });
   forwardedRequest.headers.set("x-stream-trace-id", traceId);
@@ -170,17 +174,21 @@ stream.get("/health", async (c) => {
 });
 
 /**
- * POST /api/v1/stream/start
+ * POST /api/v1/stream/start-stream
  * Start a streaming session — forwards to the StreamContainer DO.
  */
-stream.post("/start", async (c) => {
+stream.post("/start-stream", async (c) => {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
   const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
   const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
 
   const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
   const stub = c.env.STREAM_CONTAINER.get(id);
-  const forwardedRequest = new Request(c.req.raw, {
+  // Rewrite URL to strip the /api/v1/stream prefix — container expects /start-stream
+  const containerUrl = new URL(c.req.url);
+  containerUrl.pathname = "/start-stream";
+  const forwardedRequest = new Request(containerUrl.toString(), {
+    method: c.req.method,
     headers: new Headers(c.req.raw.headers),
   });
   forwardedRequest.headers.set("x-stream-trace-id", traceId);
@@ -204,7 +212,11 @@ stream.get("/debug-state", async (c) => {
 
   const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
   const stub = c.env.STREAM_CONTAINER.get(id);
-  const forwardedRequest = new Request(c.req.raw, {
+  // Rewrite URL to strip the /api/v1/stream prefix — container expects /debug-state
+  const containerUrl = new URL(c.req.url);
+  containerUrl.pathname = "/debug-state";
+  const forwardedRequest = new Request(containerUrl.toString(), {
+    method: c.req.method,
     headers: new Headers(c.req.raw.headers),
   });
   forwardedRequest.headers.set("x-stream-trace-id", traceId);
