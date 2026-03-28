@@ -99,8 +99,13 @@ jobs:
       - name: Start receiver HTTP server
         run: |
           npx http-server examples/cast-receiver -p 8888 --cors -s &
-          sleep 2
-          curl -s http://localhost:8888/receiver.html > /dev/null && echo "Receiver server ready"
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8888/receiver.html > /dev/null 2>&1; then
+              echo "Receiver HTTP server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
 
       # Run E2E tests
       - name: Run cast E2E tests
