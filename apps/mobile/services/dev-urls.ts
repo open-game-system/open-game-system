@@ -1,6 +1,6 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const RECENT_URLS_KEY = '@ogs/recent_dev_urls';
+const RECENT_URLS_KEY = "@ogs/recent_dev_urls";
 const MAX_URLS = 10;
 
 export async function getRecentDevUrls(): Promise<string[]> {

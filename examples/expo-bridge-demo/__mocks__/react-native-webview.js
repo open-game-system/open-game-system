@@ -1,5 +1,4 @@
-import React from 'react';
-import { View } from 'react-native';
+import { View } from "react-native";
 
 const MockWebView = (props) => {
   return <View {...props} />;
@@ -7,4 +6,4 @@ const MockWebView = (props) => {
 
 MockWebView.prototype.postMessage = () => {};
 
-export const WebView = MockWebView; 
+export const WebView = MockWebView;

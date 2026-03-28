@@ -20,7 +20,7 @@ export interface BulkSendNotificationParams {
 
 export interface NotificationResult {
   id: string;
-  status: 'sent' | 'failed';
+  status: "sent" | "failed";
 }
 
 export interface NotificationError {

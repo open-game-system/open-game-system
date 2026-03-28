@@ -1,12 +1,13 @@
 // Export the new client-based API
-export { StreamKitServer } from "./server";
-export { createStreamClient } from "./client";
-export type { 
-  StreamKitServerConfig,
-  StreamSession,
-  RenderStreamConfig
-} from "./types";
 
+export { createStreamClient } from "./client";
 // Legacy exports (deprecated)
 export { createStreamKitRouter } from "./router";
-export type { StreamKitHooks, StateChange } from "./types"; 
+export { StreamKitServer } from "./server";
+export type {
+  RenderStreamConfig,
+  StateChange,
+  StreamKitHooks,
+  StreamKitServerConfig,
+  StreamSession,
+} from "./types";

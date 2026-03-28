@@ -1,5 +1,5 @@
-import { Counter } from "./Counter";
 import { BridgeProvider, webBridge } from "./bridge";
+import { Counter } from "./Counter";
 
 function App() {
   return (

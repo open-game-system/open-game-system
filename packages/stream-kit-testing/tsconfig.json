@@ -6,8 +6,5 @@
     "composite": true
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../stream-kit-types" },
-    { "path": "../stream-kit-web" }
-  ]
-} 
+  "references": [{ "path": "../stream-kit-types" }, { "path": "../stream-kit-web" }]
+}

@@ -11,16 +11,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.opengame.app",
-      "associatedDomains": [
-        "applinks:opengame.org",
-        "applinks:triviajam.tv"
-      ],
+      "associatedDomains": ["applinks:opengame.org", "applinks:triviajam.tv"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocalNetworkUsageDescription": "OGS needs local network access to discover and connect to Chromecast and AirPlay devices for TV casting.",
-        "NSBonjourServices": [
-          "_googlecast._tcp"
-        ]
+        "NSBonjourServices": ["_googlecast._tcp"]
       }
     },
     "android": {
@@ -40,10 +35,7 @@
               "pathPrefix": "/open"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },

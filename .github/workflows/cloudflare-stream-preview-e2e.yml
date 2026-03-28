@@ -23,7 +23,6 @@ jobs:
       STREAM_KIT_TURN_API_TOKEN: ${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}
       STREAM_KIT_TURN_KEY_ID: ${{ secrets.CLOUDFLARE_TURN_KEY_ID }}
       STREAM_KIT_DEBUG_STATE_TOKEN: ${{ secrets.DEBUG_STATE_TOKEN }}
-      STREAM_KIT_PREVIEW_CONTAINER_SCRIPT: bun-stream-server
     steps:
       - uses: actions/checkout@v4
 
@@ -124,6 +123,15 @@ jobs:
 
       - name: Install Playwright browsers
         run: pnpm --dir examples/stream-server-demo exec playwright install --with-deps chromium
+
+      - name: Warm up deployed container (Chrome cold start is slow)
+        run: |
+          echo "Warming up container at $E2E_STREAM_SERVER_URL..."
+          curl -s -X POST "$E2E_STREAM_SERVER_URL/start-stream" \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://example.com","peerId":"warmup-peer"}' \
+            --max-time 120 || true
+          echo "Container warm-up complete"
 
       - name: Run deployed stream smoke
         run: pnpm --dir examples/stream-server-demo test:e2e

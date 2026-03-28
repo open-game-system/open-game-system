@@ -1,27 +1,36 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../src/index";
 import {
-  OgsErrorSchema,
-  CreateCastSessionResponseSchema,
-  CastSessionStatusResponseSchema,
   CastSessionEndedResponseSchema,
+  CastSessionStatusResponseSchema,
+  CreateCastSessionResponseSchema,
+  OgsErrorSchema,
 } from "../src/schemas";
 
 const VALID_API_KEY = { key: "valid-key", game_id: "trivia-jam", game_name: "Trivia Jam" };
 
-// Mock fetch for stream-kit container provisioning
+// Mock DO stub for StreamContainer
+const mockStubFetch = vi.fn();
+
+function createMockStreamContainer() {
+  return {
+    idFromName: vi.fn(() => ({ toString: () => "mock-do-id" })),
+    get: vi.fn(() => ({
+      fetch: mockStubFetch,
+    })),
+  };
+}
+
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
 
 beforeEach(() => {
+  mockStubFetch.mockReset();
   mockFetch.mockReset();
 });
 
-function createMockEnv(opts: {
-  apiKeyResult?: unknown;
-  castSessionResult?: unknown;
-  insertSuccess?: boolean;
-} = {}) {
+function createMockEnv(
+  opts: { apiKeyResult?: unknown; castSessionResult?: unknown; insertSuccess?: boolean } = {},
+) {
   const { apiKeyResult = null, castSessionResult = null, insertSuccess = true } = opts;
 
   return {
@@ -37,7 +46,9 @@ function createMockEnv(opts: {
         if (sql.includes("INSERT INTO cast_sessions")) {
           return {
             bind: vi.fn(() => ({
-              run: vi.fn().mockResolvedValue(insertSuccess ? { success: true } : { success: false }),
+              run: vi
+                .fn()
+                .mockResolvedValue(insertSuccess ? { success: true } : { success: false }),
             })),
           };
         }
@@ -74,9 +85,13 @@ function createMockEnv(opts: {
     STREAM_CONTAINER: {
       idFromName: vi.fn((name: string) => ({ name })),
       get: vi.fn(() => ({
-        fetch: vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "ok" }), { status: 200 })),
+        fetch: vi
+          .fn()
+          .mockResolvedValue(new Response(JSON.stringify({ status: "ok" }), { status: 200 })),
       })),
     },
+    CLOUDFLARE_TURN_API_TOKEN: "test-turn-token",
+    CLOUDFLARE_TURN_KEY_ID: "test-turn-key-id",
   };
 }
 
@@ -121,6 +136,25 @@ describe("Cast Sessions API", () => {
       expect(res.status).toBe(401);
       const body = OgsErrorSchema.parse(await res.json());
       expect(body.error.code).toBe("invalid_api_key");
+    });
+
+    it("returns 401 for non-Bearer auth scheme", async () => {
+      const env = createMockEnv();
+      const res = await app.request(
+        "/api/v1/cast/sessions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Basic dXNlcjpwYXNz",
+          },
+          body: JSON.stringify({ deviceId: "tv-1", viewUrl: "https://triviajam.com/tv" }),
+        },
+        env,
+      );
+      expect(res.status).toBe(401);
+      const body = OgsErrorSchema.parse(await res.json());
+      expect(body.error.code).toBe("invalid_auth");
     });
   });
 
@@ -317,11 +351,7 @@ describe("Cast Sessions API", () => {
 
     it("returns 401 without auth", async () => {
       const env = createMockEnv();
-      const res = await app.request(
-        "/api/v1/cast/sessions/session-123",
-        { method: "GET" },
-        env,
-      );
+      const res = await app.request("/api/v1/cast/sessions/session-123", { method: "GET" }, env);
       expect(res.status).toBe(401);
     });
   });
@@ -477,8 +507,8 @@ describe("Cast Sessions API", () => {
       const body = CastSessionEndedResponseSchema.parse(await res.json());
       expect(body.status).toBe("ended");
 
-      // No stream-kit teardown needed for already-ended session
-      expect(mockFetch).not.toHaveBeenCalled();
+      // No DO teardown needed for already-ended session
+      expect(mockStubFetch).not.toHaveBeenCalled();
     });
 
     it("returns 404 for nonexistent session", async () => {
@@ -495,19 +525,14 @@ describe("Cast Sessions API", () => {
 
     it("returns 401 without auth", async () => {
       const env = createMockEnv();
-      const res = await app.request(
-        "/api/v1/cast/sessions/session-123",
-        { method: "DELETE" },
-        env,
-      );
+      const res = await app.request("/api/v1/cast/sessions/session-123", { method: "DELETE" }, env);
       expect(res.status).toBe(401);
     });
   });
 
-  // ─── Stream-kit integration seam ───
+  // ─── StreamContainer DO integration seam ───
 
-  describe("Stream-kit integration seam", () => {
-    const STREAM_SERVER_URL = "https://stream.test.com";
+  describe("StreamContainer DO integration seam", () => {
     const VIEW_URL = "https://triviajam.com/tv?code=ABCD";
 
     const activeSession = {
@@ -580,7 +605,7 @@ describe("Cast Sessions API", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json() as { status: string };
+        const body = (await res.json()) as { status: string };
         expect(body.status).toBe("ended");
         // No explicit container teardown — sleepAfter handles lifecycle
       });
@@ -591,12 +616,10 @@ describe("Cast Sessions API", () => {
     // directly with the stream server.
 
     describe("state update forwarding fails silently", () => {
-      it("returns 200 even when stream-kit returns error on state push", async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: false,
-          status: 500,
-          json: () => Promise.resolve({ error: "internal error" }),
-        });
+      it("returns 200 even when DO returns error on state push", async () => {
+        mockStubFetch.mockResolvedValueOnce(
+          new Response(JSON.stringify({ error: "internal error" }), { status: 500 }),
+        );
 
         const env = createMockEnv({
           apiKeyResult: VALID_API_KEY,
@@ -614,12 +637,12 @@ describe("Cast Sessions API", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json() as { status: string };
+        const body = (await res.json()) as { status: string };
         expect(body.status).toBe("ok");
       });
 
-      it("returns 200 even when stream-kit fetch throws on state push", async () => {
-        mockFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
+      it("returns 200 even when DO stub fetch throws on state push", async () => {
+        mockStubFetch.mockRejectedValueOnce(new TypeError("DO fetch failed"));
 
         const env = createMockEnv({
           apiKeyResult: VALID_API_KEY,
@@ -637,7 +660,7 @@ describe("Cast Sessions API", () => {
         );
 
         expect(res.status).toBe(200);
-        const body = await res.json() as { status: string };
+        const body = (await res.json()) as { status: string };
         expect(body.status).toBe("ok");
       });
     });

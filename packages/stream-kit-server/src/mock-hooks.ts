@@ -1,4 +1,4 @@
-import type { StreamKitHooks, StateChange } from './types';
+import type { StateChange, StreamKitHooks } from "./types";
 
 export interface MockEnv {
   storage: Map<string, unknown>;
@@ -6,7 +6,7 @@ export interface MockEnv {
 }
 
 export function createMockHooks(): StreamKitHooks<MockEnv> {
-  const env: MockEnv = {
+  const _env: MockEnv = {
     storage: new Map(),
     subscribers: new Map(),
   };
@@ -14,16 +14,16 @@ export function createMockHooks(): StreamKitHooks<MockEnv> {
   return {
     async saveStreamState({ streamId, state, env }) {
       env.storage.set(streamId, state);
-      
+
       // Notify subscribers
       const subscribers = env.subscribers.get(streamId);
       if (subscribers) {
         const change: StateChange = {
-          type: 'snapshot',
+          type: "snapshot",
           data: state,
           id: Date.now().toString(),
         };
-        subscribers.forEach(cb => cb(change));
+        subscribers.forEach((cb) => cb(change));
       }
     },
 
@@ -58,7 +58,7 @@ export function createMockHooks(): StreamKitHooks<MockEnv> {
                     resolve({
                       done: false,
                       value: {
-                        type: 'snapshot',
+                        type: "snapshot",
                         data: state,
                         id: lastEventId,
                       },
@@ -76,4 +76,4 @@ export function createMockHooks(): StreamKitHooks<MockEnv> {
       };
     },
   };
-} 
+}

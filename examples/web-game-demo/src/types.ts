@@ -15,4 +15,4 @@ export type AppStores = {
     state: CounterState;
     events: CounterEvents;
   };
-}; 
+};

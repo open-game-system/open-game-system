@@ -4,5 +4,5 @@ export const createNativeBridge = jest.fn(() => ({
   produce: jest.fn(),
   setState: jest.fn(),
   isWebViewReady: jest.fn(() => false),
-  _getState: jest.fn(() => ({ counter: { value: 0 } }))
-})); 
+  _getState: jest.fn(() => ({ counter: { value: 0 } })),
+}));

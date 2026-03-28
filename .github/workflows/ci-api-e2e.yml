@@ -52,9 +52,26 @@ jobs:
           Xvfb :99 -screen 0 1920x1080x24 &
           echo "DISPLAY=:99" >> $GITHUB_ENV
 
+      # Start local PeerJS signaling server (avoids flaky 0.peerjs.com)
+      - name: Start PeerJS server
+        run: |
+          npx peer --port 9000 &
+          # Wait for PeerJS server to be ready (npx needs to download first)
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:9000/ > /dev/null 2>&1; then
+              echo "PeerJS server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+          curl -s http://localhost:9000/ || echo "WARNING: PeerJS server may not be ready"
+
       # Start stream server in background (after Xvfb)
       - name: Start stream server
         working-directory: examples/stream-server-demo/container
+        env:
+          PEERJS_HOST: localhost
+          PEERJS_PORT: "9000"
         run: |
           npx tsx src/server.ts &
           sleep 10
@@ -78,6 +95,28 @@ jobs:
           sleep 5
           curl -s http://localhost:8788/api/v1/health
 
+      # Serve cast-receiver over HTTP (file:// blocks fetch to localhost)
+      - name: Start receiver HTTP server
+        run: |
+          npx http-server examples/cast-receiver -p 8888 --cors -s &
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8888/receiver.html > /dev/null 2>&1; then
+              echo "Receiver HTTP server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+      # Pre-warm Chrome browser (first launch with extensions is slow)
+      - name: Warm up stream server Chrome
+        run: |
+          echo "Triggering Chrome warm-up via /start-stream..."
+          curl -s -X POST http://localhost:8080/start-stream \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://example.com","peerId":"warmup-peer"}' \
+            --max-time 90 || true
+          echo "Chrome warm-up complete"
+
       # Run E2E tests
       - name: Run cast E2E tests
         working-directory: services/api
@@ -86,6 +125,9 @@ jobs:
           E2E_API_URL: http://localhost:8788
           E2E_API_KEY: ci-test-key
           E2E_STREAM_SERVER_URL: http://localhost:8080
+          E2E_RECEIVER_BASE_URL: http://localhost:8888
+          PEERJS_HOST: localhost
+          PEERJS_PORT: "9000"
 
       - name: Upload test results
         if: always()

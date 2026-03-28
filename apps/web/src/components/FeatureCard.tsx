@@ -1,6 +1,6 @@
-
-import React, { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface FeatureCardProps {
   title: string;
@@ -10,12 +10,12 @@ interface FeatureCardProps {
   className?: string;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ 
-  title, 
-  description, 
+const FeatureCard: React.FC<FeatureCardProps> = ({
+  title,
+  description,
   icon,
   delay = 0,
-  className = '' 
+  className = "",
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -32,9 +32,9 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
       },
       {
         root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-      }
+        rootMargin: "0px",
+        threshold: 0.1,
+      },
     );
 
     if (ref.current) {
@@ -49,18 +49,16 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
   }, [delay]);
 
   return (
-    <div 
+    <div
       ref={ref}
       className={cn(
         "p-6 rounded-xl border border-border bg-card shadow-sm transition-all duration-500",
         "hover:shadow-md hover:border-primary/50 hover:translate-y-[-4px]",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10", 
-        className
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10",
+        className,
       )}
     >
-      <div className="mb-4 p-3 bg-primary/10 rounded-lg w-fit">
-        {icon}
-      </div>
+      <div className="mb-4 p-3 bg-primary/10 rounded-lg w-fit">{icon}</div>
       <h3 className="text-xl font-semibold mb-2 font-orbitron">{title}</h3>
       <p className="text-muted-foreground">{description}</p>
     </div>

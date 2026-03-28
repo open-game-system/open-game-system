@@ -39,7 +39,13 @@ export type NativeCastEvents =
   | { type: "DEVICES_UPDATED"; devices: CastDevice[] }
   | { type: "START_CASTING"; deviceId: string }
   | { type: "STOP_CASTING" }
-  | { type: "SESSION_CONNECTED"; deviceId: string; deviceName: string; sessionId: string; streamSessionId: string }
+  | {
+      type: "SESSION_CONNECTED";
+      deviceId: string;
+      deviceName: string;
+      sessionId: string;
+      streamSessionId: string;
+    }
   | { type: "SET_ERROR"; error: string }
   | { type: "RESET_ERROR" }
   | { type: "SCAN_DEVICES" }

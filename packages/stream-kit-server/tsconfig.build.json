@@ -20,13 +20,6 @@
     "isolatedModules": false
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ],
-  "references": [
-    { "path": "../stream-kit-types" }
-  ]
-} 
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"],
+  "references": [{ "path": "../stream-kit-types" }]
+}

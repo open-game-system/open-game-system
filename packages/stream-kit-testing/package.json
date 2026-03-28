@@ -8,17 +8,14 @@
     "build": "tsdown",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "biome check src"
   },
   "dependencies": {
     "@open-game-system/stream-kit-types": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "@typescript-eslint/eslint-plugin": "^8.57.0",
-    "@typescript-eslint/parser": "^8.57.0",
     "@vitest/browser": "^4.1.0",
-    "eslint": "^10.0.3",
     "jsdom": "^28.1.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"

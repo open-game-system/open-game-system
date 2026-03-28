@@ -1,7 +1,7 @@
-module.exports = function(api) {
+module.exports = (api) => {
   api.cache(true);
   return {
-    presets: ['babel-preset-expo'],
+    presets: ["babel-preset-expo"],
     // Rely solely on babel-preset-expo, which includes react-native and typescript presets
   };
-}; 
+};

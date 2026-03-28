@@ -1,8 +1,4 @@
-import {
-  setGameUrl,
-  consumePendingGameUrl,
-  subscribeToGameUrl,
-} from "../game-url-store";
+import { consumePendingGameUrl, setGameUrl, subscribeToGameUrl } from "../game-url-store";
 
 // Reset module state between tests
 beforeEach(() => {
@@ -19,7 +15,7 @@ describe("game-url-store", () => {
       expect(consumePendingGameUrl()).toBe("https://triviajam.tv/games/abc123");
       expect(logSpy).toHaveBeenCalledWith(
         "[GameUrlStore] Setting game URL:",
-        "https://triviajam.tv/games/abc123"
+        "https://triviajam.tv/games/abc123",
       );
       logSpy.mockRestore();
     });

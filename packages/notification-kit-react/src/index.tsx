@@ -1,6 +1,6 @@
-import React, { useMemo, useEffect, useState } from 'react';
-import { createBridgeContext } from '@open-game-system/app-bridge-react';
-import { getBridge, type OgsStores } from '@open-game-system/notification-kit-core';
+import { createBridgeContext } from "@open-game-system/app-bridge-react";
+import { getBridge, type OgsStores } from "@open-game-system/notification-kit-core";
+import React, { useEffect, useMemo, useState } from "react";
 
 // Create the context for OGS stores
 const OgsContext = createBridgeContext<OgsStores>();
@@ -38,7 +38,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setIsInOGSApp(bridge.isSupported());
 
     // Subscribe to the system store for device ID changes
-    const systemStore = bridge.getStore('system');
+    const systemStore = bridge.getStore("system");
     if (systemStore) {
       setDeviceId(systemStore.getSnapshot().ogsDeviceId);
       return systemStore.subscribe((state: any) => {
@@ -48,7 +48,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // If store isn't available yet, wait for bridge to notify us of store changes
     return bridge.subscribe(() => {
-      const store = bridge.getStore('system');
+      const store = bridge.getStore("system");
       if (store) {
         setDeviceId(store.getSnapshot().ogsDeviceId);
         store.subscribe((state: any) => {
@@ -58,17 +58,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     });
   }, [bridge]);
 
-  const value = useMemo(() => ({
-    isInOGSApp,
-    isSupported: isInOGSApp && !!deviceId,
-    deviceId,
-  }), [isInOGSApp, deviceId]);
+  const value = useMemo(
+    () => ({
+      isInOGSApp,
+      isSupported: isInOGSApp && !!deviceId,
+      deviceId,
+    }),
+    [isInOGSApp, deviceId],
+  );
 
   return (
     <OgsContext.Provider bridge={bridge}>
-      <NotificationContext.Provider value={value}>
-        {children}
-      </NotificationContext.Provider>
+      <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>
     </OgsContext.Provider>
   );
 }

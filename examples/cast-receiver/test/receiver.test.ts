@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
 import path from "node:path";
+import { expect, test } from "@playwright/test";
 
 const receiverPath = path.resolve(__dirname, "..", "receiver.html");
 
@@ -14,22 +14,31 @@ function receiverUrl(params?: Record<string, string>): string {
 }
 
 /**
- * Inject mocks for WebSocket and RTCPeerConnection before the page script runs.
+ * Inject mocks for PeerJS Peer, fetch, WebSocket, and RTCPeerConnection
+ * before the page script runs.
  * Returns handles on window.__mocks for test assertions and triggering events.
  */
 async function injectMocks(page: import("@playwright/test").Page) {
+  // Block the PeerJS CDN script so our mock Peer constructor isn't overwritten
+  await page.route("**/peerjs**", (route) => {
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "/* blocked */" });
+  });
+
   await page.addInitScript(() => {
     const mocks = {
       ws: null as any,
       pc: null as any,
+      peer: null as any,
+      lastCall: null as any,
     };
 
+    // --- Mock WebSocket (kept for completeness) ---
     class MockWebSocket {
       static OPEN = 1;
       static CLOSED = 3;
 
       url: string;
-      readyState = 1; // OPEN
+      readyState = 1;
       onopen: ((ev: any) => void) | null = null;
       onclose: ((ev: any) => void) | null = null;
       onmessage: ((ev: any) => void) | null = null;
@@ -38,22 +47,18 @@ async function injectMocks(page: import("@playwright/test").Page) {
       constructor(url: string) {
         this.url = url;
         mocks.ws = this;
-        // Auto-fire onopen async so the page script has time to attach handlers
         setTimeout(() => this.onopen?.({} as any), 10);
       }
 
       send(_data: string) {}
       close() {
         this.readyState = 3;
-        // Don't auto-fire onclose — real WebSocket fires it asynchronously
-        // and cleanup() sets signalingSocket = null after calling close(),
-        // so firing onclose synchronously would cause the handler to run
-        // before cleanup finishes, producing wrong status messages.
       }
     }
 
     (window as any).WebSocket = MockWebSocket;
 
+    // --- Mock RTCPeerConnection (kept for completeness) ---
     class MockRTCPeerConnection {
       connectionState = "new";
       localDescription: any = null;
@@ -119,7 +124,123 @@ async function injectMocks(page: import("@playwright/test").Page) {
       }
     };
 
+    // --- Mock PeerJS Peer ---
+    class MockPeer {
+      id: string;
+      _handlers: Record<string, Array<(...args: any[]) => void>> = {};
+      destroyed = false;
+
+      constructor(id: string, _opts?: any) {
+        this.id = id;
+        mocks.peer = this;
+
+        // Auto-fire 'open' event asynchronously so the page script's
+        // await promise resolves
+        setTimeout(() => {
+          this._emit("open", id);
+        }, 10);
+      }
+
+      on(event: string, fn: (...args: any[]) => void) {
+        if (!this._handlers[event]) {
+          this._handlers[event] = [];
+        }
+        this._handlers[event].push(fn);
+        return this;
+      }
+
+      off(event: string, fn: (...args: any[]) => void) {
+        if (this._handlers[event]) {
+          this._handlers[event] = this._handlers[event].filter((h: any) => h !== fn);
+        }
+        return this;
+      }
+
+      _emit(event: string, ...args: any[]) {
+        const handlers = this._handlers[event];
+        if (handlers) {
+          for (const h of handlers) {
+            h(...args);
+          }
+        }
+      }
+
+      destroy() {
+        this.destroyed = true;
+      }
+
+      disconnect() {}
+    }
+
+    // Override window.Peer (PeerJS attaches itself here from CDN)
+    (window as any).Peer = MockPeer;
+
+    // --- Mock fetch for stream server endpoints ---
+    const _origFetch = window.fetch;
+    (window as any).fetch = (input: string | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.url;
+
+      // ICE servers endpoint — return default
+      if (url.endsWith("/ice-servers")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              iceServers: [{ urls: ["stun:stun.l.google.com:19302"] }],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+
+      // Start stream endpoint — return success
+      if (url.endsWith("/start-stream")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ status: "success", streamId: "mock-stream-123" }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      }
+
+      // Fall through to real fetch for anything else
+      return _origFetch.call(window, input, init);
+    };
+
     (window as any).__mocks = mocks;
+  });
+}
+
+/**
+ * Helper: create a mock MediaConnection (PeerJS call) and emit it on the peer.
+ * Returns a handle to the call object for further event simulation.
+ */
+function emitPeerCall(page: import("@playwright/test").Page) {
+  return page.evaluate(() => {
+    const peer = (window as any).__mocks.peer;
+    // Build a mock MediaConnection
+    const call: any = {
+      peer: "mock-streamer",
+      _handlers: {} as Record<string, Array<(...args: any[]) => void>>,
+
+      on(event: string, fn: (...args: any[]) => void) {
+        if (!this._handlers[event]) this._handlers[event] = [];
+        this._handlers[event].push(fn);
+        return this;
+      },
+
+      _emit(event: string, ...args: any[]) {
+        const handlers = this._handlers[event];
+        if (handlers) {
+          for (const h of handlers) h(...args);
+        }
+      },
+
+      answer() {},
+      close() {},
+    };
+
+    (window as any).__mocks.lastCall = call;
+    peer._emit("call", call);
   });
 }
 
@@ -129,36 +250,34 @@ test.describe("Cast Receiver", () => {
     await page.goto(receiverUrl());
 
     const statusText = page.locator("#status-text");
-    await expect(statusText).toHaveText("No stream URL provided");
+    await expect(statusText).toHaveText("Unable to connect to game stream");
 
     const spinner = page.locator("#spinner");
     await expect(spinner).toHaveCSS("display", "none");
   });
 
-  test("shows loading state with spinner when streamUrl is provided", async ({
-    page,
-  }) => {
+  test("shows loading state with spinner when streamUrl is provided", async ({ page }) => {
     await injectMocks(page);
     await page.goto(receiverUrl({ streamUrl: "wss://test.example.com/stream" }));
 
+    // After PeerJS connects and fetch succeeds, status should be
+    // "Waiting for video stream..." (the final status before a call arrives)
     const statusText = page.locator("#status-text");
-    await expect(statusText).toHaveText("Connecting to game stream...");
+    await expect(statusText).toHaveText("Waiting for video stream...");
 
     const spinner = page.locator("#spinner");
     await expect(spinner).toHaveCSS("display", "block");
   });
 
-  test("connection timeout after 15 seconds — shows timeout message, no spinner", async ({
+  test("connection timeout after 30 seconds — shows timeout message, no spinner", async ({
     page,
   }) => {
     // Override the timeout constant to 500ms for faster testing
     await page.addInitScript(() => {
-      const originalScript = document.createElement("script");
-      // We'll intercept setTimeout to speed up the 15s timeout
       const _origSetTimeout = window.setTimeout;
-      (window as any).setTimeout = function (fn: any, delay: number, ...args: any[]) {
-        // Map the 15000ms connection timeout to 500ms
-        if (delay === 15000) {
+      (window as any).setTimeout = (fn: any, delay: number, ...args: any[]) => {
+        // Map the 30000ms connection timeout to 500ms
+        if (delay === 30000) {
           return _origSetTimeout(fn, 500, ...args);
         }
         return _origSetTimeout(fn, delay, ...args);
@@ -168,9 +287,9 @@ test.describe("Cast Receiver", () => {
     await injectMocks(page);
     await page.goto(receiverUrl({ streamUrl: "wss://test.example.com/stream" }));
 
-    // Initially should show connecting
+    // Initially should show a connecting/waiting state
     const statusText = page.locator("#status-text");
-    await expect(statusText).toHaveText("Connecting to game stream...");
+    await expect(statusText).toHaveText("Waiting for video stream...");
 
     // Wait for timeout to fire (mapped to 500ms)
     await expect(statusText).toHaveText("Connection timed out", { timeout: 3000 });
@@ -183,25 +302,29 @@ test.describe("Cast Receiver", () => {
     await injectMocks(page);
     await page.goto(receiverUrl({ streamUrl: "wss://test.example.com/stream" }));
 
-    // Wait for mocks to be ready
-    await page.waitForFunction(() => (window as any).__mocks?.pc !== null);
+    // Wait for peer to be ready and stream request to complete
+    await page.waitForFunction(() => (window as any).__mocks?.peer !== null);
+    await page.locator("#status-text").filter({ hasText: "Waiting for video stream..." }).waitFor();
 
-    // Simulate connected state
+    // Simulate an incoming call
+    await emitPeerCall(page);
+
+    // Simulate receiving a stream — this triggers hideOverlay()
     await page.evaluate(() => {
-      const pc = (window as any).__mocks.pc;
-      pc.connectionState = "connected";
-      pc._onconnectionstatechange?.({});
+      const call = (window as any).__mocks.lastCall;
+      // Create a fake MediaStream
+      const stream = new MediaStream();
+      call._emit("stream", stream);
     });
 
     // Verify overlay is hidden when connected
     const overlay = page.locator("#status-overlay");
     await expect(overlay).toHaveClass(/hidden/);
 
-    // Simulate closed state (graceful end)
+    // Simulate call close (graceful end)
     await page.evaluate(() => {
-      const pc = (window as any).__mocks.pc;
-      pc.connectionState = "closed";
-      pc._onconnectionstatechange?.({});
+      const call = (window as any).__mocks.lastCall;
+      call._emit("close");
     });
 
     const statusText = page.locator("#status-text");
@@ -215,13 +338,21 @@ test.describe("Cast Receiver", () => {
     await injectMocks(page);
     await page.goto(receiverUrl({ streamUrl: "wss://test.example.com/stream" }));
 
-    // Wait for mocks and simulate connected state
-    await page.waitForFunction(() => (window as any).__mocks?.pc !== null);
+    // Wait for peer to be ready and stream request to complete
+    await page.waitForFunction(() => (window as any).__mocks?.peer !== null);
+    await page.locator("#status-text").filter({ hasText: "Waiting for video stream..." }).waitFor();
+
+    // Simulate an incoming call with stream
+    await emitPeerCall(page);
     await page.evaluate(() => {
-      const pc = (window as any).__mocks.pc;
-      pc.connectionState = "connected";
-      pc._onconnectionstatechange?.({});
+      const call = (window as any).__mocks.lastCall;
+      const stream = new MediaStream();
+      call._emit("stream", stream);
     });
+
+    // Verify overlay is hidden
+    const overlay = page.locator("#status-overlay");
+    await expect(overlay).toHaveClass(/hidden/);
 
     // Verify no buttons, links, or other interactive elements
     const buttons = await page.locator("button").count();
@@ -237,9 +368,7 @@ test.describe("Cast Receiver", () => {
     expect(textareas).toBe(0);
   });
 
-  test("video element has object-fit: contain for aspect ratio handling", async ({
-    page,
-  }) => {
+  test("video element has object-fit: contain for aspect ratio handling", async ({ page }) => {
     await injectMocks(page);
     await page.goto(receiverUrl({ streamUrl: "wss://test.example.com/stream" }));
 

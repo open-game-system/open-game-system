@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from "vitest";
 
-describe('stream-kit-types', () => {
-  it('should pass placeholder test', () => {
+describe("stream-kit-types", () => {
+  it("should pass placeholder test", () => {
     expect(true).toBe(true);
   });
-}); 
+});

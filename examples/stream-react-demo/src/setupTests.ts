@@ -1,6 +1,6 @@
-import '@testing-library/jest-dom';
-import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
+import "@testing-library/jest-dom";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 
 // Mock HTMLMediaElement.play() which is not implemented in JSDOM
 // Needed for tests involving video elements
@@ -20,4 +20,4 @@ const ResizeObserverMock = vi.fn(() => ({
   disconnect: vi.fn(),
 }));
 
-vi.stubGlobal('ResizeObserver', ResizeObserverMock); 
+vi.stubGlobal("ResizeObserver", ResizeObserverMock);

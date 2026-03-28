@@ -1,5 +1,5 @@
-import { createWebBridge } from "@open-game-system/app-bridge-web";
 import { createBridgeContext } from "@open-game-system/app-bridge-react";
+import { createWebBridge } from "@open-game-system/app-bridge-web";
 import type { AppStores } from "./types";
 
 // Create the web bridge

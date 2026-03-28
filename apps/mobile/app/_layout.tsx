@@ -1,16 +1,13 @@
+import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import * as Notifications from "expo-notifications";
+import { addDeepLinkListener, getInitialGameUrl } from "../services/deep-links";
+import { setGameUrl } from "../services/game-url-store";
 import {
-  initializePushNotifications,
   addPushTokenListener,
   getGameUrlFromNotification,
+  initializePushNotifications,
 } from "../services/notifications";
-import {
-  getInitialGameUrl,
-  addDeepLinkListener,
-} from "../services/deep-links";
-import { setGameUrl } from "../services/game-url-store";
 import { isOnboardingComplete } from "../services/onboarding";
 import { incrementSessionCount } from "../services/session-counter";
 
@@ -38,7 +35,9 @@ export default function RootLayout() {
       setOgsDeviceId(deviceId);
     };
     init();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   // Deep link subscription (event listener — legitimate useEffect)
@@ -58,11 +57,10 @@ export default function RootLayout() {
     if (!ogsDeviceId) return;
 
     const tokenSub = addPushTokenListener(ogsDeviceId);
-    const notificationSub =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        const url = getGameUrlFromNotification(response.notification);
-        if (url) setGameUrl(url);
-      });
+    const notificationSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const url = getGameUrlFromNotification(response.notification);
+      if (url) setGameUrl(url);
+    });
 
     return () => {
       tokenSub.remove();

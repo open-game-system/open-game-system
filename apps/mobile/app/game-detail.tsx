@@ -1,17 +1,16 @@
-import React from 'react';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import {
   Platform,
+  StatusBar as RNStatusBar,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  StatusBar as RNStatusBar,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { findGameById } from '../services/game-directory';
-import { addRecentGame } from '../services/game-history';
+} from "react-native";
+import { findGameById } from "../services/game-directory";
+import { addRecentGame } from "../services/game-history";
 
 export default function GameDetailScreen() {
   const router = useRouter();
@@ -30,7 +29,7 @@ export default function GameDetailScreen() {
     // Record in game history before navigating — ensures the write completes
     await addRecentGame(game.url, game.name);
     router.push({
-      pathname: '/game',
+      pathname: "/game",
       params: { url: game.url, name: game.name },
     });
   };
@@ -53,15 +52,8 @@ export default function GameDetailScreen() {
         </TouchableOpacity>
 
         {/* Hero */}
-        <View
-          style={[styles.hero, { backgroundColor: game.iconBgColor }]}
-        >
-          <Text
-            style={[
-              styles.heroInitials,
-              { color: game.iconColor, opacity: 0.25 },
-            ]}
-          >
+        <View style={[styles.hero, { backgroundColor: game.iconBgColor }]}>
+          <Text style={[styles.heroInitials, { color: game.iconColor, opacity: 0.25 }]}>
             {game.iconInitials}
           </Text>
         </View>
@@ -69,9 +61,7 @@ export default function GameDetailScreen() {
         {/* Game Info */}
         <View style={styles.info}>
           <Text style={styles.gameName}>{game.name}</Text>
-          <Text style={styles.gameOrigin}>
-            by {new URL(game.url).hostname}
-          </Text>
+          <Text style={styles.gameOrigin}>by {new URL(game.url).hostname}</Text>
         </View>
 
         {/* Tags */}
@@ -90,19 +80,19 @@ export default function GameDetailScreen() {
         <View style={styles.featuresSection}>
           <Text style={styles.featuresLabel}>OGS Features</Text>
           <View style={styles.featuresRow}>
-            {game.features.includes('push') && (
+            {game.features.includes("push") && (
               <View style={styles.featureBox}>
                 <Text style={styles.featureIcon}>★</Text>
                 <Text style={styles.featureText}>Push Alerts</Text>
               </View>
             )}
-            {game.features.includes('cast') && (
+            {game.features.includes("cast") && (
               <View style={styles.featureBox}>
                 <Text style={styles.featureIcon}>▣</Text>
                 <Text style={styles.featureText}>TV Cast</Text>
               </View>
             )}
-            {game.features.includes('activity') && (
+            {game.features.includes("activity") && (
               <View style={styles.featureBox}>
                 <Text style={styles.featureIcon}>◷</Text>
                 <Text style={styles.featureText}>Activity</Text>
@@ -127,8 +117,8 @@ export default function GameDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 50,
+    backgroundColor: "#0A0A0F",
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
   },
   scrollContent: {
     paddingBottom: 40,
@@ -139,20 +129,20 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#A855F6',
+    fontWeight: "500",
+    color: "#A855F6",
   },
   hero: {
     height: 180,
     marginHorizontal: 24,
     marginTop: 4,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   heroInitials: {
     fontSize: 56,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   info: {
     paddingHorizontal: 24,
@@ -161,17 +151,17 @@ const styles = StyleSheet.create({
   },
   gameName: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#E8E8ED',
+    fontWeight: "700",
+    color: "#E8E8ED",
     letterSpacing: -0.5,
   },
   gameOrigin: {
     fontSize: 14,
-    color: '#8888A0',
+    color: "#8888A0",
   },
   tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: 24,
     paddingTop: 16,
     gap: 8,
@@ -180,16 +170,16 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: '#1C1C2E',
+    backgroundColor: "#1C1C2E",
   },
   tagText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#8888A0',
+    fontWeight: "500",
+    color: "#8888A0",
   },
   description: {
     fontSize: 15,
-    color: '#E8E8ED',
+    color: "#E8E8ED",
     lineHeight: 23,
     paddingHorizontal: 24,
     paddingTop: 20,
@@ -201,49 +191,49 @@ const styles = StyleSheet.create({
   },
   featuresLabel: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#8888A0',
+    fontWeight: "700",
+    color: "#8888A0",
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   featuresRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   featureBox: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     gap: 8,
     paddingVertical: 16,
-    backgroundColor: '#141420',
+    backgroundColor: "#141420",
     borderRadius: 12,
   },
   featureIcon: {
     fontSize: 20,
-    color: '#A855F6',
+    color: "#A855F6",
   },
   featureText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#E8E8ED',
+    fontWeight: "500",
+    color: "#E8E8ED",
   },
   playButton: {
-    backgroundColor: '#A855F6',
+    backgroundColor: "#A855F6",
     borderRadius: 14,
     paddingVertical: 16,
     marginHorizontal: 24,
     marginTop: 28,
-    alignItems: 'center',
+    alignItems: "center",
   },
   playButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   errorText: {
-    color: '#DC2626',
+    color: "#DC2626",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 100,
   },
 });
