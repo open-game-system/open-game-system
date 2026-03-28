@@ -145,6 +145,7 @@ function buildLaunchOptions() {
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
+      "--disable-gpu",
       `--disable-extensions-except=${absoluteExtensionPath}`,
       `--load-extension=${absoluteExtensionPath}`,
       "--webrtc-udp-port-range=10000-10100",

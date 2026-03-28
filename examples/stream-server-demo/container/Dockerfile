@@ -62,4 +62,4 @@ COPY . .
 # Start Xvfb then the app
 EXPOSE 8080
 EXPOSE 40000-40100/udp
-CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac &>/dev/null & exec npm start"]
+CMD ["sh", "-c", "Xvfb :99 -screen 0 1280x720x24 -ac &>/dev/null & sleep 2 && exec npm start"]
