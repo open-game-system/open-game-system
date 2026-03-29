@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { Env } from "../types";
 import {
   parseTurnCredentialsResponse,
@@ -126,6 +126,27 @@ async function generateTurnIceServers(
   return iceServers;
 }
 
+function forwardToContainer(c: Context<StreamEnv>, targetPath: string) {
+  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
+  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
+
+  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
+  const stub = c.env.STREAM_CONTAINER.get(id);
+  const containerUrl = new URL(c.req.url);
+  containerUrl.pathname = targetPath;
+  const hasBody = c.req.method !== "GET" && c.req.method !== "HEAD";
+  const forwardedRequest = new Request(containerUrl.toString(), {
+    method: c.req.method,
+    headers: new Headers(c.req.raw.headers),
+    body: hasBody ? c.req.raw.body : undefined,
+    ...(hasBody ? { duplex: "half" as const } : {}),
+  } as RequestInit);
+  forwardedRequest.headers.set("x-stream-trace-id", traceId);
+
+  return stub.fetch(forwardedRequest);
+}
+
 /**
  * GET /api/v1/stream/ice-servers
  * Returns TURN credentials for WebRTC connections.
@@ -195,6 +216,30 @@ stream.post("/start-stream", async (c) => {
 
   const response = await stub.fetch(forwardedRequest);
   return response;
+});
+
+/**
+ * POST /api/v1/stream/publisher/prepare
+ * Forwards to the StreamContainer DO → container to initialize publisher and get local SDP offer.
+ */
+stream.post("/publisher/prepare", async (c) => {
+  return forwardToContainer(c, "/publisher/prepare");
+});
+
+/**
+ * POST /api/v1/stream/publisher/answer
+ * Forwards the SFU's SDP answer to the StreamContainer DO → container to complete WebRTC handshake.
+ */
+stream.post("/publisher/answer", async (c) => {
+  return forwardToContainer(c, "/publisher/answer");
+});
+
+/**
+ * GET /api/v1/stream/publisher/state
+ * Forwards to the StreamContainer DO → container for publisher debug state.
+ */
+stream.get("/publisher/state", async (c) => {
+  return forwardToContainer(c, "/publisher/state");
 });
 
 /**
