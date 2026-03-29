@@ -78,24 +78,21 @@
     <div class="status-text" id="status-text">Connecting to game stream...</div>
   </div>
 
-  <!-- PeerJS for WebRTC signaling -->
-  <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
-
   <script>
     /**
      * OGS Cast Receiver
      *
      * Minimal receiver page for Chromecast/AirPlay.
-     * Uses PeerJS for WebRTC signaling to receive a video stream
-     * from a stream-kit container and display it full-screen.
+     * Uses Cloudflare Realtime SFU via the OGS API for WebRTC streaming.
+     * No PeerJS — all signaling goes through the backend.
      *
      * Launch params (URL query string):
-     *   streamServerUrl — Base URL of the stream-kit server
+     *   streamServerUrl — Base URL of the OGS API or stream server
      *   viewUrl         — URL to render on the stream server
-     *   iceServers      — JSON-encoded array of ICE server configs (optional)
+     *   publisherSessionId — SFU publisher session ID (if already started)
      *
-     * Legacy params (for backward compatibility):
-     *   streamUrl       — If provided, treated as streamServerUrl base
+     * Legacy params:
+     *   streamUrl       — Alias for streamServerUrl
      */
 
     const CONNECTION_TIMEOUT_MS = 30000;
@@ -107,8 +104,7 @@
     const spinner = document.getElementById('spinner');
 
     // State
-    let peer = null;
-    let currentCall = null;
+    let pc = null;
     let connectionTimer = null;
     let isConnected = false;
 
@@ -116,20 +112,8 @@
       const params = new URLSearchParams(window.location.search);
       const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || '';
       const viewUrl = params.get('viewUrl') || '';
-      const peerHost = params.get('peerHost') || '';
-      const peerPort = params.get('peerPort') ? parseInt(params.get('peerPort'), 10) : 0;
-      let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
-
-      const iceParam = params.get('iceServers');
-      if (iceParam) {
-        try {
-          iceServers = JSON.parse(iceParam);
-        } catch (e) {
-          console.warn('[Receiver] Failed to parse iceServers param:', e);
-        }
-      }
-
-      return { streamServerUrl, viewUrl, iceServers, peerHost, peerPort };
+      const publisherSessionId = params.get('publisherSessionId') || '';
+      return { streamServerUrl, viewUrl, publisherSessionId };
     }
 
     function setStatus(text, showSpinner = true) {
@@ -160,18 +144,14 @@
 
     function cleanup() {
       clearConnectionTimeout();
-      if (currentCall) {
-        currentCall.close();
-        currentCall = null;
-      }
-      if (peer) {
-        peer.destroy();
-        peer = null;
+      if (pc) {
+        pc.close();
+        pc = null;
       }
     }
 
     async function startReceiving() {
-      const { streamServerUrl, viewUrl, iceServers, peerHost, peerPort } = getLaunchParams();
+      const { streamServerUrl, viewUrl, publisherSessionId } = getLaunchParams();
 
       if (!streamServerUrl) {
         setStatus('Unable to connect to game stream', false);
@@ -181,113 +161,128 @@
 
       console.log('[Receiver] Stream server:', streamServerUrl);
       console.log('[Receiver] View URL:', viewUrl);
-      console.log('[Receiver] ICE servers:', iceServers);
+      console.log('[Receiver] Publisher session ID:', publisherSessionId);
 
       setStatus('Connecting to game stream...');
       startConnectionTimeout();
 
       try {
-        // Step 1: Fetch ICE servers from stream server (if available)
-        let resolvedIceServers = iceServers;
+        const baseUrl = streamServerUrl.replace(/\/$/, '');
+
+        // Step 1: Fetch ICE servers from stream server
+        let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
         try {
-          const iceEndpoint = `${streamServerUrl.replace(/\/$/, '')}/ice-servers`;
+          const iceEndpoint = `${baseUrl}/ice-servers`;
           const iceRes = await fetch(iceEndpoint);
           if (iceRes.ok) {
             const iceData = await iceRes.json();
             if (Array.isArray(iceData.iceServers)) {
-              resolvedIceServers = iceData.iceServers;
-              console.log('[Receiver] Got ICE servers from stream server:', resolvedIceServers);
+              iceServers = iceData.iceServers;
+              console.log('[Receiver] Got ICE servers from stream server:', iceServers);
             }
           }
         } catch (e) {
           console.log('[Receiver] Could not fetch ICE servers, using defaults');
         }
 
-        // Step 2: Create PeerJS peer
-        const receiverId = `receiver-${crypto.randomUUID()}`;
-        console.log('[Receiver] Creating PeerJS peer:', receiverId);
+        // Step 2: If no publisherSessionId, start the stream first
+        let pubSessionId = publisherSessionId;
+        if (!pubSessionId && viewUrl) {
+          setStatus('Starting stream...');
+          const startRes = await fetch(`${baseUrl}/start-stream`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: viewUrl })
+          });
 
-        const peerOptions = {
-          debug: 2,
-          config: { iceServers: resolvedIceServers }
-        };
-        if (peerHost) {
-          peerOptions.host = peerHost;
-          peerOptions.port = peerPort || 9000;
-          peerOptions.path = '/';
-          peerOptions.secure = false;
+          if (!startRes.ok) {
+            const errText = await startRes.text().catch(() => 'unknown error');
+            throw new Error(`Start stream failed: ${startRes.status}: ${errText}`);
+          }
+
+          const startData = await startRes.json();
+          console.log('[Receiver] Stream started:', startData);
+
+          if (startData.status !== 'success' || !startData.publisherSessionId) {
+            throw new Error(startData.error || 'Start stream returned no publisherSessionId');
+          }
+
+          pubSessionId = startData.publisherSessionId;
         }
-        peer = new Peer(receiverId, peerOptions);
 
-        // Wait for peer to be ready
-        await new Promise((resolve, reject) => {
-          peer.on('open', (id) => {
-            console.log('[Receiver] PeerJS connected with ID:', id);
-            resolve(id);
-          });
-          peer.on('error', (err) => {
-            console.error('[Receiver] PeerJS error:', err);
-            reject(err);
-          });
-        });
+        if (!pubSessionId) {
+          throw new Error('No publisherSessionId available');
+        }
 
-        // Step 3: Listen for incoming calls BEFORE requesting stream
-        peer.on('call', (call) => {
-          console.log('[Receiver] Incoming call from:', call.peer);
-          currentCall = call;
+        console.log('[Receiver] Using publisher session:', pubSessionId);
+        setStatus('Subscribing to stream...');
 
-          // Answer the call (no local stream to send)
-          call.answer();
-
-          call.on('stream', (remoteStream) => {
-            console.log('[Receiver] Received remote stream');
-            clearConnectionTimeout();
-            isConnected = true;
-
-            video.srcObject = remoteStream;
-            video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
-            hideOverlay();
-          });
-
-          call.on('close', () => {
-            console.log('[Receiver] Call closed');
-            isConnected = false;
-            setStatus('Cast session ended', false);
-          });
-
-          call.on('error', (err) => {
-            console.error('[Receiver] Call error:', err);
-            setStatus('Stream error', false);
-          });
-        });
-
-        // Step 4: Request stream from server
-        setStatus('Starting stream...');
-        const startEndpoint = `${streamServerUrl.replace(/\/$/, '')}/start-stream`;
-        console.log('[Receiver] Requesting stream from:', startEndpoint);
-
-        const streamRes = await fetch(startEndpoint, {
+        // Step 3: Subscribe to get SFU's SDP offer
+        const subRes = await fetch(`${baseUrl}/subscribe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            url: viewUrl || 'about:blank',
-            peerId: receiverId,
-            iceServers: resolvedIceServers
+            publisherSessionId: pubSessionId,
+            trackNames: ['cast-video', 'cast-audio']
           })
         });
 
-        if (!streamRes.ok) {
-          const errText = await streamRes.text().catch(() => 'unknown error');
-          throw new Error(`Stream server returned ${streamRes.status}: ${errText}`);
+        if (!subRes.ok) {
+          const errText = await subRes.text().catch(() => 'unknown error');
+          throw new Error(`Subscribe failed: ${subRes.status}: ${errText}`);
         }
 
-        const streamData = await streamRes.json();
-        console.log('[Receiver] Stream started:', streamData);
+        const subData = await subRes.json();
+        console.log('[Receiver] Subscribed, got SFU offer');
+        const { subscriberSessionId, sessionDescription: sfuOffer } = subData;
 
-        if (streamData.status !== 'success') {
-          throw new Error(streamData.error || 'Stream server returned non-success status');
+        // Step 4: Create RTCPeerConnection and set remote offer
+        pc = new RTCPeerConnection({ iceServers });
+
+        pc.ontrack = (event) => {
+          console.log('[Receiver] Received remote track:', event.track.kind);
+          clearConnectionTimeout();
+          isConnected = true;
+
+          video.srcObject = event.streams[0] || new MediaStream([event.track]);
+          video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
+          hideOverlay();
+        };
+
+        pc.onconnectionstatechange = () => {
+          console.log('[Receiver] Connection state:', pc.connectionState);
+          if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+            isConnected = false;
+            setStatus('Cast session ended', false);
+          }
+        };
+
+        // Set the SFU's offer as remote description
+        await pc.setRemoteDescription(new RTCSessionDescription(sfuOffer));
+
+        // Create and send answer
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        // Step 5: Send answer back to backend
+        setStatus('Establishing connection...');
+        const answerRes = await fetch(`${baseUrl}/subscribe/${subscriberSessionId}/answer`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionDescription: {
+              type: answer.type,
+              sdp: answer.sdp
+            }
+          })
+        });
+
+        if (!answerRes.ok) {
+          const errText = await answerRes.text().catch(() => 'unknown error');
+          throw new Error(`Answer failed: ${answerRes.status}: ${errText}`);
         }
 
+        console.log('[Receiver] Answer sent, waiting for media...');
         setStatus('Waiting for video stream...');
 
       } catch (err) {
