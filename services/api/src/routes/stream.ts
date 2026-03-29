@@ -2,14 +2,33 @@ import { Hono, type Context } from "hono";
 import type { Env } from "../types";
 import {
   parseTurnCredentialsResponse,
+  parsePublisherPrepareResponse,
+  parseSubscribeAnswerRequest,
   type IceServerConfig,
+  type SessionDescription,
 } from "../protocol";
+import {
+  createSession,
+  addTracks,
+  renegotiate,
+  type RealtimeCredentials,
+} from "../lib/realtime";
 
 type StreamEnv = { Bindings: Env };
 
 const stream = new Hono<StreamEnv>();
 
 const TURN_TTL_SECONDS = 300;
+
+function getRealtimeCredentials(env: Env): RealtimeCredentials {
+  if (!env.CLOUDFLARE_REALTIME_APP_ID || !env.CLOUDFLARE_REALTIME_APP_SECRET) {
+    throw new Error("CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured");
+  }
+  return {
+    appId: env.CLOUDFLARE_REALTIME_APP_ID,
+    appSecret: env.CLOUDFLARE_REALTIME_APP_SECRET,
+  };
+}
 const SESSION_ID_HEADER = "x-stream-session-id";
 const DEBUG_TOKEN_HEADER = "x-debug-token";
 
@@ -196,26 +215,154 @@ stream.get("/health", async (c) => {
 
 /**
  * POST /api/v1/stream/start-stream
- * Start a streaming session — forwards to the StreamContainer DO.
+ * Two-phase SFU flow:
+ * 1. Container /publisher/prepare → local SDP offer + track list
+ * 2. CF Realtime createSession(offer) → sessionId
+ * 3. CF Realtime addTracks(sessionId, offer, tracks) → SFU answer
+ * 4. Container /publisher/answer → complete WebRTC handshake
  */
 stream.post("/start-stream", async (c) => {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
   const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
   const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
 
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  // Rewrite URL to strip the /api/v1/stream prefix — container expects /start-stream
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = "/start-stream";
-  const forwardedRequest = new Request(containerUrl.toString(), {
-    method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-  });
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
+  try {
+    const creds = getRealtimeCredentials(c.env);
+    logTrace(traceId, "start_stream_begin", { sessionId, streamInstanceName });
 
-  const response = await stub.fetch(forwardedRequest);
-  return response;
+    // Step 1: Ask container to prepare publisher (launch Chrome, capture tab, create local SDP offer)
+    const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
+    const stub = c.env.STREAM_CONTAINER.get(id);
+
+    const iceServers = await generateTurnIceServers(c.env, traceId);
+    const prepareUrl = new URL(c.req.url);
+    prepareUrl.pathname = "/publisher/prepare";
+    const prepareReq = new Request(prepareUrl.toString(), {
+      method: "POST",
+      headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
+      body: JSON.stringify({ url: (await c.req.json()).url, iceServers }),
+    });
+    const prepareRes = await stub.fetch(prepareReq);
+    if (!prepareRes.ok) {
+      const errBody = await prepareRes.text();
+      logTrace(traceId, "publisher_prepare_failed", { status: prepareRes.status, body: errBody });
+      return c.json({ error: "Publisher prepare failed", details: errBody, traceId }, 500);
+    }
+    const prepareData = parsePublisherPrepareResponse(await prepareRes.json());
+    logTrace(traceId, "publisher_prepared", { trackCount: prepareData.tracks.length });
+
+    // Step 2: Create Realtime SFU session with the local offer
+    const sfuSession = await createSession(creds, prepareData.sessionDescription);
+    logTrace(traceId, "sfu_session_created", { sfuSessionId: sfuSession.sessionId });
+
+    // Step 3: Add tracks to the SFU session
+    const sfuTracks = await addTracks(creds, sfuSession.sessionId, {
+      sessionDescription: prepareData.sessionDescription,
+      tracks: prepareData.tracks.map((t) => ({
+        location: "local" as const,
+        trackName: t.trackName,
+        mid: t.mid,
+      })),
+    });
+    logTrace(traceId, "sfu_tracks_added");
+
+    // Step 4: Send SFU answer back to container to complete WebRTC handshake
+    const answerUrl = new URL(c.req.url);
+    answerUrl.pathname = "/publisher/answer";
+    const answerReq = new Request(answerUrl.toString(), {
+      method: "POST",
+      headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
+      body: JSON.stringify({ sessionDescription: sfuTracks.sessionDescription }),
+    });
+    const answerRes = await stub.fetch(answerReq);
+    if (!answerRes.ok) {
+      const errBody = await answerRes.text();
+      logTrace(traceId, "publisher_answer_failed", { status: answerRes.status, body: errBody });
+      return c.json({ error: "Publisher answer failed", details: errBody, traceId }, 500);
+    }
+
+    logTrace(traceId, "start_stream_complete", { sfuSessionId: sfuSession.sessionId });
+    return c.json({
+      status: "success",
+      traceId,
+      publisherSessionId: sfuSession.sessionId,
+      tracks: prepareData.tracks,
+    });
+  } catch (error) {
+    logTrace(traceId, "start_stream_error", { message: (error as Error).message });
+    return c.json({ error: (error as Error).message, traceId }, 500);
+  }
+});
+
+/**
+ * POST /api/v1/stream/subscribe
+ * Create a subscriber Realtime session that pulls the publisher's tracks.
+ * Returns the SFU's SDP offer for the receiver to answer.
+ */
+stream.post("/subscribe", async (c) => {
+  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+
+  try {
+    const creds = getRealtimeCredentials(c.env);
+    const body = await c.req.json();
+    const publisherSessionId = body.publisherSessionId;
+    if (!publisherSessionId || typeof publisherSessionId !== "string") {
+      return c.json({ error: "publisherSessionId is required", traceId }, 400);
+    }
+    const trackNames: string[] = body.trackNames ?? ["cast-video", "cast-audio"];
+    logTrace(traceId, "subscribe_begin", { publisherSessionId, trackNames });
+
+    // Create a new subscriber session (empty offer to start)
+    const subscriberSession = await createSession(creds, { type: "offer", sdp: "" });
+    logTrace(traceId, "subscriber_session_created", { subscriberSessionId: subscriberSession.sessionId });
+
+    // Subscribe to the publisher's tracks
+    const subResult = await addTracks(creds, subscriberSession.sessionId, {
+      sessionDescription: subscriberSession.sessionDescription,
+      tracks: trackNames.map((trackName) => ({
+        location: "remote" as const,
+        trackName,
+        sessionId: publisherSessionId,
+      })),
+    });
+    logTrace(traceId, "subscriber_tracks_added");
+
+    return c.json({
+      subscriberSessionId: subscriberSession.sessionId,
+      sessionDescription: subResult.sessionDescription,
+      traceId,
+    });
+  } catch (error) {
+    logTrace(traceId, "subscribe_error", { message: (error as Error).message });
+    return c.json({ error: (error as Error).message, traceId }, 500);
+  }
+});
+
+/**
+ * PUT /api/v1/stream/subscribe/:subscriberSessionId/answer
+ * Receiver sends its SDP answer to complete the WebRTC handshake.
+ */
+stream.put("/subscribe/:subscriberSessionId/answer", async (c) => {
+  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+  const subscriberSessionId = c.req.param("subscriberSessionId");
+
+  try {
+    const creds = getRealtimeCredentials(c.env);
+    const body = parseSubscribeAnswerRequest(await c.req.json());
+    logTrace(traceId, "subscribe_answer_begin", { subscriberSessionId });
+
+    const result = await renegotiate(creds, subscriberSessionId, body.sessionDescription);
+    logTrace(traceId, "subscribe_answer_complete");
+
+    return c.json({
+      status: "success",
+      sessionDescription: result.sessionDescription,
+      traceId,
+    });
+  } catch (error) {
+    logTrace(traceId, "subscribe_answer_error", { message: (error as Error).message });
+    return c.json({ error: (error as Error).message, traceId }, 500);
+  }
 });
 
 /**
