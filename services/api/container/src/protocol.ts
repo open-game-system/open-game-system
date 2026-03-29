@@ -4,13 +4,6 @@ export type IceServerConfig = {
   credential?: string;
 };
 
-// PeerJS-specific — retained until container server.ts is updated (task 4)
-export type StartStreamRequest = {
-  url: string;
-  peerId: string;
-  iceServers: IceServerConfig[];
-};
-
 export type SessionDescription = {
   type: "offer" | "answer";
   sdp: string;
@@ -112,19 +105,6 @@ export function parseTurnCredentialsResponse(value: unknown): {
   }
 
   return {
-    iceServers: parseIceServers(value.iceServers),
-  };
-}
-
-// PeerJS-specific — retained until container server.ts is updated (task 4)
-export function parseStartStreamRequest(value: unknown): StartStreamRequest {
-  if (!isRecord(value)) {
-    throw new Error("request body must be an object");
-  }
-
-  return {
-    url: parseNonEmptyString(value.url, "url"),
-    peerId: parseNonEmptyString(value.peerId, "peerId"),
     iceServers: parseIceServers(value.iceServers),
   };
 }

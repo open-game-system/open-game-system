@@ -5,17 +5,24 @@
  * active WebRTC connections to automatically shut down when no longer needed.
  *
  * Connection Monitoring Strategy:
- * - Chrome extension maintains window.activeConnections Set with peer IDs
+ * - Chrome extension maintains window.activeConnections Set with connection IDs
  * - Container server polls this state every 15 seconds via page.evaluate()
  * - When connections drop to 0, starts 60-second grace period
  * - If no connections return within grace period, shuts down browser
  * - If new connections appear during grace period, cancels shutdown
  *
  * Browser Lifecycle:
- * - Browser launches on first /start-stream request
+ * - Browser launches on first /publisher/prepare request
  * - Stays alive as long as connections are active
  * - Automatically shuts down after grace period with no connections
- * - Can be manually restarted with new /start-stream requests
+ * - Can be manually restarted with new /publisher/prepare requests
+ *
+ * SFU Two-Phase Flow:
+ * 1. POST /publisher/prepare — launches Chrome, navigates to URL, captures tab,
+ *    calls INITIALIZE_PUBLISHER in extension, returns local SDP offer + tracks
+ * 2. POST /publisher/answer — passes SFU answer to extension via
+ *    APPLY_REMOTE_DESCRIPTION, completes WebRTC handshake
+ * 3. GET /publisher/state — returns current publisher state for debugging
  */
 
 import crypto from "node:crypto";
@@ -23,7 +30,14 @@ import http from "node:http";
 import url from "node:url";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
-import { type IceServerConfig, parseStartStreamRequest } from "./protocol";
+import {
+  type IceServerConfig,
+  type PublisherPrepareResponse,
+  type SessionDescription,
+  type TrackInfo,
+  parsePublisherPrepareRequest,
+  parsePublisherAnswerRequest,
+} from "./protocol";
 
 // TypeScript declaration for browser window extensions
 declare global {
@@ -32,16 +46,21 @@ declare global {
     streamingDebug?: {
       initializeCalled: boolean;
       addConnectionCalled: boolean;
-      lastPeerId: string | null;
       lastError: string | null;
       callCount: number;
+      publisherState: string | null;
     };
-    INITIALIZE?: (params: {
-      srcPeerId: string;
-      destPeerId: string;
+    INITIALIZE_PUBLISHER?: (params: {
       iceServers?: IceServerConfig[];
+    }) => Promise<{
+      sessionDescription: { type: string; sdp: string };
+      tracks: Array<{ location: string; trackName: string }>;
+      traceId: string;
+    }>;
+    APPLY_REMOTE_DESCRIPTION?: (params: {
+      sessionDescription: { type: string; sdp: string };
     }) => Promise<void>;
-    Peer?: any; // PeerJS constructor
+    CLOSE_PUBLISHER?: () => Promise<void>;
   }
 }
 
@@ -105,11 +124,12 @@ async function collectBrowserState(traceId: string) {
     ? await streamingPage
         .evaluate(() => ({
           location: window.location.href,
-          hasInitialize: typeof window.INITIALIZE === "function",
+          hasInitializePublisher: typeof window.INITIALIZE_PUBLISHER === "function",
+          hasApplyRemoteDescription: typeof window.APPLY_REMOTE_DESCRIPTION === "function",
+          hasClosePublisher: typeof window.CLOSE_PUBLISHER === "function",
           activeConnections: window.activeConnections ? Array.from(window.activeConnections) : [],
           activeConnectionsSize: window.activeConnections ? window.activeConnections.size : 0,
           streamingDebug: window.streamingDebug || null,
-          peerDefined: typeof window.Peer !== "undefined",
         }))
         .catch((error: Error) => ({ error: error.message }))
     : null;
@@ -689,25 +709,25 @@ async function getExtensionStreamingPage(browser: Browser, timeout = 15000): Pro
   }
 }
 
-/** Check if INITIALIZE function exists in the page */
+/** Check if INITIALIZE_PUBLISHER function exists in the page */
 async function assertExtensionLoaded(page: Page, maxRetries = 3) {
   const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const hasInitialize = await page.evaluate(
-        () => typeof (globalThis as any).INITIALIZE === "function",
+      const hasInitializePublisher = await page.evaluate(
+        () => typeof (globalThis as Record<string, unknown>).INITIALIZE_PUBLISHER === "function",
       );
-      if (hasInitialize) {
-        console.log("INITIALIZE function found in extension page");
+      if (hasInitializePublisher) {
+        console.log("INITIALIZE_PUBLISHER function found in extension page");
         return;
       }
     } catch (_error) {
-      console.log(`Attempt ${attempt + 1}: INITIALIZE not ready yet`);
+      console.log(`Attempt ${attempt + 1}: INITIALIZE_PUBLISHER not ready yet`);
     }
     await wait(100 ** attempt); // 100ms, 1s, 10s
   }
-  throw new Error("Could not find INITIALIZE function in the browser context after retries");
+  throw new Error("Could not find INITIALIZE_PUBLISHER function in the browser context after retries");
 }
 
 /** Start monitoring active connections via Puppeteer polling */
@@ -750,10 +770,12 @@ async function startConnectionMonitoring() {
         return {
           hasStreamingDebug: typeof window.streamingDebug !== "undefined",
           hasActiveConnections: typeof window.activeConnections !== "undefined",
-          hasInitializeFunction: typeof window.INITIALIZE === "function",
+          hasInitializePublisher: typeof window.INITIALIZE_PUBLISHER === "function",
+          hasApplyRemoteDescription: typeof window.APPLY_REMOTE_DESCRIPTION === "function",
+          hasClosePublisher: typeof window.CLOSE_PUBLISHER === "function",
           windowKeys: Object.keys(window).filter(
             (key) =>
-              key.includes("streaming") || key.includes("active") || key.includes("INITIALIZE"),
+              key.includes("streaming") || key.includes("active") || key.includes("INITIALIZE") || key.includes("APPLY") || key.includes("CLOSE"),
           ),
           location: window.location.href,
           userAgent: navigator.userAgent,
@@ -870,22 +892,15 @@ async function handleDebugState(traceId: string): Promise<Response> {
   });
 }
 
-async function handleStartStream(
-  data: { url: string; peerId: string; iceServers?: IceServerConfig[] },
+async function handlePublisherPrepare(
+  data: { url: string; iceServers: IceServerConfig[] },
   traceId: string,
 ): Promise<Response> {
   try {
-    const { url: targetUrl, peerId: destPeerId, iceServers } = data;
-    if (!targetUrl || !destPeerId) {
-      return jsonResponse(
-        { error: "Missing targetUrl or peerId", traceId },
-        { status: 400, headers: buildTraceHeaders(traceId) },
-      );
-    }
+    const { url: targetUrl, iceServers } = data;
 
-    logTrace(traceId, "start_stream_request_received", {
+    logTrace(traceId, "publisher_prepare_request_received", {
       targetUrl,
-      destPeerId,
       iceServerCount: Array.isArray(iceServers) ? iceServers.length : 0,
       browserReused: !!browser,
     });
@@ -918,27 +933,26 @@ async function handleStartStream(
     });
 
     // Set page to full screen
-    await page.setViewport({ width: 1920, height: 1080 }); // Set a large viewport
+    await page.setViewport({ width: 1920, height: 1080 });
     logTrace(traceId, "page_viewport_set", { width: 1920, height: 1080 });
 
     // Get extension streaming page and initialize streaming
     logTrace(traceId, "extension_page_wait_start");
-    streamingPage = await getExtensionStreamingPage(browser, 30000); // This also sets EXTENSION_ID
+    streamingPage = await getExtensionStreamingPage(browser, 30000);
     logTrace(traceId, "extension_page_ready", { extensionId: EXTENSION_ID });
 
     // Trigger a user-gesture-like command to satisfy activeTab requirements
     try {
       const pageTargets = browser.targets().filter((t) => t.type() === "page");
-      const nyTimesTarget =
+      const httpsTarget =
         pageTargets.find((t) => t.url().startsWith("https://")) || pageTargets[0];
-      const nyPage = await nyTimesTarget?.page();
-      if (nyPage) {
-        // Simulate the keyboard shortcut for the command (Alt+Shift+S)
-        await nyPage.keyboard.down("Alt");
-        await nyPage.keyboard.down("Shift");
-        await nyPage.keyboard.press("KeyS");
-        await nyPage.keyboard.up("Shift");
-        await nyPage.keyboard.up("Alt");
+      const targetPage = await httpsTarget?.page();
+      if (targetPage) {
+        await targetPage.keyboard.down("Alt");
+        await targetPage.keyboard.down("Shift");
+        await targetPage.keyboard.press("KeyS");
+        await targetPage.keyboard.up("Shift");
+        await targetPage.keyboard.up("Alt");
         logTrace(traceId, "capture_shortcut_sent");
       }
     } catch (e) {
@@ -947,9 +961,7 @@ async function handleStartStream(
 
     // Set up console log monitoring for the extension page
     streamingPage.on("console", (msg) => {
-      const type = msg.type();
-      const text = msg.text();
-      logTrace(traceId, `extension_console_${type}`, { text });
+      logTrace(traceId, `extension_console_${msg.type()}`, { text: msg.text() });
     });
 
     streamingPage.on("pageerror", (error) => {
@@ -957,24 +969,24 @@ async function handleStartStream(
     });
 
     // Test if we can execute code in the extension context
-    console.log("🧪 Testing extension context execution...");
+    console.log("Testing extension context execution...");
     try {
       const testResult = await streamingPage.evaluate(() => {
         console.log("[TEST] This is a test log from extension context");
         return {
           location: window.location.href,
           hasWindow: typeof window !== "undefined",
-          hasPeer: typeof (globalThis as any).Peer !== "undefined",
-          hasChrome: typeof (globalThis as any).chrome !== "undefined",
+          hasChrome: typeof (globalThis as Record<string, unknown>).chrome !== "undefined",
           hasTabCapture:
-            typeof (globalThis as any).chrome !== "undefined" &&
-            typeof (globalThis as any).chrome.tabCapture !== "undefined",
+            typeof (globalThis as Record<string, unknown>).chrome !== "undefined" &&
+            typeof ((globalThis as Record<string, unknown>).chrome as Record<string, unknown>)?.tabCapture !== "undefined",
           windowKeys: Object.keys(window).filter(
             (key) =>
               key.includes("streaming") ||
               key.includes("active") ||
               key.includes("INITIALIZE") ||
-              key.includes("Peer"),
+              key.includes("APPLY") ||
+              key.includes("CLOSE"),
           ),
         };
       });
@@ -983,9 +995,9 @@ async function handleStartStream(
       logTrace(traceId, "extension_context_test_failed", { message: (error as Error).message });
     }
 
-    // Ensure INITIALIZE function is loaded
+    // Ensure INITIALIZE_PUBLISHER function is loaded
     await assertExtensionLoaded(streamingPage);
-    logTrace(traceId, "extension_initialize_detected");
+    logTrace(traceId, "extension_initialize_publisher_detected");
 
     // Force a simple log to test console monitoring
     logTrace(traceId, "extension_console_probe_start");
@@ -997,58 +1009,58 @@ async function handleStartStream(
 
     logTrace(traceId, "extension_console_probe_complete");
 
-    const srcPeerId = crypto.randomUUID();
-    const peers = {
-      srcPeerId,
-      destPeerId,
+    const publisherParams = {
       iceServers: Array.isArray(iceServers) ? iceServers : [],
-      peerHost: process.env.PEERJS_HOST || "",
-      peerPort: parseInt(process.env.PEERJS_PORT || "0", 10),
     };
 
-    // Initialize streaming in extension page
-    logTrace(traceId, "extension_initialize_start", {
-      srcPeerId,
-      destPeerId,
+    // Initialize publisher in extension page — creates RTCPeerConnection, captures tab, returns local SDP offer
+    logTrace(traceId, "extension_initialize_publisher_start", {
+      iceServerCount: publisherParams.iceServers.length,
       extensionUrl: streamingPage.url(),
     });
 
+    let publisherResult: PublisherPrepareResponse;
     try {
-      await Promise.race([
-        streamingPage.evaluate(async (p: any) => {
-          console.log("[PUPPETEER] INITIALIZE call starting with params:", p);
-          // @ts-expect-error
-          const result = await INITIALIZE(p);
-          console.log("[PUPPETEER] INITIALIZE call completed, result:", result);
-          return result;
-        }, peers),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("INITIALIZE timeout")), 30000),
+      const result = await Promise.race([
+        streamingPage.evaluate(async (p: { iceServers: IceServerConfig[] }) => {
+          console.log("[PUPPETEER] INITIALIZE_PUBLISHER call starting with params:", p);
+          const initFn = window.INITIALIZE_PUBLISHER;
+          if (!initFn) throw new Error("INITIALIZE_PUBLISHER not found on window");
+          const r = await initFn(p);
+          console.log("[PUPPETEER] INITIALIZE_PUBLISHER call completed, result:", r);
+          return r;
+        }, publisherParams),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("INITIALIZE_PUBLISHER timeout")), 30000),
         ),
       ]);
 
-      logTrace(traceId, "extension_initialize_complete");
+      publisherResult = result as PublisherPrepareResponse;
+      logTrace(traceId, "extension_initialize_publisher_complete", {
+        trackCount: publisherResult.tracks.length,
+        traceId: publisherResult.traceId,
+      });
 
-      // Check the state immediately after INITIALIZE
+      // Check the state immediately after INITIALIZE_PUBLISHER
       const postInitState = await streamingPage.evaluate(() => {
         return {
           activeConnections: window.activeConnections ? Array.from(window.activeConnections) : null,
           activeConnectionsSize: window.activeConnections ? window.activeConnections.size : 0,
           streamingDebug: window.streamingDebug || null,
-          hasInitialize: typeof window.INITIALIZE === "function",
+          hasInitializePublisher: typeof window.INITIALIZE_PUBLISHER === "function",
         };
       });
 
-      logTrace(traceId, "post_initialize_state", postInitState as Record<string, unknown>);
+      logTrace(traceId, "post_initialize_publisher_state", postInitState as Record<string, unknown>);
       await new Promise((resolve) => setTimeout(resolve, 1500));
       await collectBrowserState(traceId);
     } catch (error) {
-      logTrace(traceId, "extension_initialize_failed", {
+      logTrace(traceId, "extension_initialize_publisher_failed", {
         name: (error as Error).name,
         message: (error as Error).message,
         stack: (error as Error).stack,
       });
-      throw error; // Re-throw to propagate the error
+      throw error;
     }
 
     // Start connection monitoring if not already running
@@ -1056,33 +1068,112 @@ async function handleStartStream(
       startConnectionMonitoring();
     }
 
-    logTrace(traceId, "start_stream_response_sent", {
-      srcPeerId,
+    logTrace(traceId, "publisher_prepare_response_sent", {
+      trackCount: publisherResult.tracks.length,
       monitoringActive: !!connectionCheckInterval,
     });
     return jsonResponse(
       {
-        status: "success",
-        traceId,
-        srcPeerId,
-        browserWSEndpoint: browser.wsEndpoint(),
-        monitoringActive: !!connectionCheckInterval,
+        sessionDescription: publisherResult.sessionDescription,
+        tracks: publisherResult.tracks,
+        traceId: publisherResult.traceId,
       },
       {
         headers: buildTraceHeaders(traceId),
       },
     );
-  } catch (err: any) {
-    logTrace(traceId, "start_stream_error", {
-      message: err.message,
-      stack: err.stack,
+  } catch (err: unknown) {
+    const error = err as Error;
+    logTrace(traceId, "publisher_prepare_error", {
+      message: error.message,
+      stack: error.stack,
     });
-    // Don't close browser on error - let monitoring handle lifecycle
     return jsonResponse(
-      { status: "error", message: err.message, traceId },
+      { status: "error", message: error.message, traceId },
       { status: 500, headers: buildTraceHeaders(traceId) },
     );
   }
+}
+
+async function handlePublisherAnswer(
+  data: { sessionDescription: SessionDescription },
+  traceId: string,
+): Promise<Response> {
+  try {
+    const { sessionDescription } = data;
+
+    logTrace(traceId, "publisher_answer_request_received", {
+      sdpType: sessionDescription.type,
+    });
+
+    if (!streamingPage) {
+      return jsonResponse(
+        { error: "No active publisher session — call /publisher/prepare first", traceId },
+        { status: 400, headers: buildTraceHeaders(traceId) },
+      );
+    }
+
+    logTrace(traceId, "extension_apply_remote_description_start");
+
+    await Promise.race([
+      streamingPage.evaluate(async (desc: { sessionDescription: { type: string; sdp: string } }) => {
+        console.log("[PUPPETEER] APPLY_REMOTE_DESCRIPTION call starting");
+        const applyFn = window.APPLY_REMOTE_DESCRIPTION;
+        if (!applyFn) throw new Error("APPLY_REMOTE_DESCRIPTION not found on window");
+        await applyFn(desc);
+        console.log("[PUPPETEER] APPLY_REMOTE_DESCRIPTION call completed");
+      }, { sessionDescription }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("APPLY_REMOTE_DESCRIPTION timeout")), 30000),
+      ),
+    ]);
+
+    logTrace(traceId, "extension_apply_remote_description_complete");
+
+    return jsonResponse(
+      { status: "success", traceId },
+      { headers: buildTraceHeaders(traceId) },
+    );
+  } catch (err: unknown) {
+    const error = err as Error;
+    logTrace(traceId, "publisher_answer_error", {
+      message: error.message,
+      stack: error.stack,
+    });
+    return jsonResponse(
+      { status: "error", message: error.message, traceId },
+      { status: 500, headers: buildTraceHeaders(traceId) },
+    );
+  }
+}
+
+async function handlePublisherState(traceId: string): Promise<Response> {
+  const publisherState = streamingPage
+    ? await streamingPage
+        .evaluate(() => {
+          return {
+            hasInitializePublisher: typeof window.INITIALIZE_PUBLISHER === "function",
+            hasApplyRemoteDescription: typeof window.APPLY_REMOTE_DESCRIPTION === "function",
+            hasClosePublisher: typeof window.CLOSE_PUBLISHER === "function",
+            activeConnections: window.activeConnections ? Array.from(window.activeConnections) : [],
+            activeConnectionsSize: window.activeConnections ? window.activeConnections.size : 0,
+            streamingDebug: window.streamingDebug || null,
+          };
+        })
+        .catch((error: Error) => ({ error: error.message }))
+    : null;
+
+  return jsonResponse(
+    {
+      browserActive: !!browser,
+      extensionId: EXTENSION_ID,
+      publisherState,
+      monitoringActive: !!connectionCheckInterval,
+      shutdownTimerActive: !!shutdownTimer,
+      traceId,
+    },
+    { headers: buildTraceHeaders(traceId) },
+  );
 }
 
 /* ---------- Node.js HTTP Server ---------- */
@@ -1119,10 +1210,9 @@ const server = http.createServer(async (req: any, res: any) => {
       response = await handleTest();
     } else if (pathname === "/debug-state") {
       response = await handleDebugState(traceId);
-    } else if (pathname === "/start-stream" && req.method === "POST") {
-      // Parse request body for POST requests
+    } else if (pathname === "/publisher/prepare" && req.method === "POST") {
       let body = "";
-      req.on("data", (chunk: any) => {
+      req.on("data", (chunk: string) => {
         body += chunk.toString();
       });
 
@@ -1130,8 +1220,22 @@ const server = http.createServer(async (req: any, res: any) => {
         req.on("end", resolve);
       });
 
-      const data = parseStartStreamRequest(JSON.parse(body));
-      response = await handleStartStream(data, traceId);
+      const data = parsePublisherPrepareRequest(JSON.parse(body));
+      response = await handlePublisherPrepare(data, traceId);
+    } else if (pathname === "/publisher/answer" && req.method === "POST") {
+      let body = "";
+      req.on("data", (chunk: string) => {
+        body += chunk.toString();
+      });
+
+      await new Promise((resolve) => {
+        req.on("end", resolve);
+      });
+
+      const data = parsePublisherAnswerRequest(JSON.parse(body));
+      response = await handlePublisherAnswer(data, traceId);
+    } else if (pathname === "/publisher/state" && req.method === "GET") {
+      response = await handlePublisherState(traceId);
     } else {
       response = new Response(`Not Found: ${req.method} ${req.url} (parsed path: ${pathname})`, {
         status: 404,
