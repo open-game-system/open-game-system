@@ -1,21 +1,14 @@
-<!-- PeerJS library for WebRTC peer-to-peer connections -->
-<script
-  src="peer.js"
-  onload="console.log('[EXTENSION] peer.js loaded successfully')"
-  onerror="console.error('[EXTENSION] Failed to load peer.js')"
-></script>
-
 <!-- Background command bridge -->
 <script>
   try {
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg && msg.type === 'START_CAPTURE') {
         console.log('[STREAMING.HTML] START_CAPTURE received');
-        if (typeof INITIALIZE === 'function') {
+        if (typeof INITIALIZE_PUBLISHER === 'function') {
           if (!window.__captureStarted) {
             window.__captureStarted = true;
-            const params = window.__pendingPeers || { srcPeerId: crypto.randomUUID(), destPeerId: 'receiver-placeholder' };
-            INITIALIZE(params);
+            const params = window.__pendingPublisherParams || { iceServers: [] };
+            INITIALIZE_PUBLISHER(params);
           } else {
             console.log('[STREAMING.HTML] Capture already started, ignoring');
           }
@@ -23,7 +16,7 @@
       }
     });
   } catch (e) {
-    console.warn('[STREAMING.HTML] bridge error:', e?.message);
+    console.warn('[STREAMING.HTML] bridge error:', e && e.message);
   }
 </script>
 

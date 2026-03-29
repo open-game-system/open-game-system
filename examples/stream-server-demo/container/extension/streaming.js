@@ -3,54 +3,50 @@
  *
  * FILE STRUCTURE:
  * - background.js: Creates hidden tab with streaming.html when extension loads
- * - streaming.html: Loads PeerJS library and this streaming.js file
- * - streaming.js: Contains INITIALIZE() function and connection tracking logic
+ * - streaming.html: Loads this streaming.js file
+ * - streaming.js: Contains INITIALIZE_PUBLISHER(), APPLY_REMOTE_DESCRIPTION(),
+ *   CLOSE_PUBLISHER() functions and connection tracking logic
  *
  * HOW THE SYSTEM WORKS:
  *
  * 1. CONTAINER STARTUP:
  *    - Container server starts Puppeteer browser with this Chrome extension
  *    - background.js creates a hidden tab loading streaming.html
- *    - streaming.html loads peer.js (PeerJS library) and this streaming.js file
+ *    - streaming.html loads this streaming.js file
  *
  * 2. PUPPETEER INTEGRATION:
- *    - Container server calls page.evaluate() to execute INITIALIZE() function
+ *    - Container server calls page.evaluate() to execute INITIALIZE_PUBLISHER()
  *    - This function captures the current tab's video/audio stream
- *    - Creates PeerJS connection to stream to remote peer (like a receiver device)
+ *    - Creates RTCPeerConnection, adds tracks, creates local SDP offer
+ *    - Returns { sessionDescription, tracks, traceId } for the SFU
  *
- * 3. CONNECTION TRACKING SYSTEM:
- *    - window.activeConnections tracks all active streaming connections
- *    - Container server polls this every 15 seconds via page.evaluate()
+ * 3. SFU NEGOTIATION:
+ *    - Container server sends the local offer to CF Realtime SFU
+ *    - SFU returns an answer SDP
+ *    - Container server calls APPLY_REMOTE_DESCRIPTION(answer) to complete handshake
+ *
+ * 4. CONNECTION TRACKING SYSTEM:
+ *    - window.activeConnections tracks active publisher connections
+ *    - Tracks RTCPeerConnection.connectionState changes
+ *    - Container server polls this state every 15 seconds via page.evaluate()
  *    - When connections drop to 0, starts 60-second shutdown timer
- *    - If no new connections within grace period, browser shuts down automatically
  *
- * 4. LIFECYCLE MANAGEMENT:
+ * 5. LIFECYCLE MANAGEMENT:
  *    - Browser stays alive as long as streams are active
+ *    - CLOSE_PUBLISHER() cleans up RTCPeerConnection and capture stream
  *    - Automatically shuts down when unused (resource efficient)
- *    - Can handle multiple simultaneous streams to different peers
  *
  * ARCHITECTURE FLOW:
- * Stream Request → Container Server → Puppeteer → Chrome Extension → PeerJS → Remote Peer
+ * Stream Request → Container Server → Puppeteer → Chrome Extension → RTCPeerConnection → CF Realtime SFU
  *                              ↘ Connection Monitoring ↙
  *                           (Polls window.activeConnections)
  *
  * IMPORTANT NOTES:
  * - This runs in the Chrome extension context (isolated from normal web pages)
  * - Has special permissions for tab capture (see manifest.json)
- * - INITIALIZE function must be globally accessible for Puppeteer's page.evaluate()
+ * - Functions must be globally accessible for Puppeteer's page.evaluate()
  * - Connection tracking is critical for automatic resource management
- */
-
-/**
- * INITIALIZE gets called within the context of the chrome extension
- * by puppeteer calling evaluate on the extension's background page (streaming.html)
- *
- * captures the active puppeteer tab into a media stream that we use
- * to call the remote peer using peerjs
- *
- * @param {Object} params - Parameters from container server
- * @param {string} params.srcPeerId - This browser's PeerJS ID (UUID)
- * @param {string} params.destPeerId - Remote peer's PeerJS ID (receiver)
+ * - APP_SECRET is NEVER exposed here — all SFU API calls happen server-side
  */
 
 // Initialize connection tracking for container server monitoring
@@ -63,15 +59,14 @@ console.log("[INIT] Initializing window.streamingDebug object");
 window.streamingDebug = {
   initializeCalled: false,
   addConnectionCalled: false,
-  lastPeerId: null,
   lastError: null,
   callCount: 0,
   scriptLoadTime: new Date().toISOString(),
-  peerJsAvailable: typeof Peer !== "undefined",
   chromeTabCaptureAvailable:
     typeof chrome !== "undefined" && typeof chrome.tabCapture !== "undefined",
   captureDiagnostics: null,
   testVideoDiagnostics: null,
+  publisherState: null,
   eventLog: [],
 };
 
@@ -88,83 +83,70 @@ function recordDebugEvent(event, details = {}) {
 }
 
 console.log("[INIT] streaming.js loaded successfully");
-console.log("[INIT] PeerJS available:", window.streamingDebug.peerJsAvailable);
 console.log("[INIT] Chrome tabCapture available:", window.streamingDebug.chromeTabCaptureAvailable);
 console.log("[INIT] Initial activeConnections size:", window.activeConnections.size);
 
+// Module-level state for the publisher RTCPeerConnection
+let publisherPc = null;
+let publisherTraceId = null;
+
 /**
- * Add a peer connection to the tracking set
+ * Add a connection to the tracking set
  * Container server monitors window.activeConnections.size via page.evaluate()
  */
-function addConnection(peerId) {
-  console.log(`[CONNECTION] Adding connection for peer: ${peerId}`);
-  console.log(`[CONNECTION] activeConnections before add:`, Array.from(window.activeConnections));
-  console.log(`[CONNECTION] activeConnections size before add:`, window.activeConnections.size);
-
-  window.activeConnections.add(peerId);
-
-  console.log(`[CONNECTION] activeConnections after add:`, Array.from(window.activeConnections));
-  console.log(`[CONNECTION] activeConnections size after add:`, window.activeConnections.size);
-  console.log(
-    `[CONNECTION] Connection opened to ${peerId}. Active: ${window.activeConnections.size}`,
-  );
-
-  // Update debug info
+function addConnection(connectionId) {
+  console.log(`[CONNECTION] Adding connection: ${connectionId}`);
+  window.activeConnections.add(connectionId);
+  console.log(`[CONNECTION] Active connections: ${window.activeConnections.size}`);
   window.streamingDebug.addConnectionCalled = true;
-  window.streamingDebug.lastPeerId = peerId;
-  recordDebugEvent("connection_added", { peerId, size: window.activeConnections.size });
+  recordDebugEvent("connection_added", { connectionId, size: window.activeConnections.size });
 }
 
 /**
- * Remove a peer connection from tracking set
+ * Remove a connection from tracking set
  * When this reaches 0, container server starts shutdown grace period
  */
-function removeConnection(peerId) {
-  console.log(`[CONNECTION] Removing connection for peer: ${peerId}`);
-  console.log(
-    `[CONNECTION] activeConnections before remove:`,
-    Array.from(window.activeConnections),
-  );
-  console.log(`[CONNECTION] activeConnections size before remove:`, window.activeConnections.size);
-
-  const wasPresent = window.activeConnections.has(peerId);
-  window.activeConnections.delete(peerId);
+function removeConnection(connectionId) {
+  console.log(`[CONNECTION] Removing connection: ${connectionId}`);
+  const wasPresent = window.activeConnections.has(connectionId);
+  window.activeConnections.delete(connectionId);
+  console.log(`[CONNECTION] Was present: ${wasPresent}, Active connections: ${window.activeConnections.size}`);
   recordDebugEvent("connection_removed", {
-    peerId,
+    connectionId,
     wasPresent,
     size: window.activeConnections.size,
   });
-
-  console.log(`[CONNECTION] Was peer present before removal: ${wasPresent}`);
-  console.log(`[CONNECTION] activeConnections after remove:`, Array.from(window.activeConnections));
-  console.log(`[CONNECTION] activeConnections size after remove:`, window.activeConnections.size);
-  console.log(
-    `[CONNECTION] Connection closed to ${peerId}. Active: ${window.activeConnections.size}`,
-  );
 }
 
-async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "", peerPort = 0 }) {
-  console.log(`[INITIALIZE] ========== STARTING INITIALIZATION ==========`);
-  console.log(`[INITIALIZE] Function called with params:`, { srcPeerId, destPeerId });
-  console.log(`[INITIALIZE] srcPeerId type: ${typeof srcPeerId}, value: "${srcPeerId}"`);
-  console.log(`[INITIALIZE] destPeerId type: ${typeof destPeerId}, value: "${destPeerId}"`);
+/**
+ * INITIALIZE_PUBLISHER gets called within the context of the chrome extension
+ * by puppeteer calling evaluate on the extension's background page (streaming.html)
+ *
+ * Captures the active puppeteer tab into a media stream, creates an
+ * RTCPeerConnection, adds tracks with fixed names, and creates a local SDP offer.
+ *
+ * @param {Object} params - Parameters from container server
+ * @param {Array} params.iceServers - ICE server configurations for TURN/STUN
+ * @returns {{ sessionDescription: { type: string, sdp: string }, tracks: Array<{ location: string, trackName: string }>, traceId: string }}
+ */
+async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
+  const traceId = crypto.randomUUID();
+  publisherTraceId = traceId;
 
-  // Mark that INITIALIZE was called
+  console.log(`[INITIALIZE_PUBLISHER] ========== STARTING INITIALIZATION ==========`);
+  console.log(`[INITIALIZE_PUBLISHER] traceId: ${traceId}`);
+  console.log(`[INITIALIZE_PUBLISHER] iceServers count: ${Array.isArray(iceServers) ? iceServers.length : 0}`);
+
+  // Mark that INITIALIZE_PUBLISHER was called
   window.streamingDebug.initializeCalled = true;
   window.streamingDebug.callCount++;
-  window.streamingDebug.lastPeerId = destPeerId;
-  window.streamingDebug.lastError = null; // Reset error state
+  window.streamingDebug.lastError = null;
   window.streamingDebug.captureDiagnostics = null;
   window.streamingDebug.testVideoDiagnostics = null;
-  recordDebugEvent("initialize_called", {
-    srcPeerId,
-    destPeerId,
+  recordDebugEvent("initialize_publisher_called", {
+    traceId,
     iceServerCount: Array.isArray(iceServers) ? iceServers.length : 0,
   });
-
-  console.log(`[INITIALIZE] Updated debug info - call count: ${window.streamingDebug.callCount}`);
-  console.log(`[INITIALIZE] Current activeConnections:`, Array.from(window.activeConnections));
-  console.log(`[INITIALIZE] Current activeConnections size:`, window.activeConnections.size);
 
   try {
     // First, find and activate the target tab to satisfy activeTab permission
@@ -173,7 +155,7 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
     const tabs = await new Promise((resolve, reject) => {
       chrome.tabs.query({}, (tabs) => {
         if (chrome.runtime.lastError) {
-          console.error(`[TAB_ACTIVATION] ❌ Failed to query tabs:`, chrome.runtime.lastError);
+          console.error(`[TAB_ACTIVATION] Failed to query tabs:`, chrome.runtime.lastError);
           reject(new Error(`Failed to query tabs: ${chrome.runtime.lastError.message}`));
           return;
         }
@@ -216,13 +198,12 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
           (_results) => {
             if (chrome.runtime.lastError) {
               console.warn(
-                `[TAB_ACTIVATION] ⚠️ Script injection failed (may be normal for some pages):`,
+                `[TAB_ACTIVATION] Script injection failed (may be normal for some pages):`,
                 chrome.runtime.lastError.message,
               );
-              // Don't reject - some pages can't be injected into, but tabCapture might still work
               resolve();
             } else {
-              console.log(`[TAB_ACTIVATION] ✅ Successfully activated extension for tab`);
+              console.log(`[TAB_ACTIVATION] Successfully activated extension for tab`);
               resolve();
             }
           },
@@ -230,19 +211,13 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
       });
     } catch (activationError) {
       console.warn(
-        `[TAB_ACTIVATION] ⚠️ Extension activation failed, proceeding anyway:`,
+        `[TAB_ACTIVATION] Extension activation failed, proceeding anyway:`,
         activationError.message,
       );
-      // Continue - tabCapture might still work even without successful injection
     }
 
     // Now attempt tab capture
     console.log(`[TAB_CAPTURE] Starting tab capture for tab ${activeTab.id}...`);
-    console.log(`[TAB_CAPTURE] chrome object available:`, typeof chrome !== "undefined");
-    console.log(
-      `[TAB_CAPTURE] chrome.tabCapture available:`,
-      typeof chrome !== "undefined" && typeof chrome.tabCapture !== "undefined",
-    );
 
     // Preflight: stop any previous capture to avoid "Cannot capture a tab with an active stream"
     try {
@@ -260,7 +235,7 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
     // Wait until no active capture is registered for this tab
     async function waitForNoActiveCapture(tabId, maxTries = 20, delayMs = 100) {
       for (let i = 0; i < maxTries; i++) {
-        const { anyActive, tabsSnapshot } = await new Promise((res) => {
+        const { anyActive } = await new Promise((res) => {
           chrome.tabCapture.getCapturedTabs((tabs) => {
             try {
               const list = (tabs || []).map((t) => ({
@@ -270,10 +245,10 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
               }));
               const active = list.some((t) => t.status === "active" && t.tabId === tabId);
               console.log("[TAB_CAPTURE] Poll", i + 1, "/", maxTries, "captured tabs:", list);
-              res({ anyActive: active, tabsSnapshot: list });
+              res({ anyActive: active });
             } catch (e) {
               console.warn("[TAB_CAPTURE] getCapturedTabs inspect error:", e?.message);
-              res({ anyActive: false, tabsSnapshot: [] });
+              res({ anyActive: false });
             }
           });
         });
@@ -287,22 +262,9 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
 
     // First try standard tabCapture.capture
     try {
-      console.log("[TAB_CAPTURE] About to call chrome.tabCapture.capture synchronously");
-      console.log(
-        "[TAB_CAPTURE] Chrome tabCapture API available:",
-        typeof chrome.tabCapture !== "undefined",
-      );
-      console.log("[TAB_CAPTURE] Extension context check:", {
-        hasChrome: typeof chrome !== "undefined",
-        hasTabCapture: typeof chrome !== "undefined" && typeof chrome.tabCapture !== "undefined",
-        hasActiveTab: typeof chrome !== "undefined" && typeof chrome.activeTab !== "undefined",
-        extensionId: chrome.runtime?.id || "unknown",
-      });
+      console.log("[TAB_CAPTURE] Attempting tabCapture.capture on active tab...");
 
       stream = await new Promise((resolve, reject) => {
-        console.log(`[TAB_CAPTURE] Attempting tabCapture.capture on active tab...`);
-        console.log(`[TAB_CAPTURE] Target tab ID: ${activeTab.id}, URL: ${activeTab.url}`);
-
         chrome.tabCapture.capture(
           {
             video: true,
@@ -319,7 +281,7 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
           },
           (capturedStream) => {
             if (capturedStream) {
-              console.log(`[TAB_CAPTURE] ✅ capture() returned a stream`);
+              console.log(`[TAB_CAPTURE] capture() returned a stream`);
               console.log(`[TAB_CAPTURE] Stream details:`, {
                 id: capturedStream.id,
                 active: capturedStream.active,
@@ -331,11 +293,6 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
             } else {
               const error = chrome.runtime.lastError;
               console.warn(`[TAB_CAPTURE] capture() failed:`, error?.message);
-              console.warn(`[TAB_CAPTURE] Last error details:`, {
-                message: error?.message,
-                stack: error?.stack,
-                toString: error?.toString(),
-              });
               reject(new Error(error ? error.message : "Unknown capture error"));
             }
           },
@@ -350,7 +307,6 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
       // Fallback: getMediaStreamId + getUserMedia with Chrome-specific constraints
       const streamId = await new Promise((resolve, reject) => {
         try {
-          // targetTabId may not be supported on all channels; try with and without
           const opts = { targetTabId: activeTab.id };
           console.log(`[TAB_CAPTURE] Requesting media stream id for tab ${activeTab.id}...`);
           chrome.tabCapture.getMediaStreamId(opts, (id) => {
@@ -395,9 +351,9 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
             },
           },
         });
-        console.log(`[TAB_CAPTURE] ✅ getUserMedia returned a stream`);
+        console.log(`[TAB_CAPTURE] getUserMedia returned a stream`);
       } catch (gumErr) {
-        console.error(`[TAB_CAPTURE] ❌ getUserMedia with tab source failed:`, gumErr);
+        console.error(`[TAB_CAPTURE] getUserMedia with tab source failed:`, gumErr);
         throw new Error(`Failed to capture the tab: ${gumErr.message}`);
       }
     }
@@ -413,7 +369,6 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
         enabled: track.enabled,
         readyState: track.readyState,
         muted: track.muted,
-        constraints: track.getConstraints ? track.getConstraints() : "N/A",
         settings: track.getSettings ? track.getSettings() : "N/A",
       });
     });
@@ -438,29 +393,16 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
     if (stream.getVideoTracks().length > 0) {
       const videoTrack = stream.getVideoTracks()[0];
       const videoSettings = videoTrack.getSettings();
-      const videoConstraints = videoTrack.getConstraints ? videoTrack.getConstraints() : null;
 
       console.log("[TAB_CAPTURE] Video track details:", {
         width: videoSettings.width,
         height: videoSettings.height,
         frameRate: videoSettings.frameRate,
-        deviceId: videoSettings.deviceId,
-        aspectRatio: videoSettings.aspectRatio,
-        facingMode: videoSettings.facingMode,
-        resizeMode: videoSettings.resizeMode,
         allSettings: videoSettings,
-        constraints: videoConstraints,
       });
 
-      // Check if dimensions are 0 which indicates capture failure
       if (videoSettings.width === 0 || videoSettings.height === 0) {
-        console.error("[TAB_CAPTURE] ❌ Video track has zero dimensions - capture likely failed!");
-        console.error("[TAB_CAPTURE] This usually means:");
-        console.error(
-          "[TAB_CAPTURE] 1. Tab content is not being rendered (headless browser issue)",
-        );
-        console.error("[TAB_CAPTURE] 2. Extension permissions not properly granted");
-        console.error("[TAB_CAPTURE] 3. Chrome tab capture API not working in this environment");
+        console.error("[TAB_CAPTURE] Video track has zero dimensions - capture likely failed!");
       }
       window.streamingDebug.captureDiagnostics = {
         ...window.streamingDebug.captureDiagnostics,
@@ -468,7 +410,6 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
           width: videoSettings.width || 0,
           height: videoSettings.height || 0,
           frameRate: videoSettings.frameRate || null,
-          aspectRatio: videoSettings.aspectRatio || null,
           zeroDimensions: videoSettings.width === 0 || videoSettings.height === 0,
         },
       };
@@ -476,144 +417,8 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
         "capture_video_track_inspected",
         window.streamingDebug.captureDiagnostics.videoTrackDetails,
       );
-
-      // Create a test video element to verify the stream works
-      try {
-        const testVideo = document.createElement("video");
-        testVideo.srcObject = stream;
-        testVideo.muted = true; // Required for autoplay
-        window.streamingDebug.testVideoDiagnostics = {
-          attached: true,
-          playStarted: false,
-          waiting: false,
-          stalled: false,
-          metadataLoaded: false,
-          videoWidth: 0,
-          videoHeight: 0,
-          hasNonZeroPixels: null,
-          samplePixels: null,
-          error: null,
-        };
-
-        testVideo.onloadedmetadata = () => {
-          const metadata = {
-            videoWidth: testVideo.videoWidth,
-            videoHeight: testVideo.videoHeight,
-            duration: testVideo.duration,
-            readyState: testVideo.readyState,
-            networkState: testVideo.networkState,
-          };
-          console.log("[TAB_CAPTURE] Test video metadata loaded:", JSON.stringify(metadata));
-          window.streamingDebug.testVideoDiagnostics = {
-            ...window.streamingDebug.testVideoDiagnostics,
-            metadataLoaded: true,
-            ...metadata,
-          };
-          recordDebugEvent("test_video_metadata_loaded", metadata);
-
-          // Try to play the video to see if it actually has content
-          testVideo
-            .play()
-            .then(() => {
-              console.log("[TAB_CAPTURE] ✅ Test video can play");
-              window.streamingDebug.testVideoDiagnostics = {
-                ...window.streamingDebug.testVideoDiagnostics,
-                playStarted: true,
-              };
-              recordDebugEvent("test_video_play_started");
-
-              // Check if video is actually updating by sampling pixels
-              setTimeout(() => {
-                try {
-                  const canvas = document.createElement("canvas");
-                  canvas.width = testVideo.videoWidth || 100;
-                  canvas.height = testVideo.videoHeight || 100;
-                  const ctx = canvas.getContext("2d");
-                  ctx.drawImage(testVideo, 0, 0);
-                  const imageData = ctx.getImageData(0, 0, 10, 10);
-                  const hasNonZeroPixels = imageData.data.some((pixel) => pixel > 0);
-                  const samplePixels = Array.from(imageData.data.slice(0, 20));
-                  console.log("[TAB_CAPTURE] Video width:", testVideo.videoWidth);
-                  console.log("[TAB_CAPTURE] Video height:", testVideo.videoHeight);
-                  console.log("[TAB_CAPTURE] Video has non-zero pixels:", hasNonZeroPixels);
-                  console.log("[TAB_CAPTURE] Sample pixel data:", samplePixels);
-                  window.streamingDebug.testVideoDiagnostics = {
-                    ...window.streamingDebug.testVideoDiagnostics,
-                    videoWidth: testVideo.videoWidth,
-                    videoHeight: testVideo.videoHeight,
-                    hasNonZeroPixels,
-                    samplePixels,
-                  };
-                  recordDebugEvent("test_video_pixels_sampled", {
-                    videoWidth: testVideo.videoWidth,
-                    videoHeight: testVideo.videoHeight,
-                    hasNonZeroPixels,
-                  });
-                } catch (canvasErr) {
-                  console.warn("[TAB_CAPTURE] Could not sample video pixels:", canvasErr);
-                  window.streamingDebug.testVideoDiagnostics = {
-                    ...window.streamingDebug.testVideoDiagnostics,
-                    error: `Pixel sample failed: ${canvasErr.message}`,
-                  };
-                  recordDebugEvent("test_video_pixel_sample_failed", {
-                    message: canvasErr.message,
-                  });
-                }
-              }, 1000);
-            })
-            .catch((playErr) => {
-              console.error("[TAB_CAPTURE] Test video play failed:", playErr);
-              window.streamingDebug.testVideoDiagnostics = {
-                ...window.streamingDebug.testVideoDiagnostics,
-                error: `Play failed: ${playErr.message || String(playErr)}`,
-              };
-              recordDebugEvent("test_video_play_failed", {
-                message: playErr.message || String(playErr),
-              });
-            });
-        };
-
-        testVideo.onerror = (e) => {
-          console.error("[TAB_CAPTURE] Test video error:", e);
-          console.error("[TAB_CAPTURE] Video error details:", testVideo.error);
-          window.streamingDebug.testVideoDiagnostics = {
-            ...window.streamingDebug.testVideoDiagnostics,
-            error: testVideo.error
-              ? `Video error code ${testVideo.error.code}`
-              : "Unknown video error",
-          };
-          recordDebugEvent("test_video_error", {
-            errorCode: testVideo.error ? testVideo.error.code : null,
-          });
-        };
-
-        testVideo.onwaiting = () => {
-          console.log("[TAB_CAPTURE] Test video waiting for data...");
-          window.streamingDebug.testVideoDiagnostics = {
-            ...window.streamingDebug.testVideoDiagnostics,
-            waiting: true,
-          };
-          recordDebugEvent("test_video_waiting");
-        };
-
-        testVideo.onstalled = () => {
-          console.log("[TAB_CAPTURE] Test video stalled");
-          window.streamingDebug.testVideoDiagnostics = {
-            ...window.streamingDebug.testVideoDiagnostics,
-            stalled: true,
-          };
-          recordDebugEvent("test_video_stalled");
-        };
-      } catch (testErr) {
-        console.warn("[TAB_CAPTURE] Could not create test video element:", testErr);
-        window.streamingDebug.testVideoDiagnostics = {
-          attached: false,
-          error: `Test video creation failed: ${testErr.message}`,
-        };
-        recordDebugEvent("test_video_create_failed", { message: testErr.message });
-      }
     } else {
-      console.error("[TAB_CAPTURE] ❌ No video tracks in stream!");
+      console.error("[TAB_CAPTURE] No video tracks in stream!");
       window.streamingDebug.captureDiagnostics = {
         ...window.streamingDebug.captureDiagnostics,
         error: "No video tracks in stream",
@@ -625,7 +430,7 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
     try {
       window.currentCaptureStream = stream;
       console.log("[TAB_CAPTURE] currentCaptureStream set");
-      stream.getTracks().forEach((track, _index) => {
+      stream.getTracks().forEach((track) => {
         track.onended = () => {
           console.log("[TAB_CAPTURE] Track ended:", track.kind, track.label);
           const allEnded =
@@ -641,196 +446,208 @@ async function INITIALIZE({ srcPeerId, destPeerId, iceServers = [], peerHost = "
       console.warn("[TAB_CAPTURE] Could not set global capture stream:", e?.message);
     }
 
-    // Create PeerJS peer with our assigned ID
-    console.log(`[PEERJS] Creating peer with ID: "${srcPeerId}"`);
-    console.log(`[PEERJS] Peer constructor available:`, typeof Peer !== "undefined");
+    // Close any existing publisher peer connection
+    if (publisherPc) {
+      console.log("[PUBLISHER] Closing previous RTCPeerConnection before creating new one");
+      try {
+        publisherPc.close();
+      } catch (e) {
+        console.warn("[PUBLISHER] Error closing previous pc:", e?.message);
+      }
+      publisherPc = null;
+    }
 
-    const peerOptions = {
-      debug: 3,
-      config: {
-        iceServers: Array.isArray(iceServers) ? iceServers : [],
-      },
+    // Create RTCPeerConnection with ICE servers
+    console.log(`[PUBLISHER] Creating RTCPeerConnection with ${Array.isArray(iceServers) ? iceServers.length : 0} ICE servers`);
+
+    const pc = new RTCPeerConnection({
+      iceServers: Array.isArray(iceServers) ? iceServers : [],
+      bundlePolicy: "max-bundle",
+    });
+    publisherPc = pc;
+
+    // Track connection state changes for activeConnections monitoring
+    const connectionId = `publisher-${traceId}`;
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      console.log(`[PUBLISHER] connectionState changed to: ${state}`);
+      window.streamingDebug.publisherState = state;
+      recordDebugEvent("publisher_connection_state_change", { state, connectionId });
+
+      if (state === "connected") {
+        addConnection(connectionId);
+      } else if (state === "disconnected" || state === "failed" || state === "closed") {
+        removeConnection(connectionId);
+      }
     };
-    if (peerHost) {
-      peerOptions.host = peerHost;
-      peerOptions.port = peerPort || 9000;
-      peerOptions.path = '/';
-      peerOptions.secure = false;
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log("[PUBLISHER] ICE candidate:", event.candidate.candidate.substring(0, 80));
+      } else {
+        console.log("[PUBLISHER] ICE gathering complete");
+      }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log(`[PUBLISHER] ICE gathering state: ${pc.iceGatheringState}`);
+    };
+
+    // Add captured tracks to the peer connection with fixed names
+    // CF Realtime SFU uses track names to identify streams
+    const tracks = [];
+
+    const videoTracks = stream.getVideoTracks();
+    if (videoTracks.length > 0) {
+      const sender = pc.addTrack(videoTracks[0], stream);
+      const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
+      if (transceiver) {
+        transceiver.direction = "sendonly";
+      }
+      tracks.push({
+        location: "local",
+        trackName: "cast-video",
+      });
+      console.log("[PUBLISHER] Added video track as 'cast-video'");
     }
-    const peer = new Peer(srcPeerId, peerOptions);
-    console.log(`[PEERJS] Peer object created:`, peer);
 
-    // Wait for peer to connect to PeerJS signaling server
-    console.log(`[PEERJS] Waiting for peer to connect to signaling server...`);
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        console.error(`[PEERJS] ❌ Timeout waiting for peer to open`);
-        reject(new Error("Timeout waiting for peer to connect"));
-      }, 30000); // 30 second timeout
-
-      peer.once("open", (id) => {
-        clearTimeout(timeout);
-        console.log(`[PEERJS] ✅ Connected to signaling server with ID: "${id}"`);
-        console.log(`[PEERJS] Peer ID matches expected: ${id === srcPeerId}`);
-        resolve();
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length > 0) {
+      const sender = pc.addTrack(audioTracks[0], stream);
+      const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
+      if (transceiver) {
+        transceiver.direction = "sendonly";
+      }
+      tracks.push({
+        location: "local",
+        trackName: "cast-audio",
       });
+      console.log("[PUBLISHER] Added audio track as 'cast-audio'");
+    }
 
-      peer.on("error", (error) => {
-        clearTimeout(timeout);
-        console.error(`[PEERJS] ❌ Peer error during connection:`, error);
-        console.error(`[PEERJS] Error type: ${error.type}, message: ${error.message}`);
-        reject(new Error(`Peer error: ${error.message}`));
-      });
+    // Create local SDP offer
+    console.log("[PUBLISHER] Creating SDP offer...");
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    console.log("[PUBLISHER] Local description set (offer)");
+
+    const sessionDescription = {
+      type: pc.localDescription.type,
+      sdp: pc.localDescription.sdp,
+    };
+
+    console.log(`[INITIALIZE_PUBLISHER] Initialization complete.`);
+    console.log(`[INITIALIZE_PUBLISHER] Tracks: ${tracks.length}, traceId: ${traceId}`);
+    console.log(`[INITIALIZE_PUBLISHER] ========== INITIALIZATION COMPLETE ==========`);
+    recordDebugEvent("initialize_publisher_complete", {
+      trackCount: tracks.length,
+      traceId,
     });
 
-    // Make the call to the destination peer and start connection tracking
-    console.log(`[CALL] Starting call to destination peer: "${destPeerId}"`);
-    console.log(`[CALL] Stream object for call:`, stream);
-    console.log(
-      `[CALL] Stream tracks for call:`,
-      stream.getTracks().map((t) => `${t.kind}:${t.label}`),
+    return {
+      sessionDescription,
+      tracks,
+      traceId,
+    };
+  } catch (error) {
+    console.error(`[INITIALIZE_PUBLISHER] INITIALIZATION FAILED:`, error);
+    console.error(`[INITIALIZE_PUBLISHER] Error stack:`, error.stack);
+    window.streamingDebug.lastError = `Initialization failed: ${error.message}`;
+    recordDebugEvent("initialize_publisher_failed", { message: error.message });
+    throw error;
+  }
+}
+
+/**
+ * APPLY_REMOTE_DESCRIPTION applies the SFU's answer SDP to the publisher
+ * RTCPeerConnection, completing the WebRTC handshake.
+ *
+ * Called by the container server after it sends the local offer to the
+ * CF Realtime SFU and receives the answer.
+ *
+ * @param {{ sessionDescription: { type: string, sdp: string } }} params
+ */
+async function APPLY_REMOTE_DESCRIPTION({ sessionDescription }) {
+  console.log(`[APPLY_REMOTE_DESCRIPTION] Applying remote description...`);
+  console.log(`[APPLY_REMOTE_DESCRIPTION] Type: ${sessionDescription.type}`);
+  recordDebugEvent("apply_remote_description_called", { type: sessionDescription.type });
+
+  if (!publisherPc) {
+    const msg = "No publisher RTCPeerConnection — call INITIALIZE_PUBLISHER first";
+    console.error(`[APPLY_REMOTE_DESCRIPTION] ${msg}`);
+    window.streamingDebug.lastError = msg;
+    throw new Error(msg);
+  }
+
+  try {
+    await publisherPc.setRemoteDescription(
+      new RTCSessionDescription({
+        type: sessionDescription.type,
+        sdp: sessionDescription.sdp,
+      }),
     );
-
-    const call = peer.call(destPeerId, stream);
-
-    if (!call) {
-      console.error(
-        `[CALL] ❌ Failed to create call to ${destPeerId} - call object is null/undefined`,
-      );
-      window.streamingDebug.lastError = "Failed to create call object";
-      return;
-    }
-
-    console.log(`[CALL] ✅ Call object created successfully:`, call);
-    console.log(`[CALL] Call peer ID: "${call.peer}"`);
-    console.log(`[CALL] Call type: "${call.type}"`);
-
-    // Track the connection immediately since we're initiating the call
-    console.log(`[CALL] Adding connection to tracking before call events...`);
-    console.log(`[CALL] About to call addConnection with destPeerId: "${destPeerId}"`);
-    console.log(
-      `[CALL] activeConnections before addConnection:`,
-      Array.from(window.activeConnections),
-    );
-
-    try {
-      addConnection(destPeerId);
-      console.log(`[CALL] ✅ addConnection completed successfully`);
-      console.log(
-        `[CALL] activeConnections after addConnection:`,
-        Array.from(window.activeConnections),
-      );
-      console.log(
-        `[CALL] activeConnections size after addConnection:`,
-        window.activeConnections.size,
-      );
-    } catch (error) {
-      console.error(`[CALL] ❌ addConnection failed:`, error);
-      window.streamingDebug.lastError = `addConnection failed: ${error.message}`;
-    }
-
-    // Handle call lifecycle events
-    call.on("stream", (remoteStream) => {
-      console.log(`[CALL_EVENT] 'stream' event - Received remote stream from ${destPeerId}`);
-      console.log(
-        `[CALL_EVENT] Remote stream tracks:`,
-        remoteStream.getTracks().map((t) => `${t.kind}:${t.label}`),
-      );
-      // Connection already tracked above, just log that it's bidirectional
-    });
-
-    // The 'open' event fires when the call is answered
-    call.on("open", () => {
-      console.log(`[CALL_EVENT] 'open' event - Call to ${destPeerId} opened successfully`);
-      console.log(`[CALL_EVENT] Call is now active and streaming`);
-      // Connection already tracked above, this is just confirmation
-    });
-
-    call.on("close", () => {
-      console.log(`[CALL_EVENT] 'close' event - Call to ${destPeerId} ended`);
-      removeConnection(destPeerId);
-    });
-
-    call.on("error", (error) => {
-      console.error(`[CALL_EVENT] 'error' event - Call error with ${destPeerId}:`, error);
-      console.error(`[CALL_EVENT] Error type: ${error.type}, message: ${error.message}`);
-      removeConnection(destPeerId);
-      window.streamingDebug.lastError = `Call error: ${error.message}`;
-    });
-
-    // Handle incoming calls (though this extension typically just calls out)
-    console.log(`[PEER_EVENTS] Setting up peer event handlers...`);
-    peer.on("call", (incomingCall) => {
-      console.log(`[PEER_EVENT] 'call' event - Received incoming call from ${incomingCall.peer}`);
-      addConnection(incomingCall.peer);
-
-      // Auto-answer incoming calls with the same captured stream
-      console.log(`[PEER_EVENT] Auto-answering incoming call with captured stream`);
-      incomingCall.answer(stream);
-
-      incomingCall.on("stream", (_remoteStream) => {
-        console.log(
-          `[PEER_EVENT] Incoming call 'stream' event - received remote stream from ${incomingCall.peer}`,
-        );
-      });
-
-      incomingCall.on("close", () => {
-        console.log(
-          `[PEER_EVENT] Incoming call 'close' event - call from ${incomingCall.peer} ended`,
-        );
-        removeConnection(incomingCall.peer);
-      });
-
-      incomingCall.on("error", (error) => {
-        console.error(
-          `[PEER_EVENT] Incoming call 'error' event - error from ${incomingCall.peer}:`,
-          error,
-        );
-        removeConnection(incomingCall.peer);
-      });
-    });
-
-    // Handle peer-level events
-    peer.on("disconnected", () => {
-      console.log("[PEER_EVENT] Peer disconnected from signaling server");
-      console.log("[PEER_EVENT] Note: existing calls may still be active");
-    });
-
-    peer.on("close", () => {
-      console.log("[PEER_EVENT] Peer connection closed completely");
-      console.log("[PEER_EVENT] Clearing all tracked connections");
-      console.log(
-        "[PEER_EVENT] activeConnections before clear:",
-        Array.from(window.activeConnections),
-      );
-      window.activeConnections.clear();
-      console.log(
-        "[PEER_EVENT] activeConnections after clear:",
-        Array.from(window.activeConnections),
-      );
-    });
-
-    console.log(`[INITIALIZE] ✅ Initialization complete. Ready for streaming.`);
-    console.log(`[INITIALIZE] Final activeConnections:`, Array.from(window.activeConnections));
-    console.log(`[INITIALIZE] Final activeConnections size:`, window.activeConnections.size);
-    console.log(`[INITIALIZE] ========== INITIALIZATION COMPLETE ==========`);
-    recordDebugEvent("initialize_complete", {
-      activeConnectionsSize: window.activeConnections.size,
+    console.log(`[APPLY_REMOTE_DESCRIPTION] Remote description applied successfully`);
+    console.log(`[APPLY_REMOTE_DESCRIPTION] Connection state: ${publisherPc.connectionState}`);
+    console.log(`[APPLY_REMOTE_DESCRIPTION] ICE connection state: ${publisherPc.iceConnectionState}`);
+    recordDebugEvent("apply_remote_description_complete", {
+      connectionState: publisherPc.connectionState,
+      iceConnectionState: publisherPc.iceConnectionState,
     });
   } catch (error) {
-    console.error(`[INITIALIZE] ❌ INITIALIZATION FAILED:`, error);
-    console.error(`[INITIALIZE] Error stack:`, error.stack);
-    window.streamingDebug.lastError = `Initialization failed: ${error.message}`;
-    recordDebugEvent("initialize_failed", { message: error.message });
-    throw error; // Re-throw so container server knows it failed
+    console.error(`[APPLY_REMOTE_DESCRIPTION] Failed:`, error);
+    window.streamingDebug.lastError = `Apply remote description failed: ${error.message}`;
+    recordDebugEvent("apply_remote_description_failed", { message: error.message });
+    throw error;
+  }
+}
+
+/**
+ * CLOSE_PUBLISHER cleans up the publisher RTCPeerConnection and capture stream.
+ * Called when a cast session ends or the container is shutting down.
+ */
+async function CLOSE_PUBLISHER() {
+  console.log(`[CLOSE_PUBLISHER] Closing publisher...`);
+  recordDebugEvent("close_publisher_called");
+
+  try {
+    if (publisherPc) {
+      console.log(`[CLOSE_PUBLISHER] Closing RTCPeerConnection (state: ${publisherPc.connectionState})`);
+      publisherPc.close();
+      publisherPc = null;
+    }
+
+    if (window.currentCaptureStream) {
+      console.log("[CLOSE_PUBLISHER] Stopping capture stream tracks...");
+      window.currentCaptureStream.getTracks().forEach((t) => {
+        console.log(`[CLOSE_PUBLISHER] Stopping track: ${t.kind} ${t.label}`);
+        t.stop();
+      });
+      window.currentCaptureStream = null;
+    }
+
+    // Clear all connections
+    window.activeConnections.clear();
+    console.log("[CLOSE_PUBLISHER] All connections cleared");
+
+    window.streamingDebug.publisherState = null;
+    publisherTraceId = null;
+    recordDebugEvent("close_publisher_complete");
+  } catch (error) {
+    console.error(`[CLOSE_PUBLISHER] Error during cleanup:`, error);
+    window.streamingDebug.lastError = `Close publisher failed: ${error.message}`;
+    recordDebugEvent("close_publisher_failed", { message: error.message });
+    throw error;
   }
 }
 
 // Log when the script finishes loading
 console.log("[INIT] streaming.js script execution complete");
-console.log("[INIT] INITIALIZE function available:", typeof INITIALIZE === "function");
+console.log("[INIT] INITIALIZE_PUBLISHER function available:", typeof INITIALIZE_PUBLISHER === "function");
+console.log("[INIT] APPLY_REMOTE_DESCRIPTION function available:", typeof APPLY_REMOTE_DESCRIPTION === "function");
+console.log("[INIT] CLOSE_PUBLISHER function available:", typeof CLOSE_PUBLISHER === "function");
 console.log("[INIT] Global objects available:", {
-  Peer: typeof Peer !== "undefined",
+  RTCPeerConnection: typeof RTCPeerConnection !== "undefined",
   chrome: typeof chrome !== "undefined",
   "chrome.tabCapture": typeof chrome !== "undefined" && typeof chrome.tabCapture !== "undefined",
 });
