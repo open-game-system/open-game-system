@@ -285,7 +285,7 @@ stream.post("/start-stream", async (c) => {
 
     // Step 5: Now add tracks — PeerConnection is connected so SFU can accept them
     // Small delay to ensure PeerConnection is fully established
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     const sfuTracks = await addTracks(creds, sfuSession.sessionId, {
       sessionDescription: prepareData.sessionDescription,
       tracks: prepareData.tracks.map((t) => ({

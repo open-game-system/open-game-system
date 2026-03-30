@@ -169,7 +169,13 @@ export async function addTracks(
     }),
   });
 
-  const json = await response.json();
+  const rawText = await response.text();
+  let json: unknown;
+  try {
+    json = JSON.parse(rawText);
+  } catch {
+    throw new Error(`Realtime API addTracks: invalid JSON (${response.status}): ${rawText.substring(0, 200)}`);
+  }
 
   if (!response.ok || (isRecord(json) && json.errorCode)) {
     const errorCode = isRecord(json) ? json.errorCode : "unknown";
@@ -177,7 +183,11 @@ export async function addTracks(
     throw new Error(`Realtime API addTracks failed: ${response.status} — ${errorCode}: ${errorDesc}`);
   }
 
-  return parseSessionResponse(json);
+  try {
+    return parseSessionResponse(json);
+  } catch (parseErr) {
+    throw new Error(`Realtime addTracks parse failed (${response.status}): ${(parseErr as Error).message} — raw: ${rawText.substring(0, 300)}`);
+  }
 }
 
 /**
