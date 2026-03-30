@@ -537,6 +537,21 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
       sdp: pc.localDescription.sdp,
     };
 
+    // After setLocalDescription, transceiver.mid is populated — add it to tracks
+    const transceivers = pc.getTransceivers();
+    for (const track of tracks) {
+      const transceiver = transceivers.find(
+        (t) => t.sender.track && (
+          (track.trackName === "cast-video" && t.sender.track.kind === "video") ||
+          (track.trackName === "cast-audio" && t.sender.track.kind === "audio")
+        )
+      );
+      if (transceiver && transceiver.mid) {
+        track.mid = transceiver.mid;
+        console.log(`[PUBLISHER] Track '${track.trackName}' assigned mid: ${transceiver.mid}`);
+      }
+    }
+
     console.log(`[INITIALIZE_PUBLISHER] Initialization complete.`);
     console.log(`[INITIALIZE_PUBLISHER] Tracks: ${tracks.length}, traceId: ${traceId}`);
     console.log(`[INITIALIZE_PUBLISHER] ========== INITIALIZATION COMPLETE ==========`);

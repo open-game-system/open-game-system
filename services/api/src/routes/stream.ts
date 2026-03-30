@@ -250,11 +250,28 @@ stream.post("/start-stream", async (c) => {
     const prepareData = parsePublisherPrepareResponse(await prepareRes.json());
     logTrace(traceId, "publisher_prepared", { trackCount: prepareData.tracks.length });
 
-    // Step 2: Create Realtime SFU session with the local offer
+    // Step 2: Create Realtime SFU session with the local offer → get SFU answer
     const sfuSession = await createSession(creds, prepareData.sessionDescription);
     logTrace(traceId, "sfu_session_created", { sfuSessionId: sfuSession.sessionId });
 
-    // Step 3: Add tracks to the SFU session
+    // Step 3: Apply SFU answer to container FIRST — PeerConnection must connect before adding tracks
+    const answerUrl = new URL(c.req.url);
+    answerUrl.pathname = "/publisher/answer";
+    const answerReq = new Request(answerUrl.toString(), {
+      method: "POST",
+      headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
+      body: JSON.stringify({ sessionDescription: sfuSession.sessionDescription }),
+    });
+    const answerRes = await stub.fetch(answerReq);
+    if (!answerRes.ok) {
+      const errBody = await answerRes.text();
+      logTrace(traceId, "publisher_answer_failed", { status: answerRes.status, body: errBody });
+      return c.json({ error: "Publisher answer failed", details: errBody, traceId }, 500);
+    }
+
+    // Step 5: Now add tracks — PeerConnection is connected so SFU can accept them
+    // Small delay to ensure PeerConnection is fully established
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     const sfuTracks = await addTracks(creds, sfuSession.sessionId, {
       sessionDescription: prepareData.sessionDescription,
       tracks: prepareData.tracks.map((t) => ({
@@ -265,19 +282,17 @@ stream.post("/start-stream", async (c) => {
     });
     logTrace(traceId, "sfu_tracks_added");
 
-    // Step 4: Send SFU answer back to container to complete WebRTC handshake
-    const answerUrl = new URL(c.req.url);
-    answerUrl.pathname = "/publisher/answer";
-    const answerReq = new Request(answerUrl.toString(), {
-      method: "POST",
-      headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
-      body: JSON.stringify({ sessionDescription: sfuTracks.sessionDescription }),
-    });
-    const answerRes = await stub.fetch(answerReq);
-    if (!answerRes.ok) {
-      const errBody = await answerRes.text();
-      logTrace(traceId, "publisher_answer_failed", { status: answerRes.status, body: errBody });
-      return c.json({ error: "Publisher answer failed", details: errBody, traceId }, 500);
+    // Step 6: Apply renegotiated answer to container (tracks/new returns updated SDP)
+    if (sfuTracks.sessionDescription) {
+      const reanswerUrl = new URL(c.req.url);
+      reanswerUrl.pathname = "/publisher/answer";
+      const reanswerReq = new Request(reanswerUrl.toString(), {
+        method: "POST",
+        headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
+        body: JSON.stringify({ sessionDescription: sfuTracks.sessionDescription }),
+      });
+      await stub.fetch(reanswerReq);
+      logTrace(traceId, "publisher_reanswer_applied");
     }
 
     logTrace(traceId, "start_stream_complete", { sfuSessionId: sfuSession.sessionId });
