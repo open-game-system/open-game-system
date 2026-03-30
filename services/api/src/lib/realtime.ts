@@ -130,12 +130,15 @@ export async function createSession(
     body: JSON.stringify({ sessionDescription: offer }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Realtime API createSession failed: ${response.status} — ${body}`);
+  const json = await response.json();
+
+  if (!response.ok || (isRecord(json) && json.errorCode)) {
+    const errorCode = isRecord(json) ? json.errorCode : "unknown";
+    const errorDesc = isRecord(json) ? json.errorDescription : JSON.stringify(json);
+    throw new Error(`Realtime API createSession failed: ${response.status} — ${errorCode}: ${errorDesc}`);
   }
 
-  return parseSessionResponse(await response.json());
+  return parseSessionResponse(json);
 }
 
 /**
@@ -156,12 +159,15 @@ export async function addTracks(
     }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Realtime API addTracks failed: ${response.status} — ${body}`);
+  const json = await response.json();
+
+  if (!response.ok || (isRecord(json) && json.errorCode)) {
+    const errorCode = isRecord(json) ? json.errorCode : "unknown";
+    const errorDesc = isRecord(json) ? json.errorDescription : JSON.stringify(json);
+    throw new Error(`Realtime API addTracks failed: ${response.status} — ${errorCode}: ${errorDesc}`);
   }
 
-  return parseSessionResponse(await response.json());
+  return parseSessionResponse(json);
 }
 
 /**
@@ -179,12 +185,15 @@ export async function renegotiate(
     body: JSON.stringify({ sessionDescription: answer }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${body}`);
+  const json = await response.json();
+
+  if (!response.ok || (isRecord(json) && json.errorCode)) {
+    const errorCode = isRecord(json) ? json.errorCode : "unknown";
+    const errorDesc = isRecord(json) ? json.errorDescription : JSON.stringify(json);
+    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${errorCode}: ${errorDesc}`);
   }
 
-  return parseSessionResponse(await response.json());
+  return parseSessionResponse(json);
 }
 
 /**
