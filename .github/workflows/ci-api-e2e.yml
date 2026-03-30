@@ -52,26 +52,9 @@ jobs:
           Xvfb :99 -screen 0 1920x1080x24 &
           echo "DISPLAY=:99" >> $GITHUB_ENV
 
-      # Start local PeerJS signaling server (avoids flaky 0.peerjs.com)
-      - name: Start PeerJS server
-        run: |
-          npx peer --port 9000 &
-          # Wait for PeerJS server to be ready (npx needs to download first)
-          for i in $(seq 1 30); do
-            if curl -s http://localhost:9000/ > /dev/null 2>&1; then
-              echo "PeerJS server ready after ${i}s"
-              break
-            fi
-            sleep 1
-          done
-          curl -s http://localhost:9000/ || echo "WARNING: PeerJS server may not be ready"
-
       # Start stream server in background (after Xvfb)
       - name: Start stream server
         working-directory: examples/stream-server-demo/container
-        env:
-          PEERJS_HOST: localhost
-          PEERJS_PORT: "9000"
         run: |
           npx tsx src/server.ts &
           sleep 10
@@ -84,6 +67,8 @@ jobs:
           echo 'JWT_SECRET="ci-jwt-secret"' > .dev.vars
           echo 'ENVIRONMENT="ci"' >> .dev.vars
           echo 'STREAM_SERVER_URL="http://localhost:8080"' >> .dev.vars
+          echo "CLOUDFLARE_REALTIME_APP_ID=\"${{ secrets.CLOUDFLARE_REALTIME_APP_ID }}\"" >> .dev.vars
+          echo "CLOUDFLARE_REALTIME_APP_SECRET=\"${{ secrets.CLOUDFLARE_REALTIME_APP_SECRET }}\"" >> .dev.vars
           npx wrangler d1 execute opengame-api-db --local --file=schema.sql
           npx wrangler d1 execute opengame-api-db --local --command "INSERT INTO api_keys (key, game_id, game_name) VALUES ('ci-test-key', 'test-game', 'CI Test Game')"
 
@@ -110,10 +95,10 @@ jobs:
       # Pre-warm Chrome browser (first launch with extensions is slow)
       - name: Warm up stream server Chrome
         run: |
-          echo "Triggering Chrome warm-up via /start-stream..."
-          curl -s -X POST http://localhost:8080/start-stream \
+          echo "Triggering Chrome warm-up via /publisher/prepare..."
+          curl -s -X POST http://localhost:8080/publisher/prepare \
             -H "Content-Type: application/json" \
-            -d '{"url":"https://example.com","peerId":"warmup-peer"}' \
+            -d '{"url":"https://example.com","iceServers":[]}' \
             --max-time 90 || true
           echo "Chrome warm-up complete"
 
@@ -126,8 +111,6 @@ jobs:
           E2E_API_KEY: ci-test-key
           E2E_STREAM_SERVER_URL: http://localhost:8080
           E2E_RECEIVER_BASE_URL: http://localhost:8888
-          PEERJS_HOST: localhost
-          PEERJS_PORT: "9000"
 
       - name: Upload test results
         if: always()

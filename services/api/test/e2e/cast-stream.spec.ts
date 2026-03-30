@@ -24,8 +24,6 @@ const apiKey = process.env.E2E_API_KEY;
 const spectateUrl = process.env.E2E_SPECTATE_URL || "https://triviajam.tv";
 // For video tests: direct stream server URL (Container proxy doesn't work on macOS local dev)
 const streamServerUrl = process.env.E2E_STREAM_SERVER_URL || "http://localhost:8080";
-const peerHost = process.env.PEERJS_HOST || "";
-const peerPort = process.env.PEERJS_PORT || "";
 const receiverBaseUrl = process.env.E2E_RECEIVER_BASE_URL || "";
 
 test.describe("Cast Stream — Container Provisioning", () => {
@@ -116,15 +114,13 @@ test.describe("Cast Stream — Container Provisioning", () => {
   });
 });
 
-test.describe("Cast Stream — WebRTC Signaling", () => {
+test.describe("Cast Stream — WebRTC via Realtime SFU", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
-  test.skip(!peerHost, "WebRTC video tests require local PeerJS + stream server (cast-e2e workflow)");
 
-  test("receiver connects to stream server and receives video via PeerJS", async ({ page }) => {
-    const peerParams = peerHost ? `&peerHost=${encodeURIComponent(peerHost)}&peerPort=${encodeURIComponent(peerPort)}` : "";
+  test("receiver connects via SFU and receives video", async ({ page }) => {
     const receiverUrl = receiverBaseUrl
-      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams}`
-      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams}`;
+      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
+      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
 
     console.log("[Test] Loading receiver:", receiverUrl);
 
@@ -134,14 +130,15 @@ test.describe("Cast Stream — WebRTC Signaling", () => {
 
     await page.goto(receiverUrl);
 
-    // Wait for the receiver to connect and display video (up to 45s)
+    // Wait for the receiver to connect and display video (up to 60s)
+    // SFU flow: receiver calls /start-stream → /subscribe → WebRTC handshake
     const gotVideo = await page
       .waitForFunction(
         () => {
           const video = document.querySelector("video");
           return video?.srcObject !== null && video?.srcObject !== undefined;
         },
-        { timeout: 45_000 },
+        { timeout: 60_000 },
       )
       .then(() => true)
       .catch(() => false);
@@ -246,12 +243,10 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     ).toBe(true);
   });
 
-  test("receiver connects to stream server and displays video full-screen", async ({ page }) => {
-    test.skip(!peerHost, "WebRTC video tests require local PeerJS + stream server (cast-e2e workflow)");
-    const peerParams2 = peerHost ? `&peerHost=${encodeURIComponent(peerHost)}&peerPort=${encodeURIComponent(peerPort)}` : "";
+  test("receiver connects via SFU and displays video full-screen", async ({ page }) => {
     const receiverUrl2 = receiverBaseUrl
-      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams2}`
-      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}${peerParams2}`;
+      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
+      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
     await page.goto(receiverUrl2);
 
     // Wait for video to have srcObject (up to 45 seconds)
