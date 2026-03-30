@@ -95,11 +95,11 @@ jobs:
       # Pre-warm Chrome browser (first launch with extensions is slow)
       - name: Warm up stream server Chrome
         run: |
-          echo "Triggering Chrome warm-up via /publisher/prepare..."
-          curl -s -X POST http://localhost:8080/publisher/prepare \
+          echo "Triggering Chrome warm-up via API /start-stream..."
+          curl -s -X POST http://localhost:8788/api/v1/stream/start-stream \
             -H "Content-Type: application/json" \
-            -d '{"url":"https://example.com","iceServers":[]}' \
-            --max-time 90 || true
+            -d '{"url":"https://example.com"}' \
+            --max-time 120 || true
           echo "Chrome warm-up complete"
 
       # Run E2E tests
@@ -109,7 +109,7 @@ jobs:
         env:
           E2E_API_URL: http://localhost:8788
           E2E_API_KEY: ci-test-key
-          E2E_STREAM_SERVER_URL: http://localhost:8080
+          E2E_STREAM_SERVER_URL: http://localhost:8788/api/v1/stream
           E2E_RECEIVER_BASE_URL: http://localhost:8888
 
       - name: Upload test results
