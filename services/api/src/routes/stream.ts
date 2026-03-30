@@ -229,10 +229,7 @@ stream.post("/start-stream", async (c) => {
     const creds = getRealtimeCredentials(c.env);
     logTrace(traceId, "start_stream_begin", { sessionId, streamInstanceName });
 
-    // Step 1: Ask container to prepare publisher (launch Chrome, capture tab, create local SDP offer)
-    const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-    const stub = c.env.STREAM_CONTAINER.get(id);
-
+    // Step 1: Ask container to prepare publisher
     // ICE servers are optional — SFU provides its own TURN
     let iceServers: IceServerConfig[] = [];
     try {
@@ -240,14 +237,32 @@ stream.post("/start-stream", async (c) => {
     } catch {
       logTrace(traceId, "turn_not_configured_using_defaults");
     }
-    const prepareUrl = new URL(c.req.url);
-    prepareUrl.pathname = "/publisher/prepare";
-    const prepareReq = new Request(prepareUrl.toString(), {
-      method: "POST",
-      headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
-      body: JSON.stringify({ url: (await c.req.json()).url, iceServers }),
-    });
-    const prepareRes = await stub.fetch(prepareReq);
+
+    const requestBody = await c.req.json();
+
+    // Helper: route to container directly (STREAM_SERVER_URL) or via DO
+    async function containerFetch(path: string, body: unknown): Promise<Response> {
+      if (c.env.STREAM_SERVER_URL) {
+        const url = `${c.env.STREAM_SERVER_URL}${path}`;
+        logTrace(traceId, "container_direct_fetch", { url });
+        return fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-stream-trace-id": traceId },
+          body: JSON.stringify(body),
+        });
+      }
+      const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
+      const stub = c.env.STREAM_CONTAINER.get(id);
+      const doUrl = new URL(c.req.url);
+      doUrl.pathname = path;
+      return stub.fetch(new Request(doUrl.toString(), {
+        method: "POST",
+        headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
+        body: JSON.stringify(body),
+      }));
+    }
+
+    const prepareRes = await containerFetch("/publisher/prepare", { url: requestBody.url, iceServers });
     if (!prepareRes.ok) {
       const errBody = await prepareRes.text();
       logTrace(traceId, "publisher_prepare_failed", { status: prepareRes.status, body: errBody });
@@ -261,14 +276,7 @@ stream.post("/start-stream", async (c) => {
     logTrace(traceId, "sfu_session_created", { sfuSessionId: sfuSession.sessionId });
 
     // Step 3: Apply SFU answer to container FIRST — PeerConnection must connect before adding tracks
-    const answerUrl = new URL(c.req.url);
-    answerUrl.pathname = "/publisher/answer";
-    const answerReq = new Request(answerUrl.toString(), {
-      method: "POST",
-      headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
-      body: JSON.stringify({ sessionDescription: sfuSession.sessionDescription }),
-    });
-    const answerRes = await stub.fetch(answerReq);
+    const answerRes = await containerFetch("/publisher/answer", { sessionDescription: sfuSession.sessionDescription });
     if (!answerRes.ok) {
       const errBody = await answerRes.text();
       logTrace(traceId, "publisher_answer_failed", { status: answerRes.status, body: errBody });
@@ -290,14 +298,7 @@ stream.post("/start-stream", async (c) => {
 
     // Step 6: Apply renegotiated answer to container (tracks/new returns updated SDP)
     if (sfuTracks.sessionDescription) {
-      const reanswerUrl = new URL(c.req.url);
-      reanswerUrl.pathname = "/publisher/answer";
-      const reanswerReq = new Request(reanswerUrl.toString(), {
-        method: "POST",
-        headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
-        body: JSON.stringify({ sessionDescription: sfuTracks.sessionDescription }),
-      });
-      await stub.fetch(reanswerReq);
+      await containerFetch("/publisher/answer", { sessionDescription: sfuTracks.sessionDescription });
       logTrace(traceId, "publisher_reanswer_applied");
     }
 

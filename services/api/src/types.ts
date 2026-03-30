@@ -9,6 +9,7 @@ export interface Env {
   CLOUDFLARE_REALTIME_APP_ID: string;
   CLOUDFLARE_REALTIME_APP_SECRET: string;
   DEBUG_STATE_TOKEN?: string;
+  STREAM_SERVER_URL?: string;
 }
 
 export interface DeviceRow {
