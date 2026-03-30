@@ -117,6 +117,14 @@ jobs:
           fi
           echo "preview_url=${PREVIEW_URL}" >> "$GITHUB_OUTPUT"
 
+      - name: Set preview Worker secrets
+        working-directory: services/api
+        env:
+          WORKER_NAME: opengame-api-pr-${{ github.event.pull_request.number }}
+        run: |
+          printf '%s' "${{ secrets.CLOUDFLARE_REALTIME_APP_ID }}" | npx wrangler secret put CLOUDFLARE_REALTIME_APP_ID --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.CLOUDFLARE_REALTIME_APP_SECRET }}" | npx wrangler secret put CLOUDFLARE_REALTIME_APP_SECRET --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+
       - name: Comment on PR with preview URL
         if: steps.deploy.outputs.preview_url != ''
         uses: actions/github-script@v7
