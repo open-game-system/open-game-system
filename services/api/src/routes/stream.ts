@@ -233,7 +233,13 @@ stream.post("/start-stream", async (c) => {
     const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
     const stub = c.env.STREAM_CONTAINER.get(id);
 
-    const iceServers = await generateTurnIceServers(c.env, traceId);
+    // ICE servers are optional — SFU provides its own TURN
+    let iceServers: IceServerConfig[] = [];
+    try {
+      iceServers = await generateTurnIceServers(c.env, traceId);
+    } catch {
+      logTrace(traceId, "turn_not_configured_using_defaults");
+    }
     const prepareUrl = new URL(c.req.url);
     prepareUrl.pathname = "/publisher/prepare";
     const prepareReq = new Request(prepareUrl.toString(), {
