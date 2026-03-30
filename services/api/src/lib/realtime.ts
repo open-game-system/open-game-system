@@ -130,8 +130,13 @@ export async function createSession(
     body: JSON.stringify({ sessionDescription: offer }),
   });
 
-  const json = await response.json();
-  console.log("[Realtime] createSession response:", response.status, JSON.stringify(json).substring(0, 500));
+  const rawText = await response.text();
+  let json: unknown;
+  try {
+    json = JSON.parse(rawText);
+  } catch {
+    throw new Error(`Realtime API createSession: invalid JSON response (${response.status}): ${rawText.substring(0, 200)}`);
+  }
 
   if (!response.ok || (isRecord(json) && json.errorCode)) {
     const errorCode = isRecord(json) ? json.errorCode : "unknown";
@@ -139,7 +144,11 @@ export async function createSession(
     throw new Error(`Realtime API createSession failed: ${response.status} — ${errorCode}: ${errorDesc}`);
   }
 
-  return parseSessionResponse(json);
+  try {
+    return parseSessionResponse(json);
+  } catch (parseErr) {
+    throw new Error(`Realtime createSession parse failed (${response.status}): ${(parseErr as Error).message} — raw response: ${rawText.substring(0, 300)}`);
+  }
 }
 
 /**
