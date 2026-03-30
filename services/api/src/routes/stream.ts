@@ -3,9 +3,8 @@ import type { Env } from "../types";
 import {
   parseTurnCredentialsResponse,
   parsePublisherPrepareResponse,
-  parseSubscribeAnswerRequest,
+  parseSessionDescription,
   type IceServerConfig,
-  type SessionDescription,
 } from "../protocol";
 import {
   createSession,
@@ -348,10 +347,11 @@ stream.put("/subscribe/:subscriberSessionId/answer", async (c) => {
 
   try {
     const creds = getRealtimeCredentials(c.env);
-    const body = parseSubscribeAnswerRequest(await c.req.json());
+    const body = await c.req.json();
+    const sessionDescription = parseSessionDescription(body.sessionDescription);
     logTrace(traceId, "subscribe_answer_begin", { subscriberSessionId });
 
-    const result = await renegotiate(creds, subscriberSessionId, body.sessionDescription);
+    const result = await renegotiate(creds, subscriberSessionId, sessionDescription);
     logTrace(traceId, "subscribe_answer_complete");
 
     return c.json({
