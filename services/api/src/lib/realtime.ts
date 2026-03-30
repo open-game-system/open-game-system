@@ -131,6 +131,7 @@ export async function createSession(
   });
 
   const json = await response.json();
+  console.log("[Realtime] createSession response:", response.status, JSON.stringify(json).substring(0, 500));
 
   if (!response.ok || (isRecord(json) && json.errorCode)) {
     const errorCode = isRecord(json) ? json.errorCode : "unknown";
