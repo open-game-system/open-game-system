@@ -340,7 +340,6 @@ stream.post("/subscribe", async (c) => {
 
     // Pull the publisher's tracks — SFU generates an offer for the subscriber
     const subResult = await addTracks(creds, subscriberSession.sessionId, {
-      sessionDescription: { type: "offer" as const, sdp: "" },
       tracks: trackNames.map((trackName) => ({
         location: "remote" as const,
         trackName,

@@ -34,7 +34,7 @@ export type RealtimeCredentials = {
 };
 
 export type AddTracksRequest = {
-  sessionDescription: SessionDescription;
+  sessionDescription?: SessionDescription;
   tracks: RealtimeTrackInfo[];
 };
 
@@ -163,7 +163,7 @@ export async function addTracks(
     method: "POST",
     headers: authHeaders(creds.appSecret),
     body: JSON.stringify({
-      sessionDescription: request.sessionDescription,
+      ...(request.sessionDescription?.sdp ? { sessionDescription: request.sessionDescription } : {}),
       tracks: request.tracks,
     }),
   });
