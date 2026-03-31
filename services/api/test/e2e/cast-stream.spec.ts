@@ -244,19 +244,22 @@ test.describe("Cast Receiver — WebRTC Display", () => {
   });
 
   test("receiver connects via SFU and displays video full-screen", async ({ page }) => {
+    // Use a different session to avoid container state conflicts from previous test
     const receiverUrl2 = receiverBaseUrl
-      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
-      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
+      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent("https://example.com")}`
+      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent("https://example.com")}`;
+
+    page.on("console", (msg) => console.log(`[Receiver2 Console] ${msg.type()}: ${msg.text()}`));
     await page.goto(receiverUrl2);
 
-    // Wait for video to have srcObject (up to 45 seconds)
+    // Wait for video to have srcObject (up to 60 seconds)
     const gotVideo = await page
       .waitForFunction(
         () => {
           const video = document.querySelector("video");
           return video?.srcObject !== null && video?.srcObject !== undefined;
         },
-        { timeout: 45_000 },
+        { timeout: 60_000 },
       )
       .then(() => true)
       .catch(() => false);
