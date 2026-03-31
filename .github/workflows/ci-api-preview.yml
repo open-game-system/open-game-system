@@ -124,6 +124,9 @@ jobs:
         run: |
           printf '%s' "${{ secrets.CLOUDFLARE_REALTIME_APP_ID }}" | npx wrangler secret put CLOUDFLARE_REALTIME_APP_ID --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
           printf '%s' "${{ secrets.CLOUDFLARE_REALTIME_APP_SECRET }}" | npx wrangler secret put CLOUDFLARE_REALTIME_APP_SECRET --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}" | npx wrangler secret put CLOUDFLARE_TURN_API_TOKEN --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.CLOUDFLARE_TURN_KEY_ID }}" | npx wrangler secret put CLOUDFLARE_TURN_KEY_ID --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.DEBUG_STATE_TOKEN }}" | npx wrangler secret put DEBUG_STATE_TOKEN --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
 
       - name: Comment on PR with preview URL
         if: steps.deploy.outputs.preview_url != ''
