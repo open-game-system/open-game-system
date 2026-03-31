@@ -180,11 +180,13 @@ stream.get("/ice-servers", async (c) => {
       traceId,
       sessionId,
     });
-  } catch (error) {
-    return c.json(
-      { error: (error as Error).message, traceId, sessionId },
-      500,
-    );
+  } catch {
+    // TURN not configured — return default STUN servers (SFU provides its own TURN)
+    return c.json({
+      iceServers: [{ urls: ["stun:stun.cloudflare.com:3478"] }],
+      traceId,
+      sessionId,
+    });
   }
 });
 
