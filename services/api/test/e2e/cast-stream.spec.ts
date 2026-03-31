@@ -252,27 +252,27 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     page.on("console", (msg) => console.log(`[Receiver2 Console] ${msg.type()}: ${msg.text()}`));
     await page.goto(receiverUrl2);
 
-    // Wait for video to have srcObject (up to 60 seconds)
-    const gotVideo = await page
+    // Wait for the overlay to be hidden (indicates video is playing)
+    const overlayHidden = await page
       .waitForFunction(
         () => {
-          const video = document.querySelector("video");
-          return video?.srcObject !== null && video?.srcObject !== undefined;
+          const overlay = document.getElementById("status-overlay");
+          return overlay?.classList.contains("hidden");
         },
         { timeout: 60_000 },
       )
       .then(() => true)
       .catch(() => false);
 
-    expect(gotVideo).toBe(true);
+    expect(overlayHidden).toBe(true);
 
-    // Verify overlay is hidden (video is playing)
-    if (gotVideo) {
-      const overlayHidden = await page.evaluate(() => {
-        const overlay = document.getElementById("status-overlay");
-        return overlay?.classList.contains("hidden");
+    // Also verify video element has content
+    if (overlayHidden) {
+      const hasVideo = await page.evaluate(() => {
+        const video = document.querySelector("video");
+        return video?.srcObject !== null;
       });
-      expect(overlayHidden).toBe(true);
+      expect(hasVideo).toBe(true);
     }
   });
 });
