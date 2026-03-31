@@ -23,7 +23,8 @@ const apiUrl = process.env.E2E_API_PREVIEW_URL || process.env.E2E_API_URL || "ht
 const apiKey = process.env.E2E_API_KEY;
 const spectateUrl = process.env.E2E_SPECTATE_URL || "https://triviajam.tv";
 // For video tests: direct stream server URL (Container proxy doesn't work on macOS local dev)
-const streamServerUrl = process.env.E2E_STREAM_SERVER_URL || "http://localhost:8080";
+const streamServerUrl = process.env.E2E_STREAM_SERVER_URL
+  || (process.env.E2E_API_PREVIEW_URL ? `${process.env.E2E_API_PREVIEW_URL}/api/v1/stream` : "http://localhost:8080");
 const receiverBaseUrl = process.env.E2E_RECEIVER_BASE_URL || "";
 
 test.describe("Cast Stream — Container Provisioning", () => {
