@@ -121,13 +121,13 @@ function authHeaders(appSecret: string): Record<string, string> {
  */
 export async function createSession(
   creds: RealtimeCredentials,
-  offer: SessionDescription
+  offer?: SessionDescription
 ): Promise<RealtimeSessionResponse> {
   const url = `${baseUrl(creds.appId)}/new`;
   const response = await fetch(url, {
     method: "POST",
     headers: authHeaders(creds.appSecret),
-    body: JSON.stringify({ sessionDescription: offer }),
+    body: offer ? JSON.stringify({ sessionDescription: offer }) : undefined,
   });
 
   if (!response.ok) {

@@ -333,37 +333,14 @@ stream.post("/subscribe", async (c) => {
     const trackNames: string[] = body.trackNames ?? ["cast-video", "cast-audio"];
     logTrace(traceId, "subscribe_begin", { publisherSessionId, trackNames });
 
-    // Create subscriber session with a minimal valid SDP offer
-    // The SFU needs a valid SDP to establish the PeerConnection
-    const minimalOffer = {
-      type: "offer" as const,
-      sdp: [
-        "v=0",
-        "o=- 0 0 IN IP4 127.0.0.1",
-        "s=-",
-        "t=0 0",
-        "a=group:BUNDLE 0",
-        "a=msid-semantic:WMS *",
-        "m=audio 9 UDP/TLS/RTP/SAVPF 111",
-        "c=IN IP4 0.0.0.0",
-        "a=mid:0",
-        "a=recvonly",
-        "a=rtcp-mux",
-        "a=rtpmap:111 opus/48000/2",
-        "a=setup:actpass",
-        `a=ice-ufrag:${crypto.randomUUID().substring(0, 8)}`,
-        `a=ice-pwd:${crypto.randomUUID()}${crypto.randomUUID()}`.substring(0, 32),
-        "a=fingerprint:sha-256 00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00",
-        "",
-      ].join("\r\n"),
-    };
-
-    const subscriberSession = await createSession(creds, minimalOffer);
+    // Create subscriber session with NO SDP (per CF Realtime example)
+    // The SFU generates the offer when we add remote tracks
+    const subscriberSession = await createSession(creds);
     logTrace(traceId, "subscriber_session_created", { subscriberSessionId: subscriberSession.sessionId });
 
-    // Pull the publisher's tracks into our subscriber session
+    // Pull the publisher's tracks — SFU generates an offer for the subscriber
     const subResult = await addTracks(creds, subscriberSession.sessionId, {
-      sessionDescription: subscriberSession.sessionDescription,
+      sessionDescription: { type: "offer" as const, sdp: "" },
       tracks: trackNames.map((trackName) => ({
         location: "remote" as const,
         trackName,
