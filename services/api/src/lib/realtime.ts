@@ -72,7 +72,10 @@ export function parseSessionResponse(value: unknown): RealtimeSessionResponse {
 
   return {
     sessionId: value.sessionId,
-    sessionDescription: parseSessionDescription(value.sessionDescription),
+    // sessionDescription is optional — sessions created with no SDP don't have one
+    sessionDescription: value.sessionDescription
+      ? parseSessionDescription(value.sessionDescription)
+      : { type: "answer" as const, sdp: "" },
   };
 }
 
