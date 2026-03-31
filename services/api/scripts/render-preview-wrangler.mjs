@@ -49,6 +49,7 @@ const config = {
       image: "../container/Dockerfile",
       class_name: "StreamContainer",
       max_instances: 2,
+      instance_type: "standard",
     },
   ],
   durable_objects: {
