@@ -244,8 +244,14 @@
           clearConnectionTimeout();
           isConnected = true;
 
-          video.srcObject = event.streams[0] || new MediaStream([event.track]);
-          video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
+          // Only set srcObject once — multiple tracks arrive rapidly
+          if (!video.srcObject) {
+            video.srcObject = event.streams[0] || new MediaStream([event.track]);
+            video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
+          } else if (event.track.kind === 'audio' && video.srcObject instanceof MediaStream) {
+            // Add audio track to existing stream
+            video.srcObject.addTrack(event.track);
+          }
           hideOverlay();
         };
 
