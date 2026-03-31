@@ -130,24 +130,20 @@ export async function createSession(
     body: JSON.stringify({ sessionDescription: offer }),
   });
 
-  const rawText = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(rawText);
-  } catch {
-    throw new Error(`Realtime API createSession: invalid JSON response (${response.status}): ${rawText.substring(0, 200)}`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Realtime API createSession failed: ${response.status} — ${body}`);
   }
 
-  if (!response.ok || (isRecord(json) && json.errorCode)) {
-    const errorCode = isRecord(json) ? json.errorCode : "unknown";
-    const errorDesc = isRecord(json) ? json.errorDescription : JSON.stringify(json);
-    throw new Error(`Realtime API createSession failed: ${response.status} — ${errorCode}: ${errorDesc}`);
+  const json = await response.json();
+  if (isRecord(json) && json.errorCode) {
+    throw new Error(`Realtime API createSession failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
   }
 
   try {
     return parseSessionResponse(json);
   } catch (parseErr) {
-    throw new Error(`Realtime createSession parse failed (${response.status}): ${(parseErr as Error).message} — raw response: ${rawText.substring(0, 300)}`);
+    throw new Error(`Realtime createSession parse failed (${response.status}): ${(parseErr as Error).message} — raw: ${JSON.stringify(json).substring(0, 300)}`);
   }
 }
 
@@ -169,25 +165,24 @@ export async function addTracks(
     }),
   });
 
-  const rawText = await response.text();
-  let json: unknown;
-  try {
-    json = JSON.parse(rawText);
-  } catch {
-    throw new Error(`Realtime API addTracks: invalid JSON (${response.status}): ${rawText.substring(0, 200)}`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Realtime API addTracks failed: ${response.status} — ${body}`);
   }
 
-  if (!response.ok || (isRecord(json) && json.errorCode)) {
-    const errorCode = isRecord(json) ? json.errorCode : "unknown";
-    const errorDesc = isRecord(json) ? json.errorDescription : JSON.stringify(json);
-    throw new Error(`Realtime API addTracks failed: ${response.status} — ${errorCode}: ${errorDesc}`);
+  const json = await response.json();
+  if (isRecord(json) && json.errorCode) {
+    throw new Error(`Realtime API addTracks failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
   }
 
-  try {
-    return parseSessionResponse(json);
-  } catch (parseErr) {
-    throw new Error(`Realtime addTracks parse failed (${response.status}): ${(parseErr as Error).message} — raw: ${rawText.substring(0, 300)}`);
+  // addTracks returns { sessionDescription, tracks, requiresImmediateRenegotiation } — no sessionId
+  if (!isRecord(json) || !json.sessionDescription) {
+    throw new Error(`Realtime addTracks: unexpected response — raw: ${JSON.stringify(json).substring(0, 300)}`);
   }
+  return {
+    sessionId: sessionId,
+    sessionDescription: parseSessionDescription(json.sessionDescription),
+  };
 }
 
 /**
@@ -205,14 +200,23 @@ export async function renegotiate(
     body: JSON.stringify({ sessionDescription: answer }),
   });
 
-  const json = await response.json();
-
-  if (!response.ok || (isRecord(json) && json.errorCode)) {
-    const errorCode = isRecord(json) ? json.errorCode : "unknown";
-    const errorDesc = isRecord(json) ? json.errorDescription : JSON.stringify(json);
-    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${errorCode}: ${errorDesc}`);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${body}`);
   }
 
+  const json = await response.json();
+  if (isRecord(json) && json.errorCode) {
+    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
+  }
+
+  // renegotiate may not return sessionId
+  if (isRecord(json) && json.sessionDescription) {
+    return {
+      sessionId: sessionId,
+      sessionDescription: parseSessionDescription(json.sessionDescription),
+    };
+  }
   return parseSessionResponse(json);
 }
 
