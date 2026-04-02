@@ -213,14 +213,13 @@ export async function renegotiate(
     throw new Error(`Realtime API renegotiate failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
   }
 
-  // renegotiate may not return sessionId
-  if (isRecord(json) && json.sessionDescription) {
-    return {
-      sessionId: sessionId,
-      sessionDescription: parseSessionDescription(json.sessionDescription),
-    };
-  }
-  return parseSessionResponse(json);
+  // renegotiate may return only { requiresImmediateRenegotiation } — no sessionId or sessionDescription
+  return {
+    sessionId: sessionId,
+    sessionDescription: isRecord(json) && json.sessionDescription
+      ? parseSessionDescription(json.sessionDescription)
+      : { type: "answer" as const, sdp: "" },
+  };
 }
 
 /**
