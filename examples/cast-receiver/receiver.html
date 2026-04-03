@@ -257,7 +257,10 @@
 
         pc.onconnectionstatechange = () => {
           console.log('[Receiver] Connection state:', pc.connectionState);
-          if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          if (pc.connectionState === 'connected') {
+            isConnected = true;
+            hideOverlay();
+          } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
             isConnected = false;
             setStatus('Cast session ended', false);
           }
