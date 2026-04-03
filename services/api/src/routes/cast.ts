@@ -221,35 +221,27 @@ cast.delete("/sessions/:id", async (c) => {
  */
 cast.all("/stream/:sessionId/*", async (c) => {
   const sessionId = c.req.param("sessionId");
-  const containerBinding = c.env.STREAM_CONTAINER;
-
-  if (!containerBinding) {
-    return c.json(
-      {
-        error: {
-          code: "stream_not_configured",
-          message: "Stream container not configured",
-          status: 502,
-        },
-      },
-      502,
-    );
-  }
-
-  // Get or create a container instance for this session
-  const container = containerBinding.get(containerBinding.idFromName(sessionId));
-
-  // Forward the request to the container, stripping the proxy prefix
   const originalUrl = new URL(c.req.url);
   const proxyPath = originalUrl.pathname.replace(`/api/v1/cast/stream/${sessionId}`, "");
-  const containerUrl = new URL(proxyPath || "/", "http://container");
-  containerUrl.search = originalUrl.search;
 
-  return container.fetch(containerUrl.toString(), {
+  // Rewrite URL to stream route and add session ID header
+  const streamUrl = new URL(originalUrl);
+  streamUrl.pathname = `/api/v1/stream${proxyPath || "/health"}`;
+
+  const headers = new Headers(c.req.raw.headers);
+  headers.set("x-stream-session-id", sessionId);
+
+  // Forward to this same Worker — Hono will route to the stream handler
+  const hasBody = c.req.method !== "GET" && c.req.method !== "HEAD";
+  const internalReq = new Request(streamUrl.toString(), {
     method: c.req.method,
-    headers: c.req.raw.headers,
-    body: c.req.method !== "GET" && c.req.method !== "HEAD" ? c.req.raw.body : undefined,
-  });
+    headers,
+    body: hasBody ? c.req.raw.body : undefined,
+    ...(hasBody ? { duplex: "half" as const } : {}),
+  } as RequestInit);
+
+  // Self-fetch routes through the Hono app
+  return fetch(internalReq);
 });
 
 export default cast;

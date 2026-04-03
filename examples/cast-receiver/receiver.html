@@ -269,9 +269,27 @@
         // Set the SFU's offer as remote description
         await pc.setRemoteDescription(new RTCSessionDescription(sfuOffer));
 
-        // Create and send answer
+        // Create answer and wait for ICE gathering to complete
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+
+        // Wait for ICE candidates to be gathered (needed for TURN/relay)
+        if (pc.iceGatheringState !== 'complete') {
+          await new Promise((resolve) => {
+            const check = () => {
+              if (pc.iceGatheringState === 'complete') {
+                pc.removeEventListener('icegatheringstatechange', check);
+                resolve();
+              }
+            };
+            pc.addEventListener('icegatheringstatechange', check);
+            // Timeout after 5s — send what we have
+            setTimeout(resolve, 5000);
+          });
+        }
+
+        // Use the final local description (includes gathered ICE candidates)
+        const finalAnswer = pc.localDescription;
 
         // Step 5: Send answer back to backend
         setStatus('Establishing connection...');
@@ -280,8 +298,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionDescription: {
-              type: answer.type,
-              sdp: answer.sdp
+              type: finalAnswer.type,
+              sdp: finalAnswer.sdp
             }
           })
         });
