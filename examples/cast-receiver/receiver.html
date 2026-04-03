@@ -289,7 +289,10 @@
         }
 
         console.log('[Receiver] Answer sent, waiting for media...');
-        setStatus('Waiting for video stream...');
+        // Only show waiting status if tracks haven't arrived yet
+        if (!isConnected) {
+          setStatus('Waiting for video stream...');
+        }
 
       } catch (err) {
         console.error('[Receiver] Failed to start stream:', err);
