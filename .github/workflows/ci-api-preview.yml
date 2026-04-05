@@ -105,7 +105,7 @@ jobs:
         working-directory: services/api
         run: |
           set -euo pipefail
-          npx wrangler deploy --config .wrangler/preview-wrangler.toml > /tmp/wrangler-deploy.log 2>&1 || {
+          npx wrangler deploy --config .wrangler/preview-wrangler.jsonc > /tmp/wrangler-deploy.log 2>&1 || {
             cat /tmp/wrangler-deploy.log
             exit 1
           }
@@ -116,6 +116,17 @@ jobs:
             PREVIEW_URL="https://opengame-api-pr-${PR_NUMBER}.${CLOUDFLARE_WORKERS_SUBDOMAIN}.workers.dev"
           fi
           echo "preview_url=${PREVIEW_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Set preview Worker secrets
+        working-directory: services/api
+        env:
+          WORKER_NAME: opengame-api-pr-${{ github.event.pull_request.number }}
+        run: |
+          printf '%s' "${{ secrets.CLOUDFLARE_REALTIME_APP_ID }}" | npx wrangler secret put CLOUDFLARE_REALTIME_APP_ID --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.CLOUDFLARE_REALTIME_APP_SECRET }}" | npx wrangler secret put CLOUDFLARE_REALTIME_APP_SECRET --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}" | npx wrangler secret put CLOUDFLARE_TURN_API_TOKEN --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.CLOUDFLARE_TURN_KEY_ID }}" | npx wrangler secret put CLOUDFLARE_TURN_KEY_ID --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
+          printf '%s' "${{ secrets.DEBUG_STATE_TOKEN }}" | npx wrangler secret put DEBUG_STATE_TOKEN --config .wrangler/preview-wrangler.jsonc --name "$WORKER_NAME" || true
 
       - name: Comment on PR with preview URL
         if: steps.deploy.outputs.preview_url != ''

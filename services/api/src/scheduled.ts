@@ -23,8 +23,8 @@ export interface ScheduledEnv {
 /**
  * Handles the Cloudflare scheduled (cron) trigger.
  *
- * 1. Active sessions with no state update for 30+ minutes → marked 'idle'
- * 2. Idle sessions with no update for 5+ minutes → marked 'ended' + stream-kit container torn down
+ * 1. Active sessions with no state update for 30+ minutes -> marked 'idle'
+ * 2. Idle sessions with no update for 5+ minutes -> marked 'ended' + stream container DO torn down
  */
 export async function handleScheduled(env: ScheduledEnv): Promise<void> {
   // Step 1: Mark stale active sessions as idle

@@ -1,21 +1,21 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
 import {
   Platform,
+  StatusBar as RNStatusBar,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  StatusBar as RNStatusBar,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
-import { getRecentDevUrls, addRecentDevUrl } from '../services/dev-urls';
+} from "react-native";
+import { addRecentDevUrl, getRecentDevUrls } from "../services/dev-urls";
 
 export default function DevToolsScreen() {
   const router = useRouter();
-  const [urlInput, setUrlInput] = useState('');
+  const [urlInput, setUrlInput] = useState("");
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
 
   useEffect(() => {
@@ -25,11 +25,11 @@ export default function DevToolsScreen() {
   const handleLaunch = useCallback(async () => {
     const url = urlInput.trim();
     if (!url) return;
-    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+    const fullUrl = url.startsWith("http") ? url : `https://${url}`;
     await addRecentDevUrl(fullUrl);
     router.push({
-      pathname: '/game',
-      params: { url: fullUrl, name: 'Dev Game' },
+      pathname: "/game",
+      params: { url: fullUrl, name: "Dev Game" },
     });
   }, [urlInput, router]);
 
@@ -72,10 +72,7 @@ export default function DevToolsScreen() {
             />
             <TouchableOpacity
               testID="devToolsLaunchButton"
-              style={[
-                styles.launchButton,
-                !urlInput.trim() && styles.launchButtonDisabled,
-              ]}
+              style={[styles.launchButton, !urlInput.trim() && styles.launchButtonDisabled]}
               onPress={handleLaunch}
               disabled={!urlInput.trim()}
             >
@@ -92,16 +89,9 @@ export default function DevToolsScreen() {
             <View style={styles.divider} />
             <InspectorRow label="Push Token" value="—" />
             <View style={styles.divider} />
-            <InspectorRow
-              label="Bridge Status"
-              value="Disconnected"
-              valueColor="#8888A0"
-            />
+            <InspectorRow label="Bridge Status" value="Disconnected" valueColor="#8888A0" />
             <View style={styles.divider} />
-            <InspectorRow
-              label="Platform"
-              value={Platform.OS}
-            />
+            <InspectorRow label="Platform" value={Platform.OS} />
             <View style={styles.divider} />
             <InspectorRow label="Cast Devices" value="0 found" />
           </View>
@@ -116,10 +106,7 @@ export default function DevToolsScreen() {
                 <TouchableOpacity
                   key={url}
                   testID={`devToolsRecentUrl-${i}`}
-                  style={[
-                    styles.recentUrlRow,
-                    i < recentUrls.length - 1 && styles.recentUrlBorder,
-                  ]}
+                  style={[styles.recentUrlRow, i < recentUrls.length - 1 && styles.recentUrlBorder]}
                   onPress={() => handleTapRecentUrl(url)}
                 >
                   <Text style={styles.recentUrlText} numberOfLines={1}>
@@ -147,12 +134,7 @@ function InspectorRow({
   return (
     <View style={styles.inspectorRow}>
       <Text style={styles.inspectorLabel}>{label}</Text>
-      <Text
-        style={[
-          styles.inspectorValue,
-          valueColor ? { color: valueColor } : undefined,
-        ]}
-      >
+      <Text style={[styles.inspectorValue, valueColor ? { color: valueColor } : undefined]}>
         {value}
       </Text>
     </View>
@@ -162,35 +144,35 @@ function InspectorRow({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 50,
+    backgroundColor: "#0A0A0F",
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
   },
   scrollContent: {
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 28,
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#E8E8ED',
+    fontWeight: "700",
+    color: "#E8E8ED",
     letterSpacing: -0.5,
   },
   closeButton: {
     width: 36,
     height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   closeText: {
     fontSize: 18,
-    color: '#8888A0',
+    color: "#8888A0",
   },
   section: {
     paddingHorizontal: 24,
@@ -198,64 +180,64 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#8888A0',
+    fontWeight: "700",
+    color: "#8888A0",
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     marginBottom: 8,
   },
   groupedRows: {
-    backgroundColor: '#141420',
+    backgroundColor: "#141420",
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   urlInput: {
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#E8E8ED',
+    color: "#E8E8ED",
     fontSize: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1C1C2E',
+    borderBottomColor: "#1C1C2E",
   },
   launchButton: {
-    backgroundColor: '#A855F6',
+    backgroundColor: "#A855F6",
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   launchButtonDisabled: {
     opacity: 0.4,
   },
   launchButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   inspectorCard: {
-    backgroundColor: '#141420',
+    backgroundColor: "#141420",
     borderRadius: 12,
     paddingVertical: 4,
   },
   inspectorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   inspectorLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#8888A0',
+    fontWeight: "500",
+    color: "#8888A0",
   },
   inspectorValue: {
     fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#E8E8ED',
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    color: "#E8E8ED",
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#1C1C2E',
+    backgroundColor: "#1C1C2E",
     marginHorizontal: 16,
   },
   recentUrlRow: {
@@ -264,11 +246,11 @@ const styles = StyleSheet.create({
   },
   recentUrlBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1C1C2E',
+    borderBottomColor: "#1C1C2E",
   },
   recentUrlText: {
     fontSize: 13,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#E8E8ED',
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    color: "#E8E8ED",
   },
 });

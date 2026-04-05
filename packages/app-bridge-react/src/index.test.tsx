@@ -4,7 +4,7 @@
 import type { BridgeStores, State } from "@open-game-system/app-bridge-types";
 import { createWebBridge } from "@open-game-system/app-bridge-web";
 import { act, cleanup, render, screen } from "@testing-library/react";
-import React, { ErrorInfo, ReactNode } from "react";
+import React, { type ErrorInfo, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createBridgeContext } from "./index";
 

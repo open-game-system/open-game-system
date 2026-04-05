@@ -1,9 +1,9 @@
-import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
+import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
+import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 
 const OGS_DEVICE_ID_KEY = "ogs_device_id";
 const API_BASE_URL = "https://api.opengame.org";
@@ -39,15 +39,12 @@ export async function getOrCreateDeviceId(): Promise<string> {
 export async function registerForPushNotifications(): Promise<string | null> {
   // Push notifications only work on physical devices
   if (!Device.isDevice) {
-    console.log(
-      "[Notifications] Push notifications are not supported on simulator/emulator"
-    );
+    console.log("[Notifications] Push notifications are not supported on simulator/emulator");
     return null;
   }
 
   // Check existing permissions
-  const { status: existingStatus } =
-    await Notifications.getPermissionsAsync();
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
   // Request permissions if not already granted
@@ -62,9 +59,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   }
 
   // Get the Expo push token
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId;
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   if (!projectId) {
     console.error("[Notifications] No EAS project ID found");
     return null;
@@ -91,7 +86,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
  */
 export async function registerDeviceWithAPI(
   ogsDeviceId: string,
-  pushToken: string
+  pushToken: string,
 ): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/v1/devices/register`, {
@@ -139,9 +134,7 @@ export async function initializePushNotifications(): Promise<string> {
  * Listener for push token changes. Call this to keep the API in sync
  * when the OS rotates the push token.
  */
-export function addPushTokenListener(
-  ogsDeviceId: string
-) {
+export function addPushTokenListener(ogsDeviceId: string) {
   return Notifications.addPushTokenListener(async (token) => {
     console.log("[Notifications] Push token changed:", token.data);
     await registerDeviceWithAPI(ogsDeviceId, token.data);
@@ -152,7 +145,7 @@ export function addPushTokenListener(
  * Extract the game URL from a notification's data payload.
  */
 export function getGameUrlFromNotification(
-  notification: Notifications.Notification
+  notification: Notifications.Notification,
 ): string | null {
   const data = notification.request.content.data;
   return (data?.url as string) ?? null;

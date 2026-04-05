@@ -8,8 +8,5 @@
     "lib": ["dom", "dom.iterable", "esnext"]
   },
   "include": ["src"],
-  "references": [
-    { "path": "../stream-kit-types" },
-    { "path": "../stream-kit-web" }
-  ]
-} 
+  "references": [{ "path": "../stream-kit-types" }, { "path": "../stream-kit-web" }]
+}

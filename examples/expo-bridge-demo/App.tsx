@@ -1,22 +1,13 @@
 import {
   BridgedWebView,
-  createNativeBridgeContext,
   createNativeBridge,
+  createNativeBridgeContext,
   createStore,
-  NativeBridge,
-  BridgeStores
 } from "@open-game-system/app-bridge-react-native";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo } from "react";
-import {
-  Button,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { CounterEvents, CounterState } from "../shared/types";
+import { useMemo } from "react";
+import { Button, Platform, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import type { CounterEvents, CounterState } from "../shared/types";
 
 // Local type definition for AppStores
 type AppStores = {
@@ -46,11 +37,11 @@ const counterStore = createStore({
     }
   },
 });
-bridge.setStore('counter', counterStore);
+bridge.setStore("counter", counterStore);
 
 // Create context using the new package
 const BridgeContext = createNativeBridgeContext<AppStores>();
-const CounterContext = BridgeContext.createNativeStoreContext('counter');
+const CounterContext = BridgeContext.createNativeStoreContext("counter");
 
 // Counter display and controls component
 const Counter = () => {
@@ -75,9 +66,7 @@ const Counter = () => {
         <View style={styles.buttonSpacing} />
         <Button title="+" onPress={incrementCounter} />
       </View>
-      <Text style={styles.counterHelp}>
-        Changes from web will sync to native and vice versa
-      </Text>
+      <Text style={styles.counterHelp}>Changes from web will sync to native and vice versa</Text>
     </View>
   );
 };
@@ -85,11 +74,15 @@ const Counter = () => {
 // Main App component
 const App = () => {
   // Platform-specific WebView source
-  const webviewSource = useMemo(() => Platform.select({
-    ios: { uri: "http://localhost:5173/" }, // Ensure your dev server port matches
-    android: { uri: "http://10.0.2.2:5173/" },
-    default: { uri: "http://localhost:5173/" }
-  }), []);
+  const webviewSource = useMemo(
+    () =>
+      Platform.select({
+        ios: { uri: "http://localhost:5173/" }, // Ensure your dev server port matches
+        android: { uri: "http://10.0.2.2:5173/" },
+        default: { uri: "http://localhost:5173/" },
+      }),
+    [],
+  );
 
   return (
     <BridgeContext.BridgeProvider bridge={bridge}>
@@ -99,11 +92,7 @@ const App = () => {
           <Counter />
         </CounterContext.StoreProvider>
         <View style={styles.webviewContainer}>
-          <BridgedWebView
-            bridge={bridge}
-            source={webviewSource}
-            style={styles.webview}
-          />
+          <BridgedWebView bridge={bridge} source={webviewSource} style={styles.webview} />
         </View>
         <StatusBar style="auto" />
       </SafeAreaView>

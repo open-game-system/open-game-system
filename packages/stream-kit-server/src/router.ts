@@ -1,4 +1,4 @@
-import type { StreamKitHooks, StateChange } from "./types";
+import type { StateChange, StreamKitHooks } from "./types";
 
 /**
  * Creates a request handler for stream-kit server endpoints.
@@ -17,9 +17,7 @@ import type { StreamKitHooks, StateChange } from "./types";
  * @param config Configuration object with the implemented hooks.
  * @returns An async function that handles incoming requests for stream endpoints.
  */
-export function createStreamKitRouter<TEnv>(config: {
-  hooks: StreamKitHooks<TEnv>;
-}) {
+export function createStreamKitRouter<TEnv>(config: { hooks: StreamKitHooks<TEnv> }) {
   const { hooks } = config;
 
   return async (request: Request, env: TEnv): Promise<Response> => {
@@ -52,7 +50,7 @@ export function createStreamKitRouter<TEnv>(config: {
                     if (event.id) {
                       message = `id: ${event.id}\n${message}`;
                     }
-                    message += '\n';
+                    message += "\n";
                     controller.enqueue(new TextEncoder().encode(message));
                   };
 
@@ -65,16 +63,16 @@ export function createStreamKitRouter<TEnv>(config: {
 
                   // Send initial snapshot
                   sendEvent({
-                    type: 'snapshot',
+                    type: "snapshot",
                     data: initialState,
-                    id: lastEventId
+                    id: lastEventId,
                   });
 
                   // Subscribe to changes
-                  for await (const change of hooks.subscribeToStateChanges({ 
-                    streamId, 
+                  for await (const change of hooks.subscribeToStateChanges({
+                    streamId,
                     env,
-                    lastEventId 
+                    lastEventId,
                   })) {
                     sendEvent(change);
                   }
@@ -84,7 +82,7 @@ export function createStreamKitRouter<TEnv>(config: {
                 } catch (error) {
                   console.error(`[SSE Error] Stream ${streamId}:`, error);
                   // Send error message before closing
-                  const errorMessage = `data: ${JSON.stringify({ error: 'Stream terminated due to error' })}\n\n`;
+                  const errorMessage = `data: ${JSON.stringify({ error: "Stream terminated due to error" })}\n\n`;
                   controller.enqueue(new TextEncoder().encode(errorMessage));
                   controller.close();
                 }
@@ -92,15 +90,15 @@ export function createStreamKitRouter<TEnv>(config: {
               cancel() {
                 // Handle client disconnect
                 console.log(`[SSE] Client disconnected from stream ${streamId}`);
-              }
+              },
             });
 
             return new Response(stream, {
               headers: {
                 "Content-Type": "text/event-stream",
                 "Cache-Control": "no-cache",
-                "Connection": "keep-alive"
-              }
+                Connection: "keep-alive",
+              },
             });
           }
 
@@ -122,7 +120,7 @@ export function createStreamKitRouter<TEnv>(config: {
           let state: unknown;
           try {
             state = await request.json();
-          } catch (error) {
+          } catch (_error) {
             return new Response("Invalid JSON in request body", { status: 400 });
           }
           await hooks.saveStreamState({ streamId, state, env });
@@ -143,4 +141,4 @@ export function createStreamKitRouter<TEnv>(config: {
       return new Response("Internal Server Error", { status: 500 });
     }
   };
-} 
+}

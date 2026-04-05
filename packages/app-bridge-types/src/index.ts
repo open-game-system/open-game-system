@@ -1,4 +1,4 @@
-import { Operation } from "fast-json-patch";
+import type { Operation } from "fast-json-patch";
 
 export type { Operation };
 
@@ -21,10 +21,7 @@ export type Event = { type: string };
  * Represents a store definition with its state and event types
  * (This type might be less relevant with the simplified config)
  */
-export interface StoreDefinition<
-  S extends State = State,
-  E extends Event = Event
-> {
+export interface StoreDefinition<S extends State = State, E extends Event = Event> {
   initialState: S;
   reducers?: Record<string, (state: S, event: E) => S>;
 }
@@ -36,7 +33,7 @@ export type BridgeStores<
   T extends Record<string, { state: State; events: Event }> = Record<
     string,
     { state: State; events: Event }
-  >
+  >,
 > = {
   [K in keyof T]: {
     state: T[K]["state"];
@@ -77,12 +74,12 @@ export interface Store<S extends State = State, E extends Event = Event> {
    * @returns An unsubscribe function.
    */
   // Ensure signature matches Plan v4
-  on<EventType extends E['type']>(
+  on<EventType extends E["type"]>(
     eventType: EventType,
     listener: (
       event: Extract<E, { type: EventType }>,
-      store: Store<S, E> // Pass store instance
-    ) => Promise<void> | void // Allow async
+      store: Store<S, E>, // Pass store instance
+    ) => Promise<void> | void, // Allow async
   ): () => void;
 }
 
@@ -95,10 +92,7 @@ export type Producer<S extends State, E extends Event> = (draft: S, event: E) =>
  * Defines the configuration for declarative event listeners within a store.
  */
 export type StoreOnConfig<S extends State, E extends Event> = Partial<{
-  [K in E['type']]: (
-    event: Extract<E, { type: K }>,
-    store: Store<S, E>
-  ) => Promise<void> | void;
+  [K in E["type"]]: (event: Extract<E, { type: K }>, store: Store<S, E>) => Promise<void> | void;
 }>;
 
 /**
@@ -114,7 +108,7 @@ export interface StoreConfig<S extends State, E extends Event> {
  * Creates a new store with the given configuration (simplified)
  */
 export type CreateStore = <S extends State, E extends Event>(
-  config: StoreConfig<S, E>
+  config: StoreConfig<S, E>,
 ) => Store<S, E>;
 
 /**
@@ -129,7 +123,9 @@ export type BridgeState<TStores extends BridgeStores> = {
  */
 export type ExtractStoresType<T> = T extends {
   getStore: <K extends keyof (infer U)>(key: K) => any;
-} ? U : never;
+}
+  ? U
+  : never;
 
 /**
  * Represents a WebView instance that can receive JavaScript and handle messages
@@ -148,11 +144,11 @@ export interface WebView {
 export interface Bridge<TStores extends BridgeStores> {
   isSupported: () => boolean;
   getStore: <K extends keyof TStores>(
-    storeKey: K
+    storeKey: K,
   ) => Store<TStores[K]["state"], TStores[K]["events"]> | undefined;
   setStore: <K extends keyof TStores>(
     key: K,
-    store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined
+    store: Store<TStores[K]["state"], TStores[K]["events"]> | undefined,
   ) => void;
   subscribe: (listener: () => void) => () => void;
 }
@@ -186,7 +182,7 @@ export interface NativeBridge<TStores extends BridgeStores> extends Bridge<TStor
   unregisterWebView: (webView: WebView | null | undefined) => void;
   subscribeToReadyState: (
     webView: WebView | null | undefined,
-    callback: (isReady: boolean) => void
+    callback: (isReady: boolean) => void,
   ) => () => void;
   getReadyState: (webView: WebView | null | undefined) => boolean;
 }

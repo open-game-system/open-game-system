@@ -7,7 +7,7 @@ const configPath = process.env.STREAM_KIT_CONFIG_PATH;
 
 if (!workerName || !containerName || !configPath) {
   throw new Error(
-    "STREAM_KIT_WORKER_NAME, STREAM_KIT_CONTAINER_NAME, and STREAM_KIT_CONFIG_PATH are required"
+    "STREAM_KIT_WORKER_NAME, STREAM_KIT_CONTAINER_NAME, and STREAM_KIT_CONFIG_PATH are required",
   );
 }
 
@@ -53,14 +53,12 @@ const containers = parseJsonFromOutput(
     } catch (error) {
       const output = `${error.stdout || ""}${error.stderr || ""}`;
       if (output.includes("Forbidden")) {
-        console.log(
-          `Container cleanup skipped for ${containerName}; token cannot list containers`
-        );
+        console.log(`Container cleanup skipped for ${containerName}; token cannot list containers`);
         process.exit(0);
       }
       throw error;
     }
-  })()
+  })(),
 );
 const matchingContainer = containers.find((container) => container.name === containerName);
 

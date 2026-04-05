@@ -67,6 +67,8 @@ jobs:
           echo 'JWT_SECRET="ci-jwt-secret"' > .dev.vars
           echo 'ENVIRONMENT="ci"' >> .dev.vars
           echo 'STREAM_SERVER_URL="http://localhost:8080"' >> .dev.vars
+          echo "CLOUDFLARE_REALTIME_APP_ID=\"${{ secrets.CLOUDFLARE_REALTIME_APP_ID }}\"" >> .dev.vars
+          echo "CLOUDFLARE_REALTIME_APP_SECRET=\"${{ secrets.CLOUDFLARE_REALTIME_APP_SECRET }}\"" >> .dev.vars
           npx wrangler d1 execute opengame-api-db --local --file=schema.sql
           npx wrangler d1 execute opengame-api-db --local --command "INSERT INTO api_keys (key, game_id, game_name) VALUES ('ci-test-key', 'test-game', 'CI Test Game')"
 
@@ -78,6 +80,28 @@ jobs:
           sleep 5
           curl -s http://localhost:8788/api/v1/health
 
+      # Serve cast-receiver over HTTP (file:// blocks fetch to localhost)
+      - name: Start receiver HTTP server
+        run: |
+          npx http-server examples/cast-receiver -p 8888 --cors -s &
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:8888/receiver.html > /dev/null 2>&1; then
+              echo "Receiver HTTP server ready after ${i}s"
+              break
+            fi
+            sleep 1
+          done
+
+      # Pre-warm Chrome browser (first launch with extensions is slow)
+      - name: Warm up stream server Chrome
+        run: |
+          echo "Triggering Chrome warm-up via API /start-stream..."
+          curl -s -X POST http://localhost:8788/api/v1/stream/start-stream \
+            -H "Content-Type: application/json" \
+            -d '{"url":"https://example.com"}' \
+            --max-time 120 || true
+          echo "Chrome warm-up complete"
+
       # Run E2E tests
       - name: Run cast E2E tests
         working-directory: services/api
@@ -85,7 +109,8 @@ jobs:
         env:
           E2E_API_URL: http://localhost:8788
           E2E_API_KEY: ci-test-key
-          E2E_STREAM_SERVER_URL: http://localhost:8080
+          E2E_STREAM_SERVER_URL: http://localhost:8788/api/v1/stream
+          E2E_RECEIVER_BASE_URL: http://localhost:8888
 
       - name: Upload test results
         if: always()

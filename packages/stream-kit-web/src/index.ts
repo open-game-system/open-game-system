@@ -1,15 +1,15 @@
-import {
+import type {
+  InputStreamEvent,
   RenderOptions,
   StreamSession,
   StreamState,
-  InputStreamEvent,
-} from '@open-game-system/stream-kit-types';
+} from "@open-game-system/stream-kit-types";
 
 // Default render options
 const DEFAULT_RENDER_OPTIONS: RenderOptions = {
-  resolution: '1080p',
-  quality: 'high',
-  targetFps: 60
+  resolution: "1080p",
+  quality: "high",
+  targetFps: 60,
 };
 
 // Placeholder types and functions
@@ -45,12 +45,15 @@ export interface StreamClient {
   /**
    * Updates a stream session.
    */
-  updateStream: (sessionId: string, updates: { renderOptions?: RenderOptions, sceneData?: any }) => Promise<void>;
+  updateStream: (
+    sessionId: string,
+    updates: { renderOptions?: RenderOptions; sceneData?: any },
+  ) => Promise<void>;
 
   /**
    * Creates a new render stream instance.
    */
-  createRenderStream: (params: Omit<CreateRenderStreamParams, 'client'>) => RenderStream;
+  createRenderStream: (params: Omit<CreateRenderStreamParams, "client">) => RenderStream;
 }
 
 /**
@@ -58,16 +61,16 @@ export interface StreamClient {
  * (Implementation details TBD)
  */
 export function createStreamClient(options: StreamClientOptions): StreamClient {
-  const brokerUrl = options.brokerUrl.replace(/\/$/, ''); // Remove trailing slash
+  const brokerUrl = options.brokerUrl.replace(/\/$/, ""); // Remove trailing slash
 
   const getHeaders = async (): Promise<HeadersInit> => {
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     };
     if (options.getAuthToken) {
       const token = await options.getAuthToken();
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers.Authorization = `Bearer ${token}`;
       }
     }
     return headers;
@@ -76,7 +79,7 @@ export function createStreamClient(options: StreamClientOptions): StreamClient {
   const client: StreamClient = {
     requestStream: async (params: RequestStreamParams): Promise<StreamSession> => {
       const response = await fetch(`${brokerUrl}/stream/session`, {
-        method: 'POST',
+        method: "POST",
         headers: await getHeaders(),
         body: JSON.stringify({
           renderUrl: params.renderUrl,
@@ -94,7 +97,7 @@ export function createStreamClient(options: StreamClientOptions): StreamClient {
 
     endStream: async (sessionId: string): Promise<void> => {
       const response = await fetch(`${brokerUrl}/stream/session/${sessionId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: await getHeaders(),
       });
 
@@ -108,7 +111,7 @@ export function createStreamClient(options: StreamClientOptions): StreamClient {
 
     sendEvent: async (sessionId: string, event: InputStreamEvent): Promise<void> => {
       const response = await fetch(`${brokerUrl}/stream/session/${sessionId}/input`, {
-        method: 'POST',
+        method: "POST",
         headers: await getHeaders(),
         body: JSON.stringify(event),
       });
@@ -119,9 +122,12 @@ export function createStreamClient(options: StreamClientOptions): StreamClient {
       }
     },
 
-    updateStream: async (sessionId: string, updates: { renderOptions?: RenderOptions, sceneData?: any }): Promise<void> => {
+    updateStream: async (
+      sessionId: string,
+      updates: { renderOptions?: RenderOptions; sceneData?: any },
+    ): Promise<void> => {
       const response = await fetch(`${brokerUrl}/stream/session/${sessionId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: await getHeaders(),
         body: JSON.stringify(updates),
       });
@@ -132,9 +138,9 @@ export function createStreamClient(options: StreamClientOptions): StreamClient {
       }
     },
 
-    createRenderStream: (params: Omit<CreateRenderStreamParams, 'client'>): RenderStream => {
+    createRenderStream: (params: Omit<CreateRenderStreamParams, "client">): RenderStream => {
       return createRenderStream({ ...params, client });
-    }
+    },
   };
 
   return client;
@@ -151,7 +157,7 @@ export interface RenderStream {
   start: () => Promise<void>;
   end: () => Promise<void>;
   send: (event: InputStreamEvent) => void;
-  update: (updates: { renderOptions?: RenderOptions, sceneData?: any }) => Promise<void>;
+  update: (updates: { renderOptions?: RenderOptions; sceneData?: any }) => Promise<void>;
   subscribe: (listener: (state: StreamState) => void) => () => void;
   getVideoElement: () => HTMLVideoElement | null;
   destroy: () => void; // Added cleanup method
@@ -173,7 +179,7 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
   let videoElement: HTMLVideoElement | null = null;
   let peerConnection: RTCPeerConnection | null = null;
   let signalingSocket: WebSocket | null = null;
-  let currentState: StreamState = { status: 'initializing' };
+  let currentState: StreamState = { status: "initializing" };
   const stateListeners = new Set<(state: StreamState) => void>();
   let stateUpdateSubscription: (() => void) | null = null; // If client provided direct state sub
   let isDestroyed = false;
@@ -183,17 +189,20 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
     const updatedState = { ...currentState, ...newState };
     // Prevent unnecessary updates if state hasn't changed
     if (JSON.stringify(currentState) === JSON.stringify(updatedState)) {
-        return;
+      return;
     }
     currentState = updatedState;
     // Use Array.from for safe iteration while potentially modifying the set
-    Array.from(stateListeners).forEach(l => l(currentState));
+    Array.from(stateListeners).forEach((l) => l(currentState));
   };
 
   const setupWebRTC = (session: StreamSession) => {
     if (isDestroyed || !session.iceServers || !session.signalingUrl) {
-        setState({ status: 'error', errorMessage: 'Missing ICE servers or signaling URL for WebRTC setup' });
-        return;
+      setState({
+        status: "error",
+        errorMessage: "Missing ICE servers or signaling URL for WebRTC setup",
+      });
+      return;
     }
 
     console.log(`[${streamId}] Setting up WebRTC for session: ${session.sessionId}`);
@@ -202,32 +211,32 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
     peerConnection.onicecandidate = (event) => {
       if (event.candidate && signalingSocket && signalingSocket.readyState === WebSocket.OPEN) {
         console.log(`[${streamId}] Sending ICE candidate`);
-        signalingSocket.send(JSON.stringify({ type: 'ice-candidate', candidate: event.candidate }));
+        signalingSocket.send(JSON.stringify({ type: "ice-candidate", candidate: event.candidate }));
       }
     };
 
     peerConnection.onconnectionstatechange = () => {
       console.log(`[${streamId}] WebRTC Connection State: ${peerConnection?.connectionState}`);
       switch (peerConnection?.connectionState) {
-        case 'connected':
-          setState({ status: 'streaming' });
+        case "connected":
+          setState({ status: "streaming" });
           break;
-        case 'disconnected':
-        case 'failed':
-          setState({ status: 'reconnecting' }); // Or potentially error/ended
+        case "disconnected":
+        case "failed":
+          setState({ status: "reconnecting" }); // Or potentially error/ended
           // TODO: Implement reconnection logic?
           break;
-        case 'closed':
-          setState({ status: 'ended' });
+        case "closed":
+          setState({ status: "ended" });
           break;
       }
     };
 
     peerConnection.ontrack = (event) => {
       console.log(`[${streamId}] Track received:`, event.track.kind);
-      if (event.track.kind === 'video') {
+      if (event.track.kind === "video") {
         if (!videoElement) {
-          videoElement = document.createElement('video');
+          videoElement = document.createElement("video");
           videoElement.playsInline = true;
           videoElement.autoplay = true;
           videoElement.muted = true; // Usually needed for autoplay
@@ -242,10 +251,10 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
     };
 
     // Add transceiver for receiving video
-    peerConnection.addTransceiver('video', { direction: 'recvonly' });
+    peerConnection.addTransceiver("video", { direction: "recvonly" });
     // peerConnection.addTransceiver('audio', { direction: 'recvonly' });
 
-    // --- Signaling --- 
+    // --- Signaling ---
     console.log(`[${streamId}] Connecting to signaling server: ${session.signalingUrl}`);
     signalingSocket = new WebSocket(session.signalingUrl);
 
@@ -259,82 +268,88 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
         const message = JSON.parse(event.data);
         console.log(`[${streamId}] Received signaling message:`, message.type);
 
-        if (message.type === 'offer') {
+        if (message.type === "offer") {
           await peerConnection?.setRemoteDescription(new RTCSessionDescription(message.sdp));
           const answer = await peerConnection?.createAnswer();
           if (answer) {
             await peerConnection?.setLocalDescription(answer);
             console.log(`[${streamId}] Sending SDP answer`);
-            signalingSocket?.send(JSON.stringify({ type: 'answer', sdp: answer }));
+            signalingSocket?.send(JSON.stringify({ type: "answer", sdp: answer }));
           }
-        } else if (message.type === 'ice-candidate') {
+        } else if (message.type === "ice-candidate") {
           if (message.candidate) {
             await peerConnection?.addIceCandidate(new RTCIceCandidate(message.candidate));
-          } 
-        } else if (message.type === 'error') {
-            console.error(`[${streamId}] Signaling server error:`, message.message);
-            setState({ status: 'error', errorMessage: `Signaling error: ${message.message}` });
-            closeConnections();
+          }
+        } else if (message.type === "error") {
+          console.error(`[${streamId}] Signaling server error:`, message.message);
+          setState({ status: "error", errorMessage: `Signaling error: ${message.message}` });
+          closeConnections();
         }
       } catch (error) {
         console.error(`[${streamId}] Error handling signaling message:`, error);
-        setState({ status: 'error', errorMessage: 'Failed to handle signaling message' });
+        setState({ status: "error", errorMessage: "Failed to handle signaling message" });
         closeConnections();
       }
     };
 
     signalingSocket.onerror = (error) => {
       console.error(`[${streamId}] Signaling WebSocket error:`, error);
-      setState({ status: 'error', errorMessage: 'Signaling connection failed' });
+      setState({ status: "error", errorMessage: "Signaling connection failed" });
       closeConnections();
     };
 
     signalingSocket.onclose = () => {
       console.log(`[${streamId}] Signaling connection closed.`);
       // Don't immediately set to ended here, PeerConnection state change handles it
-      if (currentState.status !== 'ended' && currentState.status !== 'error') {
-          // If closed unexpectedly, maybe attempt reconnect or set error/reconnecting state
-          // setState({ status: 'reconnecting', errorMessage: 'Signaling connection lost' });
+      if (currentState.status !== "ended" && currentState.status !== "error") {
+        // If closed unexpectedly, maybe attempt reconnect or set error/reconnecting state
+        // setState({ status: 'reconnecting', errorMessage: 'Signaling connection lost' });
       }
     };
   };
 
   const closeConnections = () => {
-      if (signalingSocket) {
-        signalingSocket.onclose = null; // Prevent onclose handler logic during manual close
-        signalingSocket.close();
-        signalingSocket = null;
-      }
-      if (peerConnection) {
-        peerConnection.onicecandidate = null;
-        peerConnection.onconnectionstatechange = null;
-        peerConnection.ontrack = null;
-        peerConnection.close();
-        peerConnection = null;
-      }
-      if (videoElement) {
-          videoElement.srcObject = null;
-          // Don't remove the element itself, let the UI handle that
-          videoElement = null;
-      }
-      console.log(`[${streamId}] Connections closed.`);
-  }
+    if (signalingSocket) {
+      signalingSocket.onclose = null; // Prevent onclose handler logic during manual close
+      signalingSocket.close();
+      signalingSocket = null;
+    }
+    if (peerConnection) {
+      peerConnection.onicecandidate = null;
+      peerConnection.onconnectionstatechange = null;
+      peerConnection.ontrack = null;
+      peerConnection.close();
+      peerConnection = null;
+    }
+    if (videoElement) {
+      videoElement.srcObject = null;
+      // Don't remove the element itself, let the UI handle that
+      videoElement = null;
+    }
+    console.log(`[${streamId}] Connections closed.`);
+  };
 
   const renderStreamInstance: RenderStream = {
     id: streamId,
     url: url,
-    get state() { return currentState; }, // Getter for read-only state
+    get state() {
+      return currentState;
+    }, // Getter for read-only state
 
     start: async () => {
       if (isDestroyed) {
         console.warn(`[${streamId}] Cannot start, instance is destroyed.`);
         return;
       }
-      if (sessionId || currentState.status === 'connecting' || currentState.status === 'streaming') {
+      if (
+        sessionId ||
+        currentState.status === "connecting" ||
+        currentState.status === "streaming"
+      ) {
         console.warn(`[${streamId}] Stream already started or starting.`);
         return;
       }
-      setState({ status: 'connecting' });
+      setState({ status: "connecting" });
       try {
         console.log(`[${streamId}] Requesting stream session...`);
         const session = await client.requestStream({
@@ -353,7 +368,10 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
         // State will transition based on WebRTC/Signaling events
       } catch (error: any) {
         console.error(`[${streamId}] Failed to start stream:`, error);
-        setState({ status: 'error', errorMessage: error.message || 'Unknown error starting stream' });
+        setState({
+          status: "error",
+          errorMessage: error.message || "Unknown error starting stream",
+        });
         sessionId = null;
         closeConnections();
       }
@@ -362,13 +380,13 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
     end: async () => {
       if (isDestroyed) return;
       if (!sessionId) {
-          console.log(`[${streamId}] Stream not active, cannot end.`);
-          // Ensure state is consistent if end() is called early
-          if (currentState.status !== 'ended' && currentState.status !== 'error') {
-             setState({ status: 'ended' });
-          }
-          closeConnections(); // Clean up any partial connections
-          return;
+        console.log(`[${streamId}] Stream not active, cannot end.`);
+        // Ensure state is consistent if end() is called early
+        if (currentState.status !== "ended" && currentState.status !== "error") {
+          setState({ status: "ended" });
+        }
+        closeConnections(); // Clean up any partial connections
+        return;
       }
       console.log(`[${streamId}] Ending stream session: ${sessionId}`);
       const currentSessionId = sessionId;
@@ -376,43 +394,46 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
       closeConnections();
       try {
         await client.endStream(currentSessionId);
-        setState({ status: 'ended' });
+        setState({ status: "ended" });
       } catch (error: any) {
         console.error(`[${streamId}] Failed to cleanly end stream on server:`, error);
         // State is already set to ended locally
-        setState({ status: 'ended', errorMessage: `Error during server cleanup: ${error.message}` }); // Add error message but keep state as ended
+        setState({
+          status: "ended",
+          errorMessage: `Error during server cleanup: ${error.message}`,
+        }); // Add error message but keep state as ended
       }
     },
 
     send: (event: InputStreamEvent) => {
       if (isDestroyed) return;
-      if (!sessionId || currentState.status !== 'streaming') {
+      if (!sessionId || currentState.status !== "streaming") {
         console.warn(`[${streamId}] Cannot send event, stream not active or not streaming.`);
         return;
       }
-      client.sendEvent(sessionId, event).catch(err => {
-          console.error(`[${streamId}] Failed to send event:`, err);
-          // Optional: set error state?
+      client.sendEvent(sessionId, event).catch((err) => {
+        console.error(`[${streamId}] Failed to send event:`, err);
+        // Optional: set error state?
       });
     },
 
-    update: async (updates: { renderOptions?: RenderOptions, sceneData?: any }) => {
-        if (isDestroyed) return;
-        if (!sessionId) {
-            console.warn(`[${streamId}] Cannot update, stream not active.`);
-            throw new Error("Stream not active");
-        }
-        console.log(`[${streamId}] Requesting stream update:`, updates);
-        try {
-            await client.updateStream(sessionId, updates);
-            // The server *might* send back new state via signaling/SSE,
-            // or the client might need to update based on ack.
-            // For now, assume update happens server-side.
-        } catch (error: any) {
-            console.error(`[${streamId}] Failed to update stream:`, error);
-            setState({ status: 'error', errorMessage: `Update failed: ${error.message}`});
-            throw error; // Re-throw so caller knows update failed
-        }
+    update: async (updates: { renderOptions?: RenderOptions; sceneData?: any }) => {
+      if (isDestroyed) return;
+      if (!sessionId) {
+        console.warn(`[${streamId}] Cannot update, stream not active.`);
+        throw new Error("Stream not active");
+      }
+      console.log(`[${streamId}] Requesting stream update:`, updates);
+      try {
+        await client.updateStream(sessionId, updates);
+        // The server *might* send back new state via signaling/SSE,
+        // or the client might need to update based on ack.
+        // For now, assume update happens server-side.
+      } catch (error: any) {
+        console.error(`[${streamId}] Failed to update stream:`, error);
+        setState({ status: "error", errorMessage: `Update failed: ${error.message}` });
+        throw error; // Re-throw so caller knows update failed
+      }
     },
 
     subscribe: (listener: (state: StreamState) => void): (() => void) => {
@@ -426,20 +447,20 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
     getVideoElement: () => videoElement,
 
     destroy: () => {
-        if (isDestroyed) return;
-        console.log(`[${streamId}] Destroying RenderStream instance.`);
-        isDestroyed = true;
-        stateListeners.clear();
-        if (stateUpdateSubscription) {
-            stateUpdateSubscription();
-            stateUpdateSubscription = null;
-        }
-        if (sessionId) {
-            renderStreamInstance.end(); // Attempt to end the stream cleanly
-        } else {
-            closeConnections(); // Ensure connections are closed if no session ID
-        }
-    }
+      if (isDestroyed) return;
+      console.log(`[${streamId}] Destroying RenderStream instance.`);
+      isDestroyed = true;
+      stateListeners.clear();
+      if (stateUpdateSubscription) {
+        stateUpdateSubscription();
+        stateUpdateSubscription = null;
+      }
+      if (sessionId) {
+        renderStreamInstance.end(); // Attempt to end the stream cleanly
+      } else {
+        closeConnections(); // Ensure connections are closed if no session ID
+      }
+    },
   };
 
   if (autoConnect) {
@@ -448,4 +469,4 @@ function createRenderStream(params: CreateRenderStreamParams): RenderStream {
   }
 
   return renderStreamInstance;
-} 
+}

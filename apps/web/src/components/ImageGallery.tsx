@@ -1,7 +1,6 @@
-
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, X, ImageIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, ImageIcon, X } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface ImageGalleryProps {
   images: string[];
@@ -22,17 +21,17 @@ const ImageGallery = ({ images, className }: ImageGalleryProps) => {
   };
 
   const handleImageError = (index: number) => {
-    setImageErrors(prev => ({ ...prev, [index]: true }));
+    setImageErrors((prev) => ({ ...prev, [index]: true }));
   };
 
-  const placeholderImage = '/placeholder.svg';
+  const _placeholderImage = "/placeholder.svg";
 
   return (
     <div className={cn("w-full", className)}>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {images.map((image, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="aspect-square relative overflow-hidden rounded-md cursor-pointer transform transition-transform hover:scale-105 bg-secondary/30"
             onClick={() => {
               setCurrentImageIndex(index);
@@ -58,20 +57,17 @@ const ImageGallery = ({ images, className }: ImageGalleryProps) => {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
-          <button 
-            className="absolute top-4 right-4 text-white"
-            onClick={() => setShowModal(false)}
-          >
+          <button className="absolute top-4 right-4 text-white" onClick={() => setShowModal(false)}>
             <X className="w-8 h-8" />
           </button>
-          
-          <button 
+
+          <button
             className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/10 p-2 rounded-full"
             onClick={navigatePrev}
           >
             <ChevronLeft className="w-6 h-6 text-white" />
           </button>
-          
+
           <div className="max-w-4xl max-h-[90vh] relative">
             {imageErrors[currentImageIndex] ? (
               <div className="flex items-center justify-center w-64 h-64 bg-secondary/20">
@@ -86,8 +82,8 @@ const ImageGallery = ({ images, className }: ImageGalleryProps) => {
               />
             )}
           </div>
-          
-          <button 
+
+          <button
             className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/10 p-2 rounded-full"
             onClick={navigateNext}
           >

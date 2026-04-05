@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  getRecentGames,
   addRecentGame,
-  removeRecentGame,
   clearRecentGames,
   type GameHistoryEntry,
+  getRecentGames,
+  removeRecentGame,
 } from "../game-history";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
@@ -25,9 +25,7 @@ describe("game-history", () => {
       mockedAsyncStorage.getItem.mockResolvedValue(null);
       const games = await getRecentGames();
       expect(games).toEqual([]);
-      expect(mockedAsyncStorage.getItem).toHaveBeenCalledWith(
-        "ogs:game-history"
-      );
+      expect(mockedAsyncStorage.getItem).toHaveBeenCalledWith("ogs:game-history");
     });
 
     it("returns parsed games from storage", async () => {
@@ -60,10 +58,10 @@ describe("game-history", () => {
 
       expect(mockedAsyncStorage.setItem).toHaveBeenCalledWith(
         "ogs:game-history",
-        expect.any(String)
+        expect.any(String),
       );
       const saved = JSON.parse(
-        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string,
       ) as GameHistoryEntry[];
       expect(saved).toHaveLength(1);
       expect(saved[0].url).toBe("https://triviajam.tv");
@@ -85,7 +83,7 @@ describe("game-history", () => {
       await addRecentGame("https://triviajam.tv", "Trivia Jam");
 
       const saved = JSON.parse(
-        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string,
       ) as GameHistoryEntry[];
       expect(saved).toHaveLength(1);
       expect(saved[0].url).toBe("https://triviajam.tv");
@@ -112,7 +110,7 @@ describe("game-history", () => {
       await addRecentGame("https://game2.com", "Game 2");
 
       const saved = JSON.parse(
-        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string,
       ) as GameHistoryEntry[];
       expect(saved[0].url).toBe("https://game2.com");
       expect(saved[1].url).toBe("https://game1.com");
@@ -130,7 +128,7 @@ describe("game-history", () => {
       await addRecentGame("https://newgame.com", "New Game");
 
       const saved = JSON.parse(
-        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string,
       ) as GameHistoryEntry[];
       expect(saved).toHaveLength(20);
       expect(saved[0].url).toBe("https://newgame.com");
@@ -157,7 +155,7 @@ describe("game-history", () => {
       await removeRecentGame("https://game1.com");
 
       const saved = JSON.parse(
-        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string,
       ) as GameHistoryEntry[];
       expect(saved).toHaveLength(1);
       expect(saved[0].url).toBe("https://game2.com");
@@ -177,7 +175,7 @@ describe("game-history", () => {
       await removeRecentGame("https://nonexistent.com");
 
       const saved = JSON.parse(
-        mockedAsyncStorage.setItem.mock.calls[0][1] as string
+        mockedAsyncStorage.setItem.mock.calls[0][1] as string,
       ) as GameHistoryEntry[];
       expect(saved).toHaveLength(1);
     });
@@ -187,9 +185,7 @@ describe("game-history", () => {
     it("removes the history key from storage", async () => {
       mockedAsyncStorage.removeItem.mockResolvedValue(undefined);
       await clearRecentGames();
-      expect(mockedAsyncStorage.removeItem).toHaveBeenCalledWith(
-        "ogs:game-history"
-      );
+      expect(mockedAsyncStorage.removeItem).toHaveBeenCalledWith("ogs:game-history");
     });
   });
 });

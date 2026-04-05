@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { isOGSWebView, getDeviceId, onDeviceIdChange, getBridge } from './core';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getBridge, getDeviceId, isOGSWebView, onDeviceIdChange } from "./core";
 
-describe('Notification Kit Core (Bridge-backed)', () => {
+describe("Notification Kit Core (Bridge-backed)", () => {
   beforeEach(() => {
     // Reset the bridge singleton for each test
     // Since we can't easily reset the bridge singleton in code without adding a reset helper,
     // we mock the ReactNativeWebView and re-initialize
-    vi.stubGlobal('ReactNativeWebView', {
+    vi.stubGlobal("ReactNativeWebView", {
       postMessage: vi.fn(),
     });
   });
@@ -15,65 +15,71 @@ describe('Notification Kit Core (Bridge-backed)', () => {
     vi.unstubAllGlobals();
   });
 
-  describe('isOGSWebView', () => {
-    it('returns true when ReactNativeWebView is present', () => {
+  describe("isOGSWebView", () => {
+    it("returns true when ReactNativeWebView is present", () => {
       expect(isOGSWebView()).toBe(true);
     });
 
-    it('returns false when ReactNativeWebView is missing', () => {
-      vi.stubGlobal('ReactNativeWebView', undefined);
+    it("returns false when ReactNativeWebView is missing", () => {
+      vi.stubGlobal("ReactNativeWebView", undefined);
       expect(isOGSWebView()).toBe(false);
     });
   });
 
-  describe('getDeviceId', () => {
-    it('returns null if system store is not initialized', () => {
+  describe("getDeviceId", () => {
+    it("returns null if system store is not initialized", () => {
       // Bridge exists but no STATE_INIT message yet
       expect(getDeviceId()).toBe(null);
     });
 
-    it('returns device id from bridge state', () => {
+    it("returns device id from bridge state", () => {
       const bridge = getBridge();
 
       // Simulate native sending STATE_INIT
-      window.dispatchEvent(new MessageEvent('message', {
-        data: JSON.stringify({
-          type: 'STATE_INIT',
-          storeKey: 'system',
-          data: { ogsDeviceId: 'test-bridge-id' }
-        })
-      }));
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "STATE_INIT",
+            storeKey: "system",
+            data: { ogsDeviceId: "test-bridge-id" },
+          }),
+        }),
+      );
 
-      expect(getDeviceId()).toBe('test-bridge-id');
+      expect(getDeviceId()).toBe("test-bridge-id");
     });
   });
 
-  describe('onDeviceIdChange', () => {
-    it('subscribes to system store changes', () => {
+  describe("onDeviceIdChange", () => {
+    it("subscribes to system store changes", () => {
       // Initialize the store first so subscribe can attach
       getBridge();
-      window.dispatchEvent(new MessageEvent('message', {
-        data: JSON.stringify({
-          type: 'STATE_INIT',
-          storeKey: 'system',
-          data: { ogsDeviceId: 'id-1' }
-        })
-      }));
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "STATE_INIT",
+            storeKey: "system",
+            data: { ogsDeviceId: "id-1" },
+          }),
+        }),
+      );
 
       let latestId: string | null = null;
-      onDeviceIdChange((id) => { latestId = id; });
+      onDeviceIdChange((id) => {
+        latestId = id;
+      });
 
       // Trigger state update via JSON patch operations
-      window.dispatchEvent(new MessageEvent('message', {
-        data: JSON.stringify({
-          type: 'STATE_UPDATE',
-          storeKey: 'system',
-          operations: [
-            { op: 'replace', path: '/ogsDeviceId', value: 'id-2' }
-          ]
-        })
-      }));
-      expect(latestId).toBe('id-2');
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            type: "STATE_UPDATE",
+            storeKey: "system",
+            operations: [{ op: "replace", path: "/ogsDeviceId", value: "id-2" }],
+          }),
+        }),
+      );
+      expect(latestId).toBe("id-2");
     });
   });
 });

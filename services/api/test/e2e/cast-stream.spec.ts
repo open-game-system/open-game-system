@@ -19,20 +19,18 @@ import { expect, test } from "@playwright/test";
  * - E2E_SPECTATE_URL: A valid HTTPS URL to render (default: https://triviajam.tv)
  */
 
-const apiUrl = process.env.E2E_API_URL || "http://localhost:8787";
+const apiUrl = process.env.E2E_API_PREVIEW_URL || process.env.E2E_API_URL || "http://localhost:8787";
 const apiKey = process.env.E2E_API_KEY;
-const spectateUrl =
-  process.env.E2E_SPECTATE_URL || "https://triviajam.tv";
+const spectateUrl = process.env.E2E_SPECTATE_URL || "https://triviajam.tv";
 // For video tests: direct stream server URL (Container proxy doesn't work on macOS local dev)
-const streamServerUrl =
-  process.env.E2E_STREAM_SERVER_URL || "http://localhost:8080";
+const streamServerUrl = process.env.E2E_STREAM_SERVER_URL
+  || (process.env.E2E_API_PREVIEW_URL ? `${process.env.E2E_API_PREVIEW_URL}/api/v1/stream` : "http://localhost:8080");
+const receiverBaseUrl = process.env.E2E_RECEIVER_BASE_URL || "";
 
 test.describe("Cast Stream — Container Provisioning", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
 
-  test("creates a cast session with stream server details", async ({
-    request,
-  }) => {
+  test("creates a cast session with stream server details", async ({ request }) => {
     const res = await request.post(`${apiUrl}/api/v1/cast/sessions`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       data: {
@@ -70,12 +68,9 @@ test.describe("Cast Stream — Container Provisioning", () => {
     await new Promise((r) => setTimeout(r, 10_000));
 
     // Session should still be active
-    const statusRes = await request.get(
-      `${apiUrl}/api/v1/cast/sessions/${sessionId}`,
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }
-    );
+    const statusRes = await request.get(`${apiUrl}/api/v1/cast/sessions/${sessionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     expect(statusRes.status()).toBe(200);
     const status = await statusRes.json();
     expect(status.status).toBe("active");
@@ -86,9 +81,7 @@ test.describe("Cast Stream — Container Provisioning", () => {
     });
   });
 
-  test("deleting a cast session stops the stream container", async ({
-    request,
-  }) => {
+  test("deleting a cast session stops the stream container", async ({ request }) => {
     // Create session
     const createRes = await request.post(`${apiUrl}/api/v1/cast/sessions`, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -101,23 +94,17 @@ test.describe("Cast Stream — Container Provisioning", () => {
     const { sessionId } = await createRes.json();
 
     // Delete session
-    const deleteRes = await request.delete(
-      `${apiUrl}/api/v1/cast/sessions/${sessionId}`,
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }
-    );
+    const deleteRes = await request.delete(`${apiUrl}/api/v1/cast/sessions/${sessionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     expect(deleteRes.status()).toBe(200);
     const deleteBody = await deleteRes.json();
     expect(deleteBody.status).toBe("ended");
 
     // Session should be gone or ended
-    const statusRes = await request.get(
-      `${apiUrl}/api/v1/cast/sessions/${sessionId}`,
-      {
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }
-    );
+    const statusRes = await request.get(`${apiUrl}/api/v1/cast/sessions/${sessionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
     // Should be 404 (session deleted) or status: "ended"
     if (statusRes.status() === 200) {
       const status = await statusRes.json();
@@ -128,27 +115,40 @@ test.describe("Cast Stream — Container Provisioning", () => {
   });
 });
 
-test.describe("Cast Stream — WebRTC Signaling", () => {
+test.describe("Cast Stream — WebRTC via Realtime SFU", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
 
-  test("receiver connects to stream server and receives video via PeerJS", async ({
-    page,
-  }) => {
-    // Use direct stream server URL for testing (Container proxy has macOS limitations)
-    const receiverPath = `${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html`;
-    const receiverUrl = `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
+  test("receiver connects via SFU and receives video", async ({ page }) => {
+    const receiverUrl = receiverBaseUrl
+      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
+      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`;
 
     console.log("[Test] Loading receiver:", receiverUrl);
+
+    // Capture browser console logs for debugging
+    page.on("console", (msg) => console.log(`[Receiver Console] ${msg.type()}: ${msg.text()}`));
+    page.on("pageerror", (err) => console.log(`[Receiver Error] ${err.message}`));
+
     await page.goto(receiverUrl);
 
-    // Wait for the receiver to connect and display video (up to 45s)
-    const gotVideo = await page.waitForFunction(
-      () => {
-        const video = document.querySelector("video");
-        return video?.srcObject !== null && video?.srcObject !== undefined;
-      },
-      { timeout: 45_000 }
-    ).then(() => true).catch(() => false);
+    // Wait for the receiver to connect and display video (up to 60s)
+    // SFU flow: receiver calls /start-stream → /subscribe → WebRTC handshake
+    const gotVideo = await page
+      .waitForFunction(
+        () => {
+          const video = document.querySelector("video");
+          return video?.srcObject !== null && video?.srcObject !== undefined;
+        },
+        { timeout: 60_000 },
+      )
+      .then(() => true)
+      .catch(() => false);
+
+    // Dump final page state for debugging
+    if (!gotVideo) {
+      const statusText = await page.locator("#status-text").textContent().catch(() => "N/A");
+      console.log("[Test] Video not received. Status text:", statusText);
+    }
 
     expect(gotVideo).toBe(true);
   });
@@ -198,11 +198,9 @@ test.describe("Cast Stream — Error Handling", () => {
 test.describe("Cast Receiver — WebRTC Display", () => {
   test.skip(!apiKey, "E2E_API_KEY is required");
 
-  test("receiver page loads with status overlay and video element", async ({
-    page,
-  }) => {
+  test("receiver page loads with status overlay and video element", async ({ page }) => {
     // Load receiver with params
-    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html?streamServerUrl=http://localhost:9999&viewUrl=https://example.com`;
+    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=http://localhost:9999&viewUrl=https://example.com`;
 
     await page.goto(receiverUrl);
 
@@ -215,10 +213,8 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     await expect(video).toBeVisible();
   });
 
-  test("receiver shows error state when stream server unreachable", async ({
-    page,
-  }) => {
-    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html?streamServerUrl=http://localhost:9999&viewUrl=https://example.com`;
+  test("receiver shows error state when stream server unreachable", async ({ page }) => {
+    const receiverUrl = `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=http://localhost:9999&viewUrl=https://example.com`;
 
     await page.goto(receiverUrl);
 
@@ -226,14 +222,15 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     await page.waitForFunction(
       () => {
         const el = document.getElementById("status-text");
-        return el && (
-          el.textContent?.includes("timed out") ||
-          el.textContent?.includes("Unable") ||
-          el.textContent?.includes("error") ||
-          el.textContent?.includes("Error")
+        return (
+          el &&
+          (el.textContent?.includes("timed out") ||
+            el.textContent?.includes("Unable") ||
+            el.textContent?.includes("error") ||
+            el.textContent?.includes("Error"))
         );
       },
-      { timeout: 20_000 }
+      { timeout: 20_000 },
     );
 
     const statusText = await page.locator("#status-text").textContent();
@@ -241,39 +238,42 @@ test.describe("Cast Receiver — WebRTC Display", () => {
     // Should indicate a failure state
     expect(
       statusText?.includes("timed out") ||
-      statusText?.includes("Unable") ||
-      statusText?.includes("error") ||
-      statusText?.includes("Error")
+        statusText?.includes("Unable") ||
+        statusText?.includes("error") ||
+        statusText?.includes("Error"),
     ).toBe(true);
   });
 
-  test("receiver connects to stream server and displays video full-screen", async ({
-    page,
-  }) => {
-    // Use direct stream server URL for video test
-    const receiverPath = `${process.cwd().replace(/services\/api$/, '')}examples/cast-receiver/receiver.html`;
-    await page.goto(
-      `file://${receiverPath}?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent(spectateUrl)}`
-    );
+  test("receiver connects via SFU and displays video full-screen", async ({ page }) => {
+    // Use a different session to avoid container state conflicts from previous test
+    const receiverUrl2 = receiverBaseUrl
+      ? `${receiverBaseUrl}/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent("https://example.com")}`
+      : `file://${process.cwd().replace(/services\/api$/, "")}examples/cast-receiver/receiver.html?streamServerUrl=${encodeURIComponent(streamServerUrl)}&viewUrl=${encodeURIComponent("https://example.com")}`;
 
-    // Wait for video to have srcObject (up to 45 seconds)
-    const gotVideo = await page.waitForFunction(
-      () => {
+    page.on("console", (msg) => console.log(`[Receiver2 Console] ${msg.type()}: ${msg.text()}`));
+    await page.goto(receiverUrl2);
+
+    // Wait for the overlay to be hidden (indicates video is playing)
+    const overlayHidden = await page
+      .waitForFunction(
+        () => {
+          const overlay = document.getElementById("status-overlay");
+          return overlay?.classList.contains("hidden");
+        },
+        { timeout: 60_000 },
+      )
+      .then(() => true)
+      .catch(() => false);
+
+    expect(overlayHidden).toBe(true);
+
+    // Also verify video element has content
+    if (overlayHidden) {
+      const hasVideo = await page.evaluate(() => {
         const video = document.querySelector("video");
-        return video?.srcObject !== null && video?.srcObject !== undefined;
-      },
-      { timeout: 45_000 }
-    ).then(() => true).catch(() => false);
-
-    expect(gotVideo).toBe(true);
-
-    // Verify overlay is hidden (video is playing)
-    if (gotVideo) {
-      const overlayHidden = await page.evaluate(() => {
-        const overlay = document.getElementById("status-overlay");
-        return overlay?.classList.contains("hidden");
+        return video?.srcObject !== null;
       });
-      expect(overlayHidden).toBe(true);
+      expect(hasVideo).toBe(true);
     }
   });
 });

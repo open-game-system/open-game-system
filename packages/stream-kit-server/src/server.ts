@@ -1,5 +1,10 @@
-import { StreamKitServerConfig, StreamSession, RenderStreamConfig, ContainerManager } from './types';
-import { DockerContainerManager } from './container-manager';
+import { DockerContainerManager } from "./container-manager";
+import type {
+  ContainerManager,
+  RenderStreamConfig,
+  StreamKitServerConfig,
+  StreamSession,
+} from "./types";
 
 export class StreamKitServer {
   private sessions = new Map<string, StreamSession>();
@@ -7,7 +12,7 @@ export class StreamKitServer {
 
   constructor(private config: StreamKitServerConfig) {
     this.containerManager = new DockerContainerManager({
-      image: config.containerImage || 'stream-kit-container',
+      image: config.containerImage || "stream-kit-container",
       port: config.containerPort || 8080,
       extensionPath: config.extensionPath,
     });
@@ -15,11 +20,11 @@ export class StreamKitServer {
 
   async createStream(config: RenderStreamConfig): Promise<{ sessionId: string }> {
     const sessionId = generateSessionId();
-    
+
     const session: StreamSession = {
       id: sessionId,
       url: config.url,
-      status: 'starting',
+      status: "starting",
       createdAt: new Date(),
       lastActiveAt: new Date(),
       config,
@@ -30,13 +35,16 @@ export class StreamKitServer {
     // Start container in background
     this.startContainer(sessionId).catch((error) => {
       console.error(`Failed to start container for session ${sessionId}:`, error);
-      this.updateSessionStatus(sessionId, 'error');
+      this.updateSessionStatus(sessionId, "error");
     });
 
     return { sessionId };
   }
 
-  async connectToStream(sessionId: string, peerId: string): Promise<{ status: string; peerId?: string }> {
+  async connectToStream(
+    sessionId: string,
+    peerId: string,
+  ): Promise<{ status: string; peerId?: string }> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -47,7 +55,7 @@ export class StreamKitServer {
     this.sessions.set(sessionId, session);
 
     // TODO: Notify container about peer connection
-    
+
     return {
       status: session.status,
       peerId: session.peerId,
@@ -69,7 +77,7 @@ export class StreamKitServer {
       return;
     }
 
-    this.updateSessionStatus(sessionId, 'stopping');
+    this.updateSessionStatus(sessionId, "stopping");
 
     if (session.containerId) {
       try {
@@ -98,17 +106,17 @@ export class StreamKitServer {
 
     try {
       const { containerId } = await this.containerManager.start(sessionId, session.config);
-      
+
       session.containerId = containerId;
-      session.status = 'running';
+      session.status = "running";
       this.sessions.set(sessionId, session);
     } catch (error) {
-      this.updateSessionStatus(sessionId, 'error');
+      this.updateSessionStatus(sessionId, "error");
       throw error;
     }
   }
 
-  private updateSessionStatus(sessionId: string, status: StreamSession['status']): void {
+  private updateSessionStatus(sessionId: string, status: StreamSession["status"]): void {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.status = status;
@@ -120,4 +128,4 @@ export class StreamKitServer {
 
 function generateSessionId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-} 
+}

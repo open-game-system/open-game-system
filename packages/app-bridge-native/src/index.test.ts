@@ -1,6 +1,6 @@
-import type { NativeBridge, BridgeStores, State } from "@open-game-system/app-bridge-types";
+import type { BridgeStores, NativeBridge, State } from "@open-game-system/app-bridge-types";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createNativeBridge, createStore, WebView } from "./index";
+import { createNativeBridge, createStore, type WebView } from "./index";
 
 // Base state type with discriminator
 interface CounterState extends State {
@@ -26,7 +26,7 @@ class MockWebView implements WebView {
     this.messageQueue.push(message);
   }
 
-  injectJavaScript(script: string): void {
+  injectJavaScript(_script: string): void {
     // No-op for testing
   }
 }

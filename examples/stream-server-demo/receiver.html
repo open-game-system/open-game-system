@@ -207,16 +207,16 @@
     </div>
 
     <!-- PeerJS Library -->
-    <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
+    <!-- PeerJS removed — using Cloudflare Realtime SFU via backend -->
     
     <script>
         let peer = null;
-        let currentConnection = null;
+        const _currentConnection = null;
         let receivedCall = null;
         let isListening = false;
         let callHandlersBound = false;
         let currentTraceId = null;
-        const sessionId = 'session-' + Math.random().toString(36).substring(2, 15);
+        const sessionId = `session-${Math.random().toString(36).substring(2, 15)}`;
         const searchParams = new URLSearchParams(window.location.search);
         
         const urlInput = document.getElementById('urlInput');
@@ -232,7 +232,7 @@
         const remoteVideo = document.getElementById('remoteVideo');
         
         // Generate a random receiver ID
-        const receiverId = 'receiver-' + Math.random().toString(36).substring(2, 15);
+        const receiverId = `receiver-${Math.random().toString(36).substring(2, 15)}`;
         receiverIdDisplay.value = receiverId;
         
         function updateStatus(message, type = 'disconnected') {
@@ -305,7 +305,7 @@
             if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
                 return globalThis.crypto.randomUUID();
             }
-            return 'trace-' + Math.random().toString(36).slice(2) + '-' + Date.now();
+            return `trace-${Math.random().toString(36).slice(2)}-${Date.now()}`;
         }
         
         async function startStreamAndListen() {
@@ -314,101 +314,115 @@
                 updateStatus('Please enter a valid URL to stream', 'error');
                 return;
             }
-            
+
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 updateStatus('URL must start with http:// or https://', 'error');
                 return;
             }
-            
-            updateStatus('🚀 Starting stream and initializing receiver...', 'connecting');
+
+            updateStatus('Starting stream via Cloudflare Realtime SFU...', 'connecting');
             startStreamBtn.disabled = true;
             startListeningBtn.disabled = true;
-            
+
             try {
                 cleanup();
 
-                // Step 1: Load ICE configuration before creating either peer.
-                updateStatus('📡 Requesting stream from container server...', 'connecting');
-                
                 const serverUrl = serverUrlInput.value.trim();
-                const endpoint = serverUrl.endsWith('/') ? `${serverUrl}start-stream` : `${serverUrl}/start-stream`;
-                const iceServersEndpoint = serverUrl.endsWith('/') ? `${serverUrl}ice-servers` : `${serverUrl}/ice-servers`;
+                const base = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
                 currentTraceId = createTraceId();
-                console.log('🧭 Stream trace ID:', currentTraceId);
-                
-                const iceResponse = await fetch(iceServersEndpoint, {
-                    method: 'GET',
-                    headers: {
-                        'x-stream-trace-id': currentTraceId,
-                        'x-stream-session-id': sessionId
-                    }
-                });
-                const icePayload = await iceResponse.json();
-                if (!iceResponse.ok) {
-                    throw new Error((icePayload.error || 'Failed to load ICE servers') + ` (trace ${icePayload.traceId || currentTraceId})`);
-                }
-                const iceServers = Array.isArray(icePayload.iceServers) ? icePayload.iceServers : [];
-                console.log('🧊 ICE servers loaded:', iceServers);
-                
-                // Step 2: Start listening with the fetched ICE servers.
-                peer = new Peer(receiverId, {
-                    debug: 3,
-                    config: {
-                        iceServers
-                    }
-                });
-                
-                await new Promise((resolve, reject) => {
-                    peer.on('open', (id) => {
-                        console.log('🎧 Receiver peer opened with ID:', id);
-                        updateStatus('🎧 Receiver ready, starting stream...', 'connecting');
-                        isListening = true;
-                        resolve();
+                console.log('Stream trace ID:', currentTraceId);
+
+                // Step 1: Fetch ICE servers
+                updateStatus('Loading ICE configuration...', 'connecting');
+                let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
+                try {
+                    const iceRes = await fetch(`${base}/ice-servers`, {
+                        headers: { 'x-stream-trace-id': currentTraceId, 'x-stream-session-id': sessionId }
                     });
-                    
-                    peer.on('error', (error) => {
-                        console.error('❌ Peer error:', error);
-                        reject(error);
-                    });
-                });
-                
-                // Step 3: Start listening for the incoming call before
-                // the container finishes INITIALIZE and dials our peer.
-                setupCallHandlers();
-                
-                // Step 4: Start the stream on the container server.
-                const streamResponse = await fetch(endpoint, {
+                    if (iceRes.ok) {
+                        const iceData = await iceRes.json();
+                        if (Array.isArray(iceData.iceServers)) iceServers = iceData.iceServers;
+                    }
+                } catch (e) { console.log('Could not fetch ICE servers, using defaults'); }
+                console.log('ICE servers loaded:', iceServers);
+
+                // Step 2: Call /start-stream to start the publisher and get SFU session
+                updateStatus('Starting stream publisher...', 'connecting');
+                const startRes = await fetch(`${base}/start-stream`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'x-stream-trace-id': currentTraceId,
                         'x-stream-session-id': sessionId
                     },
+                    body: JSON.stringify({ url })
+                });
+                const startData = await startRes.json();
+                if (startData.status !== 'success' || !startData.publisherSessionId) {
+                    throw new Error(startData.error || 'Failed to start stream');
+                }
+                console.log('Publisher started, SFU session:', startData.publisherSessionId);
+
+                // Step 3: Subscribe to the publisher's tracks
+                updateStatus('Subscribing to stream via SFU...', 'connecting');
+                const subRes = await fetch(`${base}/subscribe`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-stream-trace-id': currentTraceId,
+                    },
                     body: JSON.stringify({
-                        url: url,
-                        peerId: receiverId,
-                        iceServers
+                        publisherSessionId: startData.publisherSessionId,
+                        trackNames: ['cast-video', 'cast-audio']
                     })
                 });
-                
-                const result = await streamResponse.json();
-                const responseTraceId = streamResponse.headers.get('x-stream-trace-id') || result.traceId || currentTraceId;
-                console.log('🧭 Stream response trace ID:', responseTraceId);
-                
-                if (result.status !== 'success') {
-                    throw new Error((result.message || 'Failed to start stream') + ` (trace ${responseTraceId})`);
+                const subData = await subRes.json();
+                if (!subData.subscriberSessionId || !subData.sessionDescription) {
+                    throw new Error(subData.error || 'Failed to subscribe');
                 }
-                
-                console.log('✅ Stream started:', result.srcPeerId, 'trace:', responseTraceId);
-                peerIdInput.value = result.srcPeerId || '';
-                updateStatus(`🎯 Stream started! Waiting for connection... Trace: ${responseTraceId}`, 'connecting');
-                
-                // Enable other controls
+                console.log('Subscribed, got SFU offer');
+
+                // Step 4: Create RTCPeerConnection and complete WebRTC handshake
+                updateStatus('Establishing WebRTC connection...', 'connecting');
+                pc = new RTCPeerConnection({ iceServers });
+
+                pc.ontrack = (event) => {
+                    console.log('Received remote track:', event.track.kind);
+                    const stream = event.streams[0] || new MediaStream([event.track]);
+                    videoEl.srcObject = stream;
+                    videoEl.play().catch(e => console.warn('Video play failed:', e));
+                    updateStatus('Connected', 'connected');
+                    isListening = true;
+                };
+
+                pc.onconnectionstatechange = () => {
+                    console.log('Connection state:', pc.connectionState);
+                    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+                        updateStatus('Disconnected', 'disconnected');
+                    }
+                };
+
+                await pc.setRemoteDescription(new RTCSessionDescription(subData.sessionDescription));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+
+                // Step 5: Send answer back to backend
+                const answerRes = await fetch(`${base}/subscribe/${subData.subscriberSessionId}/answer`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'x-stream-trace-id': currentTraceId },
+                    body: JSON.stringify({ sessionDescription: { type: answer.type, sdp: answer.sdp } })
+                });
+                if (!answerRes.ok) {
+                    throw new Error('Failed to send answer to SFU');
+                }
+
+                console.log('Answer sent, waiting for media...');
+                updateStatus('Waiting for video stream...', 'connecting');
                 connectBtn.disabled = false;
-                
+
             } catch (error) {
-                console.error('❌ Failed to start stream:', error);
-                updateStatus('❌ Failed to start stream: ' + error.message, 'error');
+                console.error('Failed to start stream:', error);
+                updateStatus(`Failed: ${error.message}`, 'error');
                 cleanup();
             }
         }
@@ -422,7 +436,7 @@
             
             peer.on('call', (call) => {
                 console.log('📞 Receiving call from:', call.peer);
-                updateStatus('📡 Receiving stream from: ' + call.peer, 'connecting');
+                updateStatus(`📡 Receiving stream from: ${call.peer}`, 'connecting');
                 const peerConnection = call.peerConnection || call._negotiator?._pc || null;
                 if (peerConnection) {
                     console.log('📡 Peer connection object detected');
@@ -464,7 +478,7 @@
                         }))
                     });
                     
-                    updateStatus('✅ Stream connected! Showing video from: ' + call.peer, 'connected');
+                    updateStatus(`✅ Stream connected! Showing video from: ${call.peer}`, 'connected');
                     
                     // Stop any existing video first
                     if (remoteVideo.srcObject) {
@@ -534,7 +548,7 @@
                                 };
                                 remoteVideo.addEventListener('click', playOnClick);
                             } else {
-                                updateStatus('📹 Video stream received but playback failed: ' + error.message, 'error');
+                                updateStatus(`📹 Video stream received but playback failed: ${error.message}`, 'error');
                             }
                         });
                     } else {
@@ -597,7 +611,7 @@
                 
                 call.on('error', (error) => {
                     console.error('❌ Call error:', error);
-                    updateStatus('Call error: ' + error.message, 'error');
+                    updateStatus(`Call error: ${error.message}`, 'error');
                     resetToListening();
                 });
             });
@@ -608,7 +622,7 @@
             });
         }
         
-        function startListening() {
+        function _startListening() {
             updateStatus('Initializing receiver...', 'connecting');
             startListeningBtn.disabled = true;
             isListening = true;
@@ -639,7 +653,7 @@
                 return;
             }
             
-            updateStatus('Attempting to connect to: ' + sourcePeerId, 'connecting');
+            updateStatus(`Attempting to connect to: ${sourcePeerId}`, 'connecting');
             
             // Try to call the source peer
             try {
@@ -647,7 +661,7 @@
                 if (call) {
                     call.on('stream', (remoteStream) => {
                         console.log('🎥 Manual connection - received stream');
-                        updateStatus('✅ Manually connected to: ' + sourcePeerId, 'connected');
+                        updateStatus(`✅ Manually connected to: ${sourcePeerId}`, 'connected');
                         remoteVideo.srcObject = remoteStream;
                         videoContainer.style.display = 'block';
                         disconnectBtn.disabled = false;
@@ -655,19 +669,19 @@
                     
                     call.on('error', (error) => {
                         console.error('Manual call error:', error);
-                        updateStatus('Manual connection failed: ' + error.message, 'error');
+                        updateStatus(`Manual connection failed: ${error.message}`, 'error');
                     });
                     
                     receivedCall = call;
                 } else {
-                    updateStatus('Failed to initiate call to: ' + sourcePeerId, 'error');
+                    updateStatus(`Failed to initiate call to: ${sourcePeerId}`, 'error');
                 }
             } catch (error) {
-                updateStatus('Error calling peer: ' + error.message, 'error');
+                updateStatus(`Error calling peer: ${error.message}`, 'error');
             }
         }
         
-        function disconnect() {
+        function _disconnect() {
             updateStatus('Disconnecting...', 'connecting');
             
             if (receivedCall) {

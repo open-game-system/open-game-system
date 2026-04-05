@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import type { Env, CastSessionRow } from "../types";
-import { CreateCastSessionSchema, CastStateUpdateSchema } from "../schemas";
+import { CastStateUpdateSchema, CreateCastSessionSchema } from "../schemas";
+import type { CastSessionRow, Env } from "../types";
 
 type CastEnv = { Bindings: Env; Variables: { gameId: string; gameName: string } };
 
@@ -8,7 +8,7 @@ const cast = new Hono<CastEnv>();
 
 /**
  * POST /api/v1/cast/sessions
- * Creates a cast session: provisions a stream-kit container and returns stream details.
+ * Creates a cast session: provisions a stream-kit container via DO and returns stream details.
  */
 cast.post("/sessions", async (c) => {
   let rawBody: unknown;
@@ -29,13 +29,25 @@ cast.post("/sessions", async (c) => {
 
     if (hasDeviceId && hasViewUrl) {
       return c.json(
-        { error: { code: "invalid_view_url", message: "viewUrl must be a valid HTTPS URL", status: 400 } },
+        {
+          error: {
+            code: "invalid_view_url",
+            message: "viewUrl must be a valid HTTPS URL",
+            status: 400,
+          },
+        },
         400,
       );
     }
 
     return c.json(
-      { error: { code: "missing_fields", message: "deviceId and viewUrl (HTTPS) are required", status: 400 } },
+      {
+        error: {
+          code: "missing_fields",
+          message: "deviceId and viewUrl (HTTPS) are required",
+          status: 400,
+        },
+      },
       400,
     );
   }
@@ -76,9 +88,7 @@ cast.get("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   const gameId = c.get("gameId");
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
@@ -99,7 +109,7 @@ cast.get("/sessions/:id", async (c) => {
 
 /**
  * POST /api/v1/cast/sessions/:id/state
- * Pushes a game state update to the stream-kit container.
+ * Pushes a game state update to the stream-kit container via DO.
  */
 cast.post("/sessions/:id/state", async (c) => {
   const sessionId = c.req.param("id");
@@ -123,15 +133,19 @@ cast.post("/sessions/:id/state", async (c) => {
     );
   }
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
-  if (!session || session.game_id !== gameId || (session.status !== "active" && session.status !== "idle")) {
+  if (
+    !session ||
+    session.game_id !== gameId ||
+    (session.status !== "active" && session.status !== "idle")
+  ) {
     return c.json(
-      { error: { code: "session_not_found", message: "Active cast session not found", status: 404 } },
+      {
+        error: { code: "session_not_found", message: "Active cast session not found", status: 404 },
+      },
       404,
     );
   }
@@ -148,7 +162,7 @@ cast.post("/sessions/:id/state", async (c) => {
   // Forward state to stream container (best effort)
   try {
     const container = c.env.STREAM_CONTAINER.get(
-      c.env.STREAM_CONTAINER.idFromName(session.stream_session_id!)
+      c.env.STREAM_CONTAINER.idFromName(session.stream_session_id!),
     );
     await container.fetch("http://container/state", {
       method: "POST",
@@ -164,15 +178,13 @@ cast.post("/sessions/:id/state", async (c) => {
 
 /**
  * DELETE /api/v1/cast/sessions/:id
- * Ends a cast session and tears down the stream-kit container.
+ * Ends a cast session and tears down the stream-kit container via DO.
  */
 cast.delete("/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   const gameId = c.get("gameId");
 
-  const session = await c.env.DB.prepare(
-    "SELECT * FROM cast_sessions WHERE session_id = ?",
-  )
+  const session = await c.env.DB.prepare("SELECT * FROM cast_sessions WHERE session_id = ?")
     .bind(sessionId)
     .first<CastSessionRow>();
 
@@ -209,29 +221,27 @@ cast.delete("/sessions/:id", async (c) => {
  */
 cast.all("/stream/:sessionId/*", async (c) => {
   const sessionId = c.req.param("sessionId");
-  const containerBinding = c.env.STREAM_CONTAINER;
-
-  if (!containerBinding) {
-    return c.json(
-      { error: { code: "stream_not_configured", message: "Stream container not configured", status: 502 } },
-      502,
-    );
-  }
-
-  // Get or create a container instance for this session
-  const container = containerBinding.get(containerBinding.idFromName(sessionId));
-
-  // Forward the request to the container, stripping the proxy prefix
   const originalUrl = new URL(c.req.url);
   const proxyPath = originalUrl.pathname.replace(`/api/v1/cast/stream/${sessionId}`, "");
-  const containerUrl = new URL(proxyPath || "/", "http://container");
-  containerUrl.search = originalUrl.search;
 
-  return container.fetch(containerUrl.toString(), {
+  // Rewrite URL to stream route and add session ID header
+  const streamUrl = new URL(originalUrl);
+  streamUrl.pathname = `/api/v1/stream${proxyPath || "/health"}`;
+
+  const headers = new Headers(c.req.raw.headers);
+  headers.set("x-stream-session-id", sessionId);
+
+  // Forward to this same Worker — Hono will route to the stream handler
+  const hasBody = c.req.method !== "GET" && c.req.method !== "HEAD";
+  const internalReq = new Request(streamUrl.toString(), {
     method: c.req.method,
-    headers: c.req.raw.headers,
-    body: c.req.method !== "GET" && c.req.method !== "HEAD" ? c.req.raw.body : undefined,
-  });
+    headers,
+    body: hasBody ? c.req.raw.body : undefined,
+    ...(hasBody ? { duplex: "half" as const } : {}),
+  } as RequestInit);
+
+  // Self-fetch routes through the Hono app
+  return fetch(internalReq);
 });
 
 export default cast;

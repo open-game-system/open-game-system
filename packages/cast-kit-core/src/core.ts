@@ -1,11 +1,11 @@
-import { createWebBridge } from '@open-game-system/app-bridge-web';
-import type { CastState, CastEvents, CastStores } from './types';
+import { createWebBridge } from "@open-game-system/app-bridge-web";
+import type { CastEvents, CastState, CastStores } from "./types";
 
 export const CAST_INITIAL_STATE: CastState = {
   isAvailable: false,
   devices: [],
   session: {
-    status: 'disconnected',
+    status: "disconnected",
     deviceId: null,
     deviceName: null,
     sessionId: null,
@@ -24,7 +24,7 @@ export function _resetBridge(): void {
 }
 
 export function getCastBridge(): CastBridge | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   if (!bridge) {
     bridge = createWebBridge<CastStores>();
   }
@@ -38,13 +38,13 @@ export function isOGSCastAvailable(): boolean {
 
 export function getCastState(): CastState | null {
   const b = getCastBridge();
-  const castStore = b?.getStore('cast');
+  const castStore = b?.getStore("cast");
   return castStore?.getSnapshot() ?? null;
 }
 
 export function onCastStateChange(callback: (state: CastState) => void): () => void {
   const b = getCastBridge();
-  const castStore = b?.getStore('cast');
+  const castStore = b?.getStore("cast");
   if (!castStore) return () => {};
 
   return castStore.subscribe((state: CastState) => {
@@ -54,6 +54,6 @@ export function onCastStateChange(callback: (state: CastState) => void): () => v
 
 export function dispatchCastEvent(event: CastEvents): void {
   const b = getCastBridge();
-  const castStore = b?.getStore('cast');
+  const castStore = b?.getStore("cast");
   castStore?.dispatch(event);
 }

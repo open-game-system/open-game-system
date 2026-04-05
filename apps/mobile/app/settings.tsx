@@ -1,28 +1,28 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import * as Notifications from "expo-notifications";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useState } from "react";
 import {
   Platform,
+  StatusBar as RNStatusBar,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
   View,
-  StatusBar as RNStatusBar,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
-import * as Notifications from 'expo-notifications';
+} from "react-native";
+import { SettingsRow, SettingsSection } from "../components/SettingsSection";
 import {
-  isDeveloperMode,
-  setDeveloperMode,
   isDebugOverlay,
-  setDebugOverlay,
+  isDeveloperMode,
   isSoundsEnabled,
+  setDebugOverlay,
+  setDeveloperMode,
   setSoundsEnabled,
-} from '../services/settings';
-import { SettingsSection, SettingsRow } from '../components/SettingsSection';
+} from "../services/settings";
 
-const TRACK_COLORS = { false: '#2a2a40', true: '#A855F6' } as const;
+const TRACK_COLORS = { false: "#2a2a40", true: "#A855F6" } as const;
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export default function SettingsScreen() {
         isDebugOverlay(),
         isSoundsEnabled(),
       ]);
-      setPushEnabled(notif.status === 'granted');
+      setPushEnabled(notif.status === "granted");
       setDevMode(dev);
       setDebugOn(debug);
       setSoundsOn(sounds);
@@ -125,7 +125,7 @@ export default function SettingsScreen() {
           <SettingsRow
             isLast
             disabled={!devMode}
-            testID={`debugOverlayRow-${devMode ? 'enabled' : 'disabled'}`}
+            testID={`debugOverlayRow-${devMode ? "enabled" : "disabled"}`}
           >
             <View style={styles.rowInfo}>
               <Text style={styles.rowLabel}>Debug Overlay</Text>
@@ -148,7 +148,7 @@ export default function SettingsScreen() {
             <TouchableOpacity
               testID="openDevToolsButton"
               style={styles.devToolsButton}
-              onPress={() => router.push('/dev-tools')}
+              onPress={() => router.push("/dev-tools")}
             >
               <Text style={styles.devToolsButtonText}>Open Developer Tools</Text>
               <Text style={styles.chevron}>›</Text>
@@ -179,35 +179,35 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 50,
+    backgroundColor: "#0A0A0F",
+    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
   },
   scrollContent: { paddingBottom: 40 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 28,
   },
-  title: { fontSize: 22, fontWeight: '700', color: '#E8E8ED', letterSpacing: -0.5 },
-  closeButton: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  closeText: { fontSize: 18, color: '#8888A0' },
+  title: { fontSize: 22, fontWeight: "700", color: "#E8E8ED", letterSpacing: -0.5 },
+  closeButton: { width: 36, height: 36, justifyContent: "center", alignItems: "center" },
+  closeText: { fontSize: 18, color: "#8888A0" },
   rowInfo: { flex: 1, gap: 2 },
-  rowLabel: { fontSize: 15, fontWeight: '500', color: '#E8E8ED' },
-  rowHint: { fontSize: 12, color: '#8888A0' },
-  rowValue: { fontSize: 15, color: '#8888A0' },
-  chevron: { fontSize: 22, color: '#8888A0', fontWeight: '300' },
+  rowLabel: { fontSize: 15, fontWeight: "500", color: "#E8E8ED" },
+  rowHint: { fontSize: 12, color: "#8888A0" },
+  rowValue: { fontSize: 15, color: "#8888A0" },
+  chevron: { fontSize: 22, color: "#8888A0", fontWeight: "300" },
   sectionNoBg: { paddingHorizontal: 24, marginBottom: 24 },
   devToolsButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#141420',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#141420",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  devToolsButtonText: { fontSize: 15, fontWeight: '500', color: '#A855F6' },
+  devToolsButtonText: { fontSize: 15, fontWeight: "500", color: "#A855F6" },
 });

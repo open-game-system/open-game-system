@@ -1,17 +1,11 @@
-import React from 'react';
+import type React from "react";
 
 interface NavBarLogoProps {
   className?: string;
 }
 
 const NavBarLogo: React.FC<NavBarLogoProps> = ({ className = "" }) => {
-  return (
-    <img 
-      src="/logo.svg" 
-      alt="Open Game System Logo Icon" 
-      className={className}
-    />
-  );
+  return <img src="/logo.svg" alt="Open Game System Logo Icon" className={className} />;
 };
 
-export default NavBarLogo; 
+export default NavBarLogo;
