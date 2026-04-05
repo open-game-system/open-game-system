@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OGS Cast Receiver</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #video-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #status-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10;
+      transition: opacity 0.3s;
+    }
+
+    #status-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-text {
+      font-size: 18px;
+      color: rgba(255,255,255,0.8);
+    }
+  </style>
+</head>
+<body>
+  <div id="video-container">
+    <video id="stream-video" autoplay playsinline muted></video>
+  </div>
+
+  <div id="status-overlay">
+    <div class="spinner" id="spinner"></div>
+    <div class="status-text" id="status-text">Connecting to game stream...</div>
+  </div>
+
+  <script>
+    /**
+     * OGS Cast Receiver
+     *
+     * Minimal receiver page for Chromecast/AirPlay.
+     * Uses Cloudflare Realtime SFU via the OGS API for WebRTC streaming.
+     * No PeerJS — all signaling goes through the backend.
+     *
+     * Launch params (URL query string):
+     *   streamServerUrl — Base URL of the OGS API or stream server
+     *   viewUrl         — URL to render on the stream server
+     *   publisherSessionId — SFU publisher session ID (if already started)
+     *
+     * Legacy params:
+     *   streamUrl       — Alias for streamServerUrl
+     */
+
+    const CONNECTION_TIMEOUT_MS = 30000;
+
+    // DOM elements
+    const video = document.getElementById('stream-video');
+    const overlay = document.getElementById('status-overlay');
+    const statusText = document.getElementById('status-text');
+    const spinner = document.getElementById('spinner');
+
+    // State
+    let pc = null;
+    let connectionTimer = null;
+    let isConnected = false;
+
+    function getLaunchParams() {
+      const params = new URLSearchParams(window.location.search);
+      const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || '';
+      const viewUrl = params.get('viewUrl') || '';
+      const publisherSessionId = params.get('publisherSessionId') || '';
+      return { streamServerUrl, viewUrl, publisherSessionId };
+    }
+
+    function setStatus(text, showSpinner = true) {
+      statusText.textContent = text;
+      spinner.style.display = showSpinner ? 'block' : 'none';
+      overlay.classList.remove('hidden');
+    }
+
+    function hideOverlay() {
+      overlay.classList.add('hidden');
+    }
+
+    function startConnectionTimeout() {
+      connectionTimer = setTimeout(() => {
+        if (!isConnected) {
+          setStatus('Connection timed out', false);
+          cleanup();
+        }
+      }, CONNECTION_TIMEOUT_MS);
+    }
+
+    function clearConnectionTimeout() {
+      if (connectionTimer) {
+        clearTimeout(connectionTimer);
+        connectionTimer = null;
+      }
+    }
+
+    function cleanup() {
+      clearConnectionTimeout();
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+    }
+
+    async function startReceiving() {
+      const { streamServerUrl, viewUrl, publisherSessionId } = getLaunchParams();
+
+      if (!streamServerUrl) {
+        setStatus('Unable to connect to game stream', false);
+        console.error('[Receiver] No streamServerUrl provided');
+        return;
+      }
+
+      console.log('[Receiver] Stream server:', streamServerUrl);
+      console.log('[Receiver] View URL:', viewUrl);
+      console.log('[Receiver] Publisher session ID:', publisherSessionId);
+
+      setStatus('Connecting to game stream...');
+      startConnectionTimeout();
+
+      try {
+        const baseUrl = streamServerUrl.replace(/\/$/, '');
+
+        // Step 1: Fetch ICE servers from stream server
+        let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
+        try {
+          const iceEndpoint = `${baseUrl}/ice-servers`;
+          const iceRes = await fetch(iceEndpoint);
+          if (iceRes.ok) {
+            const iceData = await iceRes.json();
+            if (Array.isArray(iceData.iceServers)) {
+              iceServers = iceData.iceServers;
+              console.log('[Receiver] Got ICE servers from stream server:', iceServers);
+            }
+          }
+        } catch (e) {
+          console.log('[Receiver] Could not fetch ICE servers, using defaults');
+        }
+
+        // Step 2: If no publisherSessionId, start the stream first
+        let pubSessionId = publisherSessionId;
+        if (!pubSessionId && viewUrl) {
+          setStatus('Starting stream...');
+          const startRes = await fetch(`${baseUrl}/start-stream`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: viewUrl })
+          });
+
+          if (!startRes.ok) {
+            const errText = await startRes.text().catch(() => 'unknown error');
+            throw new Error(`Start stream failed: ${startRes.status}: ${errText}`);
+          }
+
+          const startData = await startRes.json();
+          console.log('[Receiver] Stream started:', startData);
+
+          if (startData.status !== 'success' || !startData.publisherSessionId) {
+            throw new Error(startData.error || 'Start stream returned no publisherSessionId');
+          }
+
+          pubSessionId = startData.publisherSessionId;
+        }
+
+        if (!pubSessionId) {
+          throw new Error('No publisherSessionId available');
+        }
+
+        console.log('[Receiver] Using publisher session:', pubSessionId);
+        setStatus('Subscribing to stream...');
+
+        // Step 3: Subscribe to get SFU's SDP offer
+        const subRes = await fetch(`${baseUrl}/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            publisherSessionId: pubSessionId,
+            trackNames: ['cast-video', 'cast-audio']
+          })
+        });
+
+        if (!subRes.ok) {
+          const errText = await subRes.text().catch(() => 'unknown error');
+          throw new Error(`Subscribe failed: ${subRes.status}: ${errText}`);
+        }
+
+        const subData = await subRes.json();
+        console.log('[Receiver] Subscribed, got SFU offer');
+        const { subscriberSessionId, sessionDescription: sfuOffer } = subData;
+
+        // Step 4: Create RTCPeerConnection and set remote offer
+        pc = new RTCPeerConnection({ iceServers });
+
+        pc.ontrack = (event) => {
+          console.log('[Receiver] Received remote track:', event.track.kind);
+          clearConnectionTimeout();
+          isConnected = true;
+
+          // Only set srcObject once — multiple tracks arrive rapidly
+          if (!video.srcObject) {
+            video.srcObject = event.streams[0] || new MediaStream([event.track]);
+            video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
+          } else if (event.track.kind === 'audio' && video.srcObject instanceof MediaStream) {
+            // Add audio track to existing stream
+            video.srcObject.addTrack(event.track);
+          }
+          hideOverlay();
+        };
+
+        pc.onconnectionstatechange = () => {
+          console.log('[Receiver] Connection state:', pc.connectionState);
+          if (pc.connectionState === 'connected') {
+            isConnected = true;
+            hideOverlay();
+          } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+            isConnected = false;
+            setStatus('Cast session ended', false);
+          }
+        };
+
+        // Set the SFU's offer as remote description
+        await pc.setRemoteDescription(new RTCSessionDescription(sfuOffer));
+
+        // Create answer and wait for ICE gathering to complete
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        // Wait for ICE candidates to be gathered (needed for TURN/relay)
+        if (pc.iceGatheringState !== 'complete') {
+          await new Promise((resolve) => {
+            const check = () => {
+              if (pc.iceGatheringState === 'complete') {
+                pc.removeEventListener('icegatheringstatechange', check);
+                resolve();
+              }
+            };
+            pc.addEventListener('icegatheringstatechange', check);
+            // Timeout after 5s — send what we have
+            setTimeout(resolve, 5000);
+          });
+        }
+
+        // Use the final local description (includes gathered ICE candidates)
+        const finalAnswer = pc.localDescription;
+
+        // Step 5: Send answer back to backend
+        setStatus('Establishing connection...');
+        const answerRes = await fetch(`${baseUrl}/subscribe/${subscriberSessionId}/answer`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionDescription: {
+              type: finalAnswer.type,
+              sdp: finalAnswer.sdp
+            }
+          })
+        });
+
+        if (!answerRes.ok) {
+          const errText = await answerRes.text().catch(() => 'unknown error');
+          throw new Error(`Answer failed: ${answerRes.status}: ${errText}`);
+        }
+
+        console.log('[Receiver] Answer sent, waiting for media...');
+        // Only show waiting status if tracks haven't arrived yet
+        if (!isConnected) {
+          setStatus('Waiting for video stream...');
+        }
+
+      } catch (err) {
+        console.error('[Receiver] Failed to start stream:', err);
+        clearConnectionTimeout();
+        setStatus('Unable to connect to game stream', false);
+      }
+    }
+
+    // Start receiving when page loads
+    startReceiving();
+  </script>
+</body>
+</html>
