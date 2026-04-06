@@ -7,13 +7,12 @@ on:
       - "packages/**"
   pull_request:
     branches: [main]
-    paths:
-      - "packages/**"
+    types: [labeled]
 
 jobs:
-  # PR previews → GitHub Packages
+  # PR previews → GitHub Packages (only when labeled "publish-preview")
   publish-preview:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.label.name == 'publish-preview'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -82,7 +81,8 @@ jobs:
           fi
 
           NEXT_PATCH=$((HIGHEST_PATCH + 1))
-          DEV_VERSION="${MAJOR_VERSION}.${DATE}.${NEXT_PATCH}-pr${PR_NUMBER}"
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          DEV_VERSION="${MAJOR_VERSION}.${DATE}.${NEXT_PATCH}-pr${PR_NUMBER}.${SHORT_SHA}"
 
           echo "DEV_VERSION=${DEV_VERSION}" >> $GITHUB_OUTPUT
           echo "PACKAGE_DIR=${PACKAGE_DIR}" >> $GITHUB_OUTPUT
