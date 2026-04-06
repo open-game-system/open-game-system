@@ -1,0 +1,229 @@
+name: Publish Packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/**"
+
+jobs:
+  # PR previews → GitHub Packages
+  publish-preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - app-bridge-types
+          - app-bridge-web
+          - app-bridge-react
+          - app-bridge-native
+          - app-bridge-react-native
+          - app-bridge-testing
+          - cast-kit-core
+          - cast-kit-react
+          - notification-kit-core
+          - notification-kit-react
+          - notification-kit-server
+          - stream-kit-types
+          - stream-kit-web
+          - stream-kit-react
+          - stream-kit-testing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@open-game-system'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm turbo run build --filter=@open-game-system/${{ matrix.package }}...
+
+      - name: Generate preview version
+        id: version
+        run: |
+          PACKAGE_DIR="packages/${{ matrix.package }}"
+          PACKAGE_NAME=$(node -p "require('./${PACKAGE_DIR}/package.json').name")
+          MAJOR_VERSION=$(node -p "require('./${PACKAGE_DIR}/package.json').version.split('.')[0]")
+          DATE=$(date +'%Y%m%d')
+          PR_NUMBER=$(echo $GITHUB_REF | sed -n 's/refs\/pull\/\([0-9]*\)\/merge/\1/p')
+
+          # Check GitHub registry for existing versions
+          echo "@open-game-system:registry=https://npm.pkg.github.com" >> .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}" >> .npmrc
+
+          NPM_VERSIONS=$(npm view ${PACKAGE_NAME} versions --registry https://npm.pkg.github.com/ 2>/dev/null || echo "[]")
+
+          VERSION_PREFIX="${MAJOR_VERSION}.${DATE}"
+          HIGHEST_PATCH=-1
+          if [[ "$NPM_VERSIONS" != "[]" ]]; then
+            HIGHEST_PATCH=$(echo "$NPM_VERSIONS" | jq -r --arg prefix "$VERSION_PREFIX" --arg pr "$PR_NUMBER" '
+              map(select(test("^" + $prefix + "\\.[0-9]+-pr" + $pr + "$"))) |
+              map(capture("^" + $prefix + "\\.(?<patch>[0-9]+)-pr" + $pr + "$").patch | tonumber) |
+              max // -1
+            ')
+          fi
+
+          NEXT_PATCH=$((HIGHEST_PATCH + 1))
+          DEV_VERSION="${MAJOR_VERSION}.${DATE}.${NEXT_PATCH}-pr${PR_NUMBER}"
+
+          echo "DEV_VERSION=${DEV_VERSION}" >> $GITHUB_OUTPUT
+          echo "PACKAGE_DIR=${PACKAGE_DIR}" >> $GITHUB_OUTPUT
+          echo "PACKAGE_NAME=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "Generated: ${PACKAGE_NAME}@${DEV_VERSION}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd ${{ steps.version.outputs.PACKAGE_DIR }}
+          npm version ${{ steps.version.outputs.DEV_VERSION }} --no-git-tag-version --allow-same-version
+
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            if (!pkg.publishConfig) pkg.publishConfig = {};
+            pkg.publishConfig.registry = 'https://npm.pkg.github.com/';
+            pkg.publishConfig.access = 'public';
+            // Replace workspace:* deps with latest published versions
+            for (const depType of ['dependencies', 'peerDependencies']) {
+              if (!pkg[depType]) continue;
+              for (const [name, version] of Object.entries(pkg[depType])) {
+                if (version === 'workspace:*') {
+                  pkg[depType][name] = '*';
+                }
+              }
+            }
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          npm publish --tag dev || true
+
+      - name: Comment on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.DEV_VERSION }}';
+            const packageName = '${{ steps.version.outputs.PACKAGE_NAME }}';
+            const body = `📦 \`${packageName}@${version}\` published to GitHub Packages\n\n\`\`\`bash\npnpm add ${packageName}@${version} --registry https://npm.pkg.github.com\n\`\`\``;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+  # Main branch → npm
+  publish-production:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - app-bridge-types
+          - app-bridge-web
+          - app-bridge-react
+          - app-bridge-native
+          - app-bridge-react-native
+          - app-bridge-testing
+          - cast-kit-core
+          - cast-kit-react
+          - notification-kit-core
+          - notification-kit-react
+          - notification-kit-server
+          - stream-kit-types
+          - stream-kit-web
+          - stream-kit-react
+          - stream-kit-testing
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build package
+        run: pnpm turbo run build --filter=@open-game-system/${{ matrix.package }}...
+
+      - name: Generate production version
+        id: version
+        run: |
+          PACKAGE_DIR="packages/${{ matrix.package }}"
+          PACKAGE_NAME=$(node -p "require('./${PACKAGE_DIR}/package.json').name")
+          MAJOR_VERSION=$(node -p "require('./${PACKAGE_DIR}/package.json').version.split('.')[0]")
+          DATE=$(date +'%Y%m%d')
+
+          NPM_VERSIONS=$(npm view ${PACKAGE_NAME} versions --json 2>/dev/null || echo "[]")
+
+          HIGHEST_PATCH=-1
+          if [[ "$NPM_VERSIONS" != "[]" && "$NPM_VERSIONS" != *error* ]]; then
+            PATTERN="${MAJOR_VERSION}.${DATE}."
+            HIGHEST_PATCH=$(echo "$NPM_VERSIONS" | jq -c --arg pattern "$PATTERN" 'map(select(startswith($pattern))) | map(split(".")[2] | tonumber) | max // -1')
+          fi
+
+          NEXT_PATCH=$((HIGHEST_PATCH + 1))
+          NEW_VERSION="${MAJOR_VERSION}.${DATE}.${NEXT_PATCH}"
+
+          echo "NEW_VERSION=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "PACKAGE_DIR=${PACKAGE_DIR}" >> $GITHUB_OUTPUT
+          echo "PACKAGE_NAME=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "Generated: ${PACKAGE_NAME}@${NEW_VERSION}"
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cd ${{ steps.version.outputs.PACKAGE_DIR }}
+          npm version ${{ steps.version.outputs.NEW_VERSION }} --no-git-tag-version --allow-same-version
+
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            if (!pkg.publishConfig) pkg.publishConfig = {};
+            pkg.publishConfig.access = 'public';
+            delete pkg.publishConfig.registry;
+            // Replace workspace:* deps with latest published versions
+            for (const depType of ['dependencies', 'peerDependencies']) {
+              if (!pkg[depType]) continue;
+              for (const [name, version] of Object.entries(pkg[depType])) {
+                if (version === 'workspace:*') {
+                  pkg[depType][name] = '*';
+                }
+              }
+            }
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          npm publish --access public || true
