@@ -68,7 +68,7 @@ const EXTENSION_PATH = "./extension";
 let EXTENSION_ID: string | null = null; // Dynamically detected at runtime
 
 // Connection monitoring configuration
-const GRACE_PERIOD_MS = 60000; // 60 seconds
+const GRACE_PERIOD_MS = 3600000; // 1 hour — SFU tracks subscribers server-side
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 
 // Module-level state for persistent browser instance

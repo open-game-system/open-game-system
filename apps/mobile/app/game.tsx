@@ -13,7 +13,8 @@ import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
-import { createCastSession, deleteCastSession } from "../services/cast-api";
+// TODO: Re-enable when auth model for companion app is figured out
+// import { createCastSession, deleteCastSession } from "../services/cast-api";
 import { findGameByUrl } from "../services/game-directory";
 import { addRecentGame } from "../services/game-history";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
@@ -133,57 +134,26 @@ export default function GameScreen() {
     }
   }, [devices]);
 
-  // OGS API config — use deployed API for casting
-  const OGS_API_URL = "https://opengame-api.jonathanrmumm.workers.dev";
-  const OGS_API_KEY = ""; // TODO: wire from game config or env
-  const activeCastSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     const sm = GoogleCast.sessionManager;
     const subs = [
-      sm.onSessionStarted(async () => {
+      sm.onSessionStarted((session) => {
+        console.log("[Cast] Session started:", session);
         const d = castStore.getSnapshot().devices;
         const device = d[0];
         if (!device) return;
 
-        castStore.dispatch({ type: "START_CASTING", deviceId: device.id });
-
-        try {
-          // Create cast session via OGS API
-          const gameUrl = webviewSource.uri;
-          const session = await createCastSession(
-            OGS_API_URL,
-            OGS_API_KEY,
-            device.id,
-            gameUrl,
-          );
-
-          activeCastSessionRef.current = session.sessionId;
-
-          castStore.dispatch({
-            type: "SESSION_CONNECTED",
-            deviceId: device.id,
-            deviceName: device.name,
-            sessionId: session.sessionId,
-            streamSessionId: session.streamSessionId,
-          });
-
-          console.log("[Cast] Session created:", session.sessionId, "streamUrl:", session.streamUrl);
-        } catch (err) {
-          console.error("[Cast] Failed to create cast session:", err);
-          castStore.dispatch({ type: "SET_ERROR", error: (err as Error).message });
-        }
+        castStore.dispatch({
+          type: "SESSION_CONNECTED",
+          deviceId: device.id,
+          deviceName: device.name,
+          sessionId: "cast-session",
+          streamSessionId: "",
+        });
       }),
-      sm.onSessionEnded(async () => {
-        // Clean up the OGS cast session
-        if (activeCastSessionRef.current) {
-          try {
-            await deleteCastSession(OGS_API_URL, OGS_API_KEY, activeCastSessionRef.current);
-          } catch (err) {
-            console.warn("[Cast] Failed to delete cast session:", err);
-          }
-          activeCastSessionRef.current = null;
-        }
+      sm.onSessionEnded(() => {
+        console.log("[Cast] Session ended");
         castStore.dispatch({ type: "STOP_CASTING" });
       }),
       sm.onSessionResumed(() => {
