@@ -78,6 +78,8 @@
     <div class="status-text" id="status-text">Connecting to game stream...</div>
   </div>
 
+  <!-- Google Cast receiver SDK: lets the sender app tell us which game page to stream. -->
+  <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
   <script>
     /**
      * OGS Cast Receiver
@@ -108,12 +110,22 @@
     let connectionTimer = null;
     let isConnected = false;
 
+    const VIEW_NAMESPACE = 'urn:x-cast:org.opengame.view';
+    const DEFAULT_STREAM_SERVER = 'https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream';
+    const DEFAULT_VIEW_URL = 'https://triviajam.tv';
+    /** How long to wait for the sender to say what to show before falling back to the default. */
+    const VIEW_WAIT_MS = 8000;
+
+    /** URL params (for direct testing) override everything; otherwise the sender's LOAD_VIEW decides. */
+    let launch = null;
     function getLaunchParams() {
+      if (launch) return launch;
       const params = new URLSearchParams(window.location.search);
-      const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || 'https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream';
-      const viewUrl = params.get('viewUrl') || 'https://triviajam.tv';
-      const publisherSessionId = params.get('publisherSessionId') || '';
-      return { streamServerUrl, viewUrl, publisherSessionId };
+      return {
+        streamServerUrl: params.get('streamServerUrl') || params.get('streamUrl') || DEFAULT_STREAM_SERVER,
+        viewUrl: params.get('viewUrl') || DEFAULT_VIEW_URL,
+        publisherSessionId: params.get('publisherSessionId') || '',
+      };
     }
 
     function setStatus(text, showSpinner = true) {
@@ -322,8 +334,44 @@
       }
     }
 
-    // Start receiving when page loads
-    startReceiving();
+    let started = false;
+    let currentViewUrl = null;
+    function begin(params) {
+      if (started && params.viewUrl === currentViewUrl) return;
+      if (started) {
+        cleanup();
+        isConnected = false;
+        video.srcObject = null;
+      }
+      launch = params;
+      started = true;
+      currentViewUrl = params.viewUrl;
+      startReceiving();
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasCast = typeof cast !== 'undefined' && cast.framework;
+    if (urlParams.get('viewUrl') || !hasCast) {
+      // Opened directly (testing), or not on a Cast device.
+      begin(getLaunchParams());
+    } else {
+      const context = cast.framework.CastReceiverContext.getInstance();
+      context.addCustomMessageListener(VIEW_NAMESPACE, (event) => {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        console.log('[Receiver] LOAD_VIEW from sender:', data);
+        if (data && data.type === 'LOAD_VIEW' && data.viewUrl) {
+          begin({ viewUrl: data.viewUrl, streamServerUrl: data.streamServerUrl || DEFAULT_STREAM_SERVER, publisherSessionId: '' });
+        }
+      });
+      const options = new cast.framework.CastReceiverOptions();
+      options.disableIdleTimeout = true; // we play a WebRTC stream, not Cast media
+      options.customNamespaces = { [VIEW_NAMESPACE]: cast.framework.system.MessageType.JSON };
+      context.start(options);
+      setStatus('Waiting for the game...');
+      setTimeout(() => {
+        if (!started) begin(getLaunchParams());
+      }, VIEW_WAIT_MS);
+    }
   </script>
 </body>
 </html>

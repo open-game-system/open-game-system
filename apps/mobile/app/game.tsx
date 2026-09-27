@@ -13,6 +13,7 @@ import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
+import { OGS_STREAM_SERVER_URL, sendViewToReceiver, type ViewChannelSession } from "../services/cast-view";
 // TODO: Re-enable when auth model for companion app is figured out
 // import { createCastSession, deleteCastSession } from "../services/cast-api";
 import { findGameByUrl } from "../services/game-directory";
@@ -140,6 +141,19 @@ export default function GameScreen() {
   }, [devices]);
 
 
+  // The page the game wants on the TV goes to the receiver when a session starts (and again if it changes).
+  const castSessionRef = useRef<ViewChannelSession | null>(null);
+  useEffect(() => {
+    let lastSent: string | null = null;
+    return castStore.subscribe((state) => {
+      const session = castSessionRef.current;
+      if (session && state.viewUrl && state.viewUrl !== lastSent) {
+        lastSent = state.viewUrl;
+        void sendViewToReceiver(session, state.viewUrl, OGS_STREAM_SERVER_URL);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const sm = GoogleCast.sessionManager;
     const subs = [
@@ -154,6 +168,8 @@ export default function GameScreen() {
       }),
       sm.onSessionStarted((session) => {
         console.log("[Cast] Session STARTED:", session);
+        castSessionRef.current = session;
+        void sendViewToReceiver(session, castStore.getSnapshot().viewUrl, OGS_STREAM_SERVER_URL);
         const d = castStore.getSnapshot().devices;
         const device = d[0];
         if (!device) return;
@@ -168,9 +184,12 @@ export default function GameScreen() {
       }),
       sm.onSessionEnded(() => {
         console.log("[Cast] Session ended");
+        castSessionRef.current = null;
         castStore.dispatch({ type: "STOP_CASTING" });
       }),
-      sm.onSessionResumed(() => {
+      sm.onSessionResumed((session) => {
+        castSessionRef.current = session;
+        void sendViewToReceiver(session, castStore.getSnapshot().viewUrl, OGS_STREAM_SERVER_URL);
         const d = castStore.getSnapshot().devices;
         if (d.length > 0) castStore.dispatch({ type: "START_CASTING", deviceId: d[0].id });
       }),
