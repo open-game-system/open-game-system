@@ -916,6 +916,15 @@ async function handlePublisherPrepare(
       logTrace(traceId, "browser_reuse");
     }
 
+    // Close pages from earlier streams. The browser is shared, and every open game tab keeps
+    // rendering — stale tabs starve the CPU and could be captured instead of the new one.
+    for (const old of await browser.pages()) {
+      if (!old.url().startsWith("chrome-extension://")) {
+        await old.close().catch(() => {});
+      }
+    }
+    logTrace(traceId, "stale_pages_closed");
+
     // Create new page for this stream
     const page = await browser.newPage();
     activePage = page; // Set as active page for monitoring
@@ -928,7 +937,8 @@ async function handlePublisherPrepare(
 
     // Navigate to target URL
     logTrace(traceId, "page_navigation_start", { targetUrl });
-    await page.goto(targetUrl);
+    // Live games (WebSockets, animation) may never go idle; the DOM being ready is enough to start.
+    await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
     logTrace(traceId, "page_navigation_complete", {
       finalUrl: page.url(),
       title: await page.title().catch(() => "(unavailable)"),
@@ -945,10 +955,8 @@ async function handlePublisherPrepare(
 
     // Trigger a user-gesture-like command to satisfy activeTab requirements
     try {
-      const pageTargets = browser.targets().filter((t) => t.type() === "page");
-      const httpsTarget =
-        pageTargets.find((t) => t.url().startsWith("https://")) || pageTargets[0];
-      const targetPage = await httpsTarget?.page();
+      // Capture the page we just opened (not whichever https page happens to be first).
+      const targetPage = page;
       if (targetPage) {
         await targetPage.keyboard.down("Alt");
         await targetPage.keyboard.down("Shift");

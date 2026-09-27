@@ -129,7 +129,26 @@
       };
     }
 
+    /**
+     * Debugging: mirror receiver logs and status back to whoever cast us (the OGS app or a CLI),
+     * so a TV's view of each step is visible without remote-debugging the device.
+     */
+    let castContext = null;
+    function tellSenders(payload) {
+      try {
+        if (castContext) castContext.sendCustomMessage('urn:x-cast:org.opengame.view', undefined, payload);
+      } catch (e) { /* no senders yet */ }
+    }
+    for (const level of ['log', 'warn', 'error']) {
+      const original = console[level].bind(console);
+      console[level] = (...args) => {
+        original(...args);
+        tellSenders({ type: 'LOG', level, message: args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ') });
+      };
+    }
+
     function setStatus(text, showSpinner = true) {
+      tellSenders({ type: 'STATUS', status: text });
       statusText.textContent = text;
       spinner.style.display = showSpinner ? 'block' : 'none';
       overlay.classList.remove('hidden');
@@ -357,6 +376,7 @@
       begin(getLaunchParams());
     } else {
       const context = cast.framework.CastReceiverContext.getInstance();
+      castContext = context;
       context.addCustomMessageListener(VIEW_NAMESPACE, (event) => {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         console.log('[Receiver] LOAD_VIEW from sender:', data);
