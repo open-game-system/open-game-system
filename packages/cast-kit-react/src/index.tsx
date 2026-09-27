@@ -8,7 +8,7 @@ import {
   getCastBridge,
 } from "@open-game-system/cast-kit-core";
 import type React from "react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 // Create the bridge context for cast stores
 const OgsCastContext = createBridgeContext<CastStores>();
@@ -93,6 +93,17 @@ export function useCastError(): string | null {
 export function useCastDispatch(): (event: CastEvents) => void {
   const store = CastStoreContext.useStore();
   return useCallback((event: CastEvents) => store.dispatch(event), [store]);
+}
+
+/**
+ * Declares the page the TV should show when this game is cast (e.g. a spectator/TV view).
+ * The host app streams it to the receiver when a cast session starts. Pass null to leave it unset.
+ */
+export function useCastViewUrl(url: string | null): void {
+  const dispatch = useCastDispatch();
+  useEffect(() => {
+    if (url) dispatch({ type: "SET_VIEW_URL", url });
+  }, [url, dispatch]);
 }
 
 // ─── Render-prop components ───

@@ -1,6 +1,6 @@
 {
   "name": "@open-game-system/cast-kit-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "React hooks for OGS cast-kit",
   "license": "MIT",
   "type": "module",
@@ -45,6 +45,6 @@
   },
   "dependencies": {
     "@open-game-system/app-bridge-react": "^0.20250411.3",
-    "@open-game-system/cast-kit-core": "^0.1.0"
+    "@open-game-system/cast-kit-core": "^0.2.0"
   }
 }

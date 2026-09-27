@@ -12,6 +12,7 @@ export const CAST_INITIAL_STATE: CastState = {
     streamSessionId: null,
   },
   error: null,
+  viewUrl: null,
 };
 
 type CastBridge = ReturnType<typeof createWebBridge<CastStores>>;

@@ -23,6 +23,8 @@ export const CastStateSchema = z.object({
   devices: z.array(CastDeviceSchema),
   session: CastSessionSchema,
   error: z.string().nullable(),
+  /** The page the TV should show (set by the game; streamed to the receiver). */
+  viewUrl: z.string().nullable().default(null),
 });
 
 export type CastState = z.infer<typeof CastStateSchema>;
@@ -34,6 +36,8 @@ export const CastEventsSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("SEND_STATE_UPDATE"), payload: z.unknown() }),
   z.object({ type: z.literal("SHOW_CAST_PICKER") }),
   z.object({ type: z.literal("RESET_ERROR") }),
+  /** Tell the host app which page to put on the TV when casting. */
+  z.object({ type: z.literal("SET_VIEW_URL"), url: z.string().url() }),
 ]);
 
 export type CastEvents = z.infer<typeof CastEventsSchema>;

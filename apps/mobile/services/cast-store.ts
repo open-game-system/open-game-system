@@ -27,6 +27,8 @@ export interface NativeCastState extends State {
   devices: CastDevice[];
   session: CastSession;
   error: string | null;
+  /** The page the game wants on the TV; sent to the receiver when a cast session starts. */
+  viewUrl: string | null;
 }
 
 /**
@@ -50,7 +52,8 @@ export type NativeCastEvents =
   | { type: "RESET_ERROR" }
   | { type: "SCAN_DEVICES" }
   | { type: "SHOW_CAST_PICKER" }
-  | { type: "SEND_STATE_UPDATE"; payload: unknown };
+  | { type: "SEND_STATE_UPDATE"; payload: unknown }
+  | { type: "SET_VIEW_URL"; url: string };
 
 export type CastStores = {
   cast: {
@@ -70,6 +73,7 @@ export const CAST_INITIAL_STATE: NativeCastState = {
     streamSessionId: null,
   },
   error: null,
+  viewUrl: null,
 };
 
 const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event) => {
@@ -112,6 +116,10 @@ const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event)
 
     case "RESET_ERROR":
       draft.error = null;
+      break;
+
+    case "SET_VIEW_URL":
+      draft.viewUrl = event.url;
       break;
 
     case "SCAN_DEVICES":

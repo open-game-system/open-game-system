@@ -12,6 +12,7 @@ import {
   useCastDispatch,
   useCastStatus,
   useCastState,
+  useCastViewUrl,
 } from "./index";
 
 function initCastStore(data: object) {
@@ -337,6 +338,36 @@ describe("Cast-Kit React Hooks", () => {
           error: "Stream ended unexpectedly",
         }),
       );
+    });
+  });
+
+  describe("useCastViewUrl", () => {
+    const lastEvent = () => {
+      const postMessage = (window as any).ReactNativeWebView.postMessage;
+      const calls = postMessage.mock.calls.map((c: [string]) => JSON.parse(c[0]));
+      return calls.filter((m: { type: string }) => m.type === "EVENT").pop();
+    };
+
+    it("tells the host app which page to put on the TV", () => {
+      initCastStore(CAST_INITIAL_STATE);
+      renderHook(() => useCastViewUrl("https://game.example/tv/ABCD"), { wrapper: createWrapper() });
+      expect(lastEvent()?.event).toEqual({ type: "SET_VIEW_URL", url: "https://game.example/tv/ABCD" });
+    });
+
+    it("sends again when the URL changes", () => {
+      initCastStore(CAST_INITIAL_STATE);
+      const { rerender } = renderHook(({ url }) => useCastViewUrl(url), {
+        wrapper: createWrapper(),
+        initialProps: { url: "https://game.example/tv/AAAA" },
+      });
+      rerender({ url: "https://game.example/tv/BBBB" });
+      expect(lastEvent()?.event).toEqual({ type: "SET_VIEW_URL", url: "https://game.example/tv/BBBB" });
+    });
+
+    it("sends nothing for a null URL", () => {
+      initCastStore(CAST_INITIAL_STATE);
+      renderHook(() => useCastViewUrl(null), { wrapper: createWrapper() });
+      expect(lastEvent()).toBeUndefined();
     });
   });
 
