@@ -221,9 +221,13 @@
         let pubSessionId = publisherSessionId;
         if (!pubSessionId && viewUrl) {
           setStatus('Starting stream...');
+          // A session id gives this TV its own stream container (a fresh browser), instead of the
+          // shared singleton that other casts may still be using.
+          const streamSessionId = 'rx-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+          console.log('[Receiver] Stream session:', streamSessionId);
           const startRes = await fetch(`${baseUrl}/start-stream`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'x-stream-session-id': streamSessionId },
             body: JSON.stringify({ url: viewUrl })
           });
 
