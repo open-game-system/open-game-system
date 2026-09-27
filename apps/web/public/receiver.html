@@ -97,7 +97,8 @@
      *   streamUrl       — Alias for streamServerUrl
      */
 
-    const CONNECTION_TIMEOUT_MS = 30000;
+    // Starting a stream (cloud browser launch + page load + SFU) takes ~45–90s; only give up well after that.
+    const CONNECTION_TIMEOUT_MS = 120000;
 
     // DOM elements
     const video = document.getElementById('stream-video');
