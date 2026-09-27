@@ -34,6 +34,16 @@ describe("game-directory", () => {
       expect(game?.name).toBe("Trivia Jam");
     });
 
+    it("lists Rocket Crew as a castable game", () => {
+      const game = findGameById("rocket-crew");
+      expect(game?.url).toBe("https://rocket-crew.jonathanrmumm.workers.dev");
+      expect(game?.features).toContain("cast");
+    });
+
+    it("recognizes Rocket Crew pages after it redirects to /join", () => {
+      expect(findGameByUrl("https://rocket-crew.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("rocket-crew");
+    });
+
     it("returns undefined for unknown ID", () => {
       expect(findGameById("nonexistent")).toBeUndefined();
     });
