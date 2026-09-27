@@ -166,6 +166,8 @@ function buildLaunchOptions() {
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
+      // Chrome no longer falls back to software WebGL on its own; games with WebGL TVs (e.g. Rocket Crew) need this.
+      "--enable-unsafe-swiftshader",
       `--disable-extensions-except=${absoluteExtensionPath}`,
       `--load-extension=${absoluteExtensionPath}`,
       "--webrtc-udp-port-range=10000-10100",
