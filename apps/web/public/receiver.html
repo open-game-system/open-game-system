@@ -110,8 +110,8 @@
 
     function getLaunchParams() {
       const params = new URLSearchParams(window.location.search);
-      const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || '';
-      const viewUrl = params.get('viewUrl') || '';
+      const streamServerUrl = params.get('streamServerUrl') || params.get('streamUrl') || 'https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream';
+      const viewUrl = params.get('viewUrl') || 'https://triviajam.tv';
       const publisherSessionId = params.get('publisherSessionId') || '';
       return { streamServerUrl, viewUrl, publisherSessionId };
     }

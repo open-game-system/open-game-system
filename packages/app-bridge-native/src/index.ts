@@ -245,7 +245,14 @@ export function createNativeBridge<TStores extends BridgeStores>(): NativeBridge
 
         store.subscribe((currentState: TStores[K]["state"]) => {
           const operations = compare(prevState, currentState);
+          console.log(
+            `[Native Bridge] Store '${String(key)}' subscription fired. Operations: ${operations.length}, WebViews: ${webViews.size}`,
+          );
           if (operations.length > 0) {
+            console.log(
+              `[Native Bridge] Broadcasting STATE_UPDATE for store '${String(key)}':`,
+              JSON.stringify(operations),
+            );
             broadcastToWebViews({
               type: "STATE_UPDATE",
               storeKey: key,

@@ -33,25 +33,42 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
 /**
  * Returns the full CastState.
  * Re-renders on any cast state change.
+ *
+ * NOTE: prefer the primitive hooks below — selecting the root object
+ * re-renders on every update, including unrelated patches.
  */
 export function useCastState(): CastState {
   return CastStoreContext.useSelector((s) => s);
 }
 
 /**
- * Returns only the session object from cast state.
- * Re-renders only when session properties change.
+ * Returns the current cast session status.
+ * Re-renders only when status changes.
  */
-export function useCastSession(): CastSession {
-  return CastStoreContext.useSelector((s) => s.session);
+export function useCastStatus(): CastSession["status"] {
+  return CastStoreContext.useSelector((s) => s.session.status);
 }
 
 /**
- * Returns the devices array from cast state.
- * Re-renders only when the device list changes.
+ * Returns the connected device name (or null when disconnected).
  */
-export function useCastDevices(): CastDevice[] {
-  return CastStoreContext.useSelector((s) => s.devices);
+export function useCastDeviceName(): string | null {
+  return CastStoreContext.useSelector((s) => s.session.deviceName);
+}
+
+/**
+ * Returns the connected device id (or null when disconnected).
+ */
+export function useCastDeviceId(): string | null {
+  return CastStoreContext.useSelector((s) => s.session.deviceId);
+}
+
+/**
+ * Returns the number of available cast devices.
+ * Re-renders only when the count changes.
+ */
+export function useCastDeviceCount(): number {
+  return CastStoreContext.useSelector((s) => s.devices.length);
 }
 
 /**
@@ -60,6 +77,13 @@ export function useCastDevices(): CastDevice[] {
  */
 export function useCastAvailable(): boolean {
   return CastStoreContext.useSelector((s) => s.isAvailable);
+}
+
+/**
+ * Returns the current error message (or null).
+ */
+export function useCastError(): string | null {
+  return CastStoreContext.useSelector((s) => s.error);
 }
 
 /**
@@ -97,10 +121,11 @@ export function CastButton({
   children: (state: CastButtonState, actions: CastButtonActions) => React.ReactElement | null;
 }) {
   const isAvailable = useCastAvailable();
-  const session = useCastSession();
-  const devices = useCastDevices();
+  const status = useCastStatus();
+  const deviceName = useCastDeviceName();
+  const deviceCount = useCastDeviceCount();
+  const error = useCastError();
   const dispatch = useCastDispatch();
-  const error = CastStoreContext.useSelector((s) => s.error);
 
   if (!isAvailable) return null;
 
@@ -110,50 +135,7 @@ export function CastButton({
     showPicker: () => dispatch({ type: "SHOW_CAST_PICKER" }),
   };
 
-  return children(
-    {
-      status: session.status,
-      deviceCount: devices.length,
-      deviceName: session.deviceName,
-      error,
-    },
-    actions,
-  );
-}
-
-interface DeviceListState {
-  devices: CastDevice[];
-  connectedDeviceId: string | null;
-}
-
-interface DeviceListActions {
-  selectDevice: (deviceId: string) => void;
-}
-
-/**
- * Headless render-prop component for the device list.
- * Renders nothing when no devices are available.
- */
-export function DeviceList({
-  children,
-}: {
-  children: (state: DeviceListState, actions: DeviceListActions) => React.ReactElement | null;
-}) {
-  const devices = useCastDevices();
-  const session = useCastSession();
-  const dispatch = useCastDispatch();
-
-  if (devices.length === 0) return null;
-
-  return children(
-    {
-      devices,
-      connectedDeviceId: session.deviceId,
-    },
-    {
-      selectDevice: (deviceId: string) => dispatch({ type: "START_CASTING", deviceId }),
-    },
-  );
+  return children({ status, deviceCount, deviceName, error }, actions);
 }
 
 interface CastStatusState {
@@ -171,16 +153,13 @@ export function CastStatus({
 }: {
   children: (state: CastStatusState) => React.ReactElement | null;
 }) {
-  const session = useCastSession();
-  const error = CastStoreContext.useSelector((s) => s.error);
+  const status = useCastStatus();
+  const deviceName = useCastDeviceName();
+  const error = useCastError();
 
-  if (session.status === "disconnected" && !error) return null;
+  if (status === "disconnected" && !error) return null;
 
-  return children({
-    status: session.status,
-    deviceName: session.deviceName,
-    error,
-  });
+  return children({ status, deviceName, error });
 }
 
 // Re-export types for convenience
@@ -193,6 +172,4 @@ export type {
   CastState,
   CastStatusState,
   CastStores,
-  DeviceListActions,
-  DeviceListState,
 };

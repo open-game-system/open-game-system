@@ -7,7 +7,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, PanResponder, Platform, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, PanResponder, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import GoogleCast, { useDevices } from "react-native-google-cast";
 import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
@@ -41,7 +41,7 @@ export default function GameScreen() {
   const defaultSource = useMemo(
     () =>
       Platform.select({
-        ios: { uri: "http://Jonathans-MacBook-Pro.local:3000" },
+        ios: { uri: "http://192.168.68.125:3000" },
         android: { uri: "http://10.0.2.2:8787" },
         default: { uri: "http://localhost:8787" },
       }),
@@ -118,6 +118,11 @@ export default function GameScreen() {
 
   useEffect(() => {
     GoogleCast.showIntroductoryOverlay().catch(() => {});
+    // Log all cast state changes
+    const unsub = castStore.subscribe((state) => {
+      console.log("[Cast Store] State changed:", JSON.stringify(state.session));
+    });
+    return unsub;
   }, []);
 
   useEffect(() => {
@@ -138,8 +143,17 @@ export default function GameScreen() {
   useEffect(() => {
     const sm = GoogleCast.sessionManager;
     const subs = [
+      sm.onSessionStarting(() => {
+        console.log("[Cast] Session STARTING — dispatching START_CASTING");
+        const d = castStore.getSnapshot().devices;
+        const device = d[0];
+        if (device) {
+          castStore.dispatch({ type: "START_CASTING", deviceId: device.id });
+          console.log("[Cast] Dispatched START_CASTING. State:", JSON.stringify(castStore.getSnapshot().session));
+        }
+      }),
       sm.onSessionStarted((session) => {
-        console.log("[Cast] Session started:", session);
+        console.log("[Cast] Session STARTED:", session);
         const d = castStore.getSnapshot().devices;
         const device = d[0];
         if (!device) return;
