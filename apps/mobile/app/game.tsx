@@ -13,9 +13,9 @@ import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
-import { sessionConnectedEvent } from "../services/cast-session-device";
+import { castCommands, startCastSync } from "../services/cast-sync";
 import { swipeBackHandlers } from "../services/swipe-back";
-import { connectViewChannel, OGS_STREAM_SERVER_URL, type ViewChannelSession } from "../services/cast-view";
+import { OGS_STREAM_SERVER_URL } from "../services/cast-view";
 // TODO: Re-enable when auth model for companion app is figured out
 // import { createCastSession, deleteCastSession } from "../services/cast-api";
 import { findGameByUrl } from "../services/game-directory";
@@ -28,8 +28,12 @@ const EDGE_WIDTH = 30;
 
 // Module-level singletons for bridge + cast
 const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
-const castStore = createCastStore();
+// One cast store and one Google Cast sync for the app's lifetime (not per screen), so no session
+// event is missed while the game screen is closed, and the app never drifts from the real cast.
+const castCommandsForStore = castCommands();
+const castStore = createCastStore(castCommandsForStore);
 bridge.setStore("cast", castStore);
+startCastSync(castStore, GoogleCast.getSessionManager(), castCommandsForStore, OGS_STREAM_SERVER_URL);
 const BridgeContext = createNativeBridgeContext<CastStores>();
 const CastContext = BridgeContext.createNativeStoreContext("cast");
 
@@ -142,58 +146,6 @@ export default function GameScreen() {
     }
   }, [devices]);
 
-
-  // The page the game wants on the TV goes to the receiver when a session starts, whenever the
-  // receiver asks for it (REQUEST_VIEW, once it's ready), and again if it changes.
-  const viewChannelRef = useRef<{ send(): Promise<void> } | null>(null);
-  const openViewChannel = (session: ViewChannelSession) => {
-    viewChannelRef.current = null;
-    void connectViewChannel(session, () => castStore.getSnapshot().viewUrl, OGS_STREAM_SERVER_URL).then((channel) => {
-      viewChannelRef.current = channel;
-    });
-  };
-  useEffect(() => {
-    let lastSeen: string | null = castStore.getSnapshot().viewUrl;
-    return castStore.subscribe((state) => {
-      if (state.viewUrl && state.viewUrl !== lastSeen) {
-        lastSeen = state.viewUrl;
-        void viewChannelRef.current?.send();
-      }
-    });
-  }, []);
-
-  // Name the cast after the device the session is really on (not the first one discovered).
-  const reportConnected = async (session: { getCastDevice(): Promise<{ deviceId: string; friendlyName: string } | null> }) => {
-    const device = await session.getCastDevice().catch(() => null);
-    castStore.dispatch(sessionConnectedEvent(device, castStore.getSnapshot().devices));
-  };
-
-  useEffect(() => {
-    const sm = GoogleCast.sessionManager;
-    const subs = [
-      sm.onSessionStarting(() => {
-        console.log("[Cast] Session STARTING — dispatching START_CASTING");
-        // Which device is only known once the session starts (reportConnected); until then it's "connecting".
-        const d = castStore.getSnapshot().devices;
-        castStore.dispatch({ type: "START_CASTING", deviceId: d.length === 1 && d[0] ? d[0].id : "pending" });
-      }),
-      sm.onSessionStarted((session) => {
-        console.log("[Cast] Session STARTED:", session);
-        openViewChannel(session);
-        void reportConnected(session);
-      }),
-      sm.onSessionEnded(() => {
-        console.log("[Cast] Session ended");
-        viewChannelRef.current = null;
-        castStore.dispatch({ type: "STOP_CASTING" });
-      }),
-      sm.onSessionResumed((session) => {
-        openViewChannel(session);
-        void reportConnected(session);
-      }),
-    ];
-    return () => subs.forEach((s) => s.remove());
-  }, [webviewSource.uri]);
 
   // --- Swipe-back gesture ---
   const swipe = swipeBackHandlers({

@@ -41,6 +41,10 @@ export type NativeCastEvents =
   | { type: "DEVICES_UPDATED"; devices: CastDevice[] }
   | { type: "START_CASTING"; deviceId: string }
   | { type: "STOP_CASTING" }
+  // Native-only: Google Cast's own session lifecycle (distinct from the game's START/STOP commands,
+  // so a session ending by itself never triggers another stop).
+  | { type: "SESSION_STARTING" }
+  | { type: "SESSION_ENDED" }
   | {
       type: "SESSION_CONNECTED";
       deviceId: string;
@@ -101,7 +105,13 @@ const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event)
       draft.error = null;
       break;
 
+    case "SESSION_STARTING":
+      draft.session.status = "connecting";
+      draft.error = null;
+      break;
+
     case "STOP_CASTING":
+    case "SESSION_ENDED":
       draft.session.status = "disconnected";
       draft.session.deviceId = null;
       draft.session.deviceName = null;
@@ -130,17 +140,30 @@ const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event)
   }
 };
 
+/** What the game's START_CASTING / STOP_CASTING commands do natively (see cast-sync.ts). */
+export type CastCommands = {
+  startCasting(deviceId: string, devices: CastDevice[]): void;
+  stopCasting(): void;
+};
+
 /**
  * Creates the native cast store instance.
- * Registers side effects for SHOW_CAST_PICKER (opens native Cast dialog).
+ * Side effects: SHOW_CAST_PICKER opens the native Cast dialog; START/STOP_CASTING from the game
+ * run the given commands against the real Google Cast session.
  */
-export function createCastStore(): Store<NativeCastState, NativeCastEvents> {
+export function createCastStore(commands?: CastCommands): Store<NativeCastState, NativeCastEvents> {
   return createStore<NativeCastState, NativeCastEvents>({
     initialState: CAST_INITIAL_STATE,
     producer: castProducer,
     on: {
       SHOW_CAST_PICKER: () => {
         GoogleCast.showCastDialog();
+      },
+      START_CASTING: (event, store) => {
+        commands?.startCasting(event.deviceId, store.getSnapshot().devices);
+      },
+      STOP_CASTING: () => {
+        commands?.stopCasting();
       },
     },
   });
