@@ -232,6 +232,15 @@ describe("POST /api/v1/stream/heartbeat", () => {
     expect(env.STREAM_CONTAINER.idFromName).toHaveBeenCalledWith("session-rx-abc");
   });
 
+  it("passes 410 through when the stream hit its maximum lifetime (the receiver stops pinging)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ status: "expired" }), { status: 410 }));
+    const env = { ...createMockEnv(), STREAM_SERVER_URL: "https://stream.example.run.app" };
+    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, env);
+    expect(res.status).toBe(410);
+    expect(await res.json()).toMatchObject({ expired: true });
+    fetchSpy.mockRestore();
+  });
+
   it("reports the stream server being down as 502", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("unreachable"));
     const env = { ...createMockEnv(), STREAM_SERVER_URL: "https://stream.example.run.app" };

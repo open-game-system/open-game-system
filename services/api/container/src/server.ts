@@ -28,6 +28,7 @@
 import crypto from "node:crypto";
 import http from "node:http";
 import url from "node:url";
+import { createStreamLifetime } from "./stream-lifetime";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import {
@@ -261,377 +262,31 @@ function buildLaunchOptions() {
 
 /** Launch browser, ensuring the extension is loaded */
 async function launchBrowserWithExtension(): Promise<Browser> {
-  const options = buildLaunchOptions();
+  // Just launch. (A diagnostics suite used to run here on every launch: filesystem searches, two
+  // throwaway browsers and a fixed 3s sleep, ~19s before each stream; it's in git history if needed.
+  // getExtensionStreamingPage waits for the extension's service worker, so no sleep is required.)
+  const t0 = Date.now();
+  const browserInstance = await puppeteer.launch(buildLaunchOptions());
+  console.log(`Browser launched in ${Date.now() - t0}ms: ${await browserInstance.version().catch(() => "unknown")}`);
+  return browserInstance;
+}
 
-  // Debug logging
-  console.log("🔍 ========== BROWSER LAUNCH DEBUG ==========");
-  console.log("🔍 Current working directory:", process.cwd());
-  console.log("🔍 Extension path (relative):", EXTENSION_PATH);
-  console.log("🔍 Extension path (absolute):", require("node:path").resolve(EXTENSION_PATH));
-
-  // Docker-specific environment debugging
-  console.log("🔍 ========== ENVIRONMENT DEBUG ==========");
-  console.log("🔍 NODE_ENV:", process.env.NODE_ENV);
-  console.log("🔍 Platform:", process.platform);
-  console.log("🔍 Architecture:", process.arch);
-  console.log("🔍 User ID:", process.getuid?.() || "N/A");
-  console.log("🔍 Group ID:", process.getgid?.() || "N/A");
-  console.log(
-    "🔍 Chrome executable path:",
-    process.env.PUPPETEER_EXECUTABLE_PATH || "using bundled Chrome",
-  );
-  console.log("🔍 Display environment:", process.env.DISPLAY || "Not set");
-
-  // Check if extension directory exists and list contents
-  const fs = require("node:fs");
-  const extensionPath = require("node:path").resolve(EXTENSION_PATH);
-  console.log("🔍 ========== FILE SYSTEM DEBUG ==========");
-  console.log("🔍 Extension directory exists:", fs.existsSync(extensionPath));
-
-  if (fs.existsSync(extensionPath)) {
-    console.log("🔍 Extension directory contents:", fs.readdirSync(extensionPath));
-
-    // Check file permissions for each file
-    const files = fs.readdirSync(extensionPath);
-    files.forEach((file: string) => {
-      const filePath = require("node:path").join(extensionPath, file);
-      const stats = fs.statSync(filePath);
-      console.log(`🔍 File ${file}:`, {
-        readable: fs.constants.R_OK,
-        exists: fs.existsSync(filePath),
-        size: stats.size,
-        mode: stats.mode.toString(8),
-        isFile: stats.isFile(),
-      });
+/**
+ * The shared browser, launched once. Started at boot so a fresh instance has Chrome ready before
+ * the first stream is requested; concurrent callers share the same launch.
+ */
+let browserLaunch: Promise<Browser> | null = null;
+function ensureBrowser(): Promise<Browser> {
+  if (browser) return Promise.resolve(browser);
+  browserLaunch ??= launchBrowserWithExtension()
+    .then((b) => {
+      browser = b;
+      return b;
+    })
+    .finally(() => {
+      browserLaunch = null;
     });
-
-    // Check for manifest.json specifically
-    const manifestPath = require("node:path").join(extensionPath, "manifest.json");
-    console.log("🔍 Manifest file exists:", fs.existsSync(manifestPath));
-
-    if (fs.existsSync(manifestPath)) {
-      try {
-        const manifestContent = fs.readFileSync(manifestPath, "utf8");
-        console.log("🔍 Manifest file size:", manifestContent.length);
-        const manifest = JSON.parse(manifestContent);
-        console.log("🔍 Manifest content:", JSON.stringify(manifest, null, 2));
-        console.log("🔍 Manifest key field:", manifest.key);
-        console.log("🔍 Manifest version:", manifest.manifest_version);
-        console.log("🔍 Background script:", manifest.background?.service_worker);
-      } catch (error) {
-        console.error("🔍 Error reading manifest:", error);
-      }
-    }
-  } else {
-    console.error("❌ Extension directory does not exist!");
-    // Try to list parent directory
-    const parentDir = require("node:path").dirname(extensionPath);
-    console.log("🔍 Parent directory:", parentDir);
-    if (fs.existsSync(parentDir)) {
-      console.log("🔍 Parent directory contents:", fs.readdirSync(parentDir));
-    }
-  }
-
-  // Chrome executable validation
-  console.log("🔍 ========== CHROME EXECUTABLE DEBUG ==========");
-  const chromeExecutable = process.env.PUPPETEER_EXECUTABLE_PATH;
-  console.log("🔍 Chrome executable path:", chromeExecutable || "using bundled Chrome/Chromium");
-  console.log(
-    "🔍 Skip Chromium download:",
-    process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || "false",
-  );
-
-  // Debug: Find available Chrome/Chromium executables in the container
-  console.log("🔍 Searching for available Chrome/Chromium executables...");
-  const possiblePaths = [
-    "/usr/bin/chromium", // Standard Chromium location
-    "/usr/bin/chromium-browser", // Alternative Chromium name
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/google-chrome",
-    "/opt/google/chrome/chrome",
-    "/usr/bin/chrome",
-    "/opt/chromium.org/chromium/chromium", // Chromium snap location
-    "/snap/bin/chromium", // Snap Chromium
-    "/usr/local/bin/chromium", // Local install
-    "/usr/local/bin/chrome", // Local install
-  ];
-
-  let foundChrome: string | null = null;
-  possiblePaths.forEach((path) => {
-    const exists = fs.existsSync(path);
-    console.log(`🔍 ${path}: ${exists ? "EXISTS" : "NOT FOUND"}`);
-    if (exists && !foundChrome) {
-      foundChrome = path;
-    }
-  });
-
-  // Try to find any Chrome/Chromium executable using find command
-  try {
-    const { exec } = require("node:child_process");
-    const { promisify } = require("node:util");
-    const execAsync = promisify(exec);
-
-    console.log("🔍 Searching filesystem for Chrome/Chromium executables...");
-    const { stdout: findResults } = await execAsync(
-      'find /usr /opt /snap -name "*chromium*" -o -name "*chrome*" 2>/dev/null | head -20 || echo "find command failed"',
-    );
-    console.log("🔍 Find results:", findResults.trim());
-
-    // Also check what's in common bin directories
-    const binDirs = ["/usr/bin", "/usr/local/bin", "/opt"];
-    for (const dir of binDirs) {
-      if (fs.existsSync(dir)) {
-        try {
-          const files = fs
-            .readdirSync(dir)
-            .filter((f: string) => f.includes("chrome") || f.includes("chromium"));
-          if (files.length > 0) {
-            console.log(`🔍 Chrome/Chromium files in ${dir}:`, files);
-          }
-        } catch (error) {
-          console.log(`🔍 Could not read ${dir}:`, (error as Error).message);
-        }
-      }
-    }
-  } catch (error) {
-    console.warn("🔍 Could not search filesystem:", (error as Error).message);
-  }
-
-  // Try to find Chrome/Chromium via which command
-  try {
-    const { exec } = require("node:child_process");
-    const { promisify } = require("node:util");
-    const execAsync = promisify(exec);
-    const { stdout: whichChrome } = await execAsync(
-      'which chromium-browser || which chromium || which google-chrome-stable || which google-chrome || echo "not found"',
-    );
-    console.log("🔍 Which Chrome/Chromium:", whichChrome.trim());
-
-    // Get version of found executable
-    if (whichChrome.trim() !== "not found") {
-      try {
-        const { stdout: version } = await execAsync(`${whichChrome.trim()} --version`);
-        console.log("🔍 Found browser version:", version.trim());
-        foundChrome = whichChrome.trim();
-      } catch (versionError) {
-        console.warn("🔍 Could not get browser version:", (versionError as Error).message);
-      }
-    }
-  } catch (error) {
-    console.warn("🔍 Could not run which command:", (error as Error).message);
-  }
-
-  // Check Puppeteer's expected Chrome location
-  try {
-    const puppeteer = require("puppeteer");
-    console.log("🔍 Puppeteer version:", puppeteer._launcher?._preferredRevision || "unknown");
-
-    // Try to get default executable path from Puppeteer
-    if (puppeteer.executablePath) {
-      const defaultPath = puppeteer.executablePath();
-      console.log("🔍 Puppeteer default executable path:", defaultPath);
-      if (fs.existsSync(defaultPath)) {
-        console.log("🔍 Puppeteer default executable EXISTS");
-        foundChrome = defaultPath;
-      } else {
-        console.log("🔍 Puppeteer default executable NOT FOUND");
-      }
-    }
-  } catch (error) {
-    console.warn("🔍 Could not get Puppeteer executable path:", (error as Error).message);
-  }
-
-  if (foundChrome) {
-    console.log("🔍 ✅ Using Chrome/Chromium at:", foundChrome);
-  } else {
-    console.log("🔍 ❌ No Chrome/Chromium executable found");
-  }
-
-  console.log("🔍 Browser launch options:", JSON.stringify(options, null, 2));
-
-  console.log("🚀 Launching browser with extension...");
-
-  // Progressive testing approach to isolate the issue
-  console.log("🔍 ========== PROGRESSIVE BROWSER TESTING ==========");
-
-  // Test 0: Direct Chrome execution test
-  console.log("🧪 Test 0: Direct Chrome execution test...");
-  try {
-    const { exec } = require("node:child_process");
-    const { promisify } = require("node:util");
-    const execAsync = promisify(exec);
-
-    const chromePath =
-      foundChrome || "/root/.cache/puppeteer/chrome/linux-140.0.7339.82/chrome-linux64/chrome";
-    console.log("🔍 Testing Chrome binary directly:", chromePath);
-
-    // Test Chrome version command
-    const { stdout: versionOutput } = await execAsync(
-      `timeout 10s ${chromePath} --version 2>&1 || echo "Chrome version failed"`,
-    );
-    console.log("🔍 Chrome version output:", versionOutput.trim());
-
-    // Test Chrome with basic flags
-    const { stdout: helpOutput } = await execAsync(
-      `timeout 5s ${chromePath} --help 2>&1 | head -5 || echo "Chrome help failed"`,
-    );
-    console.log("🔍 Chrome help output:", helpOutput.trim());
-
-    // Test Chrome startup with minimal flags
-    console.log("🔍 Testing Chrome startup with minimal flags...");
-    const testCommand = `timeout 10s ${chromePath} --no-sandbox --disable-gpu --headless --disable-dev-shm-usage --remote-debugging-port=9223 --user-data-dir=/tmp/chrome-test --dump-dom about:blank 2>&1 || echo "Chrome startup failed"`;
-    const { stdout: startupOutput } = await execAsync(testCommand);
-    console.log(
-      "🔍 Chrome startup test:",
-      startupOutput.includes("<html>")
-        ? "SUCCESS - Chrome can start"
-        : "FAILED - Chrome cannot start",
-    );
-    console.log("🔍 Chrome startup output:", `${startupOutput.substring(0, 200)}...`);
-  } catch (error) {
-    console.error("❌ Test 0 Chrome direct execution failed:", (error as Error).message);
-  }
-
-  // Test 1: Basic browser launch (we know this works)
-  console.log("🧪 Test 1: Basic browser launch without extensions...");
-  try {
-    console.log("🔍 Starting basic browser launch with new headless mode...");
-    const testBrowser1 = await puppeteer.launch({
-      headless: "new" as any, // Use new headless mode
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
-    console.log("✅ Test 1 PASSED: Basic browser launch works");
-
-    // Test that we can create a page
-    const page = await testBrowser1.newPage();
-    await page.goto("data:text/html,<h1>Test</h1>");
-    console.log("✅ Test 1.1 PASSED: Page creation and navigation works");
-
-    await testBrowser1.close();
-  } catch (error) {
-    console.error("❌ Test 1 FAILED: Basic browser launch failed:", (error as Error).message);
-    console.error("❌ This indicates Chrome cannot start in this container environment");
-    console.error("❌ Possible causes:");
-    console.error("   - Platform architecture mismatch (AMD64 vs ARM64)");
-    console.error("   - Missing container capabilities or permissions");
-    console.error("   - Chrome binary compatibility issues");
-    throw error;
-  }
-
-  // Test 2: Browser launch with extension flags but no actual extension
-  console.log("🧪 Test 2: Browser launch with extension flags (no extension)...");
-  try {
-    const testBrowser2 = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-extensions-except=/nonexistent/path",
-        "--load-extension=/nonexistent/path",
-      ],
-    });
-    console.log("✅ Test 2 PASSED: Extension flags work (even with invalid path)");
-    await testBrowser2.close();
-  } catch (error) {
-    console.error("❌ Test 2 FAILED: Extension flags cause issues:", (error as Error).message);
-    console.log("🔍 This suggests extension flags themselves are problematic");
-  }
-
-  // Test 3: Browser launch with valid extension path
-  console.log("🧪 Test 3: Browser launch with actual extension...");
-
-  // Add extra logging around the launch process
-  try {
-    const browserInstance = await puppeteer.launch(options);
-    console.log("✅ Browser launched successfully");
-
-    // Get browser version immediately
-    try {
-      const version = await browserInstance.version();
-      console.log("✅ Browser version:", version);
-    } catch (versionError) {
-      console.warn("⚠️ Could not get browser version:", (versionError as Error).message);
-    }
-
-    // Log initial targets immediately after launch
-    console.log("🔍 ========== INITIAL TARGETS DEBUG ==========");
-    const initialTargets = browserInstance.targets();
-    console.log("🔍 Initial target count:", initialTargets.length);
-    initialTargets.forEach((target, index) => {
-      console.log(`🔍 Target ${index}:`, {
-        type: target.type(),
-        url: target.url(),
-        isServiceWorker: target.type() === "service_worker",
-        isExtensionUrl: target.url().startsWith("chrome-extension://"),
-        isBackgroundPage: target.type() === "background_page",
-        opener: target.opener()?.url() || "none",
-      });
-    });
-
-    // Wait a bit for extensions to load and check again
-    console.log("🔍 Waiting 3 seconds for extensions to initialize...");
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const postWaitTargets = browserInstance.targets();
-    console.log("🔍 ========== POST-WAIT TARGETS DEBUG ==========");
-    console.log("🔍 Target count after wait:", postWaitTargets.length);
-    postWaitTargets.forEach((target, index) => {
-      console.log(`🔍 Post-Wait Target ${index}:`, {
-        type: target.type(),
-        url: target.url(),
-        isServiceWorker: target.type() === "service_worker",
-        isExtensionUrl: target.url().startsWith("chrome-extension://"),
-        isBackgroundPage: target.type() === "background_page",
-        endsWithBackgroundJs: target.url().endsWith("background.js"),
-        containsStreaming: target.url().includes("streaming"),
-      });
-    });
-
-    // Try to access chrome://extensions/ page for additional debugging
-    try {
-      console.log("🔍 ========== CHROME EXTENSIONS PAGE DEBUG ==========");
-      const debugPage = await browserInstance.newPage();
-      await debugPage.goto("chrome://extensions/", {
-        waitUntil: "domcontentloaded",
-        timeout: 5000,
-      });
-
-      // Try to extract extension information from the page
-      const extensionInfo = await debugPage.evaluate(() => {
-        const extensions = Array.from(document.querySelectorAll("extensions-item"));
-        return extensions.map((ext) => ({
-          id: ext.getAttribute("id"),
-          name: ext.querySelector("#name")?.textContent?.trim(),
-          enabled: !ext.hasAttribute("disabled"),
-          version: ext.querySelector("#version")?.textContent?.trim(),
-        }));
-      });
-
-      console.log("🔍 Extensions found on chrome://extensions/:", extensionInfo);
-      await debugPage.close();
-    } catch (extensionsPageError) {
-      console.warn(
-        "⚠️ Could not access chrome://extensions/ page:",
-        (extensionsPageError as Error).message,
-      );
-    }
-
-    return browserInstance;
-  } catch (launchError) {
-    console.error("❌ Browser launch failed:", launchError);
-    console.error("❌ Launch error details:", {
-      name: (launchError as Error).name,
-      message: (launchError as Error).message,
-      stack: (launchError as Error).stack?.split("\n").slice(0, 5),
-    });
-    throw launchError;
-  }
+  return browserLaunch;
 }
 
 /** Wait for the extension service worker and get streaming page */
@@ -889,6 +544,7 @@ async function shutdownBrowser() {
   console.log("Shutting down browser...");
 
   stopConnectionMonitoring();
+  streamLifetime.stopped();
 
   if (browser) {
     try {
@@ -917,7 +573,15 @@ async function handleHealth(): Promise<Response> {
   });
 }
 
+const streamLifetime = createStreamLifetime({ maxMs: Number(process.env.STREAM_MAX_MS ?? 3 * 60 * 60 * 1000) });
+
 async function handlePing(): Promise<Response> {
+  if (streamLifetime.expired()) {
+    // A forgotten cast: end it and refuse the heartbeat, so the pings stop and the GPU scales to zero.
+    console.log("Stream exceeded its maximum lifetime; shutting down");
+    await shutdownBrowser();
+    return jsonResponse({ status: "expired" }, { status: 410 });
+  }
   return jsonResponse({
     status: "pong",
     timestamp: Date.now(),
@@ -961,6 +625,7 @@ async function handlePublisherPrepare(
 ): Promise<Response> {
   try {
     const { url: targetUrl, iceServers } = data;
+    streamLifetime.started();
 
     logTrace(traceId, "publisher_prepare_request_received", {
       targetUrl,
@@ -968,10 +633,10 @@ async function handlePublisherPrepare(
       browserReused: !!browser,
     });
 
-    // Use existing browser or launch new one
+    // Use existing browser or launch new one (possibly already launching since boot)
     if (!browser) {
       logTrace(traceId, "browser_launch_start");
-      browser = await launchBrowserWithExtension();
+      browser = await ensureBrowser();
       logTrace(traceId, "browser_launch_complete");
     } else {
       logTrace(traceId, "browser_reuse");
@@ -1382,6 +1047,8 @@ const server = http.createServer(async (req: any, res: any) => {
 const PORT = parseInt(process.env.PORT || "8080", 10);
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Container server running at http://0.0.0.0:${PORT}`);
+  // Warm Chrome now, so the first stream on a fresh instance doesn't wait for it.
+  ensureBrowser().catch((error) => console.error("Browser prelaunch failed:", error));
 });
 
 // Graceful shutdown on process termination

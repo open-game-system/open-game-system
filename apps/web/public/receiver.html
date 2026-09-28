@@ -117,6 +117,8 @@
     /** How long to wait for the sender to say what to show before falling back to the default. */
     const VIEW_WAIT_MS = 8000;
     const PLAYOUT_BUFFER_MS = 200;
+    const NO_SENDER_STOP_MS = 20 * 60 * 1000;
+    const MAX_CAST_MS = 3 * 60 * 60 * 1000;
     let receiverSupports = null;
 
     /** URL params (for direct testing) override everything; otherwise the sender's LOAD_VIEW decides. */
@@ -192,6 +194,14 @@
       stopHeartbeat();
       heartbeatTimer = setInterval(() => {
         fetch(`${baseUrl}/heartbeat`, { method: 'POST', headers: { 'x-stream-session-id': streamSessionId } })
+          .then((res) => {
+            // 410: the server ended a stream that ran past its maximum lifetime. Stop pinging (so the
+            // GPU can scale to zero) and close the receiver on the TV.
+            if (res.status !== 410) return;
+            stopHeartbeat();
+            setStatus('This TV session has ended', false);
+            if (castContext) castContext.stop();
+          })
           .catch((e) => console.warn('[Receiver] heartbeat failed', e));
       }, HEARTBEAT_MS);
     }
@@ -468,6 +478,19 @@
         try { context.sendCustomMessage(VIEW_NAMESPACE, senderId, { type: 'REQUEST_VIEW' }); } catch (e) { /* no senders yet */ }
       };
       context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (e) => requestView(e.senderId));
+      // Never stream to an empty room: the cast keeps a cloud GPU running (and billing) until this
+      // page closes. Stop 20 min after the last phone disconnects, and after 3 hours regardless.
+      let noSenderTimer = null;
+      context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, () => {
+        clearTimeout(noSenderTimer);
+        noSenderTimer = null;
+      });
+      context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
+        if (context.getSenders().length > 0 || noSenderTimer) return;
+        console.log('[Receiver] No phones connected; stopping in', NO_SENDER_STOP_MS / 60000, 'min');
+        noSenderTimer = setTimeout(() => context.stop(), NO_SENDER_STOP_MS);
+      });
+      setTimeout(() => context.stop(), MAX_CAST_MS);
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : requestView(undefined)), 1500);
       context.start(options);
       setStatus('Waiting for the game...');
