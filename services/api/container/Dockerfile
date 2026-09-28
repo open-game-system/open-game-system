@@ -30,7 +30,18 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
+    libvulkan1 \
+    libegl1 \
+    libgl1 \
+    libgles2 \
     && rm -rf /var/lib/apt/lists/*
+
+# GPU hosts (Cloud Run NVIDIA L4) mount the driver at /usr/local/nvidia/lib64; point the Vulkan and
+# EGL loaders at it. Harmless on CPU-only hosts, where STREAM_GPU stays unset.
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib64
+RUN mkdir -p /etc/vulkan/icd.d /usr/share/glvnd/egl_vendor.d \
+    && echo '{"file_format_version":"1.0.0","ICD":{"library_path":"libGLX_nvidia.so.0","api_version":"1.3"}}' > /etc/vulkan/icd.d/nvidia_icd.json \
+    && echo '{"file_format_version":"1.0.0","ICD":{"library_path":"libEGL_nvidia.so.0"}}' > /usr/share/glvnd/egl_vendor.d/10_nvidia.json
 
 # Mark that we're running in Docker for Chrome configuration
 ENV DOCKER_ENVIRONMENT=true

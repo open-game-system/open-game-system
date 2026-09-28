@@ -477,6 +477,17 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
 
       if (state === "connected") {
         addConnection(connectionId);
+        // Live sender stats in /debug-state: where frames are lost (capture vs encoder vs bandwidth).
+        const statsTimer = setInterval(async () => {
+          if (pc.connectionState !== "connected") return clearInterval(statsTimer);
+          const video = {};
+          (await pc.getStats()).forEach((r) => {
+            if (r.type === "media-source" && r.kind === "video") Object.assign(video, { captureFps: r.framesPerSecond, captureSize: `${r.width}x${r.height}` });
+            if (r.type === "outbound-rtp" && r.kind === "video")
+              Object.assign(video, { sendFps: r.framesPerSecond, sendSize: `${r.frameWidth}x${r.frameHeight}`, limitedBy: r.qualityLimitationReason, encoder: r.encoderImplementation, targetBitrate: r.targetBitrate });
+          });
+          window.streamingDebug.videoStats = video;
+        }, 2000);
       } else if (state === "disconnected" || state === "failed" || state === "closed") {
         removeConnection(connectionId);
       }
@@ -500,11 +511,18 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
 
     const videoTracks = stream.getVideoTracks();
     if (videoTracks.length > 0) {
+      // Games are motion, not slides: without this Chrome treats tab capture as screen content and
+      // keeps 1080p sharp by dropping to ~12 fps.
+      videoTracks[0].contentHint = "motion";
       const sender = pc.addTrack(videoTracks[0], stream);
       const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
       if (transceiver) {
         transceiver.direction = "sendonly";
       }
+      const params = sender.getParameters();
+      params.degradationPreference = "maintain-framerate";
+      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: 8_000_000, maxFramerate: 30 }));
+      sender.setParameters(params).catch((err) => console.warn("[PUBLISHER] setParameters failed:", err?.message));
       tracks.push({
         location: "local",
         trackName: "cast-video",

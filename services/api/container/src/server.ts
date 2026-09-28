@@ -155,19 +155,74 @@ async function collectBrowserState(traceId: string) {
   return snapshot;
 }
 
+/**
+ * STREAM_GPU=egl|vulkan renders with the host GPU (Cloud Run NVIDIA L4). Use egl: on an L4 both render
+ * at 60fps, but vulkan tab capture only delivers ~14fps while egl delivers the full 30. Unset falls back to
+ * SwiftShader, since Chrome no longer picks software WebGL on its own and WebGL TVs (Rocket Crew) need it.
+ */
+function renderingFlags(): string[] {
+  const gpu = process.env.STREAM_GPU;
+  const common = ["--ignore-gpu-blocklist", "--enable-gpu-rasterization", "--enable-zero-copy"];
+  if (gpu === "vulkan") return [...common, "--use-angle=vulkan", "--enable-features=Vulkan", "--disable-vulkan-surface"];
+  if (gpu === "egl") return [...common, "--use-gl=angle", "--use-angle=gl-egl"];
+  return ["--disable-gpu", "--enable-unsafe-swiftshader"];
+}
+
+/** Which GL renderer Chrome actually got — proves the GPU path works without casting. */
+async function handleGpuInfo(measureUrl: string | null): Promise<Response> {
+  const browser = await puppeteer.launch({ headless: "new" as any, args: ["--no-sandbox", "--disable-dev-shm-usage", ...renderingFlags()] });
+  try {
+    const page = await browser.newPage();
+    // ?url= also reports how fast that page animates here (requestAnimationFrame per second over 5s).
+    let pageFps: number | null = null;
+    if (measureUrl) {
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.goto(measureUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await new Promise((r) => setTimeout(r, 8000));
+      // A string, not a function: tsx injects __name helpers that don't exist in the page.
+      pageFps = Number(
+        await page.evaluate(`new Promise((resolve) => {
+          let frames = 0;
+          const start = performance.now();
+          const tick = () => { frames++; if (performance.now() - start < 5000) requestAnimationFrame(tick); else resolve(frames / 5); };
+          requestAnimationFrame(tick);
+        })`),
+      );
+    }
+    await page.goto("data:text/html,<canvas id=c></canvas>");
+    const info = await page.evaluate(() => {
+      const gl = (document.getElementById("c") as HTMLCanvasElement).getContext("webgl2");
+      if (!gl) return { webgl2: false };
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      return { webgl2: true, vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null, renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null };
+    });
+    // Does Web Audio actually run here? (No audio device → the context never advances → silent streams.)
+    const audio = await page.evaluate(`(async () => {
+      const ctx = new AudioContext();
+      await ctx.resume().catch(() => {});
+      const t0 = ctx.currentTime;
+      await new Promise((r) => setTimeout(r, 1000));
+      return { state: ctx.state, advancedSeconds: ctx.currentTime - t0, sampleRate: ctx.sampleRate };
+    })()`);
+    return new Response(JSON.stringify({ mode: process.env.STREAM_GPU ?? "swiftshader", ...info, pageFps, audio }), { headers: { "Content-Type": "application/json" } });
+  } finally {
+    await browser.close();
+  }
+}
+
 /** Build Puppeteer launch options */
 function buildLaunchOptions() {
   const absoluteExtensionPath = require("node:path").resolve(EXTENSION_PATH);
 
   return {
     headless: "new" as any, // Chrome 146 headless:new supports extensions and tab capture
+    // Puppeteer adds --mute-audio by default, which makes the captured tab (and the TV stream) silent.
+    ignoreDefaultArgs: ["--mute-audio"],
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
-      "--disable-gpu",
-      // Chrome no longer falls back to software WebGL on its own; games with WebGL TVs (e.g. Rocket Crew) need this.
-      "--enable-unsafe-swiftshader",
+      ...renderingFlags(),
       `--disable-extensions-except=${absoluteExtensionPath}`,
       `--load-extension=${absoluteExtensionPath}`,
       "--webrtc-udp-port-range=10000-10100",
@@ -1231,6 +1286,8 @@ const server = http.createServer(async (req: any, res: any) => {
       response = await handleHealth();
     } else if (pathname === "/ping") {
       response = await handlePing();
+    } else if (pathname === "/gpu-info") {
+      response = await handleGpuInfo(new URL(req.url ?? "/", "http://x").searchParams.get("url"));
     } else if (pathname === "/test-puppeteer") {
       response = await handleTest();
     } else if (pathname === "/debug-state") {
