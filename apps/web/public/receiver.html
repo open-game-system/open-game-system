@@ -274,6 +274,7 @@
 
         // Step 4: Create RTCPeerConnection and set remote offer
         pc = new RTCPeerConnection({ iceServers });
+        window.receiverPc = pc; // for stream checks (inbound audio/video stats)
 
         pc.ontrack = (event) => {
           console.log('[Receiver] Received remote track:', event.track.kind);
@@ -283,7 +284,11 @@
           // Only set srcObject once — multiple tracks arrive rapidly
           if (!video.srcObject) {
             video.srcObject = event.streams[0] || new MediaStream([event.track]);
-            video.play().catch(e => console.warn('[Receiver] Video play failed:', e));
+            // Starts muted (autoplay rules), then unmutes: the game's sound rides in this stream.
+            // Cast devices allow unmuted playback; if a browser refuses, stay muted rather than stop.
+            video.play()
+              .then(() => { video.muted = false; return video.play(); })
+              .catch(e => { console.warn('[Receiver] Unmuted play refused, staying muted:', e); video.muted = true; video.play().catch(() => {}); });
           } else if (event.track.kind === 'audio' && video.srcObject instanceof MediaStream) {
             // Add audio track to existing stream
             video.srcObject.addTrack(event.track);
@@ -391,6 +396,14 @@
       const options = new cast.framework.CastReceiverOptions();
       options.disableIdleTimeout = true; // we play a WebRTC stream, not Cast media
       options.customNamespaces = { [VIEW_NAMESPACE]: cast.framework.system.MessageType.JSON };
+      // Handshake: the sender's first LOAD_VIEW can arrive before this page is listening (cold start),
+      // so ask for the view once ready, when any sender connects, and keep asking until one arrives.
+      const requestView = (senderId) => {
+        if (started) return;
+        try { context.sendCustomMessage(VIEW_NAMESPACE, senderId, { type: 'REQUEST_VIEW' }); } catch (e) { /* no senders yet */ }
+      };
+      context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (e) => requestView(e.senderId));
+      const askTimer = setInterval(() => (started ? clearInterval(askTimer) : requestView(undefined)), 1500);
       context.start(options);
       setStatus('Waiting for the game...');
       setTimeout(() => {
