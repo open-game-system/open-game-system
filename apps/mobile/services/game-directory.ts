@@ -28,6 +28,18 @@ export const GAME_DIRECTORY: readonly GameDirectoryEntry[] = [
     features: ["cast"],
   },
   {
+    id: "night-flight",
+    name: "Night Flight",
+    description: "Fly the owls home before sunrise: co-op for grown-ups and kids",
+    // Like Rocket Crew: inside the OGS app the start page hands off to /host and the TV is cast.
+    url: "https://night-flight.jonathanrmumm.workers.dev",
+    iconColor: "#FFD66B",
+    iconBgColor: "#1B2356",
+    iconInitials: "NF",
+    tags: ["Co-op", "Family", "Castable"],
+    features: ["cast"],
+  },
+  {
     id: "trivia-jam",
     name: "Trivia Jam",
     description: "Live multiplayer trivia with friends",
