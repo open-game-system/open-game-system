@@ -273,8 +273,8 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
               mandatory: {
                 minWidth: 1280,
                 minHeight: 720,
-                maxWidth: 1920,
-                maxHeight: 1080,
+                maxWidth: 1280,
+                maxHeight: 720,
                 maxFrameRate: 30,
               },
             },
@@ -345,8 +345,8 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
             mandatory: {
               chromeMediaSource: "tab",
               chromeMediaSourceId: streamId,
-              maxWidth: 1920,
-              maxHeight: 1080,
+              maxWidth: 1280,
+              maxHeight: 720,
               maxFrameRate: 30,
             },
           },
@@ -484,7 +484,10 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
           (await pc.getStats()).forEach((r) => {
             if (r.type === "media-source" && r.kind === "video") Object.assign(video, { captureFps: r.framesPerSecond, captureSize: `${r.width}x${r.height}` });
             if (r.type === "outbound-rtp" && r.kind === "video")
-              Object.assign(video, { sendFps: r.framesPerSecond, sendSize: `${r.frameWidth}x${r.frameHeight}`, limitedBy: r.qualityLimitationReason, encoder: r.encoderImplementation, targetBitrate: r.targetBitrate });
+              Object.assign(video, { sendFps: r.framesPerSecond, sendSize: `${r.frameWidth}x${r.frameHeight}`, limitedBy: r.qualityLimitationReason, encoder: r.encoderImplementation, targetBitrate: r.targetBitrate,
+                limitedSeconds: r.qualityLimitationDurations, keyFramesEncoded: r.keyFramesEncoded, pliCount: r.pliCount, nackCount: r.nackCount,
+                avgEncodeMs: r.framesEncoded ? Math.round((r.totalEncodeTime / r.framesEncoded) * 10000) / 10 : null });
+            if (r.type === "candidate-pair" && r.nominated && r.state === "succeeded") Object.assign(video, { rttMs: Math.round((r.currentRoundTripTime || 0) * 1000), outgoingKbps: Math.round((r.availableOutgoingBitrate || 0) / 1000) });
           });
           window.streamingDebug.videoStats = video;
         }, 2000);
@@ -513,6 +516,9 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
     if (videoTracks.length > 0) {
       // Games are motion, not slides: without this Chrome treats tab capture as screen content and
       // keeps 1080p sharp by dropping to ~12 fps.
+      // 720p at <=4 Mbps (not 1080p/8): measured on a Chromecast over Wi-Fi, one lost packet at 1080p
+      // froze the picture ~2.4s waiting for a huge keyframe, and software VP8 used ~21ms of the 33ms
+      // frame budget. 720p keyframes are ~2.5x smaller and encode in about half the time.
       videoTracks[0].contentHint = "motion";
       const sender = pc.addTrack(videoTracks[0], stream);
       const transceiver = pc.getTransceivers().find((t) => t.sender === sender);
@@ -521,7 +527,7 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
       }
       const params = sender.getParameters();
       params.degradationPreference = "maintain-framerate";
-      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: 8_000_000, maxFramerate: 30 }));
+      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: 4_000_000, maxFramerate: 30 }));
       sender.setParameters(params).catch((err) => console.warn("[PUBLISHER] setParameters failed:", err?.message));
       tracks.push({
         location: "local",

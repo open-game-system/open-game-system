@@ -117,6 +117,12 @@ async function collectBrowserState(traceId: string) {
           readyState: document.readyState,
           hasFocus: document.hasFocus(),
         }))
+        .then(async (state) => ({
+          ...state,
+          render: await activePage
+            ?.evaluate(`window.__renderStats ? { seconds: Math.round(performance.now() / 1000), frames: window.__renderStats.frames(), stalls: window.__renderStats.stalls } : null`)
+            .catch(() => null),
+        }))
         .catch((error: Error) => ({ error: error.message }))
     : null;
 
@@ -989,6 +995,28 @@ async function handlePublisherPrepare(
     page.on("pageerror", (error) => {
       logTrace(traceId, "page_error", { message: error.message });
     });
+
+    // Record rendering stalls on the captured page (rAF gaps > 100ms), so a choppy TV can be traced
+    // to the page itself (e.g. shader compiles) vs. the network. Read back in /debug-state.
+    await page.evaluateOnNewDocument(`(() => {
+      const stalls = []; let last = 0, frames = 0, lastLongTask = null;
+      try {
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) lastLongTask = { ms: Math.round(e.duration), at: Math.round(e.startTime / 100) / 10 };
+        }).observe({ type: 'longtask', buffered: true });
+      } catch {}
+      window.__renderStats = { stalls, frames: () => frames };
+      const tick = (t) => {
+        frames++;
+        if (last && t - last > 100) {
+          const tv = document.querySelector('.tv');
+          stalls.push({ at: Math.round(t / 100) / 10, ms: Math.round(t - last), phase: tv ? tv.className : null, longTask: lastLongTask });
+          if (stalls.length > 50) stalls.shift();
+        }
+        last = t; requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    })()`);
 
     // Navigate to target URL
     logTrace(traceId, "page_navigation_start", { targetUrl });

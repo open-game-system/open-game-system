@@ -116,6 +116,8 @@
     const DEFAULT_VIEW_URL = 'https://triviajam.tv';
     /** How long to wait for the sender to say what to show before falling back to the default. */
     const VIEW_WAIT_MS = 8000;
+    const PLAYOUT_BUFFER_MS = 200;
+    let receiverSupports = null;
 
     /** URL params (for direct testing) override everything; otherwise the sender's LOAD_VIEW decides. */
     let launch = null;
@@ -304,10 +306,11 @@
 
         pc.ontrack = (event) => {
           console.log('[Receiver] Received remote track:', event.track.kind);
-          // ~200ms of playout buffer: a packet lost on Wi-Fi can be retransmitted in time, instead of
-          // the decoder freezing for seconds while it waits for a new keyframe.
-          if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = 200;
-          else event.receiver.playoutDelayHint = 0.2;
+          // Playout buffer so a packet retransmitted after Wi-Fi loss arrives in time (see ?buffer=).
+          const bufferMs = Number(new URLSearchParams(location.search).get('buffer') ?? PLAYOUT_BUFFER_MS);
+          if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = bufferMs;
+          else if ('playoutDelayHint' in event.receiver) event.receiver.playoutDelayHint = bufferMs / 1000;
+          receiverSupports = { jitterBufferTarget: 'jitterBufferTarget' in event.receiver, playoutDelayHint: 'playoutDelayHint' in event.receiver };
           clearConnectionTimeout();
           isConnected = true;
 
@@ -399,6 +402,7 @@
       const state = {
         type: 'STATE', started, viewUrl: currentViewUrl, status: statusText ? statusText.textContent : null,
         overlayVisible: !overlay.classList.contains('hidden'),
+        receiverSupports, userAgent: navigator.userAgent,
         video: { width: video.videoWidth, height: video.videoHeight, readyState: video.readyState, paused: video.paused,
           muted: video.muted, currentTime: video.currentTime, error: video.error ? video.error.code : null,
           tracks: video.srcObject ? video.srcObject.getTracks().map((t) => `${t.kind}:${t.readyState}${t.muted ? ':muted' : ''}`) : [] },
