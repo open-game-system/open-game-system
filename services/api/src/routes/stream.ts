@@ -176,6 +176,8 @@ stream.post("/heartbeat", async (c) => {
     const res = c.env.STREAM_SERVER_URL
       ? await fetch(`${c.env.STREAM_SERVER_URL}/ping`, { method: "GET" })
       : await forwardToContainer(c, "/ping");
+    // 410: the stream hit its maximum lifetime (a forgotten cast); the receiver stops pinging.
+    if (res.status === 410) return c.json({ ok: false, expired: true }, 410);
     return c.json({ ok: res.ok }, res.ok ? 200 : 502);
   } catch {
     return c.json({ ok: false }, 502);
