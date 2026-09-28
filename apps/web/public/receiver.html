@@ -151,12 +151,19 @@
       tellSenders({ type: 'STATUS', status: text });
       statusText.textContent = text;
       spinner.style.display = showSpinner ? 'block' : 'none';
-      overlay.classList.remove('hidden');
+      // Once the stream is up, late setup steps must not cover the playing video (the connection
+      // can come up before ICE gathering finishes). Failures clear isConnected first, so they still show.
+      if (!isConnected) overlay.classList.remove('hidden');
     }
 
     function hideOverlay() {
       overlay.classList.add('hidden');
     }
+    // Video on screen is the truth: whenever it starts playing, nothing may cover it.
+    video.addEventListener('playing', () => {
+      isConnected = true;
+      hideOverlay();
+    });
 
     function startConnectionTimeout() {
       connectionTimer = setTimeout(() => {
@@ -363,6 +370,26 @@
       }
     }
 
+    async function reportState(senderId) {
+      const state = {
+        type: 'STATE', started, viewUrl: currentViewUrl, status: statusText ? statusText.textContent : null,
+        overlayVisible: !overlay.classList.contains('hidden'),
+        video: { width: video.videoWidth, height: video.videoHeight, readyState: video.readyState, paused: video.paused,
+          muted: video.muted, currentTime: video.currentTime, error: video.error ? video.error.code : null,
+          tracks: video.srcObject ? video.srcObject.getTracks().map((t) => `${t.kind}:${t.readyState}${t.muted ? ':muted' : ''}`) : [] },
+        pc: pc ? { connection: pc.connectionState, ice: pc.iceConnectionState } : null,
+        inbound: {},
+      };
+      if (pc) {
+        (await pc.getStats()).forEach((r) => {
+          if (r.type === 'inbound-rtp') state.inbound[r.kind] = { bytes: r.bytesReceived, packets: r.packetsReceived, lost: r.packetsLost,
+            framesDecoded: r.framesDecoded, framesDropped: r.framesDropped, keyFrames: r.keyFramesDecoded, fps: r.framesPerSecond,
+            decoder: r.decoderImplementation, size: r.frameWidth ? `${r.frameWidth}x${r.frameHeight}` : undefined, energy: r.totalAudioEnergy };
+        });
+      }
+      try { castContext.sendCustomMessage(VIEW_NAMESPACE, senderId, state); } catch (e) { console.warn('[Receiver] STATE send failed', e); }
+    }
+
     let started = false;
     let currentViewUrl = null;
     function begin(params) {
@@ -389,6 +416,11 @@
       context.addCustomMessageListener(VIEW_NAMESPACE, (event) => {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
         console.log('[Receiver] LOAD_VIEW from sender:', data);
+        if (data && data.type === 'GET_STATE') {
+          // Diagnostics for a sender: is the stream actually decoding video/audio on this device?
+          reportState(event.senderId);
+          return;
+        }
         if (data && data.type === 'LOAD_VIEW' && data.viewUrl) {
           begin({ viewUrl: data.viewUrl, streamServerUrl: data.streamServerUrl || DEFAULT_STREAM_SERVER, publisherSessionId: '' });
         }
