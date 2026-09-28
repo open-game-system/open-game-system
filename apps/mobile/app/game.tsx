@@ -13,6 +13,7 @@ import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
+import { sessionConnectedEvent } from "../services/cast-session-device";
 import { swipeBackHandlers } from "../services/swipe-back";
 import { connectViewChannel, OGS_STREAM_SERVER_URL, type ViewChannelSession } from "../services/cast-view";
 // TODO: Re-enable when auth model for companion app is figured out
@@ -161,32 +162,25 @@ export default function GameScreen() {
     });
   }, []);
 
+  // Name the cast after the device the session is really on (not the first one discovered).
+  const reportConnected = async (session: { getCastDevice(): Promise<{ deviceId: string; friendlyName: string } | null> }) => {
+    const device = await session.getCastDevice().catch(() => null);
+    castStore.dispatch(sessionConnectedEvent(device, castStore.getSnapshot().devices));
+  };
+
   useEffect(() => {
     const sm = GoogleCast.sessionManager;
     const subs = [
       sm.onSessionStarting(() => {
         console.log("[Cast] Session STARTING — dispatching START_CASTING");
+        // Which device is only known once the session starts (reportConnected); until then it's "connecting".
         const d = castStore.getSnapshot().devices;
-        const device = d[0];
-        if (device) {
-          castStore.dispatch({ type: "START_CASTING", deviceId: device.id });
-          console.log("[Cast] Dispatched START_CASTING. State:", JSON.stringify(castStore.getSnapshot().session));
-        }
+        castStore.dispatch({ type: "START_CASTING", deviceId: d.length === 1 && d[0] ? d[0].id : "pending" });
       }),
       sm.onSessionStarted((session) => {
         console.log("[Cast] Session STARTED:", session);
         openViewChannel(session);
-        const d = castStore.getSnapshot().devices;
-        const device = d[0];
-        if (!device) return;
-
-        castStore.dispatch({
-          type: "SESSION_CONNECTED",
-          deviceId: device.id,
-          deviceName: device.name,
-          sessionId: "cast-session",
-          streamSessionId: "",
-        });
+        void reportConnected(session);
       }),
       sm.onSessionEnded(() => {
         console.log("[Cast] Session ended");
@@ -195,8 +189,7 @@ export default function GameScreen() {
       }),
       sm.onSessionResumed((session) => {
         openViewChannel(session);
-        const d = castStore.getSnapshot().devices;
-        if (d.length > 0) castStore.dispatch({ type: "START_CASTING", deviceId: d[0].id });
+        void reportConnected(session);
       }),
     ];
     return () => subs.forEach((s) => s.remove());
