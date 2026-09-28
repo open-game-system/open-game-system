@@ -166,6 +166,23 @@ function forwardToContainer(c: Context<StreamEnv>, targetPath: string) {
 }
 
 /**
+ * POST /api/v1/stream/heartbeat
+ * The receiver pings this about once a minute while a TV is casting. The video itself flows to the
+ * SFU, not through the stream server, so without it the server looks idle mid-game (Cloud Run may
+ * shut it down), and once casting stops the pings stop, letting it scale to zero.
+ */
+stream.post("/heartbeat", async (c) => {
+  try {
+    const res = c.env.STREAM_SERVER_URL
+      ? await fetch(`${c.env.STREAM_SERVER_URL}/ping`, { method: "GET" })
+      : await forwardToContainer(c, "/ping");
+    return c.json({ ok: res.ok }, res.ok ? 200 : 502);
+  } catch {
+    return c.json({ ok: false }, 502);
+  }
+});
+
+/**
  * GET /api/v1/stream/ice-servers
  * Returns TURN credentials for WebRTC connections.
  */

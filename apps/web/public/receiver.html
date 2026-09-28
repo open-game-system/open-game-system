@@ -181,8 +181,26 @@
       }
     }
 
+    // Heartbeat: keeps the stream server up for as long as this TV is casting. The video goes to
+    // the SFU, not through the server, so without pings it looks idle mid-game; when the cast ends
+    // the pings stop and the (GPU) server can scale to zero about 15 minutes later.
+    const HEARTBEAT_MS = 60000;
+    let heartbeatTimer = null;
+    function startHeartbeat(baseUrl, streamSessionId) {
+      stopHeartbeat();
+      heartbeatTimer = setInterval(() => {
+        fetch(`${baseUrl}/heartbeat`, { method: 'POST', headers: { 'x-stream-session-id': streamSessionId } })
+          .catch((e) => console.warn('[Receiver] heartbeat failed', e));
+      }, HEARTBEAT_MS);
+    }
+    function stopHeartbeat() {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+
     function cleanup() {
       clearConnectionTimeout();
+      stopHeartbeat();
       if (pc) {
         pc.close();
         pc = null;
@@ -232,6 +250,7 @@
           // shared singleton that other casts may still be using.
           const streamSessionId = 'rx-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
           console.log('[Receiver] Stream session:', streamSessionId);
+          startHeartbeat(baseUrl, streamSessionId);
           const startRes = await fetch(`${baseUrl}/start-stream`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-stream-session-id': streamSessionId },
@@ -285,6 +304,10 @@
 
         pc.ontrack = (event) => {
           console.log('[Receiver] Received remote track:', event.track.kind);
+          // ~200ms of playout buffer: a packet lost on Wi-Fi can be retransmitted in time, instead of
+          // the decoder freezing for seconds while it waits for a new keyframe.
+          if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = 200;
+          else event.receiver.playoutDelayHint = 0.2;
           clearConnectionTimeout();
           isConnected = true;
 
@@ -310,6 +333,8 @@
             hideOverlay();
           } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
             isConnected = false;
+            // 'disconnected' can recover on its own; only a failed connection ends the heartbeat.
+            if (pc.connectionState === 'failed') stopHeartbeat();
             setStatus('Cast session ended', false);
           }
         };
@@ -384,7 +409,11 @@
         (await pc.getStats()).forEach((r) => {
           if (r.type === 'inbound-rtp') state.inbound[r.kind] = { bytes: r.bytesReceived, packets: r.packetsReceived, lost: r.packetsLost,
             framesDecoded: r.framesDecoded, framesDropped: r.framesDropped, keyFrames: r.keyFramesDecoded, fps: r.framesPerSecond,
-            decoder: r.decoderImplementation, size: r.frameWidth ? `${r.frameWidth}x${r.frameHeight}` : undefined, energy: r.totalAudioEnergy };
+            decoder: r.decoderImplementation, size: r.frameWidth ? `${r.frameWidth}x${r.frameHeight}` : undefined, energy: r.totalAudioEnergy,
+            freezes: r.freezeCount, freezeSeconds: r.totalFreezesDuration, pauses: r.pauseCount, pauseSeconds: r.totalPausesDuration,
+            jitterMs: r.jitter != null ? Math.round(r.jitter * 1000) : undefined, nacks: r.nackCount, plis: r.pliCount,
+            bufferMs: r.jitterBufferEmittedCount ? Math.round((r.jitterBufferDelay / r.jitterBufferEmittedCount) * 1000) : undefined };
+          if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') state.path = { rttMs: Math.round((r.currentRoundTripTime || 0) * 1000), inKbps: Math.round((r.availableIncomingBitrate || 0) / 1000) };
         });
       }
       try { castContext.sendCustomMessage(VIEW_NAMESPACE, senderId, state); } catch (e) { console.warn('[Receiver] STATE send failed', e); }
