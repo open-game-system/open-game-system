@@ -1073,6 +1073,21 @@ async function handlePublisherPrepare(
       throw error;
     }
 
+    // Keep the game tab painting. The extension's streaming page can end up in front, and Chrome
+    // stops rendering background tabs — the captured video then freezes on the last frame while the
+    // game carries on. Bring the game to the front and have it behave as focused and active.
+    try {
+      await page.bringToFront();
+      const cdp = await page.createCDPSession();
+      await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await cdp.send("Page.setWebLifecycleState", { state: "active" });
+      logTrace(traceId, "game_page_foregrounded", {
+        visibility: await page.evaluate(() => document.visibilityState),
+      });
+    } catch (e) {
+      logTrace(traceId, "game_page_foreground_failed", { message: (e as Error).message });
+    }
+
     // Start connection monitoring if not already running
     if (!connectionCheckInterval) {
       startConnectionMonitoring();
