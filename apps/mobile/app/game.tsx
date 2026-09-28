@@ -13,7 +13,8 @@ import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
-import { OGS_STREAM_SERVER_URL, sendViewToReceiver, type ViewChannelSession } from "../services/cast-view";
+import { swipeBackHandlers } from "../services/swipe-back";
+import { connectViewChannel, OGS_STREAM_SERVER_URL, type ViewChannelSession } from "../services/cast-view";
 // TODO: Re-enable when auth model for companion app is figured out
 // import { createCastSession, deleteCastSession } from "../services/cast-api";
 import { findGameByUrl } from "../services/game-directory";
@@ -141,15 +142,21 @@ export default function GameScreen() {
   }, [devices]);
 
 
-  // The page the game wants on the TV goes to the receiver when a session starts (and again if it changes).
-  const castSessionRef = useRef<ViewChannelSession | null>(null);
+  // The page the game wants on the TV goes to the receiver when a session starts, whenever the
+  // receiver asks for it (REQUEST_VIEW, once it's ready), and again if it changes.
+  const viewChannelRef = useRef<{ send(): Promise<void> } | null>(null);
+  const openViewChannel = (session: ViewChannelSession) => {
+    viewChannelRef.current = null;
+    void connectViewChannel(session, () => castStore.getSnapshot().viewUrl, OGS_STREAM_SERVER_URL).then((channel) => {
+      viewChannelRef.current = channel;
+    });
+  };
   useEffect(() => {
-    let lastSent: string | null = null;
+    let lastSeen: string | null = castStore.getSnapshot().viewUrl;
     return castStore.subscribe((state) => {
-      const session = castSessionRef.current;
-      if (session && state.viewUrl && state.viewUrl !== lastSent) {
-        lastSent = state.viewUrl;
-        void sendViewToReceiver(session, state.viewUrl, OGS_STREAM_SERVER_URL);
+      if (state.viewUrl && state.viewUrl !== lastSeen) {
+        lastSeen = state.viewUrl;
+        void viewChannelRef.current?.send();
       }
     });
   }, []);
@@ -168,8 +175,7 @@ export default function GameScreen() {
       }),
       sm.onSessionStarted((session) => {
         console.log("[Cast] Session STARTED:", session);
-        castSessionRef.current = session;
-        void sendViewToReceiver(session, castStore.getSnapshot().viewUrl, OGS_STREAM_SERVER_URL);
+        openViewChannel(session);
         const d = castStore.getSnapshot().devices;
         const device = d[0];
         if (!device) return;
@@ -184,12 +190,11 @@ export default function GameScreen() {
       }),
       sm.onSessionEnded(() => {
         console.log("[Cast] Session ended");
-        castSessionRef.current = null;
+        viewChannelRef.current = null;
         castStore.dispatch({ type: "STOP_CASTING" });
       }),
       sm.onSessionResumed((session) => {
-        castSessionRef.current = session;
-        void sendViewToReceiver(session, castStore.getSnapshot().viewUrl, OGS_STREAM_SERVER_URL);
+        openViewChannel(session);
         const d = castStore.getSnapshot().devices;
         if (d.length > 0) castStore.dispatch({ type: "START_CASTING", deviceId: d[0].id });
       }),
@@ -198,28 +203,27 @@ export default function GameScreen() {
   }, [webviewSource.uri]);
 
   // --- Swipe-back gesture ---
+  const swipe = swipeBackHandlers({
+    edge: EDGE_WIDTH,
+    threshold: SWIPE_THRESHOLD,
+    width: SCREEN_WIDTH,
+    follow: (dx) => translateX.setValue(dx),
+    settle: (toValue, done) => {
+      const anim =
+        toValue === 0
+          ? Animated.spring(translateX, { toValue, useNativeDriver: true })
+          : Animated.timing(translateX, { toValue, duration: 200, useNativeDriver: true });
+      anim.start(() => done?.());
+    },
+    onBack: () => router.back(),
+  });
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.pageX < EDGE_WIDTH,
-      onMoveShouldSetPanResponder: (evt, gs) =>
-        evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
-      onPanResponderMove: (_, gs) => {
-        if (gs.dx > 0) translateX.setValue(gs.dx);
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx > SWIPE_THRESHOLD) {
-          Animated.timing(translateX, {
-            toValue: SCREEN_WIDTH,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => router.back());
-        } else {
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
+      onStartShouldSetPanResponder: (evt) => swipe.startsAt(evt.nativeEvent.pageX),
+      onMoveShouldSetPanResponder: (evt, gs) => evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
+      onPanResponderMove: (_, gs) => swipe.move(gs.dx),
+      onPanResponderRelease: (_, gs) => swipe.release(gs.dx),
+      onPanResponderTerminate: () => swipe.terminate(),
     }),
   ).current;
 
