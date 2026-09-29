@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createStreamLifetime } from "./stream-lifetime";
+import { createStreamLifetime, isIdle } from "./stream-lifetime";
 
 const HOUR = 3_600_000;
 
@@ -42,4 +42,19 @@ test("stopping clears it", () => {
   life.stopped();
   t = 10 * HOUR;
   assert.equal(life.expired(), false);
+});
+
+const MIN = 60_000;
+
+test("idle: a game that doesn't report activity is never idle (the lifetime cap still applies)", () => {
+  assert.equal(isIdle(undefined, 100 * MIN, 20 * MIN), false);
+  assert.equal(isIdle("soon", 100 * MIN, 20 * MIN), false);
+});
+
+test("idle: recent player activity keeps the stream", () => {
+  assert.equal(isIdle(90 * MIN, 100 * MIN, 20 * MIN), false);
+});
+
+test("idle: no player activity for longer than the limit ends it", () => {
+  assert.equal(isIdle(70 * MIN, 100 * MIN, 20 * MIN), true);
 });
