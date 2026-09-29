@@ -7,12 +7,17 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, PanResponder, Platform, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, PanResponder, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import GoogleCast, { useDevices } from "react-native-google-cast";
 import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
+import { castCommands, startCastSync } from "../services/cast-sync";
+import { swipeBackHandlers } from "../services/swipe-back";
+import { OGS_STREAM_SERVER_URL } from "../services/cast-view";
+// TODO: Re-enable when auth model for companion app is figured out
+// import { createCastSession, deleteCastSession } from "../services/cast-api";
 import { findGameByUrl } from "../services/game-directory";
 import { addRecentGame } from "../services/game-history";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
@@ -23,8 +28,12 @@ const EDGE_WIDTH = 30;
 
 // Module-level singletons for bridge + cast
 const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
-const castStore = createCastStore();
+// One cast store and one Google Cast sync for the app's lifetime (not per screen), so no session
+// event is missed while the game screen is closed, and the app never drifts from the real cast.
+const castCommandsForStore = castCommands();
+const castStore = createCastStore(castCommandsForStore);
 bridge.setStore("cast", castStore);
+startCastSync(castStore, GoogleCast.getSessionManager(), castCommandsForStore, OGS_STREAM_SERVER_URL);
 const BridgeContext = createNativeBridgeContext<CastStores>();
 const CastContext = BridgeContext.createNativeStoreContext("cast");
 
@@ -39,7 +48,7 @@ export default function GameScreen() {
   const defaultSource = useMemo(
     () =>
       Platform.select({
-        ios: { uri: "http://Jonathans-MacBook-Pro.local:3000" },
+        ios: { uri: "http://192.168.68.125:3000" },
         android: { uri: "http://10.0.2.2:8787" },
         default: { uri: "http://localhost:8787" },
       }),
@@ -116,6 +125,11 @@ export default function GameScreen() {
 
   useEffect(() => {
     GoogleCast.showIntroductoryOverlay().catch(() => {});
+    // Log all cast state changes
+    const unsub = castStore.subscribe((state) => {
+      console.log("[Cast Store] State changed:", JSON.stringify(state.session));
+    });
+    return unsub;
   }, []);
 
   useEffect(() => {
@@ -132,45 +146,29 @@ export default function GameScreen() {
     }
   }, [devices]);
 
-  useEffect(() => {
-    const sm = GoogleCast.sessionManager;
-    const subs = [
-      sm.onSessionStarted(() => {
-        const d = castStore.getSnapshot().devices;
-        if (d.length > 0) castStore.dispatch({ type: "START_CASTING", deviceId: d[0].id });
-      }),
-      sm.onSessionEnded(() => castStore.dispatch({ type: "STOP_CASTING" })),
-      sm.onSessionResumed(() => {
-        const d = castStore.getSnapshot().devices;
-        if (d.length > 0) castStore.dispatch({ type: "START_CASTING", deviceId: d[0].id });
-      }),
-    ];
-    return () => subs.forEach((s) => s.remove());
-  }, []);
 
   // --- Swipe-back gesture ---
+  const swipe = swipeBackHandlers({
+    edge: EDGE_WIDTH,
+    threshold: SWIPE_THRESHOLD,
+    width: SCREEN_WIDTH,
+    follow: (dx) => translateX.setValue(dx),
+    settle: (toValue, done) => {
+      const anim =
+        toValue === 0
+          ? Animated.spring(translateX, { toValue, useNativeDriver: true })
+          : Animated.timing(translateX, { toValue, duration: 200, useNativeDriver: true });
+      anim.start(() => done?.());
+    },
+    onBack: () => router.back(),
+  });
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.pageX < EDGE_WIDTH,
-      onMoveShouldSetPanResponder: (evt, gs) =>
-        evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
-      onPanResponderMove: (_, gs) => {
-        if (gs.dx > 0) translateX.setValue(gs.dx);
-      },
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx > SWIPE_THRESHOLD) {
-          Animated.timing(translateX, {
-            toValue: SCREEN_WIDTH,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => router.back());
-        } else {
-          Animated.spring(translateX, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
+      onStartShouldSetPanResponder: (evt) => swipe.startsAt(evt.nativeEvent.pageX),
+      onMoveShouldSetPanResponder: (evt, gs) => evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
+      onPanResponderMove: (_, gs) => swipe.move(gs.dx),
+      onPanResponderRelease: (_, gs) => swipe.release(gs.dx),
+      onPanResponderTerminate: () => swipe.terminate(),
     }),
   ).current;
 

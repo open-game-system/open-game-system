@@ -248,3 +248,22 @@ describe("cast-store", () => {
     });
   });
 });
+
+describe("cast-store — view URL", () => {
+  it("starts with no view URL", () => {
+    expect(CAST_INITIAL_STATE.viewUrl).toBeNull();
+  });
+
+  it("stores the URL the game wants on the TV", () => {
+    const store = createCastStore();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game.example/tv/ABCD" });
+    expect(store.getSnapshot().viewUrl).toBe("https://game.example/tv/ABCD");
+  });
+
+  it("keeps the view URL across a session ending", () => {
+    const store = createCastStore();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game.example/tv/ABCD" });
+    store.dispatch({ type: "STOP_CASTING" });
+    expect(store.getSnapshot().viewUrl).toBe("https://game.example/tv/ABCD");
+  });
+});

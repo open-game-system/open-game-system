@@ -16,6 +16,18 @@ export interface GameDirectoryEntry {
  */
 export const GAME_DIRECTORY: readonly GameDirectoryEntry[] = [
   {
+    id: "rocket-crew",
+    name: "Rocket Crew",
+    description: "Co-op space repairs for a grown-up and a kid",
+    // Inside the OGS app, Rocket Crew's start page hands off to /host (the phone hosts; the TV is cast).
+    url: "https://rocket-crew.jonathanrmumm.workers.dev",
+    iconColor: "#FDE68A",
+    iconBgColor: "#3B1D5E",
+    iconInitials: "RC",
+    tags: ["Co-op", "Family", "Castable"],
+    features: ["cast"],
+  },
+  {
     id: "trivia-jam",
     name: "Trivia Jam",
     description: "Live multiplayer trivia with friends",

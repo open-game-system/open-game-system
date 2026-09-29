@@ -1,0 +1,147 @@
+jest.mock("react-native-google-cast", () => ({
+  __esModule: true,
+  default: { showCastDialog: jest.fn() },
+}));
+
+import GoogleCast from "react-native-google-cast";
+import { createCastStore } from "../cast-store";
+import { castCommands, startCastSync } from "../cast-sync";
+
+type FakeSession = ReturnType<typeof fakeSession>;
+
+function fakeSessionManager(current: FakeSession | null = null) {
+  const h = {
+    starting: new Set<() => void>(),
+    started: new Set<(s: FakeSession) => void>(),
+    startFailed: new Set<(s: FakeSession, e: string) => void>(),
+    suspended: new Set<() => void>(),
+    resumed: new Set<(s: FakeSession) => void>(),
+    ended: new Set<() => void>(),
+  };
+  const sub = <T,>(set: Set<T>, fn: T) => {
+    set.add(fn);
+    return { remove: () => void set.delete(fn) };
+  };
+  return {
+    emitStarting: () => h.starting.forEach((f) => f()),
+    emitStarted: (s: FakeSession) => h.started.forEach((f) => f(s)),
+    emitStartFailed: (s: FakeSession, e: string) => h.startFailed.forEach((f) => f(s, e)),
+    emitSuspended: () => h.suspended.forEach((f) => f()),
+    emitResumed: (s: FakeSession) => h.resumed.forEach((f) => f(s)),
+    emitEnded: () => h.ended.forEach((f) => f()),
+    listenerCount: () => Object.values(h).reduce((n, set) => n + set.size, 0),
+    getCurrentCastSession: jest.fn(async () => current),
+    startSession: jest.fn(async (_id: string) => true),
+    endCurrentSession: jest.fn(async (_stop?: boolean) => undefined),
+    onSessionStarting: (f: () => void) => sub(h.starting, f),
+    onSessionStarted: (f: (s: FakeSession) => void) => sub(h.started, f),
+    onSessionStartFailed: (f: (s: FakeSession, e: string) => void) => sub(h.startFailed, f),
+    onSessionSuspended: (f: () => void) => sub(h.suspended, f),
+    onSessionResumed: (f: (s: FakeSession) => void) => sub(h.resumed, f),
+    onSessionEnded: (f: () => void) => sub(h.ended, f),
+  };
+}
+
+function fakeSession(name = "Chromecast HD", id = "cc-1") {
+  const sent: unknown[] = [];
+  return {
+    sent,
+    getCastDevice: async () => ({ deviceId: id, friendlyName: name }),
+    addChannel: async () => ({ sendMessage: async (m: unknown) => void sent.push(m), onMessage: () => {} }),
+  };
+}
+
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+function setup(current: FakeSession | null = null) {
+  const sm = fakeSessionManager(current);
+  const commands = castCommands();
+  const store = createCastStore(commands);
+  const stop = startCastSync(store, sm, commands, "https://stream.example");
+  return { sm, store, stop };
+}
+
+describe("cast sync: the app mirrors the real Google Cast session", () => {
+  it("picks up a session that was already casting when the app (re)opens", async () => {
+    const { store } = setup(fakeSession());
+    await flush();
+    expect(store.getSnapshot().session).toMatchObject({ status: "connected", deviceName: "Chromecast HD" });
+  });
+
+  it("goes connecting → connected on a new session, named after its device", async () => {
+    const { sm, store } = setup();
+    sm.emitStarting();
+    expect(store.getSnapshot().session.status).toBe("connecting");
+    sm.emitStarted(fakeSession());
+    await flush();
+    expect(store.getSnapshot().session).toMatchObject({ status: "connected", deviceName: "Chromecast HD" });
+  });
+
+  it("doesn't stay stuck on connecting when the start fails", async () => {
+    const { sm, store } = setup();
+    sm.emitStarting();
+    sm.emitStartFailed(fakeSession(), "timeout");
+    expect(store.getSnapshot().session.status).toBe("disconnected");
+    expect(store.getSnapshot().error).toBeTruthy();
+  });
+
+  it("shows reconnecting while suspended, and connected again on resume", async () => {
+    const { sm, store } = setup();
+    sm.emitStarted(fakeSession());
+    await flush();
+    sm.emitSuspended();
+    expect(store.getSnapshot().session.status).toBe("connecting");
+    sm.emitResumed(fakeSession());
+    await flush();
+    expect(store.getSnapshot().session.status).toBe("connected");
+  });
+
+  it("goes disconnected when the session ends on its own, without asking Cast to stop again", async () => {
+    const { sm, store } = setup();
+    sm.emitStarted(fakeSession());
+    await flush();
+    sm.emitEnded();
+    expect(store.getSnapshot().session.status).toBe("disconnected");
+    expect(sm.endCurrentSession).not.toHaveBeenCalled();
+  });
+
+  it("sends the game's TV page when a session starts", async () => {
+    const { sm, store } = setup();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/AB?stream=1" });
+    const session = fakeSession();
+    sm.emitStarted(session);
+    await flush();
+    expect(session.sent).toContainEqual({ type: "LOAD_VIEW", viewUrl: "https://game/tv/AB?stream=1", streamServerUrl: "https://stream.example" });
+  });
+
+  it("stops listening when torn down", () => {
+    const { sm, stop } = setup();
+    stop();
+    expect(sm.listenerCount()).toBe(0);
+  });
+});
+
+describe("cast sync: the game's buttons drive the real session", () => {
+  it("Stop casting ends the Google Cast session (and stops the receiver app)", async () => {
+    const { sm, store } = setup();
+    sm.emitStarted(fakeSession());
+    await flush();
+    store.dispatch({ type: "STOP_CASTING" });
+    expect(sm.endCurrentSession).toHaveBeenCalledWith(true);
+    expect(store.getSnapshot().session.status).toBe("disconnected");
+  });
+
+  it("casting to a known device starts a session on that device", () => {
+    const { sm, store } = setup();
+    store.dispatch({ type: "DEVICES_UPDATED", devices: [{ id: "cc-1", name: "Chromecast HD", type: "chromecast" }] });
+    store.dispatch({ type: "START_CASTING", deviceId: "cc-1" });
+    expect(sm.startSession).toHaveBeenCalledWith("cc-1");
+  });
+
+  it("casting without a known device opens the native picker instead", () => {
+    const { sm, store } = setup();
+    store.dispatch({ type: "START_CASTING", deviceId: "nope" });
+    expect(sm.startSession).not.toHaveBeenCalled();
+    expect(GoogleCast.showCastDialog).toHaveBeenCalled();
+  });
+});

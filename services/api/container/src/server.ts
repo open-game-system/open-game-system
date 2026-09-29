@@ -28,6 +28,7 @@
 import crypto from "node:crypto";
 import http from "node:http";
 import url from "node:url";
+import { createStreamLifetime, isIdle } from "./stream-lifetime";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import {
@@ -68,7 +69,7 @@ const EXTENSION_PATH = "./extension";
 let EXTENSION_ID: string | null = null; // Dynamically detected at runtime
 
 // Connection monitoring configuration
-const GRACE_PERIOD_MS = 60000; // 60 seconds
+const GRACE_PERIOD_MS = 3600000; // 1 hour — SFU tracks subscribers server-side
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 
 // Module-level state for persistent browser instance
@@ -117,6 +118,12 @@ async function collectBrowserState(traceId: string) {
           readyState: document.readyState,
           hasFocus: document.hasFocus(),
         }))
+        .then(async (state) => ({
+          ...state,
+          render: await activePage
+            ?.evaluate(`window.__renderStats ? { seconds: Math.round(performance.now() / 1000), frames: window.__renderStats.frames(), stalls: window.__renderStats.stalls } : null`)
+            .catch(() => null),
+        }))
         .catch((error: Error) => ({ error: error.message }))
     : null;
 
@@ -155,17 +162,81 @@ async function collectBrowserState(traceId: string) {
   return snapshot;
 }
 
+/**
+ * STREAM_GPU=egl|vulkan renders with the host GPU (Cloud Run NVIDIA L4). Use egl: on an L4 both render
+ * at 60fps, but vulkan tab capture only delivers ~14fps while egl delivers the full 30. Unset falls back to
+ * SwiftShader, since Chrome no longer picks software WebGL on its own and WebGL TVs (Rocket Crew) need it.
+ */
+function renderingFlags(): string[] {
+  const gpu = process.env.STREAM_GPU;
+  const common = ["--ignore-gpu-blocklist", "--enable-gpu-rasterization", "--enable-zero-copy"];
+  if (gpu === "vulkan") return [...common, "--use-angle=vulkan", "--enable-features=Vulkan", "--disable-vulkan-surface"];
+  if (gpu === "egl") return [...common, "--use-gl=angle", "--use-angle=gl-egl"];
+  return ["--disable-gpu", "--enable-unsafe-swiftshader"];
+}
+
+/** Which GL renderer Chrome actually got — proves the GPU path works without casting. */
+async function handleGpuInfo(measureUrl: string | null): Promise<Response> {
+  const browser = await puppeteer.launch({ headless: "new" as any, args: ["--no-sandbox", "--disable-dev-shm-usage", ...renderingFlags()] });
+  try {
+    const page = await browser.newPage();
+    // ?url= also reports how fast that page animates here (requestAnimationFrame per second over 5s).
+    let pageFps: number | null = null;
+    if (measureUrl) {
+      await page.setViewport({ width: 1920, height: 1080 });
+      await page.goto(measureUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await new Promise((r) => setTimeout(r, 8000));
+      // A string, not a function: tsx injects __name helpers that don't exist in the page.
+      pageFps = Number(
+        await page.evaluate(`new Promise((resolve) => {
+          let frames = 0;
+          const start = performance.now();
+          const tick = () => { frames++; if (performance.now() - start < 5000) requestAnimationFrame(tick); else resolve(frames / 5); };
+          requestAnimationFrame(tick);
+        })`),
+      );
+    }
+    await page.goto("data:text/html,<canvas id=c></canvas>");
+    const info = await page.evaluate(() => {
+      const gl = (document.getElementById("c") as HTMLCanvasElement).getContext("webgl2");
+      if (!gl) return { webgl2: false };
+      const ext = gl.getExtension("WEBGL_debug_renderer_info");
+      return { webgl2: true, vendor: ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : null, renderer: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null };
+    });
+    // Does Web Audio actually run here? (No audio device → the context never advances → silent streams.)
+    const audio = await page.evaluate(`(async () => {
+      const ctx = new AudioContext();
+      await ctx.resume().catch(() => {});
+      const t0 = ctx.currentTime;
+      await new Promise((r) => setTimeout(r, 1000));
+      return { state: ctx.state, advancedSeconds: ctx.currentTime - t0, sampleRate: ctx.sampleRate };
+    })()`);
+    return new Response(JSON.stringify({ mode: process.env.STREAM_GPU ?? "swiftshader", ...info, pageFps, audio }), { headers: { "Content-Type": "application/json" } });
+  } finally {
+    await browser.close();
+  }
+}
+
+/**
+ * The size the game page renders at: the stream's resolution (the extension captures 1280x720).
+ * Rendering 1080p only to shrink it every frame cost capture rate (~26fps instead of 30).
+ */
+const [VIEW_W, VIEW_H] = (process.env.STREAM_VIEWPORT ?? "1280x720").split("x").map(Number);
+const STREAM_VIEWPORT = { width: VIEW_W || 1280, height: VIEW_H || 720 };
+
 /** Build Puppeteer launch options */
 function buildLaunchOptions() {
   const absoluteExtensionPath = require("node:path").resolve(EXTENSION_PATH);
 
   return {
     headless: "new" as any, // Chrome 146 headless:new supports extensions and tab capture
+    // Puppeteer adds --mute-audio by default, which makes the captured tab (and the TV stream) silent.
+    ignoreDefaultArgs: ["--mute-audio"],
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
-      "--disable-gpu",
+      ...renderingFlags(),
       `--disable-extensions-except=${absoluteExtensionPath}`,
       `--load-extension=${absoluteExtensionPath}`,
       "--webrtc-udp-port-range=10000-10100",
@@ -189,386 +260,37 @@ function buildLaunchOptions() {
       "--disable-default-apps",
       "--no-first-run",
     ],
-    defaultViewport: {
-      width: 1920,
-      height: 1080,
-    },
+    defaultViewport: STREAM_VIEWPORT,
   };
 }
 
 /** Launch browser, ensuring the extension is loaded */
 async function launchBrowserWithExtension(): Promise<Browser> {
-  const options = buildLaunchOptions();
+  // Just launch. (A diagnostics suite used to run here on every launch: filesystem searches, two
+  // throwaway browsers and a fixed 3s sleep, ~19s before each stream; it's in git history if needed.
+  // getExtensionStreamingPage waits for the extension's service worker, so no sleep is required.)
+  const t0 = Date.now();
+  const browserInstance = await puppeteer.launch(buildLaunchOptions());
+  console.log(`Browser launched in ${Date.now() - t0}ms: ${await browserInstance.version().catch(() => "unknown")}`);
+  return browserInstance;
+}
 
-  // Debug logging
-  console.log("🔍 ========== BROWSER LAUNCH DEBUG ==========");
-  console.log("🔍 Current working directory:", process.cwd());
-  console.log("🔍 Extension path (relative):", EXTENSION_PATH);
-  console.log("🔍 Extension path (absolute):", require("node:path").resolve(EXTENSION_PATH));
-
-  // Docker-specific environment debugging
-  console.log("🔍 ========== ENVIRONMENT DEBUG ==========");
-  console.log("🔍 NODE_ENV:", process.env.NODE_ENV);
-  console.log("🔍 Platform:", process.platform);
-  console.log("🔍 Architecture:", process.arch);
-  console.log("🔍 User ID:", process.getuid?.() || "N/A");
-  console.log("🔍 Group ID:", process.getgid?.() || "N/A");
-  console.log(
-    "🔍 Chrome executable path:",
-    process.env.PUPPETEER_EXECUTABLE_PATH || "using bundled Chrome",
-  );
-  console.log("🔍 Display environment:", process.env.DISPLAY || "Not set");
-
-  // Check if extension directory exists and list contents
-  const fs = require("node:fs");
-  const extensionPath = require("node:path").resolve(EXTENSION_PATH);
-  console.log("🔍 ========== FILE SYSTEM DEBUG ==========");
-  console.log("🔍 Extension directory exists:", fs.existsSync(extensionPath));
-
-  if (fs.existsSync(extensionPath)) {
-    console.log("🔍 Extension directory contents:", fs.readdirSync(extensionPath));
-
-    // Check file permissions for each file
-    const files = fs.readdirSync(extensionPath);
-    files.forEach((file: string) => {
-      const filePath = require("node:path").join(extensionPath, file);
-      const stats = fs.statSync(filePath);
-      console.log(`🔍 File ${file}:`, {
-        readable: fs.constants.R_OK,
-        exists: fs.existsSync(filePath),
-        size: stats.size,
-        mode: stats.mode.toString(8),
-        isFile: stats.isFile(),
-      });
+/**
+ * The shared browser, launched once. Started at boot so a fresh instance has Chrome ready before
+ * the first stream is requested; concurrent callers share the same launch.
+ */
+let browserLaunch: Promise<Browser> | null = null;
+function ensureBrowser(): Promise<Browser> {
+  if (browser) return Promise.resolve(browser);
+  browserLaunch ??= launchBrowserWithExtension()
+    .then((b) => {
+      browser = b;
+      return b;
+    })
+    .finally(() => {
+      browserLaunch = null;
     });
-
-    // Check for manifest.json specifically
-    const manifestPath = require("node:path").join(extensionPath, "manifest.json");
-    console.log("🔍 Manifest file exists:", fs.existsSync(manifestPath));
-
-    if (fs.existsSync(manifestPath)) {
-      try {
-        const manifestContent = fs.readFileSync(manifestPath, "utf8");
-        console.log("🔍 Manifest file size:", manifestContent.length);
-        const manifest = JSON.parse(manifestContent);
-        console.log("🔍 Manifest content:", JSON.stringify(manifest, null, 2));
-        console.log("🔍 Manifest key field:", manifest.key);
-        console.log("🔍 Manifest version:", manifest.manifest_version);
-        console.log("🔍 Background script:", manifest.background?.service_worker);
-      } catch (error) {
-        console.error("🔍 Error reading manifest:", error);
-      }
-    }
-  } else {
-    console.error("❌ Extension directory does not exist!");
-    // Try to list parent directory
-    const parentDir = require("node:path").dirname(extensionPath);
-    console.log("🔍 Parent directory:", parentDir);
-    if (fs.existsSync(parentDir)) {
-      console.log("🔍 Parent directory contents:", fs.readdirSync(parentDir));
-    }
-  }
-
-  // Chrome executable validation
-  console.log("🔍 ========== CHROME EXECUTABLE DEBUG ==========");
-  const chromeExecutable = process.env.PUPPETEER_EXECUTABLE_PATH;
-  console.log("🔍 Chrome executable path:", chromeExecutable || "using bundled Chrome/Chromium");
-  console.log(
-    "🔍 Skip Chromium download:",
-    process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD || "false",
-  );
-
-  // Debug: Find available Chrome/Chromium executables in the container
-  console.log("🔍 Searching for available Chrome/Chromium executables...");
-  const possiblePaths = [
-    "/usr/bin/chromium", // Standard Chromium location
-    "/usr/bin/chromium-browser", // Alternative Chromium name
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/google-chrome",
-    "/opt/google/chrome/chrome",
-    "/usr/bin/chrome",
-    "/opt/chromium.org/chromium/chromium", // Chromium snap location
-    "/snap/bin/chromium", // Snap Chromium
-    "/usr/local/bin/chromium", // Local install
-    "/usr/local/bin/chrome", // Local install
-  ];
-
-  let foundChrome: string | null = null;
-  possiblePaths.forEach((path) => {
-    const exists = fs.existsSync(path);
-    console.log(`🔍 ${path}: ${exists ? "EXISTS" : "NOT FOUND"}`);
-    if (exists && !foundChrome) {
-      foundChrome = path;
-    }
-  });
-
-  // Try to find any Chrome/Chromium executable using find command
-  try {
-    const { exec } = require("node:child_process");
-    const { promisify } = require("node:util");
-    const execAsync = promisify(exec);
-
-    console.log("🔍 Searching filesystem for Chrome/Chromium executables...");
-    const { stdout: findResults } = await execAsync(
-      'find /usr /opt /snap -name "*chromium*" -o -name "*chrome*" 2>/dev/null | head -20 || echo "find command failed"',
-    );
-    console.log("🔍 Find results:", findResults.trim());
-
-    // Also check what's in common bin directories
-    const binDirs = ["/usr/bin", "/usr/local/bin", "/opt"];
-    for (const dir of binDirs) {
-      if (fs.existsSync(dir)) {
-        try {
-          const files = fs
-            .readdirSync(dir)
-            .filter((f: string) => f.includes("chrome") || f.includes("chromium"));
-          if (files.length > 0) {
-            console.log(`🔍 Chrome/Chromium files in ${dir}:`, files);
-          }
-        } catch (error) {
-          console.log(`🔍 Could not read ${dir}:`, (error as Error).message);
-        }
-      }
-    }
-  } catch (error) {
-    console.warn("🔍 Could not search filesystem:", (error as Error).message);
-  }
-
-  // Try to find Chrome/Chromium via which command
-  try {
-    const { exec } = require("node:child_process");
-    const { promisify } = require("node:util");
-    const execAsync = promisify(exec);
-    const { stdout: whichChrome } = await execAsync(
-      'which chromium-browser || which chromium || which google-chrome-stable || which google-chrome || echo "not found"',
-    );
-    console.log("🔍 Which Chrome/Chromium:", whichChrome.trim());
-
-    // Get version of found executable
-    if (whichChrome.trim() !== "not found") {
-      try {
-        const { stdout: version } = await execAsync(`${whichChrome.trim()} --version`);
-        console.log("🔍 Found browser version:", version.trim());
-        foundChrome = whichChrome.trim();
-      } catch (versionError) {
-        console.warn("🔍 Could not get browser version:", (versionError as Error).message);
-      }
-    }
-  } catch (error) {
-    console.warn("🔍 Could not run which command:", (error as Error).message);
-  }
-
-  // Check Puppeteer's expected Chrome location
-  try {
-    const puppeteer = require("puppeteer");
-    console.log("🔍 Puppeteer version:", puppeteer._launcher?._preferredRevision || "unknown");
-
-    // Try to get default executable path from Puppeteer
-    if (puppeteer.executablePath) {
-      const defaultPath = puppeteer.executablePath();
-      console.log("🔍 Puppeteer default executable path:", defaultPath);
-      if (fs.existsSync(defaultPath)) {
-        console.log("🔍 Puppeteer default executable EXISTS");
-        foundChrome = defaultPath;
-      } else {
-        console.log("🔍 Puppeteer default executable NOT FOUND");
-      }
-    }
-  } catch (error) {
-    console.warn("🔍 Could not get Puppeteer executable path:", (error as Error).message);
-  }
-
-  if (foundChrome) {
-    console.log("🔍 ✅ Using Chrome/Chromium at:", foundChrome);
-  } else {
-    console.log("🔍 ❌ No Chrome/Chromium executable found");
-  }
-
-  console.log("🔍 Browser launch options:", JSON.stringify(options, null, 2));
-
-  console.log("🚀 Launching browser with extension...");
-
-  // Progressive testing approach to isolate the issue
-  console.log("🔍 ========== PROGRESSIVE BROWSER TESTING ==========");
-
-  // Test 0: Direct Chrome execution test
-  console.log("🧪 Test 0: Direct Chrome execution test...");
-  try {
-    const { exec } = require("node:child_process");
-    const { promisify } = require("node:util");
-    const execAsync = promisify(exec);
-
-    const chromePath =
-      foundChrome || "/root/.cache/puppeteer/chrome/linux-140.0.7339.82/chrome-linux64/chrome";
-    console.log("🔍 Testing Chrome binary directly:", chromePath);
-
-    // Test Chrome version command
-    const { stdout: versionOutput } = await execAsync(
-      `timeout 10s ${chromePath} --version 2>&1 || echo "Chrome version failed"`,
-    );
-    console.log("🔍 Chrome version output:", versionOutput.trim());
-
-    // Test Chrome with basic flags
-    const { stdout: helpOutput } = await execAsync(
-      `timeout 5s ${chromePath} --help 2>&1 | head -5 || echo "Chrome help failed"`,
-    );
-    console.log("🔍 Chrome help output:", helpOutput.trim());
-
-    // Test Chrome startup with minimal flags
-    console.log("🔍 Testing Chrome startup with minimal flags...");
-    const testCommand = `timeout 10s ${chromePath} --no-sandbox --disable-gpu --headless --disable-dev-shm-usage --remote-debugging-port=9223 --user-data-dir=/tmp/chrome-test --dump-dom about:blank 2>&1 || echo "Chrome startup failed"`;
-    const { stdout: startupOutput } = await execAsync(testCommand);
-    console.log(
-      "🔍 Chrome startup test:",
-      startupOutput.includes("<html>")
-        ? "SUCCESS - Chrome can start"
-        : "FAILED - Chrome cannot start",
-    );
-    console.log("🔍 Chrome startup output:", `${startupOutput.substring(0, 200)}...`);
-  } catch (error) {
-    console.error("❌ Test 0 Chrome direct execution failed:", (error as Error).message);
-  }
-
-  // Test 1: Basic browser launch (we know this works)
-  console.log("🧪 Test 1: Basic browser launch without extensions...");
-  try {
-    console.log("🔍 Starting basic browser launch with new headless mode...");
-    const testBrowser1 = await puppeteer.launch({
-      headless: "new" as any, // Use new headless mode
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-      ],
-    });
-    console.log("✅ Test 1 PASSED: Basic browser launch works");
-
-    // Test that we can create a page
-    const page = await testBrowser1.newPage();
-    await page.goto("data:text/html,<h1>Test</h1>");
-    console.log("✅ Test 1.1 PASSED: Page creation and navigation works");
-
-    await testBrowser1.close();
-  } catch (error) {
-    console.error("❌ Test 1 FAILED: Basic browser launch failed:", (error as Error).message);
-    console.error("❌ This indicates Chrome cannot start in this container environment");
-    console.error("❌ Possible causes:");
-    console.error("   - Platform architecture mismatch (AMD64 vs ARM64)");
-    console.error("   - Missing container capabilities or permissions");
-    console.error("   - Chrome binary compatibility issues");
-    throw error;
-  }
-
-  // Test 2: Browser launch with extension flags but no actual extension
-  console.log("🧪 Test 2: Browser launch with extension flags (no extension)...");
-  try {
-    const testBrowser2 = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-extensions-except=/nonexistent/path",
-        "--load-extension=/nonexistent/path",
-      ],
-    });
-    console.log("✅ Test 2 PASSED: Extension flags work (even with invalid path)");
-    await testBrowser2.close();
-  } catch (error) {
-    console.error("❌ Test 2 FAILED: Extension flags cause issues:", (error as Error).message);
-    console.log("🔍 This suggests extension flags themselves are problematic");
-  }
-
-  // Test 3: Browser launch with valid extension path
-  console.log("🧪 Test 3: Browser launch with actual extension...");
-
-  // Add extra logging around the launch process
-  try {
-    const browserInstance = await puppeteer.launch(options);
-    console.log("✅ Browser launched successfully");
-
-    // Get browser version immediately
-    try {
-      const version = await browserInstance.version();
-      console.log("✅ Browser version:", version);
-    } catch (versionError) {
-      console.warn("⚠️ Could not get browser version:", (versionError as Error).message);
-    }
-
-    // Log initial targets immediately after launch
-    console.log("🔍 ========== INITIAL TARGETS DEBUG ==========");
-    const initialTargets = browserInstance.targets();
-    console.log("🔍 Initial target count:", initialTargets.length);
-    initialTargets.forEach((target, index) => {
-      console.log(`🔍 Target ${index}:`, {
-        type: target.type(),
-        url: target.url(),
-        isServiceWorker: target.type() === "service_worker",
-        isExtensionUrl: target.url().startsWith("chrome-extension://"),
-        isBackgroundPage: target.type() === "background_page",
-        opener: target.opener()?.url() || "none",
-      });
-    });
-
-    // Wait a bit for extensions to load and check again
-    console.log("🔍 Waiting 3 seconds for extensions to initialize...");
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-
-    const postWaitTargets = browserInstance.targets();
-    console.log("🔍 ========== POST-WAIT TARGETS DEBUG ==========");
-    console.log("🔍 Target count after wait:", postWaitTargets.length);
-    postWaitTargets.forEach((target, index) => {
-      console.log(`🔍 Post-Wait Target ${index}:`, {
-        type: target.type(),
-        url: target.url(),
-        isServiceWorker: target.type() === "service_worker",
-        isExtensionUrl: target.url().startsWith("chrome-extension://"),
-        isBackgroundPage: target.type() === "background_page",
-        endsWithBackgroundJs: target.url().endsWith("background.js"),
-        containsStreaming: target.url().includes("streaming"),
-      });
-    });
-
-    // Try to access chrome://extensions/ page for additional debugging
-    try {
-      console.log("🔍 ========== CHROME EXTENSIONS PAGE DEBUG ==========");
-      const debugPage = await browserInstance.newPage();
-      await debugPage.goto("chrome://extensions/", {
-        waitUntil: "domcontentloaded",
-        timeout: 5000,
-      });
-
-      // Try to extract extension information from the page
-      const extensionInfo = await debugPage.evaluate(() => {
-        const extensions = Array.from(document.querySelectorAll("extensions-item"));
-        return extensions.map((ext) => ({
-          id: ext.getAttribute("id"),
-          name: ext.querySelector("#name")?.textContent?.trim(),
-          enabled: !ext.hasAttribute("disabled"),
-          version: ext.querySelector("#version")?.textContent?.trim(),
-        }));
-      });
-
-      console.log("🔍 Extensions found on chrome://extensions/:", extensionInfo);
-      await debugPage.close();
-    } catch (extensionsPageError) {
-      console.warn(
-        "⚠️ Could not access chrome://extensions/ page:",
-        (extensionsPageError as Error).message,
-      );
-    }
-
-    return browserInstance;
-  } catch (launchError) {
-    console.error("❌ Browser launch failed:", launchError);
-    console.error("❌ Launch error details:", {
-      name: (launchError as Error).name,
-      message: (launchError as Error).message,
-      stack: (launchError as Error).stack?.split("\n").slice(0, 5),
-    });
-    throw launchError;
-  }
+  return browserLaunch;
 }
 
 /** Wait for the extension service worker and get streaming page */
@@ -826,6 +548,7 @@ async function shutdownBrowser() {
   console.log("Shutting down browser...");
 
   stopConnectionMonitoring();
+  streamLifetime.stopped();
 
   if (browser) {
     try {
@@ -854,7 +577,20 @@ async function handleHealth(): Promise<Response> {
   });
 }
 
+const streamLifetime = createStreamLifetime({ maxMs: Number(process.env.STREAM_MAX_MS ?? 3 * 60 * 60 * 1000) });
+
+const STREAM_IDLE_MS = Number(process.env.STREAM_IDLE_MS ?? 20 * 60 * 1000);
+
 async function handlePing(): Promise<Response> {
+  // A forgotten cast (TV left on): end it and refuse the heartbeat, so the pings stop and the GPU
+  // scales to zero. Either it ran past its maximum lifetime, or the game reports no player activity.
+  const activityAt = activePage ? await activePage.evaluate("window.__ogsActivityAt").catch(() => undefined) : undefined;
+  const idle = isIdle(activityAt, Date.now(), STREAM_IDLE_MS);
+  if (streamLifetime.expired() || idle) {
+    console.log(idle ? "No player activity for too long; shutting down" : "Stream exceeded its maximum lifetime; shutting down");
+    await shutdownBrowser();
+    return jsonResponse({ status: "expired", reason: idle ? "idle" : "lifetime" }, { status: 410 });
+  }
   return jsonResponse({
     status: "pong",
     timestamp: Date.now(),
@@ -898,6 +634,7 @@ async function handlePublisherPrepare(
 ): Promise<Response> {
   try {
     const { url: targetUrl, iceServers } = data;
+    streamLifetime.started();
 
     logTrace(traceId, "publisher_prepare_request_received", {
       targetUrl,
@@ -905,14 +642,23 @@ async function handlePublisherPrepare(
       browserReused: !!browser,
     });
 
-    // Use existing browser or launch new one
+    // Use existing browser or launch new one (possibly already launching since boot)
     if (!browser) {
       logTrace(traceId, "browser_launch_start");
-      browser = await launchBrowserWithExtension();
+      browser = await ensureBrowser();
       logTrace(traceId, "browser_launch_complete");
     } else {
       logTrace(traceId, "browser_reuse");
     }
+
+    // Close pages from earlier streams. The browser is shared, and every open game tab keeps
+    // rendering — stale tabs starve the CPU and could be captured instead of the new one.
+    for (const old of await browser.pages()) {
+      if (!old.url().startsWith("chrome-extension://")) {
+        await old.close().catch(() => {});
+      }
+    }
+    logTrace(traceId, "stale_pages_closed");
 
     // Create new page for this stream
     const page = await browser.newPage();
@@ -924,17 +670,40 @@ async function handlePublisherPrepare(
       logTrace(traceId, "page_error", { message: error.message });
     });
 
+    // Record rendering stalls on the captured page (rAF gaps > 100ms), so a choppy TV can be traced
+    // to the page itself (e.g. shader compiles) vs. the network. Read back in /debug-state.
+    await page.evaluateOnNewDocument(`(() => {
+      const stalls = []; let last = 0, frames = 0, lastLongTask = null;
+      try {
+        new PerformanceObserver((list) => {
+          for (const e of list.getEntries()) lastLongTask = { ms: Math.round(e.duration), at: Math.round(e.startTime / 100) / 10 };
+        }).observe({ type: 'longtask', buffered: true });
+      } catch {}
+      window.__renderStats = { stalls, frames: () => frames };
+      const tick = (t) => {
+        frames++;
+        if (last && t - last > 100) {
+          const tv = document.querySelector('.tv');
+          stalls.push({ at: Math.round(t / 100) / 10, ms: Math.round(t - last), phase: tv ? tv.className : null, longTask: lastLongTask });
+          if (stalls.length > 50) stalls.shift();
+        }
+        last = t; requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    })()`);
+
     // Navigate to target URL
     logTrace(traceId, "page_navigation_start", { targetUrl });
-    await page.goto(targetUrl);
+    // Live games (WebSockets, animation) may never go idle; the DOM being ready is enough to start.
+    await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
     logTrace(traceId, "page_navigation_complete", {
       finalUrl: page.url(),
       title: await page.title().catch(() => "(unavailable)"),
     });
 
-    // Set page to full screen
-    await page.setViewport({ width: 1920, height: 1080 });
-    logTrace(traceId, "page_viewport_set", { width: 1920, height: 1080 });
+    // Render at the stream's resolution: capture then needs no downscale and copies half the pixels.
+    await page.setViewport(STREAM_VIEWPORT);
+    logTrace(traceId, "page_viewport_set", STREAM_VIEWPORT);
 
     // Get extension streaming page and initialize streaming
     logTrace(traceId, "extension_page_wait_start");
@@ -943,10 +712,8 @@ async function handlePublisherPrepare(
 
     // Trigger a user-gesture-like command to satisfy activeTab requirements
     try {
-      const pageTargets = browser.targets().filter((t) => t.type() === "page");
-      const httpsTarget =
-        pageTargets.find((t) => t.url().startsWith("https://")) || pageTargets[0];
-      const targetPage = await httpsTarget?.page();
+      // Capture the page we just opened (not whichever https page happens to be first).
+      const targetPage = page;
       if (targetPage) {
         await targetPage.keyboard.down("Alt");
         await targetPage.keyboard.down("Shift");
@@ -1061,6 +828,21 @@ async function handlePublisherPrepare(
         stack: (error as Error).stack,
       });
       throw error;
+    }
+
+    // Keep the game tab painting. The extension's streaming page can end up in front, and Chrome
+    // stops rendering background tabs — the captured video then freezes on the last frame while the
+    // game carries on. Bring the game to the front and have it behave as focused and active.
+    try {
+      await page.bringToFront();
+      const cdp = await page.createCDPSession();
+      await cdp.send("Emulation.setFocusEmulationEnabled", { enabled: true });
+      await cdp.send("Page.setWebLifecycleState", { state: "active" });
+      logTrace(traceId, "game_page_foregrounded", {
+        visibility: await page.evaluate(() => document.visibilityState),
+      });
+    } catch (e) {
+      logTrace(traceId, "game_page_foreground_failed", { message: (e as Error).message });
     }
 
     // Start connection monitoring if not already running
@@ -1206,6 +988,8 @@ const server = http.createServer(async (req: any, res: any) => {
       response = await handleHealth();
     } else if (pathname === "/ping") {
       response = await handlePing();
+    } else if (pathname === "/gpu-info") {
+      response = await handleGpuInfo(new URL(req.url ?? "/", "http://x").searchParams.get("url"));
     } else if (pathname === "/test-puppeteer") {
       response = await handleTest();
     } else if (pathname === "/debug-state") {
@@ -1272,6 +1056,8 @@ const server = http.createServer(async (req: any, res: any) => {
 const PORT = parseInt(process.env.PORT || "8080", 10);
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Container server running at http://0.0.0.0:${PORT}`);
+  // Warm Chrome now, so the first stream on a fresh instance doesn't wait for it.
+  ensureBrowser().catch((error) => console.error("Browser prelaunch failed:", error));
 });
 
 // Graceful shutdown on process termination

@@ -1,6 +1,6 @@
 {
   "name": "@open-game-system/cast-kit-core",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "description": "Core types and utilities for OGS cast-kit",
   "license": "MIT",
   "type": "module",
@@ -35,7 +35,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@open-game-system/app-bridge-web": "workspace:*",
+    "@open-game-system/app-bridge-web": "workspace:^",
     "zod": "^3.25.76"
   }
 }

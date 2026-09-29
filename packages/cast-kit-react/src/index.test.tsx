@@ -6,12 +6,13 @@ import {
   CastButton,
   CastProvider,
   CastStatus,
-  DeviceList,
   useCastAvailable,
-  useCastDevices,
+  useCastDeviceCount,
+  useCastDeviceName,
   useCastDispatch,
-  useCastSession,
+  useCastStatus,
   useCastState,
+  useCastViewUrl,
 } from "./index";
 
 function initCastStore(data: object) {
@@ -147,33 +148,36 @@ describe("Cast-Kit React Hooks", () => {
     });
   });
 
-  describe("useCastSession", () => {
-    it("returns only the session object", () => {
+  describe("useCastStatus", () => {
+    it("returns the current session status", () => {
       initCastStore(CONNECTED_STATE);
 
       const wrapper = createWrapper();
-      const { result } = renderHook(() => useCastSession(), { wrapper });
+      const { result } = renderHook(() => useCastStatus(), { wrapper });
 
-      expect(result.current).toEqual({
-        status: "connected",
-        deviceId: "tv-1",
-        deviceName: "Living Room TV",
-        sessionId: "session-123",
-        streamSessionId: "stream-456",
-      });
+      expect(result.current).toBe("connected");
     });
   });
 
-  describe("useCastDevices", () => {
-    it("returns the devices array", () => {
+  describe("useCastDeviceName", () => {
+    it("returns the connected device name", () => {
       initCastStore(CONNECTED_STATE);
 
       const wrapper = createWrapper();
-      const { result } = renderHook(() => useCastDevices(), { wrapper });
+      const { result } = renderHook(() => useCastDeviceName(), { wrapper });
 
-      expect(result.current).toHaveLength(2);
-      expect(result.current[0].name).toBe("Living Room TV");
-      expect(result.current[1].name).toBe("Bedroom TV");
+      expect(result.current).toBe("Living Room TV");
+    });
+  });
+
+  describe("useCastDeviceCount", () => {
+    it("returns the number of devices", () => {
+      initCastStore(CONNECTED_STATE);
+
+      const wrapper = createWrapper();
+      const { result } = renderHook(() => useCastDeviceCount(), { wrapper });
+
+      expect(result.current).toBe(2);
     });
   });
 
@@ -261,46 +265,6 @@ describe("Cast-Kit React Hooks", () => {
     });
   });
 
-  describe("DeviceList (render prop)", () => {
-    it("calls render prop with devices and onSelect", () => {
-      initCastStore(CONNECTED_STATE);
-
-      const renderFn = vi.fn(() => <ul />);
-      render(
-        <CastProvider>
-          <DeviceList>{renderFn}</DeviceList>
-        </CastProvider>,
-      );
-
-      expect(renderFn).toHaveBeenCalledWith(
-        expect.objectContaining({
-          devices: expect.arrayContaining([
-            expect.objectContaining({ id: "tv-1", name: "Living Room TV" }),
-            expect.objectContaining({ id: "tv-2", name: "Bedroom TV" }),
-          ]),
-          connectedDeviceId: "tv-1",
-        }),
-        expect.objectContaining({
-          selectDevice: expect.any(Function),
-        }),
-      );
-    });
-
-    it("renders nothing when no devices available", () => {
-      initCastStore(CAST_INITIAL_STATE);
-
-      const renderFn = vi.fn(() => null);
-      render(
-        <CastProvider>
-          <DeviceList>{renderFn}</DeviceList>
-        </CastProvider>,
-      );
-
-      // No devices = don't call render prop
-      expect(renderFn).not.toHaveBeenCalled();
-    });
-  });
-
   describe("CastStatus (render prop)", () => {
     it("renders nothing when disconnected", () => {
       initCastStore(CAST_INITIAL_STATE);
@@ -374,6 +338,36 @@ describe("Cast-Kit React Hooks", () => {
           error: "Stream ended unexpectedly",
         }),
       );
+    });
+  });
+
+  describe("useCastViewUrl", () => {
+    const lastEvent = () => {
+      const postMessage = (window as any).ReactNativeWebView.postMessage;
+      const calls = postMessage.mock.calls.map((c: [string]) => JSON.parse(c[0]));
+      return calls.filter((m: { type: string }) => m.type === "EVENT").pop();
+    };
+
+    it("tells the host app which page to put on the TV", () => {
+      initCastStore(CAST_INITIAL_STATE);
+      renderHook(() => useCastViewUrl("https://game.example/tv/ABCD"), { wrapper: createWrapper() });
+      expect(lastEvent()?.event).toEqual({ type: "SET_VIEW_URL", url: "https://game.example/tv/ABCD" });
+    });
+
+    it("sends again when the URL changes", () => {
+      initCastStore(CAST_INITIAL_STATE);
+      const { rerender } = renderHook(({ url }) => useCastViewUrl(url), {
+        wrapper: createWrapper(),
+        initialProps: { url: "https://game.example/tv/AAAA" },
+      });
+      rerender({ url: "https://game.example/tv/BBBB" });
+      expect(lastEvent()?.event).toEqual({ type: "SET_VIEW_URL", url: "https://game.example/tv/BBBB" });
+    });
+
+    it("sends nothing for a null URL", () => {
+      initCastStore(CAST_INITIAL_STATE);
+      renderHook(() => useCastViewUrl(null), { wrapper: createWrapper() });
+      expect(lastEvent()).toBeUndefined();
     });
   });
 
