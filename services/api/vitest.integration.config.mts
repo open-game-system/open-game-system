@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: {
-        configPath: "./wrangler.toml",
+        configPath: "./wrangler.jsonc",
       },
       miniflare: {
         bindings: {
