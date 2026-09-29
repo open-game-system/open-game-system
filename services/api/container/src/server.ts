@@ -217,6 +217,13 @@ async function handleGpuInfo(measureUrl: string | null): Promise<Response> {
   }
 }
 
+/**
+ * The size the game page renders at: the stream's resolution (the extension captures 1280x720).
+ * Rendering 1080p only to shrink it every frame cost capture rate (~26fps instead of 30).
+ */
+const [VIEW_W, VIEW_H] = (process.env.STREAM_VIEWPORT ?? "1280x720").split("x").map(Number);
+const STREAM_VIEWPORT = { width: VIEW_W || 1280, height: VIEW_H || 720 };
+
 /** Build Puppeteer launch options */
 function buildLaunchOptions() {
   const absoluteExtensionPath = require("node:path").resolve(EXTENSION_PATH);
@@ -253,10 +260,7 @@ function buildLaunchOptions() {
       "--disable-default-apps",
       "--no-first-run",
     ],
-    defaultViewport: {
-      width: 1920,
-      height: 1080,
-    },
+    defaultViewport: STREAM_VIEWPORT,
   };
 }
 
@@ -697,9 +701,9 @@ async function handlePublisherPrepare(
       title: await page.title().catch(() => "(unavailable)"),
     });
 
-    // Set page to full screen
-    await page.setViewport({ width: 1920, height: 1080 });
-    logTrace(traceId, "page_viewport_set", { width: 1920, height: 1080 });
+    // Render at the stream's resolution: capture then needs no downscale and copies half the pixels.
+    await page.setViewport(STREAM_VIEWPORT);
+    logTrace(traceId, "page_viewport_set", STREAM_VIEWPORT);
 
     // Get extension streaming page and initialize streaming
     logTrace(traceId, "extension_page_wait_start");
