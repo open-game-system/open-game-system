@@ -104,11 +104,11 @@ jobs:
             if (!pkg.publishConfig) pkg.publishConfig = {};
             pkg.publishConfig.registry = 'https://npm.pkg.github.com/';
             pkg.publishConfig.access = 'public';
-            // Replace workspace:* deps with latest published versions
+            // Replace workspace: deps (*, ^, ~) with latest published versions; npm publish won't
             for (const depType of ['dependencies', 'peerDependencies']) {
               if (!pkg[depType]) continue;
               for (const [name, version] of Object.entries(pkg[depType])) {
-                if (version === 'workspace:*') {
+                if (typeof version === 'string' && version.startsWith('workspace:')) {
                   pkg[depType][name] = '*';
                 }
               }
@@ -214,11 +214,11 @@ jobs:
             if (!pkg.publishConfig) pkg.publishConfig = {};
             pkg.publishConfig.access = 'public';
             delete pkg.publishConfig.registry;
-            // Replace workspace:* deps with latest published versions
+            // Replace workspace: deps (*, ^, ~) with latest published versions; npm publish won't
             for (const depType of ['dependencies', 'peerDependencies']) {
               if (!pkg[depType]) continue;
               for (const [name, version] of Object.entries(pkg[depType])) {
-                if (version === 'workspace:*') {
+                if (typeof version === 'string' && version.startsWith('workspace:')) {
                   pkg[depType][name] = '*';
                 }
               }
