@@ -44,7 +44,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@open-game-system/app-bridge-react": "^0.20250411.3",
-    "@open-game-system/cast-kit-core": "^0.2.0"
+    "@open-game-system/app-bridge-react": "workspace:^",
+    "@open-game-system/cast-kit-core": "workspace:^"
   }
 }

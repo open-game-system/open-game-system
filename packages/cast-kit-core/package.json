@@ -35,7 +35,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@open-game-system/app-bridge-web": "^0.20250411.3",
+    "@open-game-system/app-bridge-web": "workspace:^",
     "zod": "^3.25.76"
   }
 }
