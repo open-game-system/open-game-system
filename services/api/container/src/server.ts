@@ -28,7 +28,7 @@
 import crypto from "node:crypto";
 import http from "node:http";
 import url from "node:url";
-import { createStreamLifetime } from "./stream-lifetime";
+import { createStreamLifetime, isIdle } from "./stream-lifetime";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import {
@@ -575,12 +575,17 @@ async function handleHealth(): Promise<Response> {
 
 const streamLifetime = createStreamLifetime({ maxMs: Number(process.env.STREAM_MAX_MS ?? 3 * 60 * 60 * 1000) });
 
+const STREAM_IDLE_MS = Number(process.env.STREAM_IDLE_MS ?? 20 * 60 * 1000);
+
 async function handlePing(): Promise<Response> {
-  if (streamLifetime.expired()) {
-    // A forgotten cast: end it and refuse the heartbeat, so the pings stop and the GPU scales to zero.
-    console.log("Stream exceeded its maximum lifetime; shutting down");
+  // A forgotten cast (TV left on): end it and refuse the heartbeat, so the pings stop and the GPU
+  // scales to zero. Either it ran past its maximum lifetime, or the game reports no player activity.
+  const activityAt = activePage ? await activePage.evaluate("window.__ogsActivityAt").catch(() => undefined) : undefined;
+  const idle = isIdle(activityAt, Date.now(), STREAM_IDLE_MS);
+  if (streamLifetime.expired() || idle) {
+    console.log(idle ? "No player activity for too long; shutting down" : "Stream exceeded its maximum lifetime; shutting down");
     await shutdownBrowser();
-    return jsonResponse({ status: "expired" }, { status: 410 });
+    return jsonResponse({ status: "expired", reason: idle ? "idle" : "lifetime" }, { status: 410 });
   }
   return jsonResponse({
     status: "pong",
