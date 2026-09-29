@@ -40,6 +40,18 @@ export const GAME_DIRECTORY: readonly GameDirectoryEntry[] = [
     features: ["cast"],
   },
   {
+    id: "bake-shop",
+    name: "Bake Shop",
+    description: "A cozy bakery on the TV: grown-ups read the orders, the kids bake and sprinkle",
+    // Like Rocket Crew: inside the OGS app the start page hands off to /host and the TV is cast.
+    url: "https://bake-shop.jonathanrmumm.workers.dev",
+    iconColor: "#FF9EC7",
+    iconBgColor: "#5B3421",
+    iconInitials: "BS",
+    tags: ["Co-op", "Family", "Castable"],
+    features: ["cast"],
+  },
+  {
     id: "trivia-jam",
     name: "Trivia Jam",
     description: "Live multiplayer trivia with friends",

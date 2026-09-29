@@ -54,6 +54,16 @@ describe("game-directory", () => {
       expect(findGameByUrl("https://night-flight.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("night-flight");
     });
 
+    it("lists Bake Shop as a castable game", () => {
+      const game = findGameById("bake-shop");
+      expect(game?.url).toBe("https://bake-shop.jonathanrmumm.workers.dev");
+      expect(game?.features).toContain("cast");
+    });
+
+    it("recognizes Bake Shop pages after it redirects to /join", () => {
+      expect(findGameByUrl("https://bake-shop.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("bake-shop");
+    });
+
     it("returns undefined for unknown ID", () => {
       expect(findGameById("nonexistent")).toBeUndefined();
     });
