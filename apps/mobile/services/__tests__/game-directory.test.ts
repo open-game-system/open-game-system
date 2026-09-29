@@ -64,6 +64,16 @@ describe("game-directory", () => {
       expect(findGameByUrl("https://bake-shop.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("bake-shop");
     });
 
+    it("lists Story Nook as a castable game", () => {
+      const game = findGameById("story-nook");
+      expect(game?.url).toBe("https://story-nook.jonathanrmumm.workers.dev");
+      expect(game?.features).toContain("cast");
+    });
+
+    it("recognizes Story Nook pages after it redirects to /join", () => {
+      expect(findGameByUrl("https://story-nook.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("story-nook");
+    });
+
     it("returns undefined for unknown ID", () => {
       expect(findGameById("nonexistent")).toBeUndefined();
     });
