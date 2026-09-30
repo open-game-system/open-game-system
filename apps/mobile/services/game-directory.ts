@@ -52,6 +52,18 @@ export const GAME_DIRECTORY: readonly GameDirectoryEntry[] = [
     features: ["cast"],
   },
   {
+    id: "story-nook",
+    name: "Story Nook",
+    description: "A bedtime pop-up storybook that reads itself aloud, with your own kids in the story",
+    // Like Rocket Crew: inside the OGS app the start page hands off to /host and the TV is cast.
+    url: "https://story-nook.jonathanrmumm.workers.dev",
+    iconColor: "#F6C67A",
+    iconBgColor: "#17122B",
+    iconInitials: "SN",
+    tags: ["Bedtime", "Family", "Castable"],
+    features: ["cast"],
+  },
+  {
     id: "trivia-jam",
     name: "Trivia Jam",
     description: "Live multiplayer trivia with friends",
