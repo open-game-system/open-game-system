@@ -49,6 +49,7 @@ export const GAME_DIRECTORY: readonly GameDirectoryEntry[] = [
     iconBgColor: "#5B3421",
     iconInitials: "BS",
     tags: ["Co-op", "Family", "Castable"],
+    features: ["cast"],
   },
   {
     id: "story-nook",
