@@ -7,7 +7,7 @@ out = sys.argv[1]
 scen = json.load(open(os.path.join(out, "scenarios.json")))
 checks = json.load(open(os.path.join(out, "checks.json")))
 bad = {s["name"]: s for s in checks["shots"] if "name" in s}
-TILE = {"phone": (300, 650, 6), "ipad": (560, 389, 4), "tv": (720, 405, 3)}  # w, h, cols
+TILE = {"phone": (300, 650, 6), "ipad": (560, 389, 4), "tv": (720, 405, 3), "desktop": (720, 450, 3)}  # w, h, cols
 try:
     font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 15)
     small = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial.ttf", 13)

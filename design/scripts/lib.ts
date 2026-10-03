@@ -13,7 +13,7 @@ export interface ScenarioMeta {
   label: string;
   flow: string;
   state: string;
-  devices: ("phone" | "ipad" | "tv")[];
+  devices: ("phone" | "ipad" | "tv" | "desktop")[];
 }
 export interface FlowMeta {
   id: string;

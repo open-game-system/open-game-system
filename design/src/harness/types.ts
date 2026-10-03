@@ -1,13 +1,15 @@
 import { createElement, type ComponentType } from "react";
 import { createStore, type Store } from "./store";
 
-export type Device = "phone" | "ipad" | "tv";
-export const DEVICES: Device[] = ["phone", "ipad", "tv"];
+export type Device = "phone" | "ipad" | "tv" | "desktop";
+export const DEVICES: Device[] = ["phone", "ipad", "tv", "desktop"];
 export const DEVICE_SIZE: Record<Device, { w: number; h: number; label: string }> = {
   phone: { w: 390, h: 844, label: "Grown-up phone" },
   // Kids hold their iPads in landscape, thumbs at the bottom edge.
   ipad: { w: 1180, h: 820, label: "Kid iPad" },
   tv: { w: 1920, h: 1080, label: "TV (cast stream)" },
+  /** Developer-facing pages (docs, the game console). Not on the stage. */
+  desktop: { w: 1440, h: 900, label: "Developer (desktop)" },
 };
 
 /** The coverage matrix's flows (brief §4). */

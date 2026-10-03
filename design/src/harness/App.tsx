@@ -6,7 +6,7 @@ import { Stage } from "./Stage";
 import { Index } from "./Index";
 
 const params = new URLSearchParams(location.search);
-const isDevice = (d: string | null): d is Device => d === "phone" || d === "ipad" || d === "tv";
+const isDevice = (d: string | null): d is Device => d === "phone" || d === "ipad" || d === "tv" || d === "desktop";
 
 /** Writes what was actually loaded onto <html>, so the shooter can refuse a mislabelled shot. */
 function acknowledge(ack: string | null, error: string | null) {

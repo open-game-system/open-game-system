@@ -9,11 +9,12 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { arg, buildAndServe, readRegistry, ROOT, settle, waitForAck, type ConceptMeta } from "./lib";
 
-type Device = "phone" | "ipad" | "tv";
+type Device = "phone" | "ipad" | "tv" | "desktop";
 const SIZE: Record<Device, { width: number; height: number; dsf: number }> = {
   phone: { width: 390, height: 844, dsf: 2 },
   ipad: { width: 1180, height: 820, dsf: 2 },
   tv: { width: 1920, height: 1080, dsf: 1 },
+  desktop: { width: 1440, height: 900, dsf: 1 },
 };
 
 /** Thresholds. Changing one is a decision: log old → new and why in the scorecard. */
@@ -138,7 +139,7 @@ async function shootConcept(concept: ConceptMeta, browser: import("playwright").
   const shots: unknown[] = [];
   const summary = { shots: 0, targetsUnder44: 0, contrastFails: 0, kidWords: 0, tvSmallText: 0, clippedText: 0, ackFailures: 0 };
   const contexts = new Map<Device, Page>();
-  const devices: Device[] = ["phone", "ipad", "tv"];
+  const devices: Device[] = ["phone", "ipad", "tv", "desktop"];
   for (const d of devices) {
     const ctx = await browser.newContext({ viewport: { width: SIZE[d].width, height: SIZE[d].height }, deviceScaleFactor: SIZE[d].dsf, hasTouch: d !== "tv" });
     // tsx (esbuild keepNames) wraps functions in __name(); page.evaluate bodies need it defined.

@@ -8,7 +8,7 @@ FLOWS = [("first-run", "1 First run"), ("tonight", "2 Tonight"), ("swap", "3 Swi
          ("game-night", "5 Hearthisle 3 homes"), ("word-duel", "6 Word Duel"), ("world-clock", "7 World clock"),
          ("add-game", "8 Add a game (dev)"), ("failure", "9 Failure & edge"), ("home", "Home")]
 STATES = ["default", "empty", "loading", "partial", "success", "error", "interrupted", "undone"]
-short = {"phone": "P", "ipad": "K", "tv": "T"}
+short = {"phone": "P", "ipad": "K", "tv": "T", "desktop": "D"}
 lines = ["# Coverage: flows × states", "", "Cells list scenario ids with devices (P phone, K kid iPad, T TV). MISSING = not designed yet.", "",
          "| Flow | " + " | ".join(STATES) + " |", "|---|" + "---|" * len(STATES)]
 filled = total = 0
