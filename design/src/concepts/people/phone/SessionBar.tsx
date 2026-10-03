@@ -12,7 +12,7 @@ function Seat({ p, gameId, s }: { p: Person; gameId: string; s: S }) {
   const following = p.band !== "grownup" && !s.couch.arrived.includes(p.id) && !asleep;
   return (
     <div className="pf-seat" data-asleep={asleep || undefined}>
-      <Patch person={p} size={34} dim={asleep} />
+      <Patch person={p} size={30} dim={asleep} />
       <div style={{ minWidth: 0 }}>
         <div className="pf-seat-name">{p.name}</div>
         <div className="pf-seat-role">
@@ -75,8 +75,9 @@ export function SessionBar({ s, store }: { s: S; store: Store<S> }) {
       {s.couch.phase === "playing" && left && s.couch.left && (
         <button className="pf-undo" data-bot="undo" onClick={() => store.update(goBack)}>
           <img src={left.art.tv} alt="" />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            {left.name} saved at {s.couch.left.savedAt}
+          <span className="pf-undo-text">
+            <b>{left.name}</b>
+            <span>Saved at {s.couch.left.savedAt}</span>
           </span>
           <span className="pf-undo-act">
             <IconUndo /> Back to it

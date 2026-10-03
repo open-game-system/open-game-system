@@ -79,7 +79,8 @@
 .pf-tabs { flex: none; height: 84px; display: flex; justify-content: space-around; padding: 6px 12px 26px; background: var(--paper); border-top: 1px solid var(--rule); }
 .pf-tab { min-width: 76px; min-height: 48px; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 600 12px var(--sans); color: var(--ink-3); position: relative; }
 .pf-tab[aria-current="page"] { color: var(--ink); }
-.pf-tab-badge { position: absolute; top: -2px; left: 46px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--move); color: #fff; font: 700 12px/20px var(--sans); text-align: center; padding: 0 6px; }
+.pf-tab-badge { position: absolute; top: -6px; left: 44px; min-width: 28px; height: 28px; border-radius: 14px; background: var(--move); color: #fff; font: 700 13px/1 var(--sans); display: grid; place-items: center; padding: 0 8px; border: 2px solid var(--paper); }
+.pf-tab-badge > span { display: block; line-height: 13px; }
 
 /* nav bar for a thread */
 .pf-nav { flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px 10px 4px; border-bottom: 1px solid var(--rule); }
@@ -90,7 +91,7 @@
 
 /* buttons */
 .pf-primary { min-height: 52px; border-radius: 26px; background: var(--pine); color: var(--pine-ink); font: 700 17px var(--sans); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 22px; width: 100%; }
-.pf-primary[disabled] { background: #b9b2a5; color: #fff; }
+.pf-primary[disabled] { background: var(--paper-2); color: var(--ink-2); box-shadow: inset 0 0 0 1.5px var(--rule); }
 .pf-secondary { min-height: 44px; border-radius: 22px; background: var(--paper-2); color: var(--ink); font: 600 15px var(--sans); display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 18px; }
 .pf-link { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; font: 600 15px var(--sans); color: var(--pine); }
 
@@ -142,9 +143,9 @@ html.shot .pf *, html.shot .pf *::before, html.shot .pf *::after { animation-pla
 .pf-session-sub { display: flex; align-items: center; gap: 6px; font: 500 14px var(--sans); color: var(--ink-2); }
 .pf-switch { min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--ink); color: var(--paper); display: inline-flex; align-items: center; gap: 8px; font: 700 15px var(--sans); }
 .pf-seats { display: flex; gap: 6px; padding: 2px 14px 0; }
-.pf-seat { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 6px; border-radius: 16px; background: var(--card); box-shadow: 0 1px 0 var(--rule); }
+.pf-seat { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 5px; border-radius: 16px; background: var(--card); box-shadow: 0 1px 0 var(--rule); }
 .pf-seat-name { font: 700 14px/1.15 var(--sans); }
-.pf-seat-role { font: 500 12px/1.2 var(--sans); color: var(--ink-2); display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.pf-seat-role { font: 500 12px/1.2 var(--sans); color: var(--ink-2); display: flex; align-items: center; gap: 3px; }
 .pf-seat[data-asleep] .pf-seat-role { color: var(--move); font-weight: 700; }
 .pf-notice { margin: 10px 14px 0; padding: 10px 10px 10px 14px; border-radius: 16px; background: #fbe9df; display: flex; align-items: center; gap: 10px; animation: pf-fade 0.4s both; }
 .pf-notice p { flex: 1; font: 400 14px/1.35 var(--sans); color: var(--ink); }
@@ -295,7 +296,8 @@ html.shot .pf *, html.shot .pf *::before, html.shot .pf *::after { animation-pla
 
 /* ambient */
 .pf-amb { position: absolute; inset: 0; }
-.pf-amb-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(24px) brightness(0.32) saturate(0.8); animation: pf-kenburns 40s ease-in-out infinite alternate; }
+.pf-amb { background: radial-gradient(80% 90% at 20% 30%, #2a2119, #15120e); }
+.pf-amb-bg { position: absolute; inset: 0; width: 100%; height: 100%; animation: pf-kenburns 60s ease-in-out infinite alternate; }
 .pf-amb-left { position: absolute; left: 120px; top: 120px; }
 .pf-amb-clock { font: 500 200px/0.9 var(--serif); font-variation-settings: "SOFT" 100, "opsz" 144; letter-spacing: -0.03em; margin-top: 10px; color: var(--cream); }
 .pf-amb-who { font: 600 52px var(--serif); font-variation-settings: "SOFT" 100, "opsz" 96; margin-top: 70px; color: var(--cream); }
@@ -350,3 +352,6 @@ html.shot .pf-kid-rings i:nth-child(3) { transform: scale(1.4); opacity: 0.18; }
 .pf-bubble > span { display: block; }
 .pf-done { display: flex; align-items: center; gap: 12px; padding: 10px 20px; min-height: 56px; width: 100%; font: 400 15px var(--sans); color: var(--ink-2); }
 .pf-done .pf-stack > * + * { margin-left: -10px; }
+.pf-undo-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.pf-undo-text b { font: 700 14px var(--sans); }
+.pf-undo-text span { font: 500 13px var(--sans); color: var(--ink-2); }
