@@ -65,6 +65,23 @@
     .status-text {
       font-size: 18px;
       color: rgba(255,255,255,0.8);
+      max-width: 80vw;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* A laptop's canvas cast: the game's HUD page, transparent, over the 16:9 picture (letterboxed like the video). */
+    #hud {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      border: 0;
+      background: transparent;
+      color-scheme: normal;
+      pointer-events: none;
+      z-index: 5;
     }
   </style>
 </head>
@@ -98,11 +115,19 @@
      *
      * Sender messages (urn:x-cast:org.opengame.view):
      *   LOAD_VIEW {viewUrl, streamServerUrl} — the cloud renders viewUrl on a GPU and streams it (phones).
-     *   PEER_OFFER {sdp, iceServers}         — a laptop streams its own tab straight to this TV over
-     *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR).
+     *   PEER_OFFER {sdp, iceServers, hudUrl?} — a laptop streams its picture straight to this TV over
+     *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR, also
+     *                                          later if the link fails or no picture arrives in time).
+     *                                          With `hudUrl` (a canvas cast) the laptop sends only its 3D
+     *                                          scene, and we draw that page (the game's HUD, transparent)
+     *                                          in an iframe on top of the video.
+     *   HUD_MESSAGE {data}                   — forwarded to the HUD iframe (postMessage); the last one is
+     *                                          re-sent when the iframe says HUD_READY.
      *   PEER_STOP                            — the laptop stopped streaming.
-     *   GET_STATE                            — diagnostics.
-     * To senders: REQUEST_VIEW {accepts: ['view', 'peer']} until something is showing.
+     *   GET_STATE                            — diagnostics (includes the HUD iframe's state).
+     * To senders: REQUEST_VIEW {accepts: ['view', 'peer', 'peer-canvas']} until an offer or view arrives.
+     * A failure never stops this app (that sends the TV back to its home screen): it shows what went
+     * wrong and tells the sender, which may retry or switch to the cloud view.
      * ?signal=test replaces Cast messaging with window.__ogsSignalIn/__ogsSignalOut (desktop tests).
      */
 
@@ -176,6 +201,8 @@
     // Video on screen is the truth: whenever it starts playing, nothing may cover it.
     video.addEventListener('playing', () => {
       isConnected = true;
+      clearPeerTimer();
+      if (currentViewUrl === 'laptop') console.log('[Receiver] Laptop picture playing', video.videoWidth + 'x' + video.videoHeight);
       hideOverlay();
     });
 
@@ -239,8 +266,13 @@
       if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = bufferMs;
       else if ('playoutDelayHint' in event.receiver) event.receiver.playoutDelayHint = bufferMs / 1000;
       receiverSupports = { jitterBufferTarget: 'jitterBufferTarget' in event.receiver, playoutDelayHint: 'playoutDelayHint' in event.receiver };
-      clearConnectionTimeout();
-      isConnected = true;
+      // A laptop's tracks arrive with its offer, before any picture can: keep "Connecting to the laptop"
+      // up until the video actually plays (the 'playing' handler), never a black screen meanwhile.
+      const fromLaptop = currentViewUrl === 'laptop';
+      if (!fromLaptop) {
+        clearConnectionTimeout();
+        isConnected = true;
+      }
 
       // Only set srcObject once — multiple tracks arrive rapidly
       if (!video.srcObject) {
@@ -254,7 +286,7 @@
         // Add audio track to existing stream
         video.srcObject.addTrack(event.track);
       }
-      hideOverlay();
+      if (!fromLaptop) hideOverlay();
     }
 
     function newPeerConnection(iceServers) {
@@ -267,6 +299,8 @@
         if (conn.connectionState === 'connected') {
           isConnected = true;
           hideOverlay();
+        } else if (currentViewUrl === 'laptop') {
+          onPeerConnectionState(conn.connectionState);
         } else if (conn.connectionState === 'disconnected' || conn.connectionState === 'failed') {
           isConnected = false;
           // 'disconnected' can recover on its own; only a failed connection ends the heartbeat.
@@ -275,6 +309,92 @@
         }
       };
       return conn;
+    }
+
+    // ── The HUD of a laptop's canvas cast: the game's own overlay page, in an iframe over the video ──
+    let hudFrame = null;
+    let hudOrigin = null;
+    let hudState = null;
+    let lastHudData = null;
+    function showHud(url) {
+      let parsed = null;
+      try { parsed = new URL(url); } catch (e) { /* not a URL */ }
+      if (!parsed || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')) {
+        console.warn('[Receiver] Ignoring HUD url', url);
+        removeHud();
+        return;
+      }
+      if (hudFrame && hudFrame.dataset.src === parsed.href) return; // same HUD (a re-offer): keep it
+      removeHud();
+      hudOrigin = parsed.origin;
+      hudState = { url: parsed.href, loaded: false, loadMs: null, ready: false, last: null, startedAt: Date.now() };
+      const frame = document.createElement('iframe');
+      frame.id = 'hud';
+      frame.dataset.src = parsed.href;
+      // Scripts for the game's own page, but it can't navigate this receiver or open popups.
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      frame.setAttribute('allowtransparency', 'true');
+      frame.addEventListener('load', () => {
+        if (!hudState || frame !== hudFrame) return;
+        hudState.loaded = true;
+        hudState.loadMs = Date.now() - hudState.startedAt;
+        console.log('[Receiver] HUD loaded in', hudState.loadMs, 'ms:', parsed.origin + parsed.pathname);
+        postHud(lastHudData);
+      });
+      frame.src = parsed.href;
+      hudFrame = frame;
+      document.body.appendChild(frame);
+      console.log('[Receiver] HUD:', parsed.origin + parsed.pathname);
+    }
+    function removeHud() {
+      if (hudFrame) hudFrame.remove();
+      hudFrame = null;
+      hudOrigin = null;
+      lastHudData = null;
+    }
+    function postHud(data) {
+      if (!data || !hudFrame || !hudFrame.contentWindow || !hudOrigin) return;
+      try { hudFrame.contentWindow.postMessage(data, hudOrigin); } catch (e) { console.warn('[Receiver] HUD post failed', e); }
+    }
+    // Messages from the HUD page: HUD_READY (send it the latest layout) and anything it reports
+    // about what it shows (logged for senders, kept for GET_STATE: we can't look inside the iframe).
+    window.addEventListener('message', (e) => {
+      if (!hudFrame || e.source !== hudFrame.contentWindow || !hudState) return;
+      const data = e.data;
+      if (data && data.type === 'HUD_READY') {
+        hudState.ready = true;
+        postHud(lastHudData);
+      }
+      hudState.last = data;
+      console.log('[Receiver] HUD says:', data);
+    });
+
+    // ── A laptop's stream (PEER_OFFER): timeouts and failures are shown and told to the laptop ──
+    // A laptop on the same Wi-Fi connects in a few seconds; past this, something's in the way.
+    const PEER_TIMEOUT_MS = 20000;
+    let peerReply = null;
+    let peerTimer = null;
+    function clearPeerTimer() {
+      if (peerTimer) clearTimeout(peerTimer);
+      peerTimer = null;
+    }
+    function peerFailed(why, text) {
+      clearPeerTimer();
+      isConnected = false;
+      console.error('[Receiver] Laptop stream failed:', why);
+      setStatus(text, false);
+      if (pc) { pc.close(); pc = null; }
+      video.srcObject = null;
+      if (peerReply) peerReply({ type: 'PEER_ERROR', message: why });
+    }
+    function onPeerConnectionState(state) {
+      if (state === 'disconnected') {
+        // Often a Wi-Fi blip that recovers by itself; 'failed' follows if it doesn't.
+        isConnected = false;
+        setStatus('Reconnecting to the laptop...');
+      } else if (state === 'failed') {
+        peerFailed('connection failed', "Lost the laptop's picture. Keep the laptop awake and on the same Wi-Fi as this TV; it will try again.");
+      }
     }
 
     function iceGathered(conn, maxMs) {
@@ -299,28 +419,33 @@
     async function startPeer(offer, reply) {
       if (started) {
         cleanup();
+        clearPeerTimer();
         video.srcObject = null;
       }
       isConnected = false;
       launch = null;
       started = true;
       currentViewUrl = 'laptop';
-      console.log('[Receiver] Laptop stream offered');
+      peerReply = reply;
+      console.log('[Receiver] Laptop stream offered', offer.hudUrl ? '(3D canvas + HUD)' : '(whole tab)');
+      if (typeof offer.hudUrl === 'string') showHud(offer.hudUrl);
+      else removeHud();
       setStatus('Connecting to the laptop...');
-      startConnectionTimeout();
+      const conn = newPeerConnection(Array.isArray(offer.iceServers) ? offer.iceServers : []);
+      pc = conn;
+      clearPeerTimer();
+      peerTimer = setTimeout(() => {
+        if (conn === pc && !isConnected) peerFailed('no picture after ' + PEER_TIMEOUT_MS / 1000 + 's', "The laptop's picture didn't arrive. Keep the laptop on the same Wi-Fi as this TV and cast again.");
+      }, PEER_TIMEOUT_MS);
       try {
-        const conn = newPeerConnection(Array.isArray(offer.iceServers) ? offer.iceServers : []);
-        pc = conn;
         await conn.setRemoteDescription({ type: 'offer', sdp: offer.sdp });
         await conn.setLocalDescription(await conn.createAnswer());
         await iceGathered(conn, 2000);
         if (conn !== pc) return; // a newer offer replaced this one
         reply({ type: 'PEER_ANSWER', sdp: conn.localDescription.sdp });
       } catch (err) {
-        console.error('[Receiver] Laptop stream failed:', err);
-        clearConnectionTimeout();
-        setStatus('Unable to connect to the laptop', false);
-        reply({ type: 'PEER_ERROR', message: String(err && err.message || err) });
+        if (conn !== pc) return;
+        peerFailed(String(err && err.message || err), 'Unable to connect to the laptop');
       }
     }
 
@@ -471,6 +596,9 @@
           muted: video.muted, currentTime: video.currentTime, error: video.error ? video.error.code : null,
           tracks: video.srcObject ? video.srcObject.getTracks().map((t) => `${t.kind}:${t.readyState}${t.muted ? ':muted' : ''}`) : [] },
         pc: pc ? { connection: pc.connectionState, ice: pc.iceConnectionState } : null,
+        hud: hudFrame && hudState ? { url: hudState.url, loaded: hudState.loaded, loadMs: hudState.loadMs, ready: hudState.ready, last: hudState.last, layout: lastHudData,
+          box: (() => { const r = hudFrame.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}@${Math.round(r.left)},${Math.round(r.top)}`; })() } : null,
+        screen: `${window.innerWidth}x${window.innerHeight}@${window.devicePixelRatio}`,
         inbound: {},
       };
       if (pc) {
@@ -502,21 +630,37 @@
       startReceiving();
     }
 
-    /** What this receiver can show: a page the cloud renders (LOAD_VIEW) or a laptop's own stream (PEER_OFFER). */
-    const ACCEPTS = ['view', 'peer'];
+    /**
+     * What this receiver can show: a page the cloud renders (LOAD_VIEW), a laptop's tab (PEER_OFFER),
+     * or a laptop's 3D canvas with the game's HUD page drawn here on top (PEER_OFFER with hudUrl).
+     */
+    const ACCEPTS = ['view', 'peer', 'peer-canvas'];
+    /** A sender has spoken to us: it is deciding what to show, so don't fall back to the default view. */
+    let senderSpoke = false;
 
     /** One message from a sender on the view namespace; `reply` answers that sender only. */
     function onViewMessage(data, reply) {
       if (!data) return;
+      senderSpoke = true;
       if (data.type === 'LOAD_VIEW' && data.viewUrl) {
+        clearPeerTimer();
+        peerReply = null;
+        removeHud();
         begin({ viewUrl: data.viewUrl, streamServerUrl: data.streamServerUrl || DEFAULT_STREAM_SERVER, publisherSessionId: '' });
       } else if (data.type === 'PEER_OFFER' && typeof data.sdp === 'string') {
         startPeer(data, reply);
+      } else if (data.type === 'HUD_MESSAGE' && currentViewUrl === 'laptop') {
+        lastHudData = data.data;
+        postHud(lastHudData);
       } else if (data.type === 'PEER_STOP' && currentViewUrl === 'laptop') {
         cleanup();
+        clearPeerTimer();
+        peerReply = null;
+        removeHud();
         isConnected = false;
         video.srcObject = null;
-        setStatus('Cast session ended', false);
+        console.log('[Receiver] The laptop stopped casting');
+        setStatus('The laptop stopped casting', false);
       }
     }
 
@@ -537,7 +681,9 @@
       castContext = context;
       context.addCustomMessageListener(VIEW_NAMESPACE, (event) => {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        console.log('[Receiver] LOAD_VIEW from sender:', data);
+        // (Offers carry kilobytes of SDP and HUD messages are frequent: log only what they are.)
+        if (data && (data.type === 'PEER_OFFER' || data.type === 'HUD_MESSAGE')) console.log('[Receiver] From sender:', data.type);
+        else console.log('[Receiver] LOAD_VIEW from sender:', data);
         if (data && data.type === 'GET_STATE') {
           // Diagnostics for a sender: is the stream actually decoding video/audio on this device?
           reportState(event.senderId);
@@ -575,7 +721,9 @@
       context.start(options);
       setStatus('Waiting for the game...');
       setTimeout(() => {
-        if (!started) begin(getLaunchParams());
+        // Only when no sender has said anything: a laptop preparing its offer must not be overtaken
+        // by the default page (which would also start a cloud stream).
+        if (!started && !senderSpoke) begin(getLaunchParams());
       }, VIEW_WAIT_MS);
     }
   </script>
