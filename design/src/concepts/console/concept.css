@@ -705,3 +705,43 @@
 .cx-switchrow input:checked::before { background: #ff6a2b; }
 .cx-homes__row, .cx-row, .cx-wide, .cx-push, .cx-nightcard, .cx-nextbox, .cx-trust, .cx-dock, .cx-switchrow--card, .cx-keeps { box-sizing: border-box; }
 .cx-row__text b, .cx-row__text span { white-space: normal; overflow: visible; text-overflow: clip; }
+
+/* ---- Phone identity: the console menu and the switch speak the same dark language ---- */
+.cx-ingame .cx-sheet { background: #15161b; color: #f4f2ee; box-shadow: 0 -1px 0 #2a2b31; }
+.cx-ingame .cx-sheet__grab { background: #3a3b42; }
+.cx-ingame .cx-sheet__now { border-bottom-color: #2a2b31; }
+.cx-ingame .cx-sheet__kicker { color: #ff8a52; letter-spacing: 0.12em; }
+.cx-ingame .cx-sheet__now > span:last-child { color: #c9c6bf; }
+.cx-ingame .cx-sheet__h { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #a8a59e; margin: 18px 2px 8px; }
+.cx-ingame .cx-next__warn { color: #ffb38a; font-size: 14px; }
+.cx-ingame .cx-next { gap: 0; }
+.cx-ingame .cx-next__row { background: transparent !important; box-shadow: none; border-radius: 0; padding: 8px 2px !important; position: relative; color: #f4f2ee; }
+.cx-ingame .cx-next__row + .cx-next__row::before { content: ""; position: absolute; left: 110px; right: 0; top: 0; height: 1px; background: #2a2b31; }
+.cx-ingame .cx-next__row > svg { color: #8d8a84; }
+.cx-ingame .cx-next__text > span { color: #c9c6bf; }
+.cx-ingame .cx-next__seats .cx-portrait { box-shadow: 0 0 0 2px #15161b !important; margin-right: -4px; }
+.cx-ingame .cx-sheet__foot .cx-btn--ghost { background: transparent !important; color: #f4f2ee !important; box-shadow: inset 0 0 0 1.5px #4a4b52; }
+
+.cx-ingame .cx-switch { background: #121317; color: #f4f2ee; box-shadow: inset 0 1px 0 #2a2b31; }
+.cx-ingame .cx-switch__arrow { color: #8d8a84; }
+.cx-ingame .cx-switch--following .cx-switch__to { box-shadow: 0 0 0 3px #f4f2ee; }
+.cx-ingame .cx-switch__sub { color: #c9c6bf; }
+/* Devices follow down the dotted path, one ring at a time. */
+.cx-ingame .cx-seats { background: transparent; box-shadow: none; position: relative; }
+.cx-ingame .cx-seats::before { content: ""; position: absolute; left: 33px; top: 34px; bottom: 34px; border-left: 2.5px dotted rgba(244, 242, 238, 0.35); }
+.cx-ingame .cx-seats li { position: relative; padding: 10px 14px; }
+.cx-ingame .cx-seats li + li { border-top: 0; }
+.cx-ingame .cx-seats .cx-portrait { box-shadow: 0 0 0 3px #121317, 0 0 0 5px rgba(244, 242, 238, 0.25) !important; }
+.cx-ingame .cx-seats li.is-ready .cx-portrait { box-shadow: 0 0 0 3px #121317, 0 0 0 5.5px #f4f2ee !important; }
+.cx-ingame .cx-seats__text > span { color: #a8a59e; }
+.cx-ingame .cx-seats__low { color: #ffb38a; }
+.cx-ingame .cx-seats__state { color: #8d8a84; }
+.cx-ingame .cx-seats li.is-ready .cx-seats__state { color: #8fe0b6; }
+.cx-ingame .cx-switch__cancel { background: transparent !important; color: #f4f2ee !important; box-shadow: inset 0 0 0 1.5px #4a4b52; }
+
+/* Word Duel keeps its cream, but no left-border accent bars: each opponent is a coloured dot. */
+.wd-row__bar { width: 12px !important; height: 12px !important; border-radius: 50% !important; }
+.wd-row__main { grid-template-columns: 12px 1fr auto !important; }
+.wd-people li { grid-template-columns: 12px 1fr auto !important; }
+.cx-ingame .cx-next__seats .cx-chip { margin-right: 8px; height: 22px; font-size: 12px; }
+.cx-lock { background: #1b1e27; }

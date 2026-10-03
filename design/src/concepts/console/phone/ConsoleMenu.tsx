@@ -4,7 +4,9 @@
 import type { Store } from "../../../harness/store";
 import { GAMES, HOME, gameById } from "../../../world";
 import { closeMenu, nextLine, resumePoint, seatPlan, startSwitch, type S } from "../state";
+import { couchStatus } from "../status";
 import { Portrait } from "../ui/Brand";
+import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
 import { Battery, Chevron } from "../ui/Icons";
 
@@ -49,6 +51,7 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
                   <b>{g.name}</b>
                   <span>{nextLine(g.id)}</span>
                   <span className="cx-next__seats">
+                    <Chip status={couchStatus(g.id, null, s.savedTonight)} />
                     {seats.map((x) => (
                       <Portrait key={x.person.id} person={x.person} size={20} />
                     ))}
