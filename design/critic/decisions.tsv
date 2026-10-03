@@ -1,1 +1,2 @@
 round	owner	step	decision	shots	why
+01	tv	1 console button pauses TV	keep	swap.02-console-menu--tv	menu:true now folds the game into a paused card (HUD-safe zoom), pulsing ring, Up next couch shelf, "Choose on Jonathan's phone" with dotted follow path
