@@ -50,3 +50,66 @@
 .ct-paused__tile { position: relative; display: block; width: 320px; height: 180px; border-radius: 18px; overflow: hidden; box-shadow: 0 16px 40px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(255, 255, 255, .08); }
 .ct-paused__shelf b { font-size: 30px; font-weight: 800; margin-top: 14px; white-space: nowrap; }
 .ct-paused__shelf li > span:last-child { font-size: 24px; color: var(--ct-ink2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- "now playing": a band right after a cut that settles into a corner chip ---- */
+.ct-band { position: absolute; inset: 0; pointer-events: none; color: var(--ct-ink); }
+.ct-band__scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 560px; background: linear-gradient(0deg, rgba(8, 9, 11, .9) 0%, rgba(8, 9, 11, .55) 45%, transparent 100%); }
+.ct-band__title { position: absolute; left: 80px; bottom: 236px; }
+.ct-band__title h1 { font-size: 104px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-top: 8px; text-shadow: 0 4px 40px rgba(0, 0, 0, .5); }
+.ct-band__title p { font-size: 36px; font-weight: 700; margin-top: 10px; text-shadow: 0 2px 20px rgba(0, 0, 0, .6); }
+.ct-band--settle { animation: ct-settle 4s var(--ct-move) both; }
+@keyframes ct-settle { 0%, 72% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate(-60px, 90px) scale(0.92); } }
+
+.ct-roster { position: absolute; left: 80px; bottom: 80px; display: flex; gap: 20px; list-style: none; padding: 0; margin: 0; }
+.ct-roster li { display: flex; align-items: center; gap: 16px; padding: 12px 26px 12px 12px; border-radius: 24px; background: rgba(12, 13, 16, 0.82); animation: ct-rise 0.45s var(--ct-ease) both; transition: background 0.4s; }
+.ct-roster li > span { display: grid; }
+.ct-roster b { font-size: 32px; font-weight: 800; }
+.ct-roster em { font-style: normal; font-size: 26px; color: var(--ct-ink2); }
+.ct-roster i { display: grid; place-items: center; width: 40px; color: var(--ct-ink2); }
+.ct-roster li.is-ready i { color: var(--ct-ok); animation: ct-pop 0.45s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ct-roster li.is-waiting i { animation: ct-wait 0.9s ease-in-out infinite alternate; }
+@keyframes ct-wait { from { opacity: 0.35; } }
+.ct-roster li.is-asleep { background: rgba(58, 42, 20, 0.9); }
+.ct-roster li.is-asleep i { color: #ffcf8a; }
+
+.ct-chip { position: absolute; left: 48px; bottom: 44px; display: inline-flex; align-items: center; gap: 14px; height: 72px; padding: 0 16px 0 20px; border-radius: 36px; background: rgba(11, 12, 14, 0.62); backdrop-filter: blur(14px); color: var(--ct-ink); animation: ct-fade 0.6s 0.4s both; }
+.ct-chip--after { animation: ct-chip-in 0.6s 3.2s var(--ct-ease) both; }
+@keyframes ct-chip-in { from { opacity: 0; transform: translateY(16px) scale(0.9); } }
+.ct-chip b { font-size: 28px; font-weight: 800; }
+.ct-chip > span:not(.ct-chip__who) { font-size: 26px; color: var(--ct-ink2); font-weight: 600; }
+.ct-chip__who { display: inline-flex; margin-left: 6px; }
+
+/* ---- cut-over: the TV is the timeline the phone and iPads mirror ---- */
+.ct-cut { position: absolute; inset: 0; background: var(--ct-night); overflow: hidden; color: var(--ct-ink); }
+.ct-cut__to, .ct-cut__from { position: absolute; transition: left 0.8s var(--ct-move), top 0.8s var(--ct-move), width 0.8s var(--ct-move), height 0.8s var(--ct-move), opacity 0.5s; }
+.ct-cut__to { left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
+.ct-cut--saving .ct-cut__to { left: 1300px; top: 300px; width: 540px; height: 304px; border-radius: 24px; opacity: 0.92; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); animation: ct-card-in 0.6s 0.2s var(--ct-ease) both; }
+@keyframes ct-card-in { from { opacity: 0; transform: translateX(80px); } }
+.ct-cut__from { left: 80px; top: 150px; width: 1120px; height: 630px; }
+.ct-cut__fromart { position: absolute; inset: 0; border-radius: 28px; overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); transition: border-radius 0.8s; }
+.ct-cut--saving .ct-cut__from { animation: ct-fold 0.6s var(--ct-move) both; }
+.ct-cut--saving .ct-cut__fromart { animation: ct-fold-r 0.6s var(--ct-move) both; }
+@keyframes ct-fold { from { left: 0; top: 0; width: 1920px; height: 1080px; } }
+/* Picked from the console menu: the game is already a paused card, so it grows from there. */
+.ct-cut--menu.ct-cut--saving .ct-cut__from { animation-name: ct-fold-menu; }
+@keyframes ct-fold-menu { from { left: 80px; top: 156px; width: 883px; height: 497px; } }
+@keyframes ct-fold-r { from { border-radius: 0; } }
+/* After the cut: a picture-in-picture in the top-left safe corner, caption below it (never on the art). */
+.ct-cut--cutover .ct-cut__from, .ct-cut--following .ct-cut__from { left: 64px; top: 56px; width: 320px; height: 180px; }
+.ct-cut--cutover .ct-cut__fromart, .ct-cut--following .ct-cut__fromart { border-radius: 18px; box-shadow: 0 0 0 4px rgba(244, 242, 238, .55), 0 20px 50px rgba(0, 0, 0, .6); }
+.ct-cut--following .ct-cut__from { opacity: 0; }
+.ct-cut__saved { position: absolute; left: 24px; bottom: 24px; display: inline-flex; align-items: center; gap: 14px; padding: 10px 22px 10px 12px; border-radius: 18px; background: rgba(10, 11, 13, 0.86); font-size: 34px; font-weight: 800; white-space: nowrap; animation: ct-rise 0.4s 0.5s both; transition: bottom 0.8s var(--ct-move), left 0.8s var(--ct-move), font-size 0.8s var(--ct-move); }
+.ct-cut--cutover .ct-cut__saved, .ct-cut--following .ct-cut__saved { left: 0; bottom: -64px; font-size: 26px; padding: 6px 16px 6px 6px; gap: 10px; }
+.ct-cut__ring { position: relative; display: grid; place-items: center; width: 40px; height: 40px; color: var(--ct-ok); }
+.ct-cut__ring svg { position: absolute; inset: 0; }
+.ct-cut__ring > svg:last-child { position: relative; animation: ct-pop 0.35s 0.9s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ct-cut__ringfill { stroke-dashoffset: 0; animation: ct-ring 0.8s 0.2s ease-in-out both; }
+@keyframes ct-ring { from { stroke-dashoffset: 100; } }
+.ct-cut__path { position: absolute; left: 120px; top: 300px; animation: ct-fade 0.5s 0.3s both; }
+.ct-cut__next { position: absolute; left: 1300px; top: 640px; animation: ct-rise 0.5s 0.35s var(--ct-ease) both; }
+.ct-cut__next h2 { font-size: 72px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-top: 8px; }
+.ct-cut__next p { font-size: 32px; font-weight: 700; margin-top: 10px; width: 540px; }
+.ct-cut__mark { position: absolute; right: 80px; bottom: 88px; opacity: 0.9; }
+.ct-cut--following .ct-cut__mark { opacity: 0; transition: opacity 0.5s; }
+.ct-play__zoom.is-landing { animation: ct-land 4s var(--ct-move) both; }
+@keyframes ct-land { 0%, 72% { transform: scale(var(--ct-z, 1)); } 100% { transform: none; } }

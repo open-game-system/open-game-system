@@ -1,2 +1,3 @@
 round	owner	step	decision	shots	why
 01	tv	1 console button pauses TV	keep	swap.02-console-menu--tv	menu:true now folds the game into a paused card (HUD-safe zoom), pulsing ring, Up next couch shelf, "Choose on Jonathan's phone" with dotted follow path
+01	tv	2 overlay rules	keep	swap.05-kids-follow--tv swap.06b-tv-settled--tv swap.09b-tv-asleep-settled--tv swap.04-tv-cutover--tv	band after a cut holds ~3 s then settles (CSS, fill both) into a 72px bottom-left chip; stream lands from HUD-safe zoom to full frame as the band leaves; Saved PiP top-left safe corner with caption below the art
