@@ -1,7 +1,5 @@
 // Bake Shop's own controller views (stand-ins for the game's web content inside OGS).
-import { Cupcake, Oven, Shaker, Strawberry, Swirl } from "./BakeArt";
-import { Portrait } from "../ui/Brand";
-import type { Person } from "../../../world";
+import { Shaker, Strawberry, Swirl } from "./BakeArt";
 
 export function BakeReader() {
   return (
@@ -27,48 +25,6 @@ export function BakeReader() {
         <li><Shaker size={34} /> Rainbow sprinkles</li>
       </ul>
       <button className="g-bake__bell"><span>Ring the bell when it's ready</span></button>
-    </div>
-  );
-}
-
-/** Baker (Juneau): no words. The order floats as a picture; four giant ingredients. */
-export function BakeBaker({ who }: { who: Person }) {
-  return (
-    <div className="g-bake g-bake--kid">
-      <div className="g-bake__dream">
-        <Cupcake size={190} />
-      </div>
-      <div className="g-bake__plate">
-        <Cupcake size={250} berry={false} sprinkles={false} />
-      </div>
-      <div className="g-bake__bins">
-        <button className="g-bake__bin is-hot" aria-label="strawberry"><Strawberry size={180} /></button>
-        <button className="g-bake__bin" aria-label="sprinkles"><Shaker size={180} /></button>
-        <button className="g-bake__bin" aria-label="frosting"><Swirl size={180} /></button>
-        <button className="g-bake__bin g-bake__bin--oven" aria-label="oven"><Oven size={180} /></button>
-      </div>
-      <div className="g-kid-seat">
-        <Portrait person={who} size={86} />
-      </div>
-    </div>
-  );
-}
-
-/** Littlest helper (Ava, almost 3): one thing to mash. Every tap showers sprinkles; nothing can go wrong. */
-export function BakeHelper({ who }: { who: Person }) {
-  return (
-    <div className="g-bake g-bake--kid g-bake--little">
-      <div className="g-bake__confetti" aria-hidden>
-        {Array.from({ length: 26 }, (_, i) => (
-          <i key={i} style={{ left: `${(i * 37) % 100}%`, top: `${(i * 53) % 60}%`, background: ["#8fddbe", "#ffd23f", "#6fb7f0", "#f46a8e"][i % 4], transform: `rotate(${i * 29}deg)` }} />
-        ))}
-      </div>
-      <button className="g-bake__mash" aria-label="shake">
-        <Shaker size={580} />
-      </button>
-      <div className="g-kid-seat">
-        <Portrait person={who} size={86} />
-      </div>
     </div>
   );
 }

@@ -1,0 +1,40 @@
+// The child's own character (the one Story Nook painted), standing on a glowing pad in their
+// colour. It is the one constant on every kid screen: it lives at the bottom centre, between the
+// thumbs, and hops when poked. Poking it never does anything but delight.
+import { useState, type PointerEvent } from "react";
+import type { Person } from "../../../world";
+
+export function KidChar({
+  who,
+  size,
+  className = "",
+  sleeping = false,
+  cheer = 0,
+  onPoke,
+}: {
+  who: Person;
+  size: number;
+  className?: string;
+  sleeping?: boolean;
+  /** Bump to make the character cheer (hop) from outside, e.g. when a press lands. */
+  cheer?: number;
+  onPoke?: (e: PointerEvent<HTMLButtonElement>) => void;
+}) {
+  const [hop, setHop] = useState(0);
+  const src = sleeping && who.id === "ava" ? "/art/story-nook/char-dinosaur-sleep.webp" : who.portrait;
+  return (
+    <button
+      className={`kd-char ${sleeping ? "kd-char--sleep" : ""} ${className}`}
+      style={{ width: size, height: size, color: who.color }}
+      aria-label={who.name}
+      data-bot={`kid-char-${who.id}`}
+      onPointerDown={(e) => {
+        setHop((h) => h + 1);
+        onPoke?.(e);
+      }}
+    >
+      <span className="kd-char__pad" aria-hidden />
+      {src && <img key={`${hop}-${cheer}`} className={`kd-char__art ${hop + cheer ? (sleeping ? "is-stir" : "is-hop") : ""}`} src={src} alt="" draggable={false} />}
+    </button>
+  );
+}

@@ -3,8 +3,10 @@
 // the prototype standing in for "load the game's URL"; the console code around it is game-agnostic.
 import type { ReactNode } from "react";
 import { gameById, type Person, type Role } from "../../../world";
-import { RocketCaptain, RocketFixer } from "./Rocket";
-import { BakeBaker, BakeHelper, BakeReader } from "./Bake";
+import { RocketCaptain } from "./Rocket";
+import { RocketFixer, RocketHelper } from "./RocketKid";
+import { BakeReader } from "./Bake";
+import { BakeBaker, BakeHelper } from "./BakeKid";
 import { person } from "../../../world";
 
 export function GamePhoneView({ gameId }: { gameId: string }): ReactNode {
@@ -19,8 +21,10 @@ export function GamePhoneView({ gameId }: { gameId: string }): ReactNode {
 }
 
 export function GameKidView({ gameId, who, role }: { gameId: string; who: Person; role: Role }): ReactNode {
-  if (gameId === "rocket-crew") return <RocketFixer who={who} />;
-  if (gameId === "bake-shop") return role.audience === "little" ? <BakeHelper who={who} /> : <BakeBaker who={who} />;
+  // The littlest gets the littlest controller, even when the game only declares a kid role.
+  const little = role.audience === "little" || who.band === "little";
+  if (gameId === "rocket-crew") return little ? <RocketHelper who={who} /> : <RocketFixer who={who} />;
+  if (gameId === "bake-shop") return little ? <BakeHelper who={who} /> : <BakeBaker who={who} />;
   const g = gameById(gameId);
   return (
     <div className="g-generic" style={{ background: g.palette.ground }}>

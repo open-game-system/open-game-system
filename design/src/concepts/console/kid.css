@@ -1,1 +1,221 @@
-/* Kid surfaces owner. Loads after concept.css. */
+/* Kid surfaces owner. Loads after concept.css. iPad = 1180×820 landscape, two hands, thumbs at
+   the bottom edge: targets live in the bottom-left and bottom-right thumb zones, the child's
+   character at the bottom centre, nothing important in the top centre. No words anywhere. */
+
+.cx--ipad { touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.cx--ipad img { -webkit-user-drag: none; }
+
+/* ---------- shared juice ---------- */
+.kd-bursts { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+.kd-burst { position: absolute; width: 0; height: 0; }
+.kd-burst__ring { position: absolute; left: -40px; top: -40px; width: 80px; height: 80px; border-radius: 50%; border: 8px solid; animation: kd-ring 0.55s ease-out both; }
+.kd-burst.is-big .kd-burst__ring { left: -70px; top: -70px; width: 140px; height: 140px; border-width: 12px; }
+@keyframes kd-ring { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
+.kd-burst__p { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; border-radius: 50%; animation: kd-fly 0.85s cubic-bezier(.15,.7,.3,1) both; }
+.kd-burst.is-big .kd-burst__p { left: -16px; top: -16px; width: 32px; height: 32px; }
+.kd-burst--star .kd-burst__p { border-radius: 0; clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 36%); }
+.kd-burst--sprinkle .kd-burst__p { height: 9px; top: -4px; border-radius: 5px; }
+.kd-burst--sprinkle.is-big .kd-burst__p { height: 12px; width: 34px; }
+.kd-burst--heart .kd-burst__p { border-radius: 0; clip-path: path("M11 20 C 4 14, 0 10, 0 6 A 5.5 5.5 0 0 1 11 4 A 5.5 5.5 0 0 1 22 6 C 22 10, 18 14, 11 20 Z"); }
+.kd-burst--puff .kd-burst__p { width: 46px; height: 46px; left: -23px; top: -23px; box-shadow: inset 0 0 0 3px rgba(255,255,255,.5); }
+.kd-burst--puff .kd-burst__p { animation-name: kd-float; animation-duration: 1.1s; }
+@keyframes kd-fly {
+  0% { transform: translate(0, 0) rotate(0) scale(0.4); opacity: 1; }
+  70% { opacity: 1; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 60px)) rotate(var(--r)) scale(1); opacity: 0; }
+}
+@keyframes kd-float {
+  0% { transform: translate(0, 0) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(calc(var(--dx) * 0.6), calc(var(--dy) * 0.4 - 140px)) scale(1.1); opacity: 0; }
+}
+.is-squash { animation: kd-squash 0.42s cubic-bezier(.3,1.7,.5,1) both; }
+@keyframes kd-squash { 0% { transform: scale(1.18, 0.78); } 45% { transform: scale(0.9, 1.12); } 100% { transform: scale(1); } }
+.is-shake { animation: kd-shake 0.5s ease-in-out both; display: inline-block; }
+@keyframes kd-shake { 0% { transform: rotate(0); } 25% { transform: rotate(38deg) translateY(-14px); } 50% { transform: rotate(-12deg); } 75% { transform: rotate(26deg); } 100% { transform: rotate(0); } }
+
+/* the dotted path: a ghost track plus dots marching toward the destination */
+.kd-path { fill: none; stroke-linecap: round; }
+.kd-path--ghost { stroke: rgba(255, 255, 255, 0.18); stroke-width: 26; }
+.kd-path--march { stroke: #fff; stroke-width: 15; stroke-dasharray: 0.1 40; animation: kd-march 1.1s linear infinite; filter: drop-shadow(0 0 8px rgba(255,255,255,.6)); }
+@keyframes kd-march { to { stroke-dashoffset: -40.1; } }
+
+/* ---------- the child's character ---------- */
+.kd-char { position: absolute !important; display: block !important; z-index: 20; }
+.kd-char__pad { position: absolute; left: 6%; right: 6%; bottom: 0; height: 22%; border-radius: 50%; background: radial-gradient(closest-side, currentColor, transparent); opacity: 0.85; }
+.kd-char__pad::after { content: ""; position: absolute; inset: 30% 18%; border-radius: 50%; background: rgba(255, 255, 255, 0.35); filter: blur(6px); }
+.kd-char__art { position: absolute; left: 0; right: 0; bottom: 8%; margin: 0 auto; width: 88%; height: 92%; object-fit: contain; object-position: 50% 100%; filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.35)); transform-origin: 50% 100%; animation: kd-breathe 2.6s ease-in-out infinite alternate; }
+.kd-char__art.is-hop { animation: kd-hop 0.62s cubic-bezier(.3,1.5,.5,1) both; }
+.kd-char--sleep .kd-char__art { animation: kd-sleep 3.4s ease-in-out infinite alternate; }
+.kd-char--sleep .kd-char__art.is-stir { animation: kd-stir 0.8s ease-in-out both; }
+@keyframes kd-breathe { from { transform: scale(1, 1); } to { transform: scale(1.025, 0.985); } }
+@keyframes kd-hop { 0% { transform: scale(1.15, 0.8); } 35% { transform: translateY(-24%) scale(0.92, 1.1) rotate(-5deg); } 70% { transform: translateY(0) scale(1.08, 0.92); } 100% { transform: none; } }
+@keyframes kd-sleep { from { transform: scale(1, 1); } to { transform: scale(1.02, 0.97); } }
+@keyframes kd-stir { 30% { transform: rotate(-3deg) scale(1.04, 0.96); } 60% { transform: rotate(2deg); } }
+
+/* ---------- idle: a toy, listening to the TV ---------- */
+.kd-idle { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(70% 60% at 50% 100%, color-mix(in srgb, currentColor 38%, #1d2346) 0%, #141834 55%, #090b1a 100%); }
+.kd-idle__sky i { position: absolute; border-radius: 50%; background: #f4f2ee; opacity: 0.55; animation: cx-blink 1.6s ease-in-out infinite alternate; }
+.kd-idle__hill { position: absolute; left: -10%; right: -10%; bottom: -380px; height: 560px; border-radius: 50%; background: radial-gradient(60% 40% at 50% 10%, color-mix(in srgb, currentColor 55%, #2b2350), #1a1733 80%); box-shadow: 0 -10px 60px color-mix(in srgb, currentColor 40%, transparent); }
+.kd-idle__path, .kd-travel__path { position: absolute; inset: 0; width: 1180px; height: 820px; pointer-events: none; z-index: 2; }
+.kd-idle__tv { position: absolute; left: 880px; top: 70px; z-index: 3; }
+.kd-idle__screen { fill: #34327a; animation: kd-screen 2.4s ease-in-out infinite alternate; }
+@keyframes kd-screen { from { fill-opacity: 0.6; } to { fill-opacity: 1; } }
+.kd-idle__glow { position: absolute; left: -60px; top: -60px; right: -60px; bottom: -40px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, currentColor 45%, transparent), transparent); z-index: -1; }
+.kd-idle__tv.is-ping { animation: kd-ping 0.5s cubic-bezier(.3,1.7,.5,1) both; }
+@keyframes kd-ping { 0% { transform: scale(1.14, 0.9); } 50% { transform: scale(0.96, 1.06); } 100% { transform: none; } }
+.kd-comet { position: absolute; left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; z-index: 4; pointer-events: none; box-shadow: 0 0 0 8px rgba(255,255,255,.5), 0 0 30px 10px rgba(255,255,255,.6); offset-rotate: 0deg; animation: kd-comet 0.85s cubic-bezier(.5,0,.6,1) both; }
+@keyframes kd-comet { from { offset-distance: 0%; transform: scale(0.6); } to { offset-distance: 100%; transform: scale(1.2); } }
+.kd-idle__me { left: 390px; top: 410px; }
+.kd-toy { position: absolute !important; bottom: 34px; width: 240px; height: 240px; border-radius: 50% !important; display: grid !important; place-items: center; z-index: 10; background: radial-gradient(closest-side, rgba(255,255,255,.14), rgba(255,255,255,.04)) !important; box-shadow: inset 0 0 0 4px rgba(255,255,255,.14); }
+.kd-toy--left { left: 40px; }
+.kd-toy--right { right: 40px; }
+.kd-toy svg { filter: drop-shadow(0 10px 18px rgba(0,0,0,.35)); }
+.kd-toy--left svg { animation: kd-twirl 3s ease-in-out infinite alternate; }
+.kd-toy--right svg { animation: kd-bob 2.2s ease-in-out infinite alternate; }
+.kd-toy svg.is-squash { animation: kd-squash 0.42s cubic-bezier(.3,1.7,.5,1) both; }
+@keyframes kd-twirl { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes kd-bob { from { transform: translateY(-6px); } to { transform: translateY(6px); } }
+
+/* ---------- travel: menu pause + switch, one journey ---------- */
+.kd-travel { position: absolute; inset: 0; overflow: hidden; }
+.kd-travel__bg { position: absolute; inset: -40px; filter: blur(24px) saturate(0.8); opacity: 0.55; }
+.kd-travel__tint { position: absolute; inset: 0; transition: background 0.8s; }
+.kd-travel__from, .kd-travel__to { position: absolute; top: 56px; width: 360px; height: 203px; border-radius: 32px; overflow: hidden; z-index: 3; box-shadow: 0 0 0 8px rgba(255,255,255,.9), 0 24px 60px rgba(0,0,0,.45); transition: left 0.9s cubic-bezier(.6,0,.2,1), top 0.9s cubic-bezier(.6,0,.2,1), width 0.9s cubic-bezier(.6,0,.2,1), height 0.9s cubic-bezier(.6,0,.2,1), border-radius 0.9s, box-shadow 0.9s, opacity 0.6s, filter 0.6s; }
+.kd-travel__from { left: 60px; animation: kd-fold 0.8s cubic-bezier(.6,0,.2,1) both; }
+@keyframes kd-fold { from { left: 0; top: 0; width: 1180px; height: 820px; border-radius: 0; box-shadow: none; } }
+.kd-travel--paused .kd-travel__from { filter: saturate(0.55) brightness(0.8); }
+.kd-travel__to { left: 760px; }
+.kd-travel__to.is-empty { background: rgba(255,255,255,.08); box-shadow: 0 0 0 8px rgba(255,255,255,.35), 0 24px 60px rgba(0,0,0,.35); animation: kd-glowbox 1.4s ease-in-out infinite alternate; }
+@keyframes kd-glowbox { to { box-shadow: 0 0 0 8px rgba(255,255,255,.6), 0 0 50px 14px rgba(255,255,255,.18); } }
+.kd-travel__twinkles i { position: absolute; width: 18px; height: 18px; background: #fff6e0; clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: cx-blink 1.2s ease-in-out infinite alternate; }
+.kd-travel--saving .kd-travel__to:not(.is-empty) { animation: kd-pop-in 0.6s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes kd-pop-in { from { transform: scale(0.6); opacity: 0; } }
+.kd-travel--cutover .kd-travel__to { animation: kd-glow 0.9s ease-in-out infinite alternate; }
+@keyframes kd-glow { from { box-shadow: 0 0 0 8px rgba(255,255,255,.9), 0 0 0 8px rgba(255, 255, 255, 0.5), 0 24px 60px rgba(0,0,0,.45); } to { box-shadow: 0 0 0 8px rgba(255,255,255,.9), 0 0 0 40px rgba(255, 255, 255, 0), 0 24px 60px rgba(0,0,0,.45); } }
+.kd-travel--following .kd-travel__to { left: 0; top: 0; width: 1180px; height: 820px; border-radius: 0; box-shadow: none; z-index: 4; }
+.kd-travel--following .kd-travel__from { opacity: 0; }
+.kd-travel__pause, .kd-travel__check { position: absolute; right: 14px; top: 14px; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; transition: transform 0.4s cubic-bezier(.3,1.6,.5,1), opacity 0.3s; }
+.kd-travel__pause { background: #fff6e0; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+.kd-travel__check { background: #ffd23f; box-shadow: 0 6px 0 #c99a00; transform: scale(0); opacity: 0; }
+.kd-travel--saving .kd-travel__pause, .kd-travel--cutover .kd-travel__pause, .kd-travel--following .kd-travel__pause { transform: scale(0); opacity: 0; }
+.kd-travel--saving .kd-travel__check, .kd-travel--cutover .kd-travel__check, .kd-travel--following .kd-travel__check { transform: scale(1); opacity: 1; }
+.kd-travel__walker { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 10; offset-rotate: 0deg; offset-anchor: 0 0; offset-distance: 21%; transition: offset-distance 1.3s cubic-bezier(.45,0,.3,1); }
+.kd-travel__walker .kd-char { left: -150px; top: -230px; transition: width 0.6s, height 0.6s, left 0.6s, top 0.6s; }
+.kd-travel--paused .kd-travel__walker .kd-char__art { animation: kd-wait 1.2s ease-in-out infinite alternate; }
+@keyframes kd-wait { from { transform: rotate(-4deg); } to { transform: rotate(4deg) translateY(-4px); } }
+.kd-travel--saving .kd-travel__walker { offset-distance: 30%; }
+.kd-travel--cutover .kd-travel__walker { offset-distance: 62%; }
+.kd-travel--cutover .kd-travel__walker .kd-char__art { animation: kd-walk 0.36s ease-in-out infinite alternate; }
+@keyframes kd-walk { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-30px) rotate(3deg); } }
+.kd-travel--following .kd-travel__walker { offset-distance: 100%; }
+.kd-travel--following .kd-travel__walker .kd-char { left: -120px; top: -150px; }
+.kd-travel .kd-travel__walker .kd-char__art.is-hop { animation: kd-hop 0.62s cubic-bezier(.3,1.5,.5,1) both; }
+
+/* ---------- asleep ---------- */
+.kd-asleep { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(60% 70% at 36% 70%, color-mix(in srgb, currentColor 22%, #0b0912), #060509 70%); }
+.kd-asleep__moon { position: absolute; left: 70px; top: 60px; width: 110px; height: 110px; border-radius: 50%; box-shadow: inset -26px 10px 0 0 #f3e7c4; opacity: 0.55; }
+.kd-asleep__glow { position: absolute; left: 50px; top: 230px; width: 700px; height: 560px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, currentColor 30%, transparent), transparent); }
+.kd-asleep__me { left: 110px; top: 250px; }
+.kd-asleep__me .kd-char__art { opacity: 0.8; filter: saturate(0.7) drop-shadow(0 18px 20px rgba(0,0,0,.4)); }
+.kd-asleep__me .kd-char__pad { opacity: 0.35; }
+.kd-asleep__bubbles { position: absolute; left: 560px; top: 210px; width: 200px; height: 220px; }
+.kd-asleep__bubbles i { position: absolute; left: 0; bottom: 0; border-radius: 50%; box-shadow: inset 0 0 0 4px rgba(233, 221, 255, 0.55); animation: kd-zz 2.7s ease-in infinite both; }
+@keyframes kd-zz { 0% { transform: translate(0, 0) scale(0.3); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(90px, -170px) scale(1); opacity: 0; } }
+.kd-asleep__charge { position: absolute; right: 70px; top: 340px; display: flex; align-items: center; gap: 6px; }
+.kd-asleep__plug { animation: kd-plug 1.4s ease-in-out infinite alternate; }
+@keyframes kd-plug { from { transform: translateX(-24px); opacity: 0.55; } to { transform: translateX(0); opacity: 1; } }
+.kd-asleep__cell { animation: cx-blink 1.1s ease-in-out infinite alternate; }
+
+/* ---------- in game ---------- */
+.kd-game { position: absolute; inset: 0; animation: kd-game-in 0.6s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes kd-game-in { from { opacity: 0; transform: scale(1.04); } }
+.kd-game .gk-me { animation: kd-land 0.8s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes kd-land { from { transform: translate(300px, -420px) scale(0.6); } }
+.kd-game--late .gk-me { animation: kd-land-late 1s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes kd-land-late { from { transform: translateY(-700px) scale(1.6); } 70% { transform: translateY(0) scale(1.1, 0.88); } }
+.kd-arrive { position: absolute; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
+.kd-arrive__halo { position: absolute; left: 340px; top: 430px; width: 500px; height: 500px; border-radius: 50%; animation: kd-halo 1.6s ease-out both; }
+@keyframes kd-halo { from { transform: scale(0.2); opacity: 1; } }
+.kd-arrive__ring { position: absolute; left: 590px; top: 720px; width: 0; height: 0; border-radius: 50%; border: 10px solid; }
+.kd-arrive__ring--a { animation: kd-arrive-ring 1.1s 0.6s ease-out both; }
+.kd-arrive__ring--b { border-color: #ffd23f; animation: kd-arrive-ring 1.1s 0.8s ease-out both; }
+@keyframes kd-arrive-ring { from { width: 0; height: 0; margin: 0; opacity: 1; } to { width: 700px; height: 700px; margin: -350px 0 0 -350px; opacity: 0; } }
+.kd-arrive__bit { position: absolute; top: 0; width: 28px; height: 12px; border-radius: 6px; animation: kd-confetti 1.5s cubic-bezier(.3,.6,.4,1) both; top: var(--rest); transform: rotate(var(--rot)); }
+@keyframes kd-confetti { from { top: 70%; transform: translateY(-520px) rotate(0) scale(1.4); } 40% { transform: translateY(-560px) rotate(200deg); } }
+
+/* ---------- Rocket Crew (bubblegum space) ---------- */
+.gk-rocket { position: absolute; inset: 0; overflow: hidden; color: #fff6e0; background: radial-gradient(55% 60% at 22% 20%, rgba(140, 70, 220, 0.6), transparent 70%), radial-gradient(50% 60% at 85% 70%, rgba(60, 150, 220, 0.4), transparent 70%), radial-gradient(90% 80% at 50% 50%, #2c1660, #170b33); }
+.gk-rocket__stars { position: absolute; inset: 0; background:
+  radial-gradient(2px 2px at 12% 30%, #fff, transparent), radial-gradient(2px 2px at 30% 12%, #fff, transparent), radial-gradient(3px 3px at 44% 64%, #ffd23f, transparent),
+  radial-gradient(2px 2px at 62% 22%, #fff, transparent), radial-gradient(2px 2px at 78% 40%, #fff, transparent), radial-gradient(3px 3px at 88% 14%, #ff9fd0, transparent),
+  radial-gradient(2px 2px at 8% 70%, #fff, transparent), radial-gradient(2px 2px at 92% 62%, #fff, transparent), radial-gradient(2px 2px at 54% 44%, #fff, transparent); }
+.gk-rocket__planet { position: absolute; left: -70px; top: -40px; opacity: 0.95; animation: kd-twirl 9s ease-in-out infinite alternate; }
+.gk-rocket__route { position: absolute; left: 230px; top: 40px; opacity: 0.85; }
+.gk-rocket__ship { position: absolute; left: 475px; top: 70px; filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); animation: kd-bob 1.6s ease-in-out infinite alternate; transform-origin: 50% 80%; }
+.gk-rocket__ship.is-boost { animation: gk-boost 0.9s cubic-bezier(.3,1.4,.5,1) both; }
+.gk-rocket__ship.is-wobble { animation: gk-wobble 0.5s ease-in-out both; }
+.gk-rocket__ship.is-twinkle { animation: gk-twinkle 0.6s ease-out both; }
+@keyframes gk-boost { 0% { transform: scale(0.9, 1.1); } 35% { transform: translateY(-60px) scale(0.95, 1.08); } 100% { transform: none; } }
+@keyframes gk-wobble { 25% { transform: rotate(-6deg); } 50% { transform: rotate(5deg); } 75% { transform: rotate(-3deg); } }
+@keyframes gk-twinkle { 0% { filter: drop-shadow(0 0 40px #ffd23f) brightness(1.4); } 100% { filter: drop-shadow(0 24px 40px rgba(0,0,0,.5)); } }
+.gk-rocket .rk-flame { transform-origin: 50% 0; animation: gk-flicker 0.18s ease-in-out infinite alternate; }
+@keyframes gk-flicker { from { transform: scaleY(0.88); } to { transform: scaleY(1.08); } }
+.gk-rocket__need { position: absolute; left: 526px; top: 408px; z-index: 5; width: 128px; height: 128px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 0 0 8px rgba(255,255,255,.9), 0 0 50px 10px rgba(255, 210, 63, .45); animation: kd-pop-in 0.5s cubic-bezier(.3,1.6,.5,1) both, gk-need 0.9s 0.5s ease-in-out infinite alternate; }
+.gk-rocket__need::before { content: ""; position: absolute; left: 44px; top: -34px; width: 40px; height: 30px; background: rgba(255,255,255,.9); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+@keyframes gk-need { to { transform: scale(1.08); } }
+.gk-cell { position: absolute !important; border-radius: 50% !important; display: grid !important; place-items: center; z-index: 10; box-shadow: 0 14px 0 rgba(0,0,0,.35), inset 0 -12px 0 rgba(0,0,0,.16), inset 0 0 0 6px rgba(255,255,255,.35); }
+.gk-cell--l1 { left: 36px; bottom: 34px; }
+.gk-cell--l2 { left: 250px; bottom: 210px; }
+.gk-cell--r1 { right: 36px; bottom: 34px; }
+.gk-cell--r2 { right: 250px; bottom: 210px; }
+.gk-cell.is-hot { outline: 10px solid #fff6e0; outline-offset: 8px; animation: gk-hot 0.8s ease-in-out infinite alternate; }
+@keyframes gk-hot { from { box-shadow: 0 14px 0 rgba(0,0,0,.35), inset 0 0 0 6px rgba(255,255,255,.5), 0 0 0 0 rgba(255, 246, 224, 0.8); } to { box-shadow: 0 14px 0 rgba(0,0,0,.35), inset 0 0 0 6px rgba(255,255,255,.5), 0 0 0 34px rgba(255, 246, 224, 0); } }
+.gk-me { left: 465px; top: 560px; }
+
+.gk-giant { position: absolute !important; bottom: 30px; width: 380px; height: 380px; border-radius: 50% !important; display: grid !important; place-items: center; z-index: 10; }
+.gk-giant--left { left: 30px; }
+.gk-giant--right { right: 30px; }
+.gk-giant--star { background: radial-gradient(closest-side, rgba(255, 210, 63, .35), rgba(255, 210, 63, .08) 70%, transparent) !important; }
+.gk-giant--star svg { filter: drop-shadow(0 14px 0 #b07a00) drop-shadow(0 0 30px rgba(255, 210, 63, .6)); animation: kd-twirl 2.4s ease-in-out infinite alternate; }
+.gk-giant--boost { background: radial-gradient(circle at 40% 32%, #ff9fcb, #ff5fa2 55%, #c92f78) !important; box-shadow: 0 16px 0 #8c1e55, inset 0 0 0 10px rgba(255,255,255,.3); width: 330px; height: 330px; bottom: 50px; }
+.gk-giant--boost svg { filter: drop-shadow(0 6px 0 rgba(0,0,0,.2)); }
+.gk-giant--boost svg:not(.is-squash) { animation: gk-flicker 0.4s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.gk-giant svg.is-squash { animation: kd-squash 0.42s cubic-bezier(.3,1.7,.5,1) both; }
+.gk-rocket__ship--little { left: 475px; top: 60px; }
+
+/* ---------- Bake Shop (soft-toy bakery) ---------- */
+.gk-bake { position: absolute; inset: 0; overflow: hidden; background: #fbe3cf; color: #6b3a22; }
+.gk-bake__wall { position: absolute; inset: 0 0 260px 0; background: linear-gradient(180deg, #f6c9b8, #f9d9c4 70%, #fbe3cf); }
+.gk-bake__window { position: absolute; left: 60px; top: 50px; width: 230px; height: 200px; border-radius: 22px; background: linear-gradient(180deg, #ffe9e2, #f7c0c6); box-shadow: inset 0 0 0 14px #fff8ea, 0 0 0 6px #e7a3a8; }
+.gk-bake__window::after { content: ""; position: absolute; left: 50%; top: 14px; bottom: 14px; width: 12px; margin-left: -6px; background: #fff8ea; box-shadow: -102px 72px 0 -0px transparent; }
+.gk-bake__shelf { position: absolute; left: 340px; top: 150px; width: 0; height: 0; }
+.gk-bake__counter { position: absolute; left: 0; right: 0; bottom: 0; height: 290px; background: linear-gradient(180deg, #e2a66b 0, #d18f55 22px, #fff1d6 22px, #fff1d6 30px, #f8e2bf 30px); box-shadow: 0 -8px 0 #c47f45; }
+.gk-bake__guest { position: absolute; right: 40px; top: 40px; width: 360px; height: 330px; }
+.gk-bake__guest img { position: absolute; right: 0; bottom: 0; height: 300px; filter: drop-shadow(0 12px 14px rgba(110, 50, 20, .25)); }
+.gk-bake__dream { position: absolute; left: -20px; top: 0; width: 190px; height: 160px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 0 0 8px rgba(255,255,255,.55), 0 10px 0 rgba(200, 120, 90, .15); animation: kd-bob 2s ease-in-out infinite alternate; z-index: 2; }
+.gk-bake__dream::after { content: ""; position: absolute; right: 6px; bottom: -26px; width: 36px; height: 36px; border-radius: 50%; background: #fff; }
+.gk-bake__plate { position: absolute; left: 440px; top: 210px; transform-origin: 50% 100%; }
+.gk-bake__plate::after { content: ""; position: absolute; left: -30px; right: -30px; bottom: 10px; height: 44px; border-radius: 50%; background: #fff; z-index: -1; box-shadow: 0 8px 0 #ecd0a8; }
+.gk-bake__plate.is-pop { animation: kd-squash 0.5s cubic-bezier(.3,1.7,.5,1) both; }
+.gk-bake__plate.is-baked { filter: drop-shadow(0 0 40px #ffd23f) brightness(1.08); }
+.gk-bin { position: absolute !important; width: 210px; height: 190px; border-radius: 48px !important; z-index: 10; display: grid !important; place-items: center; background: #fff8ea !important; box-shadow: inset 0 0 0 7px #f3d9b0, 0 12px 0 #d7ae78; }
+.gk-bin > span { display: grid; place-items: center; }
+.gk-bin--l1 { left: 34px; bottom: 30px; }
+.gk-bin--l2 { left: 34px; bottom: 250px; width: 190px; }
+.gk-bin--r1 { right: 34px; bottom: 30px; }
+.gk-bin--r2 { right: 34px; bottom: 250px; width: 190px; }
+.gk-bin--oven { background: #ffe5d0 !important; }
+.gk-bin.is-hot { outline: 10px solid #f46a8e; outline-offset: 6px; transform: translateY(-8px); animation: gk-hot-pink 0.8s ease-in-out infinite alternate; }
+@keyframes gk-hot-pink { from { box-shadow: inset 0 0 0 8px #f46a8e, 0 12px 0 #d7ae78, 0 0 0 0 rgba(244, 106, 142, 0.6); } to { box-shadow: inset 0 0 0 8px #f46a8e, 0 12px 0 #d7ae78, 0 0 0 30px rgba(244, 106, 142, 0); } }
+.gk-bake .gk-me { top: 540px; }
+.gk-bake .gk-me .kd-char__pad { opacity: 0.55; }
+
+.gk-bake__cake { position: absolute; left: 420px; top: 230px; transform-origin: 50% 100%; }
+.gk-bake__cake.is-pop { animation: kd-squash 0.5s cubic-bezier(.3,1.7,.5,1) both; }
+.gk-giant--shaker, .gk-giant--berry { background: radial-gradient(closest-side, #fff8ea, #fff8eacc 70%, transparent) !important; box-shadow: none; width: 360px; height: 360px; }
+.gk-giant--shaker > span { display: inline-block; animation: g-wiggle 1.4s ease-in-out infinite alternate; }
+.gk-giant--shaker > span.is-shake { animation: kd-shake 0.5s ease-in-out both; }
+.gk-giant--berry > span { display: inline-block; animation: kd-bob 1.8s ease-in-out infinite alternate; }
+.gk-giant--berry > span.is-squash { animation: kd-squash 0.42s cubic-bezier(.3,1.7,.5,1) both; }
+.gk-giant--shaker::before, .gk-giant--berry::before { content: ""; position: absolute; inset: 14px; border-radius: 50%; box-shadow: inset 0 0 0 8px #f9c6d3; animation: kd-breath-ring 1.6s ease-in-out infinite alternate; }
+@keyframes kd-breath-ring { to { transform: scale(1.05); opacity: 0.6; } }
