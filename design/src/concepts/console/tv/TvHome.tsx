@@ -5,7 +5,7 @@ import { gameById } from "../../../world";
 import { activities } from "../activities";
 import { PRESENT, type S } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
-import { GameArt } from "../ui/GameArt";
+import { TvArt } from "./TvArt";
 import { PhoneIcon, TabletIcon } from "../ui/Icons";
 
 export function TvHome({ s }: { s: S }) {
@@ -17,7 +17,7 @@ export function TvHome({ s }: { s: S }) {
   return (
     <div className="tv-home">
       <div className="tv-home__bg" key={focus.gameId}>
-        <GameArt gameId={focus.gameId} />
+        <TvArt gameId={focus.gameId} />
       </div>
       <div className="tv-home__shade" />
       <header className="tv-home__top">
@@ -52,7 +52,7 @@ export function TvHome({ s }: { s: S }) {
         {shelf.map((a) => (
           <div key={a.id} className={`tv-shelf__tile ${a === focus ? "is-focus" : ""}`}>
             <div className="tv-shelf__art">
-              <GameArt gameId={a.gameId} alt />
+              <TvArt gameId={a.gameId} />
             </div>
             {a === focus ? null : <span className="tv-shelf__label">{gameById(a.gameId).name}</span>}
           </div>

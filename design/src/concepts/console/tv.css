@@ -113,3 +113,4 @@
 .ct-cut--following .ct-cut__mark { opacity: 0; transition: opacity 0.5s; }
 .ct-play__zoom.is-landing { animation: ct-land 4s var(--ct-move) both; }
 @keyframes ct-land { 0%, 72% { transform: scale(var(--ct-z, 1)); } 100% { transform: none; } }
+.tv-shelf__art { position: relative; }
