@@ -242,3 +242,31 @@
 .dv-fields--claims td:first-child { width: 128px; }
 .dv-then li { font-size: 14px; }
 .dv-then { gap: 8px; padding-top: 4px; }
+
+/* One game, three tiers */
+.dv-matrix { margin-top: 20px; display: grid; gap: 0; border-radius: 18px; background: var(--bone); padding: 6px 18px; }
+.dv-matrix__row { display: grid; grid-template-columns: 128px repeat(3, 1fr); gap: 18px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.dv-matrix__row:last-child { border-bottom: 0; }
+.dv-matrix__row--head { align-items: start; padding: 12px 0 14px; }
+.dv-matrix__col { display: grid; gap: 4px; justify-items: start; }
+.dv-matrix__col b { font-size: 19px; font-weight: 900; letter-spacing: -0.02em; margin-top: 4px; }
+.dv-matrix__col > span:last-child { font-size: 14px; color: var(--ink2); }
+.dv-matrix__label { display: grid; gap: 1px; }
+.dv-matrix__label b { font-size: 15px; }
+.dv-matrix__label span { font-size: 13px; color: var(--ink3); }
+.dv-matrix__cell { min-width: 0; display: block; }
+.dv-matrix__row--home .dv-matrix__cell, .dv-matrix__row--push .dv-matrix__cell { align-self: stretch; display: grid; align-content: center; }
+.dv-matrix .dv-join { grid-template-columns: 1fr 1fr; }
+.dv-matrix .dv-join li > span > span { font-size: 12px; }
+.dv-empty { display: grid; align-items: center; min-height: 64px; padding: 10px 14px; border-radius: 14px; border: 1.5px dashed #b9b5ac; font-size: 14px; color: var(--ink2); line-height: 1.4; }
+.dv-live--compact { display: grid; grid-template-columns: 112px 1fr; }
+.dv-live--compact .dv-live__art { height: 100%; min-height: 108px; }
+.dv-live--compact .dv-live__badge { left: 6px; top: 6px; font-size: 12px; padding: 3px 7px; }
+.dv-live--compact .dv-live__plate { padding: 8px 10px; }
+.dv-live--compact .dv-live__plate b { font-size: 15px; }
+.dv-live--compact .dv-live__plate > span:nth-child(3) { font-size: 13px; line-height: 1.35; }
+.dv-matrix__foot { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 6px; }
+.dv-matrix { margin-top: 16px; }
+.dv-matrix__row { padding: 10px 0; }
+.dv-matrix__row--head { padding: 10px 0 12px; }
+.dv-matrix__foot .dv-p { font-size: 14px; }

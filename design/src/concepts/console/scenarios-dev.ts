@@ -10,4 +10,5 @@ export const devScenarios: Scenario<S>[] = [
   { id: "add-game.04-docs-instances", label: "Docs: Tier 2, the instance POST (Rocket Crew paused for Bake Shop)", flow: "add-game", state: "default", devices: ["desktop"], build: () => devState("instances") },
   { id: "add-game.05-docs-tv", label: "Docs: the TV page contract", flow: "add-game", state: "default", devices: ["desktop"], build: () => devState("casting") },
   { id: "add-game.06-docs-kids", label: "Docs: kid devices (roles with audience, no words)", flow: "add-game", state: "default", devices: ["desktop"], build: () => devState("kids") },
+  { id: "add-game.07-tiers-in-library", label: "Bake Shop at Tier 0 / 1 / 2 on the family's Home, Library, iPads and lock screen", flow: "add-game", state: "default", devices: ["desktop"], build: () => devState("library") },
 ];

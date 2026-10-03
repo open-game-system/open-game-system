@@ -7,6 +7,7 @@ import { Casting } from "./docs/Casting";
 import { Identity } from "./docs/Identity";
 import { Instances } from "./docs/Instances";
 import { Kids } from "./docs/Kids";
+import { LibraryTiers } from "./docs/LibraryTiers";
 import { Manifest } from "./docs/Manifest";
 import { Overview } from "./docs/Overview";
 import { initialPage, type DevPage } from "./pages";
@@ -26,6 +27,8 @@ function Page({ page, go }: { page: DevPage; go: (p: DevPage) => void }) {
       return <Casting go={go} />;
     case "kids":
       return <Kids go={go} />;
+    case "library":
+      return <LibraryTiers go={go} />;
     default:
       return <Overview go={go} />;
   }

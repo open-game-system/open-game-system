@@ -77,7 +77,7 @@ export function JoinByName({ gameId }: { gameId: string }) {
             <span>
               <b>{p.name}</b>
               <span>
-                {dev?.name ?? "iPad"} · {role?.label ?? "Player"}
+                {dev ? "iPad" : "Phone"} · {role?.label ?? "Player"}
               </span>
             </span>
           </li>
@@ -88,10 +88,10 @@ export function JoinByName({ gameId }: { gameId: string }) {
 }
 
 /** Tier 2: the instance the game reported, as a live card on Home. */
-export function LiveCard({ gameId, badge, title, detail, seats, live = false }: { gameId: string; badge: string; title: string; detail: string; seats: string[]; live?: boolean }) {
+export function LiveCard({ gameId, badge, title, detail, seats, live = false, compact = false }: { gameId: string; badge: string; title: string; detail: string; seats: string[]; live?: boolean; compact?: boolean }) {
   const g = gameById(gameId);
   return (
-    <article className="dv-live">
+    <article className={`dv-live ${compact ? "dv-live--compact" : ""}`}>
       <div className="dv-live__art">
         <GameArt gameId={gameId} alt />
         <span className={`dv-live__badge ${live ? "is-live" : ""}`}>
