@@ -52,7 +52,8 @@ async function main() {
             }
             if (step.mark) await mark(step.mark, { device: step.device, bot: step.bot });
             await page.waitForTimeout(500);
-            await loc.click({ timeout: 3000 });
+            // force: looping idle animations never "settle", which would time out an actionability wait.
+            await loc.click({ timeout: 3000, force: true });
             await page.waitForTimeout(step.wait ?? 1400);
           }
           await page.waitForTimeout(1200);

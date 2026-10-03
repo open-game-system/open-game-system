@@ -59,7 +59,7 @@ export const COUCH: Instance[] = [
       { label: "Baker", householdId: H, personIds: ["juneau"], color: "#e08a1e" },
       { label: "Littlest helper", householdId: H, personIds: ["ava"], color: "#9b5fc0" },
     ],
-    updatedAt: "2026-09-30T18:41:00-07:00",
+    updatedAt: "2026-09-29T18:41:00-07:00",
     resumeUrl: "https://bake-shop.jonathanrmumm.workers.dev/?resume=bs-1",
     save: { version: 2, summary: "Day 4 · recipe book 11 pages · 3 customers' favourites", bytes: 1880 },
   },

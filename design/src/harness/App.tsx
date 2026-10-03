@@ -20,15 +20,13 @@ function Fail({ message }: { message: string }) {
   return <div style={{ padding: 40, font: "600 28px system-ui", color: "#b00020" }}>Scenario error: {message}</div>;
 }
 
-function useConceptCss(concept: RegisteredConcept | undefined) {
-  useEffect(() => {
-    if (!concept?.css) return;
-    const style = document.createElement("style");
-    style.dataset.concept = concept.id;
-    style.textContent = concept.css;
-    document.head.appendChild(style);
-    return () => style.remove();
-  }, [concept]);
+/** Injects the concept's CSS synchronously, before any child acknowledges its scenario. */
+function injectConceptCss(concept: RegisteredConcept | undefined) {
+  if (!concept?.css || document.querySelector(`style[data-concept="${concept.id}"]`)) return;
+  const style = document.createElement("style");
+  style.dataset.concept = concept.id;
+  style.textContent = concept.css;
+  document.head.appendChild(style);
 }
 
 function Single({ concept, scenarioId, device, shot }: { concept: RegisteredConcept; scenarioId: string; device: Device; shot: boolean }) {
@@ -51,7 +49,7 @@ export function App() {
   const device = params.get("device");
   const shot = params.get("shot") === "1";
   const concept = conceptById(conceptId);
-  useConceptCss(concept);
+  injectConceptCss(concept);
   const [, force] = useState(0);
   useEffect(() => {
     document.documentElement.classList.toggle("shot", shot);

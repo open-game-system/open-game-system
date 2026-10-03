@@ -39,13 +39,37 @@ async function probe(page: Page): Promise<Probe> {
       return r.right > rb.left && r.bottom > rb.top && r.left < rb.right && r.top < rb.bottom;
     };
     const texts: TextBox[] = [];
+    // Scrolling content may extend past a scroll container's edge: that's not clipping.
+    const inScroller = (el: Element) => {
+      for (let p = el.parentElement; p && p !== root; p = p.parentElement) {
+        const o = getComputedStyle(p);
+        if (/(auto|scroll)/.test(o.overflowY + o.overflowX)) return true;
+      }
+      return false;
+    };
+    // Text under a modal scrim, sheet or banner is covered, not low-contrast: skip it.
+    const covered = (el: Element, r: DOMRect) => {
+      if (el.closest("[inert], [aria-hidden=true]")) return true;
+      const cx = Math.min(Math.max(r.left + r.width / 2, rb.left + 1), rb.right - 1);
+      const cy = Math.min(Math.max(r.top + r.height / 2, rb.top + 1), rb.bottom - 1);
+      const top = document.elementFromPoint(cx, cy);
+      return !!top && top !== el && !el.contains(top) && !top.contains(el);
+    };
     for (const el of root.querySelectorAll<HTMLElement>("*")) {
-      const own = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent ?? "").join("").trim();
+      const nodes = [...el.childNodes].filter((n) => n.nodeType === 3 && (n.textContent ?? "").trim());
+      const own = nodes.map((n) => n.textContent ?? "").join("").trim();
       if (!own || !visible(el)) continue;
-      const r = el.getBoundingClientRect();
+      // Measure the text's own box (not the button around it), so the ring samples what the glyphs sit on.
+      const range = document.createRange();
+      const first = nodes[0], last = nodes[nodes.length - 1];
+      if (!first || !last) continue;
+      range.setStartBefore(first);
+      range.setEndAfter(last);
+      const r = range.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1 || covered(el, r)) continue;
       const cs = getComputedStyle(el);
       const clipped = (cs.overflow !== "visible" || cs.textOverflow === "ellipsis") && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 2);
-      const offscreen = r.left < rb.left - 1 || r.right > rb.right + 1 || r.top < rb.top - 1 || r.bottom > rb.bottom + 1;
+      const offscreen = !inScroller(el) && (r.left < rb.left - 1 || r.right > rb.right + 1 || r.top < rb.top - 1 || r.bottom > rb.bottom + 1);
       texts.push({
         text: own.slice(0, 60), x: r.left - rb.left, y: r.top - rb.top, w: r.width, h: r.height,
         color: cs.color, size: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400,

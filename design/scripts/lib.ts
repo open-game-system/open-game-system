@@ -87,7 +87,11 @@ export async function waitForAck(page: Page, expected: string): Promise<void> {
 }
 
 export async function settle(page: Page): Promise<void> {
+  await page.waitForTimeout(400);
   await page.evaluate(async () => {
+    // @import'd font CSS can arrive after fonts.ready first resolves: wait for every face that's loading.
+    await document.fonts.ready;
+    await Promise.all([...document.fonts].filter((f) => f.status === "loading").map((f) => f.loaded.catch(() => undefined)));
     await document.fonts.ready;
     await Promise.all([...document.images].map((i) => (i.complete ? Promise.resolve() : i.decode().catch(() => undefined))));
   });
