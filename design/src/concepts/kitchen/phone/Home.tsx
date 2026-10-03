@@ -19,15 +19,16 @@ export function Home({ s, store }: { s: S; store: Store<S> }) {
         <header className="pl-home-head">
           <div>
             <Wordmark />
-            <h1 className="pl-h1">The Mumms</h1>
-            <p className="pl-sub">Friday, {s.clock} pm</p>
+            <h1 className="pl-h1">
+              The Mumms <span className="pl-h1-when">Friday {s.clock} pm</span>
+            </h1>
           </div>
           <button className="pl-btn pl-btn--quiet" data-bot="family" onClick={() => store.update((x) => ({ ...x, phone: "family" }))}>
             <span> Family</span>
           </button>
         </header>
 
-        <Section title="On the couch">
+        <Section title="On the couch tonight" className="pl-section--couch">
           <div className="pl-couch">
             {people.map((p, i) => (
               <PlaceCard key={p.id} person={p} line={<DeviceLine personId={p.id} />} delay={i * 60} />

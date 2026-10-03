@@ -4,14 +4,19 @@ export const flows: Flow[] = [
   {
     id: "swap",
     flow: "swap",
-    label: "Rocket Crew → Bake Shop on every device: 2 taps, zero on the iPads",
+    label: "Rocket Crew → Bake Shop on every device: 2 taps on the phone, none on the iPads",
     start: "swap.01-mid-game",
     steps: [
       { device: "phone", bot: "switch-game", mark: "Dad taps Switch: the game keeps running behind the sheet" },
-      { device: "phone", bot: "pick-bake-shop", mark: "Bake Shop, day 4: seats already filled, so one tap swaps", wait: 6200 },
-      { device: "ipad", bot: "bake-strawberry", mark: "Juneau's iPad followed by itself: he frosts straight away", wait: 1800 },
-      { device: "phone", bot: "undo", mark: "Undo: back to Rocket Crew, mission 6 exactly as it was", wait: 6000 },
+      { device: "phone", bot: "pick-bake-shop", mark: "Bake Shop, day 4: seats already filled, so one tap swaps. Saved, cut over, iPads follow.", wait: 7500 },
     ],
+  },
+  {
+    id: "swap-undo",
+    flow: "swap",
+    label: "Changed your mind: one tap back to Rocket Crew, mission 6 exactly as it was",
+    start: "swap.06-bake-shop",
+    steps: [{ device: "phone", bot: "undo", mark: "Back to Rocket Crew: Bake Shop saves at day 4, the iPads follow back", wait: 7000 }],
   },
   {
     id: "word-duel",

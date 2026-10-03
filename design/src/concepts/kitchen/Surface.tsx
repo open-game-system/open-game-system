@@ -10,6 +10,7 @@ import { DuelBoard } from "./duel/Board";
 import { Tv } from "./tv/Tv";
 import { Ipad } from "./ipad/Ipad";
 import { Conductor } from "./Conductor";
+import { Lock } from "./phone/Lock";
 
 export function Surface({ device, store, shot }: SurfaceProps<S>) {
   const s = useStore(store);
@@ -33,6 +34,8 @@ function Phone({ s, store }: { s: S; store: SurfaceProps<S>["store"] }) {
       return <InGame s={s} store={store} />;
     case "duels":
       return <DuelList s={s} store={store} />;
+    case "lock":
+      return <Lock s={s} store={store} />;
     case "duel":
       return <DuelBoard s={s} store={store} />;
     default:

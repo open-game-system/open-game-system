@@ -31,6 +31,7 @@ export const scenarios: Scenario<S>[] = [
   { id: "swap.12-undone", label: "Mission 6 resumed exactly where it was", flow: "swap", state: "undone", devices: ["phone", "tv", "ipad"], build: () => base({ phone: "game", tonight: { kind: "playing", gameId: RC, after: { from: BS, undone: true } } }) },
 
   // Word Duel.
+  { id: "word-duel.00-push", label: "Nana's move arrives: one push, grown-up phone only", flow: "word-duel", state: "default", devices: ["phone"], build: () => base({ phone: "lock", clock: "6:47" }) },
   { id: "word-duel.01-list", label: "Word Duel: your move ×2, their move ×3, finished and closed", flow: "word-duel", state: "default", devices: ["phone"], build: () => base({ phone: "duels" }) },
   { id: "word-duel.02-nana", label: "Nana's game: she played QUILT", flow: "word-duel", state: "default", devices: ["phone"], build: () => base({ phone: "duel", openDuel: "wd-1" }) },
   { id: "word-duel.03-placing", label: "Placing LOFT down from the L", flow: "word-duel", state: "partial", devices: ["phone"], build: () => base({ phone: "duel", openDuel: "wd-1", placed: ["O", "F", "T"] }) },

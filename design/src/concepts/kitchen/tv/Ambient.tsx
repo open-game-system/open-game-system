@@ -24,6 +24,7 @@ export function Ambient({ clock }: { clock: string }) {
           <PlaceCard key={p.id} person={p} size="tv" line={p.band === "grownup" ? "Phone" : "iPad"} delay={i * 120} />
         ))}
       </div>
+      <p className="pl-amb-hint">Pick a game on Jonathan's phone. The iPads will follow.</p>
       {ready && juneau?.portrait && (
         <div className="pl-amb-note">
           <Pin className="pl-amb-pin" size={34} />

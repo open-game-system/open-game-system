@@ -11,7 +11,7 @@ export type Tonight =
 
 export type SwitchStep = "saving" | "cutover" | "following";
 
-export type PhoneScreen = "home" | "first-run" | "family" | "game" | "duels" | "duel";
+export type PhoneScreen = "home" | "first-run" | "family" | "game" | "duels" | "duel" | "lock";
 export type Sheet = "switcher" | "new-duel" | null;
 
 export interface S {

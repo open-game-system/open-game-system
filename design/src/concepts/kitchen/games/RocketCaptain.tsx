@@ -19,6 +19,18 @@ export function RocketCaptain() {
         <span>Read to your crew</span>
         <p>“The yellow light is blinking! Fixers, find the yellow star.”</p>
       </div>
+      <div className="g-rc-course" aria-label="Course to Chilly Island">
+        <div className="g-rc-track">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span key={i} className={i < 3 ? "past" : i === 4 ? "goal" : "next"} />
+          ))}
+          <span className="g-rc-ship" />
+        </div>
+        <div className="g-rc-course-text">
+          <span>Next stop</span>
+          <b>Chilly Island</b>
+        </div>
+      </div>
       <div className="g-rc-pad">
         <button className="g-rc-steer" aria-label="Steer left" data-bot="rc-left">
           <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
