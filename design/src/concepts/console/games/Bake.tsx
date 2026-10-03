@@ -64,7 +64,7 @@ export function BakeHelper({ who }: { who: Person }) {
         ))}
       </div>
       <button className="g-bake__mash" aria-label="shake">
-        <Shaker size={420} />
+        <Shaker size={580} />
       </button>
       <div className="g-kid-seat">
         <Portrait person={who} size={86} />
