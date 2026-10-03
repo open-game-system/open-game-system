@@ -30,13 +30,14 @@ export const Sprinkles = ({ size = 120 }: P) => (
   </svg>
 );
 
+/** A piping bag of strawberry frosting, nozzle down. */
 export const Frosting = ({ size = 120 }: P) => (
   <svg width={size} height={size} viewBox="0 0 120 120" aria-hidden>
-    <path d="M18 92c0-10 10-16 22-16h40c12 0 22 6 22 16 0 8-8 12-16 12H34c-8 0-16-4-16-12z" fill="#ffc2d1" />
-    <path d="M28 76c0-10 10-16 20-16h24c10 0 20 6 20 16z" fill="#ffd3de" />
-    <path d="M38 60c0-10 10-16 22-16s22 6 22 16z" fill="#ffe3ea" />
-    <path d="M52 44c0-10 4-22 14-26-2 8 4 14 4 22 0 3-1 4-2 4z" fill="#fff1f4" />
-    <path d="M30 92h60M38 76h44" stroke="#f9a8bc" strokeWidth="3" strokeLinecap="round" />
+    <path d="M22 18h76L66 86h-12z" fill="#ffc2d1" stroke="#f08aa6" strokeWidth="3" strokeLinejoin="round" />
+    <path d="M22 18h76" stroke="#f08aa6" strokeWidth="8" strokeLinecap="round" />
+    <path d="M40 34l18 30M60 30l4 30M80 34l-12 26" stroke="#ffe3ea" strokeWidth="5" strokeLinecap="round" />
+    <path d="M53 84h14l-3 14h-8z" fill="#c9cfd6" stroke="#9aa3ad" strokeWidth="2" strokeLinejoin="round" />
+    <circle cx="60" cy="108" r="7" fill="#ffc2d1" />
   </svg>
 );
 

@@ -8,6 +8,9 @@ import { Phone } from "./phone/Phone";
 import { afterMove, with_, type S } from "./state";
 import { Tv } from "./tv/Tv";
 import { DUELS } from "../../world";
+import { warmFonts } from "./fonts";
+
+warmFonts();
 
 function Surface({ device, store, shot }: SurfaceProps<S>) {
   const s = useStore(store);

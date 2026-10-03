@@ -1,7 +1,7 @@
 // A kid's iPad: paired once ("this iPad is Juneau's"), it follows tonight's game by itself.
 // It shows the game's own kid controller, or (between games) the following story in pictures.
 import type { ComponentType } from "react";
-import { game } from "../session";
+import { game, personOf } from "../session";
 import type { S } from "../state";
 import { Asleep, Follow, Waiting } from "./Follow";
 import { KidSpine } from "./KidSpine";
@@ -40,11 +40,23 @@ function Split() {
     <div style={{ position: "absolute", inset: "0 0 96px 0" }}>
       <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: "38%", overflow: "hidden", transform: "rotate(180deg)" }}>
         <HelperPad compact />
+        <Badge id="ava" />
       </div>
       <div style={{ position: "absolute", left: 0, right: 0, top: "38%", height: 8, background: "var(--sp-ink)" }} />
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: "calc(38% + 8px)", overflow: "hidden" }}>
         <BakerPad compact />
+        <Badge id="juneau" />
       </div>
     </div>
+  );
+}
+
+/** Whose half this is, in pictures. */
+function Badge({ id }: { id: string }) {
+  const p = personOf(id);
+  return (
+    <span aria-hidden style={{ position: "absolute", left: 28, top: 28, width: 92, height: 92, borderRadius: "50%", overflow: "hidden", background: p.color, boxShadow: `0 0 0 6px #fffaf0, 0 0 0 11px ${p.color}` }}>
+      {p.portrait && <img src={p.portrait} alt="" style={{ width: "120%", height: "120%", objectFit: "cover", objectPosition: "50% 18%", margin: "-4% 0 0 -10%" }} />}
+    </span>
   );
 }

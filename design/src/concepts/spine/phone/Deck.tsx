@@ -21,7 +21,7 @@ export function Deck({ s, store, fromGame }: { s: S; store: Store<S>; fromGame: 
     store.update((x) => (g.shape === "async" ? { ...x, phone: "duel-list" } : g.id === x.current ? { ...x, phone: "game" } : { ...x, phone: "seats", pick: g.id }));
 
   return (
-    <div style={{ height: "100%", background: "var(--sp-paper)", padding: "50px 16px 0", animation: fromGame ? "sp-rise .42s cubic-bezier(.2,.8,.2,1) both" : undefined }}>
+    <div style={{ height: "100%", background: "var(--sp-paper)", padding: "44px 16px 0", animation: fromGame ? "sp-rise .42s cubic-bezier(.2,.8,.2,1) both" : undefined }}>
       <header style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
         <h1 style={{ margin: 0, font: "700 30px/1 var(--sp-font)", color: "var(--sp-ink)", letterSpacing: "-0.02em" }}>Tonight</h1>
         <span style={{ font: "500 14px var(--sp-font)", color: "var(--sp-ink-soft)" }}>Fri 7:10 pm</span>
@@ -31,7 +31,7 @@ export function Deck({ s, store, fromGame }: { s: S; store: Store<S>; fromGame: 
 
       <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
         {strips.map(({ g, st }) => (
-          <Bound key={g.id} g={g} bot={`cover-${g.id}`} onClick={() => open(g)} style={{ height: 84 }} label={`${g.name}: ${st.tag}`}>
+          <Bound key={g.id} g={g} bot={`cover-${g.id}`} onClick={() => open(g)} style={{ height: 80 }} label={`${g.name}: ${st.tag}`}>
             <span style={{ position: "absolute", right: 0, top: 0, bottom: 0, width: 132 }}>
               <CoverArt g={g} />
             </span>
@@ -76,14 +76,14 @@ function HeroCover({ g, s, store, onOpen }: { g: GameManifest; s: S; store: Stor
   const seats = seatsFor(g, instanceOf(g.id));
   const back = () => (st.kind === "live" ? store.update((x) => ({ ...x, phone: "game", tvHeld: false })) : onOpen());
   return (
-    <Bound g={g} style={{ height: 222 }}>
-      <span style={{ position: "absolute", inset: "0 0 104px 0" }}>
+    <Bound g={g} style={{ height: 210 }}>
+      <span style={{ position: "absolute", inset: "0 0 100px 0" }}>
         <CoverArt g={g} alt position="50% 40%" />
       </span>
       <span style={{ position: "absolute", left: 14, top: 12 }}>
         <Tag status={{ kind: st.kind, tag: st.kind === "live" ? `${st.tag} · Living room` : st.tag }} />
       </span>
-      <div style={{ position: "absolute", left: 14, right: 0, bottom: 0, height: 104, padding: "10px 12px 12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ position: "absolute", left: 14, right: 0, bottom: 0, height: 100, padding: "8px 12px 10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: "var(--g-display)", fontSize: 26, lineHeight: 1, color: "var(--g-on-ground)" }}>{g.name}</div>
           <div style={{ font: "600 14px/1.25 var(--g-body)", color: "var(--g-on-ground)", marginTop: 4 }}>{st.line}</div>

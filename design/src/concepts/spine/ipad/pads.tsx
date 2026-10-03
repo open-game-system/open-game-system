@@ -70,11 +70,9 @@ export function BakerPad({ compact }: { compact?: boolean }) {
           <span style={{ position: "absolute", left: -18 * s, bottom: -26 * s, width: 34 * s, height: 34 * s, borderRadius: "50%", background: "#fffaf0" }} />
         </div>
       </div>
-      {!compact && (
-        <div style={{ display: "grid", placeItems: "center", marginTop: -40 }}>
-          <Cupcake size={300} />
-        </div>
-      )}
+      <div style={{ display: "grid", placeItems: compact ? "center end" : "center", padding: compact ? "0 110px 0 0" : 0, marginTop: compact ? -150 : -40 }}>
+        <Cupcake size={compact ? 190 : 300} />
+      </div>
       <div style={{ position: "absolute", left: 0, right: 0, bottom: compact ? 30 : 140, display: "flex", justifyContent: "center", gap: 30 }}>
         <Pad bot="kid-berry" size={220 * (compact ? 0.82 : 1)} bg="#fffaf0" glow style={{ "--glow": "rgba(244,106,142,.8)" }}>
           <Strawberry size={150 * (compact ? 0.82 : 1)} />
