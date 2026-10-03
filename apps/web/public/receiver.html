@@ -95,6 +95,15 @@
      *
      * Legacy params:
      *   streamUrl       — Alias for streamServerUrl
+     *
+     * Sender messages (urn:x-cast:org.opengame.view):
+     *   LOAD_VIEW {viewUrl, streamServerUrl} — the cloud renders viewUrl on a GPU and streams it (phones).
+     *   PEER_OFFER {sdp, iceServers}         — a laptop streams its own tab straight to this TV over
+     *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR).
+     *   PEER_STOP                            — the laptop stopped streaming.
+     *   GET_STATE                            — diagnostics.
+     * To senders: REQUEST_VIEW {accepts: ['view', 'peer']} until something is showing.
+     * ?signal=test replaces Cast messaging with window.__ogsSignalIn/__ogsSignalOut (desktop tests).
      */
 
     // Starting a stream (cloud browser launch + page load + SFU) takes ~45–90s; only give up well after that.
@@ -117,6 +126,7 @@
     /** How long to wait for the sender to say what to show before falling back to the default. */
     const VIEW_WAIT_MS = 8000;
     const PLAYOUT_BUFFER_MS = 200;
+    const PEER_PLAYOUT_BUFFER_MS = 60;
     const NO_SENDER_STOP_MS = 20 * 60 * 1000;
     const MAX_CAST_MS = 3 * 60 * 60 * 1000;
     let receiverSupports = null;
@@ -219,6 +229,101 @@
       }
     }
 
+    /** Plays incoming tracks (from the SFU or straight from a laptop) in the <video>. */
+    function attachTrack(event) {
+      console.log('[Receiver] Received remote track:', event.track.kind);
+      // Playout buffer so a packet retransmitted after Wi-Fi loss arrives in time (see ?buffer=).
+      // A laptop on the same Wi-Fi retransmits in a few ms, so its stream needs far less buffer.
+      const defaultMs = currentViewUrl === 'laptop' ? PEER_PLAYOUT_BUFFER_MS : PLAYOUT_BUFFER_MS;
+      const bufferMs = Number(new URLSearchParams(location.search).get('buffer') ?? defaultMs);
+      if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = bufferMs;
+      else if ('playoutDelayHint' in event.receiver) event.receiver.playoutDelayHint = bufferMs / 1000;
+      receiverSupports = { jitterBufferTarget: 'jitterBufferTarget' in event.receiver, playoutDelayHint: 'playoutDelayHint' in event.receiver };
+      clearConnectionTimeout();
+      isConnected = true;
+
+      // Only set srcObject once — multiple tracks arrive rapidly
+      if (!video.srcObject) {
+        video.srcObject = event.streams[0] || new MediaStream([event.track]);
+        // Starts muted (autoplay rules), then unmutes: the game's sound rides in this stream.
+        // Cast devices allow unmuted playback; if a browser refuses, stay muted rather than stop.
+        video.play()
+          .then(() => { video.muted = false; return video.play(); })
+          .catch(e => { console.warn('[Receiver] Unmuted play refused, staying muted:', e); video.muted = true; video.play().catch(() => {}); });
+      } else if (event.track.kind === 'audio' && video.srcObject instanceof MediaStream) {
+        // Add audio track to existing stream
+        video.srcObject.addTrack(event.track);
+      }
+      hideOverlay();
+    }
+
+    function newPeerConnection(iceServers) {
+      const conn = new RTCPeerConnection({ iceServers });
+      window.receiverPc = conn; // for stream checks (inbound audio/video stats)
+      conn.ontrack = attachTrack;
+      conn.onconnectionstatechange = () => {
+        console.log('[Receiver] Connection state:', conn.connectionState);
+        if (conn !== pc) return;
+        if (conn.connectionState === 'connected') {
+          isConnected = true;
+          hideOverlay();
+        } else if (conn.connectionState === 'disconnected' || conn.connectionState === 'failed') {
+          isConnected = false;
+          // 'disconnected' can recover on its own; only a failed connection ends the heartbeat.
+          if (conn.connectionState === 'failed') stopHeartbeat();
+          setStatus('Cast session ended', false);
+        }
+      };
+      return conn;
+    }
+
+    function iceGathered(conn, maxMs) {
+      if (conn.iceGatheringState === 'complete') return Promise.resolve();
+      return new Promise((resolve) => {
+        const check = () => {
+          if (conn.iceGatheringState === 'complete') {
+            conn.removeEventListener('icegatheringstatechange', check);
+            resolve();
+          }
+        };
+        conn.addEventListener('icegatheringstatechange', check);
+        setTimeout(resolve, maxMs);
+      });
+    }
+
+    /**
+     * Laptop cast: a laptop's Chrome renders the game itself and streams its tab straight to this
+     * TV (WebRTC over the LAN; TURN only as a fallback). No cloud browser, no GPU, no SFU: the offer
+     * and answer travel over the Cast message channel. `reply` sends to the laptop that offered.
+     */
+    async function startPeer(offer, reply) {
+      if (started) {
+        cleanup();
+        video.srcObject = null;
+      }
+      isConnected = false;
+      launch = null;
+      started = true;
+      currentViewUrl = 'laptop';
+      console.log('[Receiver] Laptop stream offered');
+      setStatus('Connecting to the laptop...');
+      startConnectionTimeout();
+      try {
+        const conn = newPeerConnection(Array.isArray(offer.iceServers) ? offer.iceServers : []);
+        pc = conn;
+        await conn.setRemoteDescription({ type: 'offer', sdp: offer.sdp });
+        await conn.setLocalDescription(await conn.createAnswer());
+        await iceGathered(conn, 2000);
+        if (conn !== pc) return; // a newer offer replaced this one
+        reply({ type: 'PEER_ANSWER', sdp: conn.localDescription.sdp });
+      } catch (err) {
+        console.error('[Receiver] Laptop stream failed:', err);
+        clearConnectionTimeout();
+        setStatus('Unable to connect to the laptop', false);
+        reply({ type: 'PEER_ERROR', message: String(err && err.message || err) });
+      }
+    }
+
     async function startReceiving() {
       const { streamServerUrl, viewUrl, publisherSessionId } = getLaunchParams();
 
@@ -311,46 +416,7 @@
         const { subscriberSessionId, sessionDescription: sfuOffer } = subData;
 
         // Step 4: Create RTCPeerConnection and set remote offer
-        pc = new RTCPeerConnection({ iceServers });
-        window.receiverPc = pc; // for stream checks (inbound audio/video stats)
-
-        pc.ontrack = (event) => {
-          console.log('[Receiver] Received remote track:', event.track.kind);
-          // Playout buffer so a packet retransmitted after Wi-Fi loss arrives in time (see ?buffer=).
-          const bufferMs = Number(new URLSearchParams(location.search).get('buffer') ?? PLAYOUT_BUFFER_MS);
-          if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = bufferMs;
-          else if ('playoutDelayHint' in event.receiver) event.receiver.playoutDelayHint = bufferMs / 1000;
-          receiverSupports = { jitterBufferTarget: 'jitterBufferTarget' in event.receiver, playoutDelayHint: 'playoutDelayHint' in event.receiver };
-          clearConnectionTimeout();
-          isConnected = true;
-
-          // Only set srcObject once — multiple tracks arrive rapidly
-          if (!video.srcObject) {
-            video.srcObject = event.streams[0] || new MediaStream([event.track]);
-            // Starts muted (autoplay rules), then unmutes: the game's sound rides in this stream.
-            // Cast devices allow unmuted playback; if a browser refuses, stay muted rather than stop.
-            video.play()
-              .then(() => { video.muted = false; return video.play(); })
-              .catch(e => { console.warn('[Receiver] Unmuted play refused, staying muted:', e); video.muted = true; video.play().catch(() => {}); });
-          } else if (event.track.kind === 'audio' && video.srcObject instanceof MediaStream) {
-            // Add audio track to existing stream
-            video.srcObject.addTrack(event.track);
-          }
-          hideOverlay();
-        };
-
-        pc.onconnectionstatechange = () => {
-          console.log('[Receiver] Connection state:', pc.connectionState);
-          if (pc.connectionState === 'connected') {
-            isConnected = true;
-            hideOverlay();
-          } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-            isConnected = false;
-            // 'disconnected' can recover on its own; only a failed connection ends the heartbeat.
-            if (pc.connectionState === 'failed') stopHeartbeat();
-            setStatus('Cast session ended', false);
-          }
-        };
+        pc = newPeerConnection(iceServers);
 
         // Set the SFU's offer as remote description
         await pc.setRemoteDescription(new RTCSessionDescription(sfuOffer));
@@ -359,20 +425,8 @@
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
-        // Wait for ICE candidates to be gathered (needed for TURN/relay)
-        if (pc.iceGatheringState !== 'complete') {
-          await new Promise((resolve) => {
-            const check = () => {
-              if (pc.iceGatheringState === 'complete') {
-                pc.removeEventListener('icegatheringstatechange', check);
-                resolve();
-              }
-            };
-            pc.addEventListener('icegatheringstatechange', check);
-            // Timeout after 5s — send what we have
-            setTimeout(resolve, 5000);
-          });
-        }
+        // Wait for ICE candidates to be gathered (needed for TURN/relay). Timeout after 5s — send what we have
+        await iceGathered(pc, 5000);
 
         // Use the final local description (includes gathered ICE candidates)
         const finalAnswer = pc.localDescription;
@@ -448,9 +502,34 @@
       startReceiving();
     }
 
+    /** What this receiver can show: a page the cloud renders (LOAD_VIEW) or a laptop's own stream (PEER_OFFER). */
+    const ACCEPTS = ['view', 'peer'];
+
+    /** One message from a sender on the view namespace; `reply` answers that sender only. */
+    function onViewMessage(data, reply) {
+      if (!data) return;
+      if (data.type === 'LOAD_VIEW' && data.viewUrl) {
+        begin({ viewUrl: data.viewUrl, streamServerUrl: data.streamServerUrl || DEFAULT_STREAM_SERVER, publisherSessionId: '' });
+      } else if (data.type === 'PEER_OFFER' && typeof data.sdp === 'string') {
+        startPeer(data, reply);
+      } else if (data.type === 'PEER_STOP' && currentViewUrl === 'laptop') {
+        cleanup();
+        isConnected = false;
+        video.srcObject = null;
+        setStatus('Cast session ended', false);
+      }
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const hasCast = typeof cast !== 'undefined' && cast.framework;
-    if (urlParams.get('viewUrl') || !hasCast) {
+    if (urlParams.get('signal') === 'test') {
+      // Desktop testing of a laptop cast without a Chromecast: a test harness relays messages through
+      // window.__ogsSignalIn (to this page) and window.__ogsSignalOut (from it), standing in for Cast.
+      const out = (payload) => { if (typeof window.__ogsSignalOut === 'function') window.__ogsSignalOut(payload); };
+      window.__ogsSignalIn = (data) => onViewMessage(typeof data === 'string' ? JSON.parse(data) : data, out);
+      const askTimer = setInterval(() => (started ? clearInterval(askTimer) : out({ type: 'REQUEST_VIEW', accepts: ACCEPTS })), 500);
+      setStatus('Waiting for the game...');
+    } else if (urlParams.get('viewUrl') || !hasCast) {
       // Opened directly (testing), or not on a Cast device.
       begin(getLaunchParams());
     } else {
@@ -464,9 +543,9 @@
           reportState(event.senderId);
           return;
         }
-        if (data && data.type === 'LOAD_VIEW' && data.viewUrl) {
-          begin({ viewUrl: data.viewUrl, streamServerUrl: data.streamServerUrl || DEFAULT_STREAM_SERVER, publisherSessionId: '' });
-        }
+        onViewMessage(data, (payload) => {
+          try { context.sendCustomMessage(VIEW_NAMESPACE, event.senderId, payload); } catch (e) { console.warn('[Receiver] reply failed', e); }
+        });
       });
       const options = new cast.framework.CastReceiverOptions();
       options.disableIdleTimeout = true; // we play a WebRTC stream, not Cast media
@@ -475,7 +554,8 @@
       // so ask for the view once ready, when any sender connects, and keep asking until one arrives.
       const requestView = (senderId) => {
         if (started) return;
-        try { context.sendCustomMessage(VIEW_NAMESPACE, senderId, { type: 'REQUEST_VIEW' }); } catch (e) { /* no senders yet */ }
+        // `accepts` lets a laptop sender stream its own tab instead of asking the cloud to render.
+        try { context.sendCustomMessage(VIEW_NAMESPACE, senderId, { type: 'REQUEST_VIEW', accepts: ACCEPTS }); } catch (e) { /* no senders yet */ }
       };
       context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (e) => requestView(e.senderId));
       // Never stream to an empty room: the cast keeps a cloud GPU running (and billing) until this
