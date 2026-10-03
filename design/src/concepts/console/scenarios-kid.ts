@@ -15,4 +15,6 @@ export const kidScenarios: Scenario<S>[] = [
   { id: "kid.05-ava-cutover", label: "Ava's dinosaur walking the path during the cut", flow: "swap", state: "loading", devices: ["ipad"], build: cut("cutover", ava) },
   { id: "kid.06-ava-rocket-helper", label: "Ava in Rocket Crew: two giant always-right buttons", flow: "swap", state: "default", devices: ["ipad"], build: at({ ...ava, phone: "controller" }) },
   { id: "kid.07-undo-follow", label: "Undo: Juneau's dragon walks back to Rocket Crew", flow: "swap", state: "undone", devices: ["ipad"], build: at({ phone: "controller", onTv: "bake-shop", switching: { from: "bake-shop", to: "rocket-crew", phase: "cutover", undo: true } }) },
+  { id: "kid.08-ava-asleep-switching", label: "Ava's iPad asleep at 9% while everyone moves: she stays asleep, seat kept", flow: "swap", state: "interrupted", devices: ["ipad"], build: cut("following", { ...ava, asleep: ["dev-ava-ipad"] }) },
+  { id: "kid.09-juneau-bake-switch-following", label: "Juneau's iPad: Bake Shop opens wide around the dragon", flow: "swap", state: "partial", devices: ["ipad"], build: cut("following") },
 ];
