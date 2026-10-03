@@ -17,6 +17,9 @@ export function TvCutover({ sw, asleep }: { sw: Switching; asleep: string[] }) {
   const seats = seatViews(to, asleep, (x) => sw.phase === "following" || x.device?.kind === "phone");
   return (
     <div className={`ct-cut ct-cut--${sw.phase} ${sw.undo ? "" : "ct-cut--menu"}`}>
+      <div className="ct-cut__blur" aria-hidden>
+        <TvArt gameId={sw.from} />
+      </div>
       <div className="ct-cut__to">
         <TvArt gameId={sw.to} />
       </div>

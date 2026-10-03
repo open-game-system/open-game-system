@@ -18,7 +18,7 @@ export function TvPlaying({ s, gameId }: { s: S; gameId: string }) {
   // own full frame as the console's band settles: while OGS chrome is up, no HUD is in view.
   const landing: Record<string, string> = f ? { "--ct-z": String(f.scale), transformOrigin: `${f.ox}% ${f.oy}%` } : {};
   return (
-    <div className={`ct-play ${s.menu ? "is-paused" : ""}`}>
+    <div className={`ct-play ${s.menu ? "is-paused" : ""} ${s.left ? "is-landed" : ""}`}>
       <div className="ct-play__blur" aria-hidden>
         <TvArt gameId={gameId} />
       </div>

@@ -83,16 +83,16 @@
 .ct-cut { position: absolute; inset: 0; background: var(--ct-night); overflow: hidden; color: var(--ct-ink); }
 .ct-cut__to, .ct-cut__from { position: absolute; transition: left 0.8s var(--ct-move), top 0.8s var(--ct-move), width 0.8s var(--ct-move), height 0.8s var(--ct-move), opacity 0.5s; }
 .ct-cut__to { left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
-.ct-cut--saving .ct-cut__to { left: 1300px; top: 300px; width: 540px; height: 304px; border-radius: 24px; opacity: 0.92; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); animation: ct-card-in 0.6s 0.2s var(--ct-ease) both; }
+.ct-cut--saving .ct-cut__to { left: 1104px; top: 200px; width: 736px; height: 414px; border-radius: 24px; opacity: 0.92; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); animation: ct-card-in 0.6s 0.2s var(--ct-ease) both; }
 @keyframes ct-card-in { from { opacity: 0; transform: translateX(80px); } }
-.ct-cut__from { left: 80px; top: 150px; width: 1120px; height: 630px; }
+.ct-cut__from { left: 80px; top: 156px; width: 883px; height: 497px; }
 .ct-cut__fromart { position: absolute; inset: 0; border-radius: 28px; overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); transition: border-radius 0.8s; }
 .ct-cut--saving .ct-cut__from { animation: ct-fold 0.6s var(--ct-move) both; }
 .ct-cut--saving .ct-cut__fromart { animation: ct-fold-r 0.6s var(--ct-move) both; }
 @keyframes ct-fold { from { left: 0; top: 0; width: 1920px; height: 1080px; } }
 /* Picked from the console menu: the game is already a paused card, so it grows from there. */
 .ct-cut--menu.ct-cut--saving .ct-cut__from { animation-name: ct-fold-menu; }
-@keyframes ct-fold-menu { from { left: 80px; top: 156px; width: 883px; height: 497px; } }
+@keyframes ct-fold-menu { from { opacity: 1; } }
 @keyframes ct-fold-r { from { border-radius: 0; } }
 /* After the cut: a picture-in-picture in the top-left safe corner, caption below it (never on the art). */
 .ct-cut--cutover .ct-cut__from, .ct-cut--following .ct-cut__from { left: 64px; top: 56px; width: 320px; height: 180px; }
@@ -106,9 +106,9 @@
 .ct-cut__ringfill { stroke-dashoffset: 0; animation: ct-ring 0.8s 0.2s ease-in-out both; }
 @keyframes ct-ring { from { stroke-dashoffset: 100; } }
 .ct-cut__path { position: absolute; left: 120px; top: 300px; animation: ct-fade 0.5s 0.3s both; }
-.ct-cut__next { position: absolute; left: 1300px; top: 640px; animation: ct-rise 0.5s 0.35s var(--ct-ease) both; }
+.ct-cut__next { position: absolute; left: 1104px; top: 652px; animation: ct-rise 0.5s 0.35s var(--ct-ease) both; }
 .ct-cut__next h2 { font-size: 72px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-top: 8px; }
-.ct-cut__next p { font-size: 32px; font-weight: 700; margin-top: 10px; width: 540px; }
+.ct-cut__next p { font-size: 32px; font-weight: 700; margin-top: 10px; width: 736px; }
 .ct-cut__mark { position: absolute; right: 80px; bottom: 88px; opacity: 0.9; }
 .ct-cut--following .ct-cut__mark { opacity: 0; transition: opacity 0.5s; }
 .ct-play__zoom.is-landing { animation: ct-land 4s var(--ct-move) both; }
@@ -149,3 +149,11 @@
 .ct-home__hint { position: absolute; right: 80px; bottom: 52px; display: inline-flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 700; color: var(--ct-ink); }
 .ct-home__hint svg { color: var(--ct-warm); }
 .ct-home__path { position: absolute; right: 100px; bottom: 100px; }
+
+/* The old game's blurred room stays behind the saving card (as in the paused state), then clears. */
+.ct-cut__blur { position: absolute; inset: -60px; filter: blur(48px) brightness(0.32) saturate(1.2); transition: opacity 0.5s; }
+.ct-cut--cutover .ct-cut__blur, .ct-cut--following .ct-cut__blur { opacity: 0; }
+/* The band waits for the new game to fill the screen. */
+.ct-cut--cutover .ct-band { animation: ct-fade 0.5s 0.5s both; }
+/* After a cut the stream is already on screen (the cut-over art was its first frame): no fade-in. */
+.ct-play.is-landed .ct-play__game { animation: none; }
