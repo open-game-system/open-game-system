@@ -13,7 +13,8 @@ function concepts(): Plugin {
     load(s) {
       if (s !== "\0" + id) return;
       const dir = join(import.meta.dirname, "src", "concepts");
-      const only = process.env.OGS_CONCEPTS?.split(",").filter(Boolean);
+      const listed = process.env.OGS_CONCEPTS?.split(",").filter(Boolean) ?? [];
+      const only = listed.length > 0 ? listed : undefined;
       const names = readdirSync(dir).filter((n) => existsSync(join(dir, n, "index.tsx")) && (!only || only.includes(n)));
       return names.map((n, i) => `import { concept as c${i} } from ${JSON.stringify(join(dir, n, "index.tsx"))};`).join("\n") + `\nexport default [${names.map((_, i) => `c${i}`).join(", ")}];`;
     },
