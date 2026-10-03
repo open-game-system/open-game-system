@@ -87,3 +87,27 @@ export const Spinner = ({ size = 18 }: { size?: number }) => (
     <path d="M12 3a9 9 0 019 9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
   </svg>
 );
+export const Gamepad = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M7 8h10a4.5 4.5 0 014.4 5.4l-.7 3.4a2.4 2.4 0 01-4.2 1L15 16H9l-1.5 1.8a2.4 2.4 0 01-4.2-1l-.7-3.4A4.5 4.5 0 017 8z" />
+    <path d="M7.5 11v3M6 12.5h3" />
+    <circle cx="16" cy="12" r=".6" fill="currentColor" />
+  </Svg>
+);
+export const Lock = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <rect x="5" y="10.5" width="14" height="10" rx="2" />
+    <path d="M8 10.5V8a4 4 0 018 0v2.5" />
+  </Svg>
+);
+export const Eye = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </Svg>
+);
+export const Close = ({ size }: { size?: number }) => (
+  <Svg size={size}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Svg>
+);

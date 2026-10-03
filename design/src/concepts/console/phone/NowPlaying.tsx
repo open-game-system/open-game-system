@@ -1,12 +1,17 @@
-// The console's "now playing" card: what the TV is showing and who is here. When the TV is on the
-// console home, this card mirrors the TV's focus and is the remote's Play button.
+// Lane 1, "On the TV tonight": the couch session. The hero is what the TV shows; the rail under it
+// is this household's couch games, each with its status. On the phone the TV is always the
+// subject: "Play on TV" starts the focused game on the TV; "Controller" opens this phone's seat in
+// the game already on the TV. Neither ever means anything else.
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
-import { activities } from "../activities";
-import { PRESENT, resumePoint, type S } from "../state";
+import { activities, couchShelf } from "../activities";
+import { PRESENT, pickActivity, resumePoint, type S } from "../state";
+import { nightLine } from "../nights";
+import { LIVE, st } from "../status";
 import { Portrait } from "../ui/Brand";
+import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
-import { TvIcon } from "../ui/Icons";
+import { Gamepad, TvIcon } from "../ui/Icons";
 
 export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
   const playing = s.onTv;
@@ -15,6 +20,9 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
   const focusAct = activities(s).find((a) => a.gameId === focusId);
   const canPlay = game.shape === "couch";
   const act = () => store.update((x) => (x.onTv ? { ...x, phone: "controller" } : canPlay ? { ...x, onTv: x.tvFocus, phone: "controller" } : x));
+  const liveNight = s.nights.list.find((n) => n.status === "live" && n.gameId === playing);
+  const point = liveNight ? nightLine(liveNight) : resumePoint(focusId);
+  const status = playing ? LIVE : (focusAct?.status ?? st("ready", "Ready"));
   return (
     <section className={`cx-now ${playing ? "" : "cx-now--idle"}`}>
       <div className="cx-now__art" key={focusId}>
@@ -22,24 +30,49 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
       </div>
       <div className="cx-now__body">
         <div className="cx-now__where">
-          <span className="cx-live-dot" />
-          <TvIcon size={16} />
-          {playing ? "Living room TV" : "On the TV: console home"}
+          <Chip status={status} />
+          <span>
+            <TvIcon size={15} /> {playing ? "Living room TV" : "Showing on the TV"}
+          </span>
         </div>
         <div className="cx-now__game">{game.name}</div>
-        <div className="cx-now__point">{playing ? `${resumePoint(focusId)} · in progress` : (focusAct?.title ?? game.tagline)}</div>
-        <div className="cx-now__who">
-          {PRESENT.map((p) => (
-            <Portrait key={p.id} person={p} size={26} />
-          ))}
-          <span>3 here tonight</span>
+        <div className="cx-now__point">{playing ? point : (focusAct?.title ?? game.tagline)}</div>
+        <div className="cx-now__foot">
+          <div className="cx-now__who" aria-label="Here tonight">
+            {PRESENT.map((p) => (
+              <Portrait key={p.id} person={p} size={28} />
+            ))}
+            <span>{PRESENT.length} here</span>
+          </div>
+          {(playing || canPlay) && (
+            <button className="cx-btn cx-btn--light cx-now__cta" data-bot={playing ? "open-controller" : "play-on-tv"} onClick={act}>
+              {playing ? <Gamepad size={20} /> : <TvIcon size={20} />}
+              <span>{playing ? "Controller" : "Play on TV"}</span>
+            </button>
+          )}
         </div>
       </div>
-      {(playing || canPlay) && (
-        <button className="cx-btn cx-btn--primary cx-now__cta" data-bot={playing ? "open-controller" : "play-on-tv"} onClick={act}>
-          <span>{playing ? "Controller" : "Play on TV"}</span>
-        </button>
-      )}
     </section>
+  );
+}
+
+/** The couch rail: every couch game this household has, with its status. Tapping one with a game
+ * on the TV switches to it; on the console home it moves the TV's focus. */
+export function CouchRail({ s, store }: { s: S; store: Store<S> }) {
+  const shelf = couchShelf(s).filter((a) => a.gameId !== (s.onTv ?? s.tvFocus));
+  return (
+    <ul className="cx-rail" aria-label="Couch games">
+      {shelf.map((a) => (
+        <li key={a.id}>
+          <button className="cx-rail__tile" data-bot={`act-${a.gameId}`} onClick={() => store.update((x) => pickActivity(x, a.gameId))}>
+            <span className="cx-rail__art">
+              <GameArt gameId={a.gameId} alt />
+            </span>
+            <b>{gameById(a.gameId).name}</b>
+            <Chip status={a.status} />
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

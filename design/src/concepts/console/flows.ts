@@ -43,4 +43,31 @@ export const flows: Flow[] = [
       { device: "phone", bot: "all-games", mark: "Back to the list: Nana's game is now waiting on her" },
     ],
   },
+  {
+    id: "game-night",
+    flow: "game-night",
+    label: "A new Hearthisle night across three homes, while turn 14 waits",
+    start: "game-night.01-lane",
+    steps: [
+      { device: "phone", bot: "night-new", mark: "Game nights → New. The paused night (turn 14) keeps its place", wait: 1800 },
+      { device: "phone", bot: "invite-send", mark: "Invite the Okafors and Nana & Pop. Other homes see 'The Mumms · blue', never the kids", wait: 1200 },
+      { device: "phone", bot: "invite-preview", mark: "See what Nana & Pop see: the invite, their accept or decline", wait: 2200 },
+      { device: "phone", bot: "preview-close", mark: "Both homes say yes while we look", wait: 1400 },
+      { device: "phone", bot: "night-seats", mark: "Seats: a seat is a person or a whole home. Jonathan + Juneau share blue", wait: 1800 },
+      { device: "phone", bot: "seats-next", mark: "Where each home plays: our TV, their TV, Nana & Pop on phones", wait: 1800 },
+      { device: "phone", bot: "night-start", mark: "Start: turn 1 on our TV; the Okafors roll first, ours comes next", wait: 5200 },
+      { device: "phone", bot: "night-back", mark: "Home: two game nights, one live, one paused", wait: 1600 },
+    ],
+  },
+  {
+    id: "game-night-resume",
+    flow: "game-night",
+    label: "Next Friday 8:00: resume turn 14, our roll, pause again",
+    start: "game-night.14-everyone-back",
+    steps: [
+      { device: "phone", bot: "night-resume", mark: "Every home is back: resume turn 14 on the TV. Nana & Pop roll", wait: 4200 },
+      { device: "phone", bot: "night-pause", mark: "Our roll came round; bedtime. Pause: it resumes when everyone's back", wait: 1800 },
+      { device: "phone", bot: "night-back", mark: "Home: the night waits for next Friday", wait: 1400 },
+    ],
+  },
 ];

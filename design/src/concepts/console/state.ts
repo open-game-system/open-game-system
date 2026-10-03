@@ -2,8 +2,12 @@
 // The console owns: who is here tonight, what is on the TV, the switch between games, and saves.
 // Games own: everything inside their own view (controllers, TV scene).
 import { COUCH, DUELS, HOME, gameById, type DuelGame, type GameManifest, type OwnedDevice, type Person, type Role } from "../../world";
+import { baseNights, pauseNight, resumeNight, startNight, type Nights } from "./nights";
 
-export type PhoneView = "home" | "controller" | "duels" | "duel";
+export type { Nights } from "./nights";
+
+/** "night": a game night's page; "inbox": every game waiting on you; "lock": the lock screen with a push. */
+export type PhoneView = "home" | "controller" | "duels" | "duel" | "night" | "inbox" | "lock";
 export type SwitchPhase = "saving" | "cutover" | "following";
 
 export interface Switching {
@@ -44,6 +48,20 @@ export interface S {
   savedTonight: Record<string, string>;
   duels: DuelGame[];
   duel: DuelView;
+  /** Game nights across homes (Hearthisle), and where the phone is in setting one up. */
+  nights: Nights;
+  /** The push showing on the lock screen (grown-up phones only), when phone = "lock". */
+  push: Push | null;
+}
+
+export interface Push {
+  gameId: string;
+  title: string;
+  body: string;
+  /** Where tapping it lands. */
+  open: { kind: "duel"; id: string } | { kind: "night"; id: string };
+  /** Other pushes stacked under it, as one line each. */
+  more: string[];
 }
 
 export const PRESENT: Person[] = HOME.people.filter((p) => p.id !== "mom");
@@ -65,12 +83,15 @@ export function base(): S {
     savedTonight: {},
     duels: DUELS.map((d) => ({ ...d })),
     duel: { open: null, placed: [], result: null },
+    nights: baseNights(),
+    push: null,
   };
 }
 
 /** Resume point a game last reported (Tier 1/2), short form: "Mission 6", "Day 4". */
 export function resumePoint(gameId: string): string {
   const inst = COUCH.find((i) => i.gameId === gameId);
+  if (gameById(gameId).shape === "live") return "Game night";
   if (!inst) return "Start fresh";
   return inst.title.split(" · ")[0] ?? inst.title;
 }
@@ -154,6 +175,14 @@ export function playDuel(s: S): S {
   return { ...s, duels, duel: { ...s.duel, result: "played" } };
 }
 
+/** Open one duel's board. */
+export const openDuel = (s: S, id: string): S => ({ ...s, phone: "duel", push: null, duel: { open: id, placed: [], result: null } });
+
+/** Run a game-night action and show the night page. */
+export const night = (s: S, f: (n: Nights) => Nights): S => ({ ...s, phone: "night", menu: false, nights: f(s.nights) });
+
+export const goHome = (s: S): S => ({ ...s, phone: "home", tab: "home", push: null });
+
 /** One line for "what you'd get if you started this now". */
 export function nextLine(gameId: string): string {
   const inst = COUCH.find((i) => i.gameId === gameId);
@@ -168,3 +197,30 @@ export function pickActivity(s: S, gameId: string): S {
   if (s.onTv) return startSwitch(s, gameId);
   return { ...s, tvFocus: gameId };
 }
+
+/** A game night comes up on our TV (new or resumed); the couch game, if any, saves itself first. */
+function nightOnTv(s: S, gameId: string): S {
+  const from = s.onTv;
+  const saved = from && from !== gameId ? { ...s.savedTonight, [from]: "8:00 pm" } : s.savedTonight;
+  return { ...s, onTv: gameId, tvFocus: gameId, savedTonight: saved, left: null, switching: null };
+}
+
+export const startNightS = (s: S): S => {
+  const id = s.nights.open;
+  const n = s.nights.list.find((x) => x.id === id);
+  if (!n) return s;
+  return nightOnTv({ ...s, phone: "night", nights: { ...startNight(s.nights), step: "detail" } }, n.gameId);
+};
+
+export const resumeNightS = (s: S, id: string): S => {
+  const n = s.nights.list.find((x) => x.id === id);
+  if (!n) return s;
+  return nightOnTv({ ...s, phone: "night", nights: { ...resumeNight(s.nights, id), step: "detail" } }, n.gameId);
+};
+
+/** Pause for tonight: the board keeps its place for every home; our TV goes back to the console home. */
+export const pauseNightS = (s: S, id: string): S => {
+  const n = s.nights.list.find((x) => x.id === id);
+  if (!n) return s;
+  return { ...s, nights: pauseNight(s.nights, id), onTv: s.onTv === n.gameId ? null : s.onTv };
+};
