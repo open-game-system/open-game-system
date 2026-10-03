@@ -7,6 +7,9 @@ import { base, couch, playMove, type S } from "./state";
 import { PhoneSurface } from "./phone/PhoneSurface";
 import { TvSurface } from "./tv/TvSurface";
 import { IpadSurface } from "./ipad/IpadSurface";
+import { registerFonts } from "./fonts";
+
+registerFonts();
 
 function Surface({ device, store, shot }: SurfaceProps<S>) {
   if (device === "tv") return <TvSurface store={store} />;
