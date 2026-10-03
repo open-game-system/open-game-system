@@ -161,3 +161,10 @@ export function nextLine(gameId: string): string {
   if (inst.status === "suspended" || inst.status === "active") return `Resume at ${resumePoint(gameId).toLowerCase()}`;
   return inst.title;
 }
+
+/** A "Jump back in" card: with a game on the TV it switches to it; on the console home it moves the TV's focus. */
+export function pickActivity(s: S, gameId: string): S {
+  if (gameById(gameId).shape !== "couch") return { ...s, tvFocus: s.onTv ? s.tvFocus : gameId };
+  if (s.onTv) return startSwitch(s, gameId);
+  return { ...s, tvFocus: gameId };
+}

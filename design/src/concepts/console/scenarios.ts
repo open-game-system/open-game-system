@@ -9,7 +9,8 @@ const bakeLive: Partial<S> = { phone: "controller", onTv: "bake-shop", tvFocus: 
 export const scenarios: Scenario<S>[] = [
   // Home: Friday 7:10 pm
   { id: "home.01-phone-friday", label: "Phone home: now playing, your turn, jump back in", flow: "home", state: "default", devices: ["phone"], build: at({}) },
-  { id: "home.02-tv-console-home", label: "TV console home (cast, between games)", flow: "home", state: "default", devices: ["tv"], build: at({ onTv: null, tvFocus: "rocket-crew" }) },
+  { id: "home.02-tv-console-home", label: "TV console home (cast, between games)", flow: "home", state: "default", devices: ["tv", "phone"], build: at({ onTv: null, tvFocus: "rocket-crew" }) },
+  { id: "home.06-phone-is-remote", label: "Phone is the remote: focus Bake Shop, the TV follows", flow: "home", state: "partial", devices: ["phone", "tv"], build: at({ onTv: null, tvFocus: "bake-shop" }) },
   { id: "home.03-kid-paired-idle", label: "Juneau's iPad: paired, following tonight", flow: "home", state: "default", devices: ["ipad"], build: at({ onTv: null }) },
   { id: "home.04-library", label: "Library: couch shelf, game night, duels", flow: "home", state: "default", devices: ["phone"], build: at({ tab: "library" }) },
   { id: "home.05-first-run", label: "First run: library ready, living room not set up", flow: "home", state: "empty", devices: ["phone"], build: at({ firstRun: true, onTv: null }) },

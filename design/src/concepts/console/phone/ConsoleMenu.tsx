@@ -14,6 +14,11 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
   const low = HOME.devices.find((d) => d.kind === "ipad" && (d.battery ?? 1) < 0.15);
   return (
     <div className="cx-sheetwrap">
+      {current && (
+        <div className="cx-menuart" aria-hidden>
+          <GameArt gameId={current} />
+        </div>
+      )}
       <button className="cx-scrim" aria-label="Close menu" data-bot="menu-close" onClick={() => store.update(closeMenu)} />
       <div className="cx-sheet" role="dialog" aria-label="Console menu">
         <div className="cx-sheet__grab" />

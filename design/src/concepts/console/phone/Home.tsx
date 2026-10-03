@@ -2,7 +2,7 @@
 import type { Store } from "../../../harness/store";
 import { HOME, gameById } from "../../../world";
 import { activities } from "../activities";
-import type { S } from "../state";
+import { pickActivity, type S } from "../state";
 import { Portrait, Wordmark } from "../ui/Brand";
 import { DuelArt, GameArt } from "../ui/GameArt";
 import { Chevron } from "../ui/Icons";
@@ -27,11 +27,11 @@ export function HomeHeader() {
 
 export function Home({ s, store }: { s: S; store: Store<S> }) {
   const turns = s.duels.filter((d) => d.status === "yourTurn");
-  const acts = activities(s);
+  const acts = activities(s).slice(0, 3);
   return (
     <div className="cx-scroll">
       <HomeHeader />
-      <NowPlaying gameId={s.onTv} onOpen={() => store.update((x) => ({ ...x, phone: "controller" }))} />
+      <NowPlaying s={s} store={store} />
 
       <section className="cx-sec">
         <h2 className="cx-h2">
@@ -66,17 +66,17 @@ export function Home({ s, store }: { s: S; store: Store<S> }) {
         <h2 className="cx-h2">Jump back in</h2>
         <div className="cx-acts cx-acts--grid">
           {acts.map((a) => (
-            <article key={a.id} className="cx-act">
+            <button key={a.id} className={`cx-act ${!s.onTv && s.tvFocus === a.gameId ? "is-focus" : ""}`} data-bot={`act-${a.gameId}`} onClick={() => store.update((x) => pickActivity(x, a.gameId))}>
               <div className="cx-act__art">
                 <GameArt gameId={a.gameId} alt />
-                {a.badge && <span className={`cx-badge cx-badge--${a.badgeTone}`}>{a.badge}</span>}
+                {a.badge && <span className={`cx-badge cx-badge--${a.badgeTone}`}><span>{a.badge}</span></span>}
               </div>
               <div className="cx-act__plate">
                 <span className="cx-act__game">{gameNameOf(a.gameId)}</span>
                 <b>{a.title}</b>
                 <span>{a.detail}</span>
               </div>
-            </article>
+            </button>
           ))}
         </div>
       </section>
