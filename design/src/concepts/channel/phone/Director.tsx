@@ -42,7 +42,7 @@ export function Director({ s, store }: { s: S; store: Store<S> }) {
             <small>
               {next.instance.title} · {next.instance.detail.replace(/^Paused [^·]+· /, "picks up where ")}
             </small>
-            <SeatLine seats={seatsFor(next.game)} />
+            <SeatLine seats={seatsFor(next.game)} stacked />
             <p className="ch-rd-note">Everyone's iPad goes straight to their seat. No codes, no picking.</p>
           </div>
         </div>

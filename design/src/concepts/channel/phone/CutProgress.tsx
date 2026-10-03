@@ -2,7 +2,7 @@
 import { HOME } from "../../../world";
 import { StatusBar } from "../brand/PhoneTop";
 import { Bars } from "../brand/Mark";
-import { CHANNEL, segment } from "../programme";
+import { CHANNEL, RUNNING_ORDER, segment } from "../programme";
 import type { S } from "../state";
 
 type StepState = "done" | "doing" | "todo";
@@ -62,6 +62,27 @@ export function CutProgress({ s }: { s: S }) {
           </span>
         </li>
       </ol>
+      <div className="ch-cut-rundown">
+        <h2 className="ch-kicker">Running order</h2>
+        <ol>
+          {RUNNING_ORDER.map((id) => {
+            const g = segment(id);
+            const state = id === to.game.id ? "is-next" : id === from.game.id ? "is-saved" : "";
+            return (
+              <li key={id} className={state}>
+                <time>{g.slot}</time>
+                <span>{g.game.name}</span>
+                <em>{state === "is-next" ? "Now" : state === "is-saved" ? `Saved · ${g.instance.title.split(" · ")[0]}` : ""}</em>
+              </li>
+            );
+          })}
+          <li>
+            <time>8:00</time>
+            <span>Hearthisle game night</span>
+            <em />
+          </li>
+        </ol>
+      </div>
     </div>
   );
 }

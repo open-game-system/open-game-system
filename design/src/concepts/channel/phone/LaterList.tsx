@@ -30,7 +30,7 @@ const ITEMS: LaterItem[] = [
     when: "8:00",
     gameId: "hearthisle",
     title: "Hearthisle game night",
-    detail: `${hearthisle.title.replace("Game night · ", "Resumes at turn ")} with the Okafors and Nana & Pop`,
+    detail: `${hearthisle.title.replace("Game night · ", "Resumes at ")} with the Okafors and Nana & Pop`,
     onTap: (st) => go(st, "schedule"),
   },
   {

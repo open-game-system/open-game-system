@@ -75,7 +75,6 @@ export function DuelBoard({ s, store }: { s: S; store: Store<S> }) {
               {t ? (
                 <span className={`ch-tile ${t.cls}`}>
                   <span>{t.ch}</span>
-                  <sub><span>{VALUE[t.ch] ?? 1}</span></sub>
                 </span>
               ) : (
                 prem && <span className="ch-prem">{PREMIUM_LABEL[prem]}</span>

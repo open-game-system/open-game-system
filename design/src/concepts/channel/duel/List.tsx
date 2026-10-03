@@ -5,12 +5,12 @@ import { StationBar, StatusBar } from "../brand/PhoneTop";
 import { TabBar } from "../phone/TabBar";
 import { go, type S } from "../state";
 import { ago } from "./time";
+import { NOW } from "../../../world";
 
 const GROUPS: { id: DuelGame["status"]; label: string }[] = [
   { id: "yourTurn", label: "Your turn" },
   { id: "waiting", label: "Their turn" },
-  { id: "completed", label: "Finished" },
-  { id: "expired", label: "Closed" },
+  { id: "completed", label: "Done" },
 ];
 
 export function DuelList({ s, store }: { s: S; store: Store<S> }) {
@@ -30,7 +30,7 @@ export function DuelList({ s, store }: { s: S; store: Store<S> }) {
           </button>
         </div>
         {GROUPS.map((g) => {
-          const games = s.duels.filter((d) => d.status === g.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+          const games = s.duels.filter((d) => d.status === g.id || (g.id === "completed" && d.status === "expired")).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
           if (games.length === 0) return null;
           return (
             <section key={g.id} className={`ch-wd-group is-${g.id}`}>
@@ -59,21 +59,20 @@ function DuelRow({ d, store }: { d: DuelGame; store: Store<S> }) {
   const yours = d.status === "yourTurn";
   const playable = yours || d.status === "waiting";
   return (
-    <button className={`ch-wd-row${yours ? " is-turn" : ""}${playable ? "" : " is-done"}`} data-bot={`duel-${d.id}`} onClick={open}>
+    <button className={`ch-wd-row${yours ? " is-turn" : ""}${playable ? "" : " is-done"}${d.updatedAt === NOW.toISOString() ? " is-fresh" : ""}`} data-bot={`duel-${d.id}`} onClick={open}>
       <i className="ch-wd-swatch" style={{ background: d.color }} aria-hidden="true" />
       <span className="ch-wd-who">
         <b>{d.opponent}</b>
         <small>{d.opponentHome}</small>
       </span>
       <span className="ch-wd-move">
-        <span>{d.lastMove}</span>
-        <small>{ago(d.updatedAt)}</small>
+        {d.lastMove} · <small>{ago(d.updatedAt)}</small>
       </span>
       <span className="ch-wd-score">
         <b>
           {d.you}–{d.them}
         </b>
-        <small>{d.status === "completed" ? "won" : lead >= 0 ? `up ${lead}` : `down ${-lead}`}</small>
+        <small>{d.status === "completed" ? "you won" : d.status === "expired" ? "closed, no moves" : lead >= 0 ? `up ${lead}` : `down ${-lead}`}</small>
       </span>
       {yours && <span className="ch-wd-play"><span>Play</span></span>}
     </button>

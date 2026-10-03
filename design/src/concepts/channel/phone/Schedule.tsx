@@ -42,7 +42,7 @@ export function Schedule({ s, store }: { s: S; store: Store<S> }) {
               <img src={hi.art.tv} alt="" className="ch-guide-art" />
               <b>Hearthisle game night</b>
               <small>
-                {hearthisle.title.replace("Game night · ", "Resumes at turn ")} · {hearthisle.turn} to roll · three homes
+                {hearthisle.title.replace("Game night · ", "Resumes at ")} · {hearthisle.turn} to roll · three homes
               </small>
               <ul className="ch-homes">
                 {hearthisle.seats.map((seat) => {

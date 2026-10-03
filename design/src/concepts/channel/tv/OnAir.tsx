@@ -11,7 +11,7 @@ export function OnAir({ s }: { s: S }) {
   return (
     <div className={`ch-tv ch-onair${following ? " is-arriving" : ""}`}>
       <img className="ch-onair-art" src={seg.game.art.tv} alt="" />
-      <Bug />
+      {!lt && <Bug />}
       {lt && (
         <div className="ch-lt" key={`${s.onAir}-${s.lowerThird ?? "f"}`}>
           <div className="ch-lt-tab">
