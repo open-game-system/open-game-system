@@ -32,3 +32,8 @@ Thresholds in `scripts/shoot.ts` (`THRESHOLDS`): targets 44 pt, contrast 4.5 (3.
 
 | Round | IA | Flow | State | Multi | Async | Kid | TV | Trust | Visual | Motion | Edge | Dev | A11y | Min | what changed / largest gap |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 00-console | 6 | 7.5 | 7 | — | 6.5 | 6.5 | 7.5 | 4 | 6.5 | 6.5 | 5 | — | 7 | 4 | concept A: best couch swap + TV; one-living-room model caps IA/Multi |
+| 00-kitchen | 5 | 8 | 7.5 | — | 6 | 7 | 7 | 6 | 6.5 | 7 | 4 | — | 7 | 4 | concept B Porchlight: most ownable warm identity; tonight-centred home caps IA/Async/Multi |
+| 00-channel | 5.5 | 7 | 6.5 | — | 6 | 7 | 6.5 | 4 | 6.5 | 6 | 4 | — | 7 | 4 | concept C: best broadcast cut; time-first IA can't hold async |
+| 00-spine | 6.5 | 7.5 | 7 | 5 | 6.5 | 6.5 | 5.5 | 5 | 6 | 6.5 | 4 | — | 6 | 4 | concept D: fastest swap; TV band covers game; Tier-0 quality cliff |
+| 00-people | 6 | 7.5 | 7 | 6.5 | 7 | 6.5 | 6.5 | 7 | 6.5 | 5.5 | 4 | — | 7 | 4 | concept E: best multi-home/async/trust; threads mix nouns; Tier-0 has no thread |
