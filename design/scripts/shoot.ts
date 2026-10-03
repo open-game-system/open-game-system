@@ -12,7 +12,7 @@ import { arg, buildAndServe, readRegistry, ROOT, settle, waitForAck, type Concep
 type Device = "phone" | "ipad" | "tv";
 const SIZE: Record<Device, { width: number; height: number; dsf: number }> = {
   phone: { width: 390, height: 844, dsf: 2 },
-  ipad: { width: 820, height: 1180, dsf: 2 },
+  ipad: { width: 1180, height: 820, dsf: 2 },
   tv: { width: 1920, height: 1080, dsf: 1 },
 };
 

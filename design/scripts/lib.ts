@@ -20,7 +20,7 @@ export interface FlowMeta {
   flow: string;
   label: string;
   start: string;
-  steps: { device: "phone" | "ipad" | "tv"; bot: string; mark?: string; wait?: number }[];
+  steps: { device: "phone" | "ipad" | "tv"; seat?: string; bot: string; mark?: string; wait?: number }[];
 }
 export interface ConceptMeta {
   id: string;

@@ -8,7 +8,8 @@
     "preview": "vite preview --port 4317 --strictPort",
     "typecheck": "tsc --noEmit",
     "shoot": "tsx scripts/shoot.ts",
-    "flows": "tsx scripts/flows.ts"
+    "flows": "tsx scripts/flows.ts",
+    "prove-rig": "tsx scripts/prove-rig.ts"
   },
   "dependencies": {
     "react": "^19.3.0",

@@ -5,7 +5,8 @@ export type Device = "phone" | "ipad" | "tv";
 export const DEVICES: Device[] = ["phone", "ipad", "tv"];
 export const DEVICE_SIZE: Record<Device, { w: number; h: number; label: string }> = {
   phone: { w: 390, h: 844, label: "Grown-up phone" },
-  ipad: { w: 820, h: 1180, label: "Kid iPad" },
+  // Kids hold their iPads in landscape, thumbs at the bottom edge.
+  ipad: { w: 1180, h: 820, label: "Kid iPad" },
   tv: { w: 1920, h: 1080, label: "TV (cast stream)" },
 };
 
@@ -38,6 +39,8 @@ export interface Scenario<S> {
 /** One bot step: a tap on an element carrying data-bot="<bot>" inside the device. */
 export interface FlowStep {
   device: Device;
+  /** Which paired device, when several of a kind are on the stage (e.g. "ava" for Ava's iPad). */
+  seat?: string;
   bot: string;
   /** Caption shown in the recording and written to marks.json. */
   mark?: string;
@@ -56,6 +59,8 @@ export interface Flow {
 
 export interface SurfaceProps<S> {
   device: Device;
+  /** The person this device is paired to, when the harness knows (the stage shows each kid's iPad). */
+  seat?: string;
   store: Store<S>;
   /** True in shot mode: freeze motion, fixed clock. */
   shot: boolean;
@@ -83,7 +88,7 @@ export interface RegisteredConcept {
   scenarios: ScenarioMeta[];
   flows: Flow[];
   /** A fresh session (one store shared by every device) starting at a scenario. */
-  session(scenarioId: string): ComponentType<{ device: Device; shot: boolean }> | undefined;
+  session(scenarioId: string): ComponentType<{ device: Device; shot: boolean; seat?: string }> | undefined;
 }
 
 export function defineConcept<S>(c: Concept<S>): RegisteredConcept {
@@ -99,8 +104,8 @@ export function defineConcept<S>(c: Concept<S>): RegisteredConcept {
       const sc = c.scenarios.find((x) => x.id === scenarioId);
       if (!sc) return undefined;
       const store = createStore(sc.build());
-      return function Bound({ device, shot }: { device: Device; shot: boolean }) {
-        return createElement(Surface, { device, store, shot });
+      return function Bound({ device, shot, seat }: { device: Device; shot: boolean; seat?: string }) {
+        return createElement(Surface, { device, store, shot, seat });
       };
     },
   };

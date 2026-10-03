@@ -9,9 +9,10 @@ import { KidAsleep } from "./KidAsleep";
 import { KidFollow } from "./KidFollow";
 import { KidIdle } from "./KidIdle";
 
-export function KidSurface({ store }: { store: Store<S> }) {
+/** `seat` is whose iPad this is (from the harness stage); scenarios without one use `s.ipad`. */
+export function KidSurface({ store, seat }: { store: Store<S>; seat?: string }) {
   const s = useStore(store);
-  const who = person(s.ipad);
+  const who = person(seat ?? s.ipad);
   const device = HOME.devices.find((d) => d.personId === who.id && d.kind === "ipad");
   if (device && s.asleep.includes(device.id)) return <KidAsleep who={who} battery={device.battery ?? 0} />;
   if (s.switching) return <KidFollow key={`${s.switching.from}-${s.switching.to}`} sw={s.switching} who={who} />;

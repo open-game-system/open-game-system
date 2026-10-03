@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { arg, buildAndServe, readRegistry, ROOT, settle, waitForAck } from "./lib";
 
-const VIEWPORT = { width: 2240, height: 900 };
+const VIEWPORT = { width: 2080, height: 820 };
 
 async function main() {
   const wanted = arg("concept")?.split(",");
@@ -43,7 +43,8 @@ async function main() {
           await mark(flow.label);
           await page.waitForTimeout(1500);
           for (const step of flow.steps) {
-            const loc = page.locator(`[data-device="${step.device}"] [data-bot="${step.bot}"]`).first();
+            const where = step.seat ? `[data-device="${step.device}"][data-seat="${step.seat}"]` : `[data-device="${step.device}"]`;
+            const loc = page.locator(`${where} [data-bot="${step.bot}"]`).first();
             if ((await loc.count()) === 0) {
               await mark(`STUCK: no "${step.bot}" on ${step.device}`, { device: step.device, bot: step.bot, stuck: true });
               console.error(`  ${concept.id}/${flow.id}: missing data-bot="${step.bot}" on ${step.device}`);

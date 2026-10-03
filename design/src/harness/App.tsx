@@ -29,7 +29,7 @@ function injectConceptCss(concept: RegisteredConcept | undefined) {
   document.head.appendChild(style);
 }
 
-function Single({ concept, scenarioId, device, shot }: { concept: RegisteredConcept; scenarioId: string; device: Device; shot: boolean }) {
+function Single({ concept, scenarioId, device, shot, seat }: { concept: RegisteredConcept; scenarioId: string; device: Device; shot: boolean; seat?: string }) {
   const Bound = useMemo(() => concept.session(scenarioId), [concept, scenarioId]);
   const meta = concept.scenarios.find((s) => s.id === scenarioId);
   useEffect(() => {
@@ -37,8 +37,8 @@ function Single({ concept, scenarioId, device, shot }: { concept: RegisteredConc
   }, [Bound, meta, concept.id, scenarioId, device]);
   if (!Bound || !meta) return <Fail message={`no scenario "${scenarioId}" in concept "${concept.id}"`} />;
   return (
-    <DeviceFrame device={device}>
-      <Bound device={device} shot={shot} />
+    <DeviceFrame device={device} seat={seat}>
+      <Bound device={device} shot={shot} seat={seat} />
     </DeviceFrame>
   );
 }
@@ -61,5 +61,5 @@ export function App() {
   if (!scenarioId) return <Index concepts={[concept]} />;
   if (device === "stage") return <Stage concept={concept} scenarioId={scenarioId} flowId={params.get("flow")} onReady={(ack) => acknowledge(ack, null)} />;
   if (!isDevice(device)) return <Fail message={`unknown device "${device}"`} />;
-  return <Single concept={concept} scenarioId={scenarioId} device={device} shot={shot} />;
+  return <Single concept={concept} scenarioId={scenarioId} device={device} shot={shot} seat={params.get("seat") ?? undefined} />;
 }

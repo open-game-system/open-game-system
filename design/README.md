@@ -17,7 +17,7 @@ scripts/round.sh NN                       # a full round of evidence → critic/
 | device | size | who | rules |
 |---|---|---|---|
 | `phone` | 390×844 | grown-up | thumbs, one hand, 44 pt targets, reads |
-| `ipad` | 820×1180 portrait (landscape art welcome inside) | Juneau (5, reads a handful of words) or Ava (almost 3, mashes) | **no words** (checked), huge juicy targets, nothing an almost-3-year-old can derail |
+| `ipad` | 1180×820 **landscape** (held in two hands, thumbs at the bottom edge) | Juneau (5, reads a handful of words) or Ava (almost 3, mashes) | **no words** (checked), huge juicy targets, nothing an almost-3-year-old can derail |
 | `tv` | 1920×1080 | everyone, from 3 m | a cast stream nobody can touch; text ≥ 24 px (checked); nothing covers the focal area of the game |
 
 ## URLs (the scenario switcher)
@@ -29,7 +29,9 @@ scripts/round.sh NN                       # a full round of evidence → critic/
   `data-scenario-error`.
 - `shot=1` freezes all CSS animation/transition (shots are never mid-fade). Write entrance
   animations with `animation-fill-mode: both` so the frozen frame is the end state.
-- `device=stage` shows TV | phone | iPad side by side sharing **one session** (one store), so a tap
+- `seat=<person>` tells the surface whose device it is (`seat=ava` = Ava's iPad). The stage shows
+  both kids' iPads (`seat=juneau`, `seat=ava`); flow steps can target one with `seat`.
+- `device=stage` shows TV | phone | both iPads side by side sharing **one session** (one store), so a tap
   on the phone visibly changes the TV and the iPad. Flow recordings use it.
 
 ## Writing a concept
