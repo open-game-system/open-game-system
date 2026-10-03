@@ -1,0 +1,102 @@
+{
+  "home": {
+    "label": "Console home: the phone is the remote",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 1.57,
+        "text": "Console home: the phone is the remote"
+      },
+      {
+        "t": 3.087,
+        "text": "Tap Bake Shop on the phone: the TV home turns to it",
+        "device": "phone",
+        "bot": "act-bake-shop"
+      },
+      {
+        "t": 5.408,
+        "text": "Play on TV: day 4 opens, Juneau's iPad drops into his seat",
+        "device": "phone",
+        "bot": "play-on-tv"
+      }
+    ]
+  },
+  "swap": {
+    "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 1.528,
+        "text": "Rocket Crew mission 6 → Bake Shop day 4, every device"
+      },
+      {
+        "t": 3.041,
+        "text": "Dad presses the console button: Rocket Crew pauses on the TV, the next games come up",
+        "device": "phone",
+        "bot": "console-home"
+      },
+      {
+        "t": 5.359,
+        "text": "Picks Bake Shop: mission 6 saves, the TV cuts over, Juneau's iPad follows on its own",
+        "device": "phone",
+        "bot": "next-bake-shop"
+      }
+    ]
+  },
+  "swap-undo": {
+    "label": "Changed our minds: back to Rocket Crew",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.529,
+        "text": "Changed our minds: back to Rocket Crew"
+      },
+      {
+        "t": 3.043,
+        "text": "Back to it: Bake Shop saves day 4, mission 6 resumes everywhere",
+        "device": "phone",
+        "bot": "undo-switch"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Word Duel: Nana's game, play CRANE, back to the list",
+    "taps": 7,
+    "marks": [
+      {
+        "t": 1.526,
+        "text": "Word Duel: Nana's game, play CRANE, back to the list"
+      },
+      {
+        "t": 3.043,
+        "text": "Your turn against Nana",
+        "device": "phone",
+        "bot": "duel-wd-1"
+      },
+      {
+        "t": 5.009,
+        "text": "Tap tiles into the glowing squares",
+        "device": "phone",
+        "bot": "rack-C"
+      },
+      {
+        "t": 8.648,
+        "text": "CRANE on the triple word: 27",
+        "device": "phone",
+        "bot": "rack-N"
+      },
+      {
+        "t": 10.359,
+        "text": "Play it. Sent to Nana; Mom's game is next",
+        "device": "phone",
+        "bot": "play"
+      },
+      {
+        "t": 12.675,
+        "text": "Back to the list: Nana's game is now waiting on her",
+        "device": "phone",
+        "bot": "all-games"
+      }
+    ]
+  }
+}

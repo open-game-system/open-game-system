@@ -1,0 +1,232 @@
+[
+  {
+    "id": "home.01-friday-deck",
+    "label": "Friday 7:10: the deck (home), TV held between moments, Juneau's iPad following",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.02-first-run",
+    "label": "First run: the library is already a deck; add who's home once",
+    "flow": "home",
+    "state": "empty",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.03-later-no-cast",
+    "label": "Later, nothing cast: the spine idles (all games, turns)",
+    "flow": "home",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.01-mid-rocket",
+    "label": "Mid Rocket Crew mission 6: Captain view inside the spine; Juneau fixing",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.02-deck",
+    "label": "Tap the spine's deck tab: the deck rises over the game",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.03-seats",
+    "label": "Bake Shop's cover: resume day 4, seats already filled from who's here",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.04-saving",
+    "label": "Saving mission 6: the game shrinks back into a cover on the TV",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.05-tv-cutover",
+    "label": "TV cut-over: Rocket Crew filed with its save, Bake Shop comes forward",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.06-kids-follow",
+    "label": "Kid iPads follow by name: Juneau's picture rides the thread to his seat",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.07-bake-shop-on",
+    "label": "Bake Shop day 4: everyone in their seat, undo on the spine's ledge",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.08-ava-didnt-follow",
+    "label": "Ava's iPad is asleep at 9%: her row says so; her seat is kept",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.09-ava-seat-kept",
+    "label": "Bake Shop on without Ava: the ledge offers one fix",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.10-ava-on-juneaus",
+    "label": "Ava's seat moves onto Juneau's iPad: two halves, hers turned to face her",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.11-ava-wakes",
+    "label": "Ava's iPad plugged in: it wakes straight into her Bake Shop seat",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "ipad",
+      "tv"
+    ]
+  },
+  {
+    "id": "swap.12-undo-saving",
+    "label": "Undo: Bake Shop saves day 4, Rocket Crew comes back",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.13-back-to-mission-6",
+    "label": "Back to Rocket Crew mission 6, right where it was",
+    "flow": "swap",
+    "state": "undone",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "word-duel.01-list",
+    "label": "Word Duel's list: your turn (2), their turn (3), finished (2)",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.02-nana",
+    "label": "Nana's game: she played QUILT for 34",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.03-placing",
+    "label": "Placing tiles under the T",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.04-ready",
+    "label": "TIDE placed: Play is live",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.05-played",
+    "label": "Played TIDE for 14: Nana's move; next, Mom's turn",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.06-list-after",
+    "label": "Back on the list: Nana's game moved to their turn; the spine shows 1",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.07-new-game",
+    "label": "New game: one per opponent, from homes you already play with",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  }
+]

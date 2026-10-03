@@ -1,0 +1,82 @@
+{
+  "swap": {
+    "label": "Rocket Crew mission 6 → Bake Shop day 4, every device follows",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 1.521,
+        "text": "Rocket Crew mission 6 → Bake Shop day 4, every device follows"
+      },
+      {
+        "t": 3.037,
+        "text": "Dad taps Switch in the couch bar",
+        "device": "phone",
+        "bot": "switch"
+      },
+      {
+        "t": 5.172,
+        "text": "Picks Bake Shop: resumes Day 4, seats prefilled. Rocket Crew saves, TV cuts over, iPads follow",
+        "device": "phone",
+        "bot": "pick-bake-shop"
+      },
+      {
+        "t": 12.888,
+        "text": "Juneau's already baking: no scan, no role pick",
+        "device": "ipad",
+        "bot": "frost-strawberry"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Word Duel: your move with Nana, then back to the list",
+    "taps": 7,
+    "marks": [
+      {
+        "t": 1.52,
+        "text": "Word Duel: your move with Nana, then back to the list"
+      },
+      {
+        "t": 3.035,
+        "text": "Open Nana's game (your move)",
+        "device": "phone",
+        "bot": "duel-nana"
+      },
+      {
+        "t": 4.992,
+        "text": "Tap H",
+        "device": "phone",
+        "bot": "tile-0"
+      },
+      {
+        "t": 6.108,
+        "text": "Tap A",
+        "device": "phone",
+        "bot": "tile-1"
+      },
+      {
+        "t": 7.226,
+        "text": "Tap Z",
+        "device": "phone",
+        "bot": "tile-2"
+      },
+      {
+        "t": 8.338,
+        "text": "Tap E: HAZEL on the L of QUILT",
+        "device": "phone",
+        "bot": "tile-3"
+      },
+      {
+        "t": 9.851,
+        "text": "Play HAZEL for 32",
+        "device": "phone",
+        "bot": "play"
+      },
+      {
+        "t": 12.165,
+        "text": "Back: Nana's game moved to Their move",
+        "device": "phone",
+        "bot": "back"
+      }
+    ]
+  }
+}

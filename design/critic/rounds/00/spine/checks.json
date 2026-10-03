@@ -1,0 +1,680 @@
+{
+  "concept": "spine",
+  "thresholds": {
+    "minTarget": 44,
+    "contrastBody": 4.5,
+    "contrastLarge": 3,
+    "tvMinText": 24
+  },
+  "summary": {
+    "shots": 46,
+    "targetsUnder44": 0,
+    "contrastFails": 4,
+    "kidWords": 0,
+    "tvSmallText": 0,
+    "clippedText": 0,
+    "ackFailures": 0
+  },
+  "tapsPerFlow": [
+    {
+      "flow": "swap",
+      "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "swap-undo",
+      "label": "Undo: back to Rocket Crew mission 6",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "ava-asleep",
+      "label": "Ava's iPad asleep: share Juneau's",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "word-duel",
+      "label": "Word Duel: Nana's game, play TIDE, back to the list",
+      "taps": 6,
+      "perDevice": {
+        "phone": 6
+      }
+    }
+  ],
+  "shots": [
+    {
+      "name": "home.01-friday-deck--phone",
+      "scenario": "home.01-friday-deck",
+      "label": "Friday 7:10: the deck (home), TV held between moments, Juneau's iPad following",
+      "flow": "home",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [
+        {
+          "text": "Peekaboo Garden",
+          "ratio": 3.45,
+          "need": 4.5,
+          "size": 15
+        }
+      ],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "home.01-friday-deck--tv",
+      "scenario": "home.01-friday-deck",
+      "label": "Friday 7:10: the deck (home), TV held between moments, Juneau's iPad following",
+      "flow": "home",
+      "state": "default",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "home.01-friday-deck--ipad",
+      "scenario": "home.01-friday-deck",
+      "label": "Friday 7:10: the deck (home), TV held between moments, Juneau's iPad following",
+      "flow": "home",
+      "state": "default",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "home.02-first-run--phone",
+      "scenario": "home.02-first-run",
+      "label": "First run: the library is already a deck; add who's home once",
+      "flow": "home",
+      "state": "empty",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [
+        {
+          "text": "Peekaboo Garden",
+          "ratio": 3.42,
+          "need": 4.5,
+          "size": 15
+        }
+      ],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "home.03-later-no-cast--phone",
+      "scenario": "home.03-later-no-cast",
+      "label": "Later, nothing cast: the spine idles (all games, turns)",
+      "flow": "home",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [
+        {
+          "text": "Peekaboo Garden",
+          "ratio": 3.45,
+          "need": 4.5,
+          "size": 15
+        }
+      ],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.01-mid-rocket--phone",
+      "scenario": "swap.01-mid-rocket",
+      "label": "Mid Rocket Crew mission 6: Captain view inside the spine; Juneau fixing",
+      "flow": "swap",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.01-mid-rocket--tv",
+      "scenario": "swap.01-mid-rocket",
+      "label": "Mid Rocket Crew mission 6: Captain view inside the spine; Juneau fixing",
+      "flow": "swap",
+      "state": "default",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.01-mid-rocket--ipad",
+      "scenario": "swap.01-mid-rocket",
+      "label": "Mid Rocket Crew mission 6: Captain view inside the spine; Juneau fixing",
+      "flow": "swap",
+      "state": "default",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.02-deck--phone",
+      "scenario": "swap.02-deck",
+      "label": "Tap the spine's deck tab: the deck rises over the game",
+      "flow": "swap",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [
+        {
+          "text": "Peekaboo Garden",
+          "ratio": 3.45,
+          "need": 4.5,
+          "size": 15
+        }
+      ],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.03-seats--phone",
+      "scenario": "swap.03-seats",
+      "label": "Bake Shop's cover: resume day 4, seats already filled from who's here",
+      "flow": "swap",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.04-saving--phone",
+      "scenario": "swap.04-saving",
+      "label": "Saving mission 6: the game shrinks back into a cover on the TV",
+      "flow": "swap",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.04-saving--tv",
+      "scenario": "swap.04-saving",
+      "label": "Saving mission 6: the game shrinks back into a cover on the TV",
+      "flow": "swap",
+      "state": "loading",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.04-saving--ipad",
+      "scenario": "swap.04-saving",
+      "label": "Saving mission 6: the game shrinks back into a cover on the TV",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.05-tv-cutover--phone",
+      "scenario": "swap.05-tv-cutover",
+      "label": "TV cut-over: Rocket Crew filed with its save, Bake Shop comes forward",
+      "flow": "swap",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.05-tv-cutover--tv",
+      "scenario": "swap.05-tv-cutover",
+      "label": "TV cut-over: Rocket Crew filed with its save, Bake Shop comes forward",
+      "flow": "swap",
+      "state": "loading",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.05-tv-cutover--ipad",
+      "scenario": "swap.05-tv-cutover",
+      "label": "TV cut-over: Rocket Crew filed with its save, Bake Shop comes forward",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.06-kids-follow--phone",
+      "scenario": "swap.06-kids-follow",
+      "label": "Kid iPads follow by name: Juneau's picture rides the thread to his seat",
+      "flow": "swap",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.06-kids-follow--tv",
+      "scenario": "swap.06-kids-follow",
+      "label": "Kid iPads follow by name: Juneau's picture rides the thread to his seat",
+      "flow": "swap",
+      "state": "loading",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.06-kids-follow--ipad",
+      "scenario": "swap.06-kids-follow",
+      "label": "Kid iPads follow by name: Juneau's picture rides the thread to his seat",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.07-bake-shop-on--phone",
+      "scenario": "swap.07-bake-shop-on",
+      "label": "Bake Shop day 4: everyone in their seat, undo on the spine's ledge",
+      "flow": "swap",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.07-bake-shop-on--tv",
+      "scenario": "swap.07-bake-shop-on",
+      "label": "Bake Shop day 4: everyone in their seat, undo on the spine's ledge",
+      "flow": "swap",
+      "state": "success",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.07-bake-shop-on--ipad",
+      "scenario": "swap.07-bake-shop-on",
+      "label": "Bake Shop day 4: everyone in their seat, undo on the spine's ledge",
+      "flow": "swap",
+      "state": "success",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.08-ava-didnt-follow--phone",
+      "scenario": "swap.08-ava-didnt-follow",
+      "label": "Ava's iPad is asleep at 9%: her row says so; her seat is kept",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.08-ava-didnt-follow--tv",
+      "scenario": "swap.08-ava-didnt-follow",
+      "label": "Ava's iPad is asleep at 9%: her row says so; her seat is kept",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.08-ava-didnt-follow--ipad",
+      "scenario": "swap.08-ava-didnt-follow",
+      "label": "Ava's iPad is asleep at 9%: her row says so; her seat is kept",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.09-ava-seat-kept--phone",
+      "scenario": "swap.09-ava-seat-kept",
+      "label": "Bake Shop on without Ava: the ledge offers one fix",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.09-ava-seat-kept--tv",
+      "scenario": "swap.09-ava-seat-kept",
+      "label": "Bake Shop on without Ava: the ledge offers one fix",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.09-ava-seat-kept--ipad",
+      "scenario": "swap.09-ava-seat-kept",
+      "label": "Bake Shop on without Ava: the ledge offers one fix",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.10-ava-on-juneaus--phone",
+      "scenario": "swap.10-ava-on-juneaus",
+      "label": "Ava's seat moves onto Juneau's iPad: two halves, hers turned to face her",
+      "flow": "swap",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.10-ava-on-juneaus--tv",
+      "scenario": "swap.10-ava-on-juneaus",
+      "label": "Ava's seat moves onto Juneau's iPad: two halves, hers turned to face her",
+      "flow": "swap",
+      "state": "partial",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.10-ava-on-juneaus--ipad",
+      "scenario": "swap.10-ava-on-juneaus",
+      "label": "Ava's seat moves onto Juneau's iPad: two halves, hers turned to face her",
+      "flow": "swap",
+      "state": "partial",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.11-ava-wakes--ipad",
+      "scenario": "swap.11-ava-wakes",
+      "label": "Ava's iPad plugged in: it wakes straight into her Bake Shop seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.11-ava-wakes--tv",
+      "scenario": "swap.11-ava-wakes",
+      "label": "Ava's iPad plugged in: it wakes straight into her Bake Shop seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.12-undo-saving--phone",
+      "scenario": "swap.12-undo-saving",
+      "label": "Undo: Bake Shop saves day 4, Rocket Crew comes back",
+      "flow": "swap",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.12-undo-saving--tv",
+      "scenario": "swap.12-undo-saving",
+      "label": "Undo: Bake Shop saves day 4, Rocket Crew comes back",
+      "flow": "swap",
+      "state": "loading",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.12-undo-saving--ipad",
+      "scenario": "swap.12-undo-saving",
+      "label": "Undo: Bake Shop saves day 4, Rocket Crew comes back",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.13-back-to-mission-6--phone",
+      "scenario": "swap.13-back-to-mission-6",
+      "label": "Back to Rocket Crew mission 6, right where it was",
+      "flow": "swap",
+      "state": "undone",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.13-back-to-mission-6--tv",
+      "scenario": "swap.13-back-to-mission-6",
+      "label": "Back to Rocket Crew mission 6, right where it was",
+      "flow": "swap",
+      "state": "undone",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "swap.13-back-to-mission-6--ipad",
+      "scenario": "swap.13-back-to-mission-6",
+      "label": "Back to Rocket Crew mission 6, right where it was",
+      "flow": "swap",
+      "state": "undone",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.01-list--phone",
+      "scenario": "word-duel.01-list",
+      "label": "Word Duel's list: your turn (2), their turn (3), finished (2)",
+      "flow": "word-duel",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.02-nana--phone",
+      "scenario": "word-duel.02-nana",
+      "label": "Nana's game: she played QUILT for 34",
+      "flow": "word-duel",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.03-placing--phone",
+      "scenario": "word-duel.03-placing",
+      "label": "Placing tiles under the T",
+      "flow": "word-duel",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.04-ready--phone",
+      "scenario": "word-duel.04-ready",
+      "label": "TIDE placed: Play is live",
+      "flow": "word-duel",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.05-played--phone",
+      "scenario": "word-duel.05-played",
+      "label": "Played TIDE for 14: Nana's move; next, Mom's turn",
+      "flow": "word-duel",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.06-list-after--phone",
+      "scenario": "word-duel.06-list-after",
+      "label": "Back on the list: Nana's game moved to their turn; the spine shows 1",
+      "flow": "word-duel",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    },
+    {
+      "name": "word-duel.07-new-game--phone",
+      "scenario": "word-duel.07-new-game",
+      "label": "New game: one per opponent, from homes you already play with",
+      "flow": "word-duel",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": []
+    }
+  ]
+}

@@ -1,0 +1,262 @@
+[
+  {
+    "id": "home.01-people",
+    "label": "Phone home: People (threads), Friday 7:10",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.02-your-move",
+    "label": "Phone home filtered to Your move",
+    "flow": "home",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.03-tv-ambient",
+    "label": "TV: cast, nothing running (ambient, 3 m)",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "home.04-ipad-idle",
+    "label": "Juneau's iPad: paired, following tonight",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.05-first-run",
+    "label": "Phone home, first time: nobody yet",
+    "flow": "home",
+    "state": "empty",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.06-us-thread",
+    "label": "The household's thread: every couch game and where it stands",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.07-game-night",
+    "label": "Group thread: Friday game night across three homes",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.08-library",
+    "label": "Games tab: start something with someone",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.09-household",
+    "label": "Household tab: people and devices",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.01-mid-game",
+    "label": "Mid Rocket Crew: Captain on phone, Fixer on iPad, TV full-bleed",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.02-choose",
+    "label": "Switch: next on the couch (resume points, seats prefilled)",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.03-saving",
+    "label": "Saving mission 6 (loading) on every device",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.04-tv-cutover",
+    "label": "TV cut-over inside the same cast",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.05-kids-follow",
+    "label": "Kid iPads following by name (Juneau's on the way)",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.06-loaded",
+    "label": "Bake Shop day 4, everyone in their seat",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.07-ava-following",
+    "label": "Ava's iPad following (the littlest helper)",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.08-ava-asleep",
+    "label": "Ava's iPad asleep at 9%: didn't follow, seat saved",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.09-ava-chime",
+    "label": "Chime Ava's iPad so someone finds it",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.10-ava-caught-up",
+    "label": "Ava opened it: she's in as Littlest helper",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "ipad",
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.11-undo",
+    "label": "Back to Rocket Crew: mission 6 resumes",
+    "flow": "swap",
+    "state": "undone",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.12-baking",
+    "label": "Juneau frosts the first cupcake",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "ipad",
+      "tv"
+    ]
+  },
+  {
+    "id": "word-duel.00-push",
+    "label": "A push lands: Nana played QUILT, your move",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.01-list",
+    "label": "Word Duel: two your move, three waiting, finished, expired",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.02-nana",
+    "label": "Nana's game: QUILT for 34, your move",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.03-placing",
+    "label": "Placing HAZE on the L of QUILT",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.04-sent",
+    "label": "Sent: HAZEL for 32, next your move with Mom",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.05-list-after",
+    "label": "Back to the list: Nana moved to Their move",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  }
+]

@@ -1,0 +1,80 @@
+{
+  "swap": {
+    "label": "Cut from Rocket Crew to Bake Shop",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 1.553,
+        "text": "Cut from Rocket Crew to Bake Shop"
+      },
+      {
+        "t": 3.071,
+        "text": "Dad taps Next: tonight's running order, Bake Shop lined up",
+        "device": "phone",
+        "bot": "director"
+      },
+      {
+        "t": 5.793,
+        "text": "Cut to Bake Shop: Rocket Crew saves, the TV idents, iPads follow",
+        "device": "phone",
+        "bot": "cut"
+      },
+      {
+        "t": 13.516,
+        "text": "Juneau is already baking: no code, no role pick",
+        "device": "ipad",
+        "bot": "kid-strawberry"
+      }
+    ]
+  },
+  "swap-back": {
+    "label": "Undo: back to Rocket Crew",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.551,
+        "text": "Undo: back to Rocket Crew"
+      },
+      {
+        "t": 3.067,
+        "text": "Back to it: Rocket Crew resumes at mission 6",
+        "device": "phone",
+        "bot": "undo"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Word Duel: play Nana's turn",
+    "taps": 6,
+    "marks": [
+      {
+        "t": 1.532,
+        "text": "Word Duel: play Nana's turn"
+      },
+      {
+        "t": 3.051,
+        "text": "Your turn: open Nana's game (she played QUILT)",
+        "device": "phone",
+        "bot": "duel-wd-1"
+      },
+      {
+        "t": 5.006,
+        "text": "Lay TONE down from her T",
+        "device": "phone",
+        "bot": "rack-O"
+      },
+      {
+        "t": 8.851,
+        "text": "Play TONE for 12",
+        "device": "phone",
+        "bot": "play"
+      },
+      {
+        "t": 11.177,
+        "text": "Back to the list: Nana's game moved to Their turn",
+        "device": "phone",
+        "bot": "back-list-sent"
+      }
+    ]
+  }
+}

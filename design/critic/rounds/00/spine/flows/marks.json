@@ -1,0 +1,108 @@
+{
+  "swap": {
+    "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 1.533,
+        "text": "Rocket Crew mission 6 → Bake Shop day 4, every device"
+      },
+      {
+        "t": 3.051,
+        "text": "Dad taps the deck tab on the spine",
+        "device": "phone",
+        "bot": "spine-deck"
+      },
+      {
+        "t": 5.072,
+        "text": "Bake Shop's cover: day 4, seats already filled",
+        "device": "phone",
+        "bot": "cover-bake-shop"
+      },
+      {
+        "t": 7.391,
+        "text": "Swap: mission 6 saves, the TV cuts over, the iPads follow",
+        "device": "phone",
+        "bot": "seats-swap"
+      }
+    ]
+  },
+  "swap-undo": {
+    "label": "Undo: back to Rocket Crew mission 6",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.532,
+        "text": "Undo: back to Rocket Crew mission 6"
+      },
+      {
+        "t": 3.043,
+        "text": "Undo from the spine's ledge",
+        "device": "phone",
+        "bot": "ledge-undo"
+      }
+    ]
+  },
+  "ava-asleep": {
+    "label": "Ava's iPad asleep: share Juneau's",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.535,
+        "text": "Ava's iPad asleep: share Juneau's"
+      },
+      {
+        "t": 3.043,
+        "text": "Put Ava's seat on Juneau's iPad",
+        "device": "phone",
+        "bot": "ledge-share"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Word Duel: Nana's game, play TIDE, back to the list",
+    "taps": 6,
+    "marks": [
+      {
+        "t": 1.524,
+        "text": "Word Duel: Nana's game, play TIDE, back to the list"
+      },
+      {
+        "t": 3.033,
+        "text": "Open Nana's game (your turn)",
+        "device": "phone",
+        "bot": "duel-nana"
+      },
+      {
+        "t": 4.986,
+        "text": "Place I under the T",
+        "device": "phone",
+        "bot": "tile-I"
+      },
+      {
+        "t": 6.195,
+        "text": "Place D",
+        "device": "phone",
+        "bot": "tile-D"
+      },
+      {
+        "t": 7.402,
+        "text": "Place E",
+        "device": "phone",
+        "bot": "tile-E"
+      },
+      {
+        "t": 8.809,
+        "text": "Play TIDE for 14",
+        "device": "phone",
+        "bot": "duel-play"
+      },
+      {
+        "t": 11.122,
+        "text": "Back to the list: Nana's game is now their turn",
+        "device": "phone",
+        "bot": "duel-back"
+      }
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "swap": {
+    "label": "Rocket Crew → Bake Shop on every device: 2 taps on the phone, none on the iPads",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 1.552,
+        "text": "Rocket Crew → Bake Shop on every device: 2 taps on the phone, none on the iPads"
+      },
+      {
+        "t": 3.068,
+        "text": "Dad taps Switch: the game keeps running behind the sheet",
+        "device": "phone",
+        "bot": "switch-game"
+      },
+      {
+        "t": 4.997,
+        "text": "Bake Shop, day 4: seats already filled, so one tap swaps. Saved, cut over, iPads follow.",
+        "device": "phone",
+        "bot": "pick-bake-shop"
+      }
+    ]
+  },
+  "swap-undo": {
+    "label": "Changed your mind: one tap back to Rocket Crew, mission 6 exactly as it was",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.587,
+        "text": "Changed your mind: one tap back to Rocket Crew, mission 6 exactly as it was"
+      },
+      {
+        "t": 3.105,
+        "text": "Back to Rocket Crew: Bake Shop saves at day 4, the iPads follow back",
+        "device": "phone",
+        "bot": "undo"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Word Duel: Nana's move, LOFT for 14, back to the list",
+    "taps": 6,
+    "marks": [
+      {
+        "t": 1.534,
+        "text": "Word Duel: Nana's move, LOFT for 14, back to the list"
+      },
+      {
+        "t": 3.051,
+        "text": "Your move ×2: open Nana's game",
+        "device": "phone",
+        "bot": "duel-wd-1"
+      },
+      {
+        "t": 4.969,
+        "text": "Place O under the L of QUILT",
+        "device": "phone",
+        "bot": "tile-O"
+      },
+      {
+        "t": 6.18,
+        "text": "F",
+        "device": "phone",
+        "bot": "tile-F"
+      },
+      {
+        "t": 7.392,
+        "text": "T: LOFT",
+        "device": "phone",
+        "bot": "tile-T"
+      },
+      {
+        "t": 9.302,
+        "text": "Play LOFT for 14",
+        "device": "phone",
+        "bot": "play-move"
+      },
+      {
+        "t": 11.213,
+        "text": "Back to all games: Nana's moves to Their move",
+        "device": "phone",
+        "bot": "all-games"
+      }
+    ]
+  }
+}
