@@ -249,6 +249,7 @@
 
     function cleanup() {
       clearConnectionTimeout();
+      stopStallWatch();
       stopHeartbeat();
       if (pc) {
         pc.close();
@@ -380,6 +381,7 @@
     }
     function peerFailed(why, text) {
       clearPeerTimer();
+      stopStallWatch();
       isConnected = false;
       console.error('[Receiver] Laptop stream failed:', why);
       setStatus(text, false);
@@ -387,6 +389,44 @@
       video.srcObject = null;
       if (peerReply) peerReply({ type: 'PEER_ERROR', message: why });
     }
+    // A laptop's picture can stall after Wi-Fi loss: packets keep arriving but nothing decodes until a
+    // keyframe. This device's WebRTC never asks for one (it sends no PLIs; measured on the Chromecast HD,
+    // stalls lasted 10-40 s), so we watch decoding and ask the laptop over Cast (PEER_KEYFRAME).
+    let stallTimer = null;
+    let keyframeAsks = 0;
+    function stopStallWatch() {
+      if (stallTimer) clearInterval(stallTimer);
+      stallTimer = null;
+    }
+    function startStallWatch(conn) {
+      stopStallWatch();
+      let last = null;
+      let stalledSince = null;
+      let askedAt = 0;
+      stallTimer = setInterval(async () => {
+        if (conn !== pc || currentViewUrl !== 'laptop' || !peerReply) return;
+        let v = null;
+        try {
+          (await conn.getStats()).forEach((r) => { if (r.type === 'inbound-rtp' && r.kind === 'video') v = r; });
+        } catch (e) { return; }
+        if (!v) return;
+        const now = Date.now();
+        if (last && v.packetsReceived > last.packets && v.framesDecoded === last.frames) {
+          stalledSince = stalledSince || now;
+          if (now - stalledSince >= 1000 && now - askedAt >= 2000) {
+            askedAt = now;
+            keyframeAsks++;
+            console.warn('[Receiver] Picture stalled for', now - stalledSince, 'ms: asking the laptop for a keyframe');
+            peerReply({ type: 'PEER_KEYFRAME' });
+          }
+        } else {
+          if (stalledSince && now - stalledSince >= 1000) console.log('[Receiver] Picture moving again after', now - stalledSince, 'ms');
+          stalledSince = null;
+        }
+        last = { packets: v.packetsReceived, frames: v.framesDecoded };
+      }, 500);
+    }
+
     function onPeerConnectionState(state) {
       if (state === 'disconnected') {
         // Often a Wi-Fi blip that recovers by itself; 'failed' follows if it doesn't.
@@ -443,6 +483,7 @@
         await iceGathered(conn, 2000);
         if (conn !== pc) return; // a newer offer replaced this one
         reply({ type: 'PEER_ANSWER', sdp: conn.localDescription.sdp });
+        startStallWatch(conn);
       } catch (err) {
         if (conn !== pc) return;
         peerFailed(String(err && err.message || err), 'Unable to connect to the laptop');
@@ -599,6 +640,7 @@
         hud: hudFrame && hudState ? { url: hudState.url, loaded: hudState.loaded, loadMs: hudState.loadMs, ready: hudState.ready, last: hudState.last, layout: lastHudData,
           box: (() => { const r = hudFrame.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}@${Math.round(r.left)},${Math.round(r.top)}`; })() } : null,
         screen: `${window.innerWidth}x${window.innerHeight}@${window.devicePixelRatio}`,
+        keyframeAsks,
         inbound: {},
       };
       if (pc) {
