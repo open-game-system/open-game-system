@@ -1,67 +1,80 @@
-// The TV when no game is running: an ambient console home. The focused activity's art fills the
-// room, slowly drifting; the console only adds a title, a clock and a shelf. Nobody touches it:
-// the phone moves the focus.
-import { gameById } from "../../../world";
-import { activities } from "../activities";
+// The TV when no game is running: the family's console home. The focused couch game's art fills the
+// room; the console adds the household, a big clock, tonight's game night as one ambient line, and
+// the couch shelf. Nobody touches it: the phone moves the focus.
+import { HOME, gameById } from "../../../world";
+import { activities, type Activity } from "../activities";
 import { PRESENT, type S } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
-import { TvArt } from "./TvArt";
 import { PhoneIcon, TabletIcon } from "../ui/Icons";
+import { GameNightLine } from "./GameNight";
+import { Clock, FollowPath } from "./Motif";
+import { TvArt } from "./TvArt";
 
 export function TvHome({ s }: { s: S }) {
-  const acts = activities(s).filter((a) => gameById(a.gameId).art.tv);
-  const focus = acts.find((a) => a.gameId === s.tvFocus) ?? acts[0];
+  const all = activities(s);
+  const couch = all.filter((a) => gameById(a.gameId).shape === "couch" && gameById(a.gameId).art.tv);
+  const focus = all.find((a) => a.gameId === s.tvFocus && gameById(a.gameId).art.tv) ?? couch[0];
   if (!focus) return null;
-  const game = gameById(focus.gameId);
-  const shelf = [focus, ...acts.filter((a) => a !== focus)].slice(0, 6);
+  const shelf = couch.slice(0, 5);
+  const focusIsCouch = shelf.includes(focus);
   return (
-    <div className="tv-home">
-      <div className="tv-home__bg" key={focus.gameId}>
+    <div className="ct-home">
+      <div className="ct-home__bg" key={focus.gameId}>
         <TvArt gameId={focus.gameId} />
       </div>
-      <div className="tv-home__shade" />
-      <header className="tv-home__top">
-        <span className="tv-brand">
-          <Mark size={40} />
-          <span>Living room</span>
+      <div className="ct-home__shade" />
+      <header className="ct-top">
+        <span className="ct-brand">
+          <Mark size={46} />
+          <span>
+            {HOME.name} <em>· Living room</em>
+          </span>
         </span>
-        <span className="tv-clock">
-          <b>7:10</b>
-          <span>Friday</span>
-        </span>
+        <Clock />
       </header>
-      <section className="tv-home__focus">
-        <span className="tv-kicker">{focus.badge || "Jump back in"}</span>
-        <h1>{game.name}</h1>
-        <p className="tv-home__title">{focus.title}</p>
-        <p className="tv-home__detail">{focus.detail}</p>
-        <div className="tv-home__here">
-          {PRESENT.map((p) => {
-            const kid = p.band !== "grownup";
-            return (
-              <span key={p.id} className="tv-here">
-                <Portrait person={p} size={52} />
-                <span>{p.name}</span>
-                {kid ? <TabletIcon size={26} /> : <PhoneIcon size={26} />}
-              </span>
-            );
-          })}
-        </div>
-      </section>
-      <section className="tv-shelf">
-        {shelf.map((a) => (
-          <div key={a.id} className={`tv-shelf__tile ${a === focus ? "is-focus" : ""}`}>
-            <div className="tv-shelf__art">
-              <TvArt gameId={a.gameId} />
-            </div>
-            {a === focus ? null : <span className="tv-shelf__label">{gameById(a.gameId).name}</span>}
-          </div>
-        ))}
-      </section>
-      <footer className="tv-hint">
-        <PhoneIcon size={30} />
+      {focusIsCouch && <GameNightLine />}
+      <Focus focus={focus} />
+      <Shelf shelf={shelf} focus={focus} />
+      <footer className="ct-home__hint">
+        <PhoneIcon size={32} />
         Choose on Jonathan's phone
       </footer>
+      <FollowPath className="ct-home__path" w={170} h={120} d="M160 110 C 120 40, 60 30, 10 20" />
     </div>
+  );
+}
+
+function Focus({ focus }: { focus: Activity }) {
+  return (
+    <section className="ct-home__focus" key={focus.gameId}>
+      <span className="ct-kicker">{focus.badge || "Jump back in"}</span>
+      <h1>{gameById(focus.gameId).name}</h1>
+      <p className="ct-home__title">{focus.title}</p>
+      <p className="ct-home__detail">{focus.detail}</p>
+      <div className="ct-home__here">
+        {PRESENT.map((p) => (
+          <span key={p.id} className="ct-here">
+            <Portrait person={p} size={56} />
+            <span>{p.name}</span>
+            {p.band === "grownup" ? <PhoneIcon size={26} /> : <TabletIcon size={26} />}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Shelf({ shelf, focus }: { shelf: Activity[]; focus: Activity }) {
+  return (
+    <section className="ct-shelf" aria-label="Couch games">
+      {shelf.map((a, i) => (
+        <div key={a.id} className={`ct-shelf__tile ${a === focus ? "is-focus" : ""}`} style={{ animationDelay: `${i * 60}ms` }}>
+          <div className="ct-shelf__art">
+            <TvArt gameId={a.gameId} />
+          </div>
+          <span className="ct-shelf__label">{gameById(a.gameId).name}</span>
+        </div>
+      ))}
+    </section>
   );
 }
