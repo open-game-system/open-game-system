@@ -16,7 +16,7 @@ export function RocketFixer({ kid }: { kid: Person }) {
   const g = gameById("rocket-crew");
   const [hit, setHit] = useState<string | null>(null);
   return (
-    <div className="g-rcf" style={{ backgroundImage: `url(${g.art.alt})` }}>
+    <div className="g-rcf" style={{ backgroundImage: `url(${g.art.tv})` }}>
       <div className="g-rcf-veil" />
       <KidBadge kid={kid} />
       <div className="g-rcf-stars">
