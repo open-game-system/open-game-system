@@ -681,9 +681,10 @@
       castContext = context;
       context.addCustomMessageListener(VIEW_NAMESPACE, (event) => {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        // (Offers carry kilobytes of SDP and HUD messages are frequent: log only what they are.)
-        if (data && (data.type === 'PEER_OFFER' || data.type === 'HUD_MESSAGE')) console.log('[Receiver] From sender:', data.type);
-        else console.log('[Receiver] LOAD_VIEW from sender:', data);
+        // (Offers carry kilobytes of SDP: log only what they are. HUD messages are frequent and every log
+        // line is echoed to the senders: not logged. GET_STATE answers for itself.)
+        if (data && data.type === 'PEER_OFFER') console.log('[Receiver] From sender:', data.type);
+        else if (data && data.type !== 'HUD_MESSAGE' && data.type !== 'GET_STATE') console.log('[Receiver] From sender:', data);
         if (data && data.type === 'GET_STATE') {
           // Diagnostics for a sender: is the stream actually decoding video/audio on this device?
           // (A probe is a sender too: never start the default cloud view under it.)
