@@ -686,6 +686,8 @@
         else console.log('[Receiver] LOAD_VIEW from sender:', data);
         if (data && data.type === 'GET_STATE') {
           // Diagnostics for a sender: is the stream actually decoding video/audio on this device?
+          // (A probe is a sender too: never start the default cloud view under it.)
+          senderSpoke = true;
           reportState(event.senderId);
           return;
         }
