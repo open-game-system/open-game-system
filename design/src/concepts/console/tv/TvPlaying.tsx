@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { gameById } from "../../../world";
 import { GameTvView } from "../games/registry";
 import type { S } from "../state";
+import { NightChip } from "./GameNight";
 import { NowBand, NowChip } from "./NowPlaying";
 import { seatViews } from "./Roster";
 import { frameFor } from "./frame";
@@ -35,7 +36,9 @@ export function TvPlaying({ s, gameId }: { s: S; gameId: string }) {
 /** Right after a switch the band holds for a beat, then settles into the corner chip (CSS timeline;
  * shots freeze at its end, the settled frame). Without a switch only the chip shows. */
 function NowOverlay({ s, gameId }: { s: S; gameId: string }) {
-  const seats = seatViews(gameById(gameId), s.asleep, () => true);
+  const game = gameById(gameId);
+  if (game.shape === "live") return <NightChip />;
+  const seats = seatViews(game, s.asleep, () => true);
   const left = s.left;
   return (
     <>

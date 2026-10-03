@@ -18,3 +18,20 @@ export function GameNightLine() {
     </aside>
   );
 }
+
+/** A live game night on this home's TV: the shared board is the game's; the console adds only
+ * which seat is ours and whose turn it is, small, in the corner. */
+export function NightChip() {
+  const ours = HEARTHISLE.seats.find((x) => x.householdId === HOME.id);
+  if (!ours) return null;
+  const name = ours.label.split(" (")[0] ?? ours.label;
+  return (
+    <div className="ct-chip ct-chip--night">
+      <i className="ct-chip__seat" style={{ background: ours.color }} />
+      <b>{name}</b>
+      <span>our seat</span>
+      <span className="ct-chip__sep" />
+      <span className="ct-chip__turn">{HEARTHISLE.turn ? `${HEARTHISLE.turn} to roll` : "Your turn"}</span>
+    </div>
+  );
+}

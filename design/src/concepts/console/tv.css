@@ -157,3 +157,7 @@
 .ct-cut--cutover .ct-band { animation: ct-fade 0.5s 0.5s both; }
 /* After a cut the stream is already on screen (the cut-over art was its first frame): no fade-in. */
 .ct-play.is-landed .ct-play__game { animation: none; }
+.ct-chip--night { padding: 0 28px 0 22px; }
+.ct-chip__seat { width: 26px; height: 26px; border-radius: 50%; box-shadow: 0 0 0 4px rgba(255, 255, 255, .25); }
+.ct-chip__sep { width: 2px; height: 32px; background: rgba(244, 242, 238, .25); margin: 0 4px; }
+.ct-chip > span.ct-chip__turn { color: var(--ct-ink); font-weight: 700; }
