@@ -135,12 +135,12 @@
 @keyframes kd-land-late { from { transform: translateY(-700px) scale(1.6); } 70% { transform: translateY(0) scale(1.1, 0.88); } }
 .kd-arrive { position: absolute; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 .kd-arrive__halo { position: absolute; left: 340px; top: 430px; width: 500px; height: 500px; border-radius: 50%; animation: kd-halo 1.6s ease-out both; }
-@keyframes kd-halo { from { transform: scale(0.2); opacity: 1; } }
+@keyframes kd-halo { from { transform: scale(0.2); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
 .kd-arrive__ring { position: absolute; left: 590px; top: 720px; width: 0; height: 0; border-radius: 50%; border: 10px solid; }
 .kd-arrive__ring--a { animation: kd-arrive-ring 1.1s 0.6s ease-out both; }
 .kd-arrive__ring--b { border-color: #ffd23f; animation: kd-arrive-ring 1.1s 0.8s ease-out both; }
 @keyframes kd-arrive-ring { from { width: 0; height: 0; margin: 0; opacity: 1; } to { width: 700px; height: 700px; margin: -350px 0 0 -350px; opacity: 0; } }
-.kd-arrive__bit { position: absolute; top: 0; width: 28px; height: 12px; border-radius: 6px; animation: kd-confetti 1.5s cubic-bezier(.3,.6,.4,1) both; top: var(--rest); transform: rotate(var(--rot)); }
+.kd-arrive__bit { position: absolute; width: 30px; height: 12px; border-radius: 6px; animation: kd-confetti 1.5s cubic-bezier(.3,.6,.4,1) both; top: var(--rest); transform: rotate(var(--rot)); }
 @keyframes kd-confetti { from { top: 70%; transform: translateY(-520px) rotate(0) scale(1.4); } 40% { transform: translateY(-560px) rotate(200deg); } }
 
 /* ---------- Rocket Crew (bubblegum space) ---------- */
@@ -219,3 +219,9 @@
 .gk-giant--berry > span.is-squash { animation: kd-squash 0.42s cubic-bezier(.3,1.7,.5,1) both; }
 .gk-giant--shaker::before, .gk-giant--berry::before { content: ""; position: absolute; inset: 14px; border-radius: 50%; box-shadow: inset 0 0 0 8px #f9c6d3; animation: kd-breath-ring 1.6s ease-in-out infinite alternate; }
 @keyframes kd-breath-ring { to { transform: scale(1.05); opacity: 0.6; } }
+
+/* late arrival: the landing pad stays gold, so the arrival still reads after the confetti settles */
+.kd-game--late .gk-me.gk-me .kd-char__pad { opacity: 1; }
+.kd-game--late .gk-me.gk-me .kd-char__pad { background: radial-gradient(closest-side, #ffd23f, #ffd23f88 55%, transparent); height: 30%; }
+.kd-game--late .gk-me::before { content: ""; position: absolute; left: -10%; right: -10%; top: -6%; bottom: -4%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 210, 63, 0.45), transparent); z-index: -1; }
+.kd-burst--puff .kd-burst__p { opacity: 0.9; box-shadow: inset 0 0 0 4px #ffffff, 0 0 16px rgba(233, 221, 255, .8); }

@@ -11,7 +11,7 @@ export function KidAsleep({ who, battery }: { who: Person; battery: number }) {
   const host = useRef<HTMLDivElement>(null);
   const { bursts, fire } = useBursts();
   return (
-    <div ref={host} className="kd-asleep" style={{ color: who.color }} onPointerDown={(e) => fire(e, host.current, "puff", ["#cdb8ff55", "#ffffff44"])}>
+    <div ref={host} className="kd-asleep" style={{ color: who.color }} onPointerDown={(e) => fire(e, host.current, "puff", ["#cdb8ff88", "#ffffff66"])}>
       <div className="kd-asleep__moon" aria-hidden />
       <div className="kd-asleep__glow" aria-hidden />
       <div className="kd-asleep__bubbles" aria-hidden>
