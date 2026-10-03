@@ -121,7 +121,7 @@ export function GenericPad({ g }: { g: GameManifest }) {
 function Ground({ g, children, art, tint }: { g: GameManifest; children: ReactNode; art?: string; tint?: string }) {
   const k = skinOf(g);
   return (
-    <div style={{ position: "absolute", inset: 0, background: tint ? `radial-gradient(circle at 50% 60%, ${tint}55, ${k.ground} 70%)` : k.ground, overflow: "hidden", animation: "sp-fade .4s both" }}>
+    <div style={{ position: "absolute", inset: 0, background: tint ? `radial-gradient(circle at 50% 62%, ${tint}, ${k.ground} 62%)` : k.ground, overflow: "hidden", animation: "sp-fade .4s both" }}>
       {art && <img src={art} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.32 }} />}
       <div style={{ position: "relative", height: "100%" }}>{children}</div>
     </div>

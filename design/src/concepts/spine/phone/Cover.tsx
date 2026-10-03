@@ -9,7 +9,7 @@ export function Tag({ status, style }: { status: Pick<CoverStatus, "kind" | "tag
   return (
     <span className="sp-tag" style={style}>
       <Bead kind={status.kind} />
-      {status.tag}
+      <span>{status.tag}</span>
     </span>
   );
 }

@@ -35,7 +35,8 @@ export function statusOf(g: GameManifest, s: S): CoverStatus {
   if (inst.status === "suspended" && reminder) {
     const at = reminder.text.match(/at (\d{1,2}(:\d\d)?)/)?.[1];
     const who = reminder.text.split(" · ")[1];
-    return { kind: "soon", tag: at ? `Tonight at ${at}` : "Tonight", line: who ? `${inst.title} · ${who}` : inst.title };
+    const turn = inst.title.split(" · ").slice(-1)[0] ?? inst.title;
+    return { kind: "soon", tag: at ? `Tonight at ${at}` : "Tonight", line: who ? `${turn} · ${who}` : turn };
   }
   const ready = WORLD_EVENTS.find((e) => e.gameId === g.id && e.kind === "ready");
   if (ready) return { kind: "ready", tag: "Ready", line: inst.title };

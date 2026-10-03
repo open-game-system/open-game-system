@@ -30,23 +30,24 @@ export function Follow({ s, owner }: { s: S; owner: string }) {
         <span className="sp-binding" style={{ width: 20 }} />
       </div>
       {/* the old cover, going back into the deck */}
-      <div style={{ position: "absolute", left: leaving ? 60 : 70, top: leaving ? 70 : 760, width: leaving ? 700 : 170, height: leaving ? 520 : 128, borderRadius: "0 14px 14px 0", overflow: "hidden", transform: leaving ? "none" : "rotate(-6deg)", transition: "all .8s cubic-bezier(.5,0,.2,1)", boxShadow: "0 18px 30px -12px rgba(0,0,0,.6)", opacity: leaving ? 1 : 0.9 }}>
+      <div hidden={landed} style={{ position: "absolute", left: leaving ? 60 : 70, top: leaving ? 70 : 760, width: leaving ? 700 : 170, height: leaving ? 520 : 128, borderRadius: "0 14px 14px 0", overflow: "hidden", transform: leaving ? "none" : "rotate(-6deg)", transition: "all .8s cubic-bezier(.5,0,.2,1)", boxShadow: "0 18px 30px -12px rgba(0,0,0,.6)", opacity: leaving ? 1 : 0.9 }}>
         <img src={from.art.tv} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <span className="sp-binding" style={{ width: 14 }} />
       </div>
       {/* the thread */}
-      {!leaving && (
+      {!leaving && !landed && (
         <svg width="820" height="1180" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} aria-hidden>
           <path d="M240 800 C 340 700, 440 940, 560 820" fill="none" stroke={k.dark ? "#fff6e0" : k.ink} strokeWidth="8" strokeLinecap="round" strokeDasharray="2 22" style={{ animation: "sp-march 1s linear infinite" }} />
         </svg>
       )}
       {/* the seat at the new game */}
-      {!leaving && <span style={{ position: "absolute", left: 470, top: 900, width: 200, height: 54, borderRadius: "50%", background: k.accent2, boxShadow: "0 10px 0 rgba(0,0,0,.18)" }} />}
+      {landed && <span style={{ position: "absolute", left: 250, top: 640, width: 320, height: 320, borderRadius: "50%", border: `10px solid ${k.accent}`, animation: "sp-breathe 1.2s ease-in-out infinite" }} />}
+      {!leaving && <span style={{ position: "absolute", left: landed ? 260 : 470, top: landed ? 930 : 900, width: landed ? 300 : 200, height: landed ? 70 : 54, borderRadius: "50%", background: k.accent2, boxShadow: "0 10px 0 rgba(0,0,0,.18)" }} />}
       <Portrait
         id={owner}
-        size={leaving ? 240 : 170}
+        size={leaving ? 240 : landed ? 260 : 170}
         style={{
-          position: "absolute", left: leaving ? 290 : 485, top: leaving ? 700 : 740,
+          position: "absolute", left: leaving ? 290 : landed ? 280 : 485, top: leaving ? 700 : landed ? 670 : 740,
           animation: leaving ? "sp-breathe 1.6s ease-in-out infinite" : landed ? "sp-pop .5s both" : "sp-hop 1.4s cubic-bezier(.3,.7,.4,1) both",
         }}
       />

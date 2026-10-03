@@ -21,7 +21,7 @@ export function FirstRun({ s, store }: { s: S; store: Store<S> }) {
           Add your family once. Every game knows who’s who, and each kid’s iPad follows the TV by name.
         </p>
         <button data-bot="first-family" className="sp-ogs-btn" style={{ background: "var(--sp-bone)", color: "var(--sp-ink)" }} onClick={() => store.update((x) => ({ ...x, firstRun: false, phone: "deck" }))}>
-          Add your family
+          <span>Add your family</span>
         </button>
       </section>
       <div style={{ font: "600 15px var(--sp-font)", color: "var(--sp-ink)", margin: "16px 0 8px" }}>The library · 7 games</div>

@@ -62,7 +62,7 @@ export function Seats({ s, store }: { s: S; store: Store<S> }) {
           {now.name} saves at {(nowInst?.title.split(" · ")[0] ?? "this point").toLowerCase()}. Kids’ iPads follow on their own.
         </div>
         <button data-bot="seats-swap" className="sp-ogs-btn wide" onClick={() => store.update((x) => startSwap({ ...x, pick: undefined }, g.id))}>
-          Swap the TV to {g.name}
+          <span>Swap the TV to {g.name}</span>
         </button>
       </div>
     </div>

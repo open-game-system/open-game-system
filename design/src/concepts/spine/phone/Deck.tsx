@@ -27,7 +27,7 @@ export function Deck({ s, store, fromGame }: { s: S; store: Store<S>; fromGame: 
         <span style={{ font: "500 14px var(--sp-font)", color: "var(--sp-ink-soft)" }}>Fri 7:10 pm</span>
       </header>
 
-      {hero && <HeroCover g={hero.g} s={s} store={store} />}
+      {hero && <HeroCover g={hero.g} s={s} store={store} onOpen={() => open(hero.g)} />}
 
       <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
         {strips.map(({ g, st }) => (
@@ -38,7 +38,7 @@ export function Deck({ s, store, fromGame }: { s: S; store: Store<S>; fromGame: 
             <span style={{ position: "absolute", left: 14, top: 10, right: 140 }}>
               <Tag status={st} />
               <span style={{ display: "block", margin: "6px 0 0 14px", font: "var(--g-display)", fontFamily: "var(--g-display)", fontWeight: 700, fontSize: 19, lineHeight: 1.05, color: "var(--g-on-ground)" }}>{g.name}</span>
-              <span style={{ display: "block", margin: "2px 0 0 14px", font: "500 13px/1.25 var(--g-body)", color: "var(--g-on-ground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{st.line}</span>
+              <span style={{ display: "block", margin: "2px 0 0 14px", font: "500 13px/1.25 var(--g-body)", color: "var(--g-on-ground)", }}>{st.line}</span>
             </span>
           </Bound>
         ))}
@@ -64,24 +64,24 @@ export function ShelfCover({ g, st, onOpen }: { g: GameManifest; st: CoverStatus
         <CoverArt g={g} />
       </span>
       <span style={{ position: "absolute", left: 14, bottom: 46 }}>
-        <Tag status={st} style={{ fontSize: 12, padding: "5px 7px 5px 6px" }} />
+        <Tag status={st} style={{ fontSize: 12, padding: "5px 7px 5px 6px", whiteSpace: "normal", maxWidth: 96, lineHeight: 1.15 }} />
       </span>
-      <span style={{ position: "absolute", left: 20, right: 6, bottom: 0, height: 40, display: "flex", alignItems: "center", fontFamily: "var(--g-display)", fontWeight: 700, fontSize: 15, lineHeight: 1.05, color: "var(--g-on-ground)" }}>{g.name}</span>
+      <span style={{ position: "absolute", left: 20, right: 6, bottom: 0, height: 40, display: "flex", alignItems: "center", fontFamily: "var(--g-display)", fontWeight: 700, fontSize: 15, lineHeight: 1.05, color: "var(--g-on-ground)" }}><span>{g.name}</span></span>
     </Bound>
   );
 }
 
-function HeroCover({ g, s, store }: { g: GameManifest; s: S; store: Store<S> }) {
+function HeroCover({ g, s, store, onOpen }: { g: GameManifest; s: S; store: Store<S>; onOpen: () => void }) {
   const st = statusOf(g, s);
   const seats = seatsFor(g, instanceOf(g.id));
-  const back = () => store.update((x) => ({ ...x, phone: "game", tvHeld: false }));
+  const back = () => (st.kind === "live" ? store.update((x) => ({ ...x, phone: "game", tvHeld: false })) : onOpen());
   return (
     <Bound g={g} style={{ height: 222 }}>
       <span style={{ position: "absolute", inset: "0 0 104px 0" }}>
         <CoverArt g={g} alt position="50% 40%" />
       </span>
       <span style={{ position: "absolute", left: 14, top: 12 }}>
-        <Tag status={{ kind: st.kind, tag: `${st.tag} · Living room` }} />
+        <Tag status={{ kind: st.kind, tag: st.kind === "live" ? `${st.tag} · Living room` : st.tag }} />
       </span>
       <div style={{ position: "absolute", left: 14, right: 0, bottom: 0, height: 104, padding: "10px 12px 12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -94,7 +94,7 @@ function HeroCover({ g, s, store }: { g: GameManifest; s: S; store: Store<S> }) 
         </div>
         {!s.firstRun && (
           <button data-bot="hero-back" onClick={back} className="sp-ogs-btn on-dark">
-            Back in
+            <span>{g.shape === "async" ? "Play" : "Back in"}</span>
           </button>
         )}
       </div>

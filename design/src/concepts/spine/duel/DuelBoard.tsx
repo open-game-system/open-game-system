@@ -56,7 +56,7 @@ export function DuelBoard({ s, store }: { s: S; store: Store<S> }) {
         </button>
         <span style={{ flex: 1 }} />
         <span style={{ font: "800 16px 'Libre Franklin'", fontVariantNumeric: "tabular-nums" }}>
-          You {d.you + (s.duel.played ? 0 : 0)} <span style={{ color: "#8a8270", fontWeight: 500 }}>·</span> {d.opponent} {d.them}
+          You {d.you + (s.duel.played ? 0 : 0)} <span style={{ color: "#5d584c", fontWeight: 500 }}>·</span> {d.opponent} {d.them}
         </span>
       </header>
       <div style={{ padding: "6px 20px 10px", display: "flex", alignItems: "center", gap: 10 }}>
@@ -77,13 +77,13 @@ export function DuelBoard({ s, store }: { s: S; store: Store<S> }) {
             const fg = t.kind === "new" ? "#ffffff" : "#1d1b16";
             return (
               <span key={i} style={{ aspectRatio: "1", borderRadius: 3, background: bg, color: fg, display: "grid", placeItems: "center", font: "800 17px 'Libre Franklin'", boxShadow: t.kind === "last" ? `inset 0 0 0 2px ${d.color}` : t.kind === "mine" ? "inset 0 0 0 2px #2f6fc8" : "inset 0 -2px 0 rgba(0,0,0,.18)", position: "relative", animation: t.kind === "new" ? "sp-pop .3s both" : undefined }}>
-                {t.l}
+                <span>{t.l}</span>
               </span>
             );
           }
           return (
             <span key={i} style={{ aspectRatio: "1", borderRadius: 2, background: t ? "#efe8d8" : b?.bg ?? "#ece4d3", outline: t ? "2px dashed #2f6fc8" : "none", outlineOffset: -3, color: b?.fg, display: "grid", placeItems: "center", font: "800 10px 'Libre Franklin'" }}>
-              {t ? "" : b?.label}
+              {t ? "" : b ? <span>{b.label}</span> : null}
             </span>
           );
         })}
@@ -94,7 +94,7 @@ export function DuelBoard({ s, store }: { s: S; store: Store<S> }) {
           <div style={{ textAlign: "center", font: "900 40px/1 'Libre Franklin'", color: "#1d55a8", animation: "sp-pop .4s both" }}>+{PLAY.score}</div>
           {next && (
             <button data-bot="duel-next" onClick={() => store.update((x) => ({ ...x, duel: { ...x.duel, openId: next.id, placed: 0, played: false } }))} style={{ height: 56, borderRadius: 4, background: "#2f6fc8", color: "#fff", font: "800 18px 'Libre Franklin'" }}>
-              Next: {next.opponent}’s turn
+              <span>Next: {next.opponent}’s turn</span>
             </button>
           )}
         </div>
@@ -110,7 +110,7 @@ export function DuelBoard({ s, store }: { s: S; store: Store<S> }) {
                 disabled={t.gone}
                 style={{ width: 46, height: 52, borderRadius: 4, background: t.gone ? "transparent" : "#fff6dc", boxShadow: t.gone ? "inset 0 0 0 2px #d8cfbb" : "inset 0 -3px 0 #d8c9a3, 0 2px 4px rgba(0,0,0,.12)", font: "800 22px 'Libre Franklin'", color: "#1d1b16", position: "relative" }}
               >
-                {t.gone ? "" : t.l}
+                {t.gone ? "" : <span>{t.l}</span>}
                 {!t.gone && <span style={{ position: "absolute", right: 5, bottom: 4, font: "700 11px 'Libre Franklin'", color: "#45413a" }}>{PTS[t.l] ?? 1}</span>}
               </button>
             ))}
@@ -122,7 +122,7 @@ export function DuelBoard({ s, store }: { s: S; store: Store<S> }) {
               onClick={() => store.update(playMove)}
               style={{ width: "100%", height: 56, borderRadius: 4, background: ready ? "#2f6fc8" : "#ddd5c4", color: ready ? "#fff" : "#4d483e", font: "800 18px 'Libre Franklin'" }}
             >
-              {ready ? `Play ${PLAY.word} · ${PLAY.score}` : placed ? `${PLAY.word.slice(0, placed + 1)}…` : "Tap tiles to place them"}
+              <span>{ready ? `Play ${PLAY.word} · ${PLAY.score}` : placed ? `${PLAY.word.slice(0, placed + 1)}…` : "Tap tiles to place them"}</span>
             </button>
           </div>
         </>

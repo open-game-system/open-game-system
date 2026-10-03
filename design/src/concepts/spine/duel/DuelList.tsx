@@ -72,7 +72,7 @@ function Row({ d, kind, fresh, onOpen }: { d: DuelGame; kind: "yours" | "theirs"
         <span style={{ display: "block", font: `${yours ? 800 : 700} ${yours ? 18 : 16}px/1.2 'Libre Franklin'`, color: "#1d1b16" }}>
           {d.opponent} <span style={{ fontWeight: 500, fontSize: 14, color: "#5d584c" }}>{d.opponentHome}</span>
         </span>
-        <span style={{ display: "block", font: "500 14px/1.3 'Libre Franklin'", color: d.status === "expired" ? "#8a3a2a" : "#45413a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span style={{ display: "block", font: "500 14px/1.3 'Libre Franklin'", color: d.status === "expired" ? "#8a3a2a" : "#45413a" }}>
           {fresh ? `${d.lastMove} · just now` : d.lastMove}
         </span>
       </span>

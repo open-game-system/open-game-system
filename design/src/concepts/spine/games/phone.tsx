@@ -36,12 +36,28 @@ export function RocketCaptain() {
         </div>
         <div style={{ font: "600 16px/1.3 'Baloo 2'", marginTop: 8 }}>Ava’s on the pink ring. Asteroids in 20 seconds.</div>
       </div>
+      <Route color={g.palette.accent2} ink={g.palette.ink} />
       <div style={{ position: "absolute", left: 16, right: 16, bottom: 22, display: "grid", gridTemplateColumns: "1fr 1.4fr 1fr", gap: 10, alignItems: "end" }}>
-        <button data-bot="rc-left" style={{ height: 96, borderRadius: 22, background: "rgba(255,246,224,.12)", font: "400 22px 'Lilita One'", color: g.palette.ink }}>Left</button>
-        <button data-bot="rc-boost" style={{ height: 132, borderRadius: 66, background: g.palette.accent, color: g.palette.ground, font: "400 28px 'Lilita One'", boxShadow: `0 8px 0 #b8326f` }}>Boost</button>
-        <button data-bot="rc-right" style={{ height: 96, borderRadius: 22, background: "rgba(255,246,224,.12)", font: "400 22px 'Lilita One'", color: g.palette.ink }}>Right</button>
+        <button data-bot="rc-left" style={{ height: 96, borderRadius: 22, background: "rgba(255,246,224,.12)", font: "400 22px 'Lilita One'", color: g.palette.ink }}><span>Left</span></button>
+        <button data-bot="rc-boost" style={{ height: 132, borderRadius: 66, background: g.palette.accent, color: g.palette.ground, font: "400 28px 'Lilita One'", boxShadow: `0 8px 0 #b8326f` }}><span>Boost</span></button>
+        <button data-bot="rc-right" style={{ height: 96, borderRadius: 22, background: "rgba(255,246,224,.12)", font: "400 22px 'Lilita One'", color: g.palette.ink }}><span>Right</span></button>
       </div>
     </Frame>
+  );
+}
+
+/** Route to Chilly Island: planets passed, the rocket's dot, the island ahead. */
+function Route({ color, ink }: { color: string; ink: string }) {
+  const stops = [40, 105, 170, 235, 300];
+  return (
+    <svg width="358" height="92" viewBox="0 0 358 92" style={{ position: "absolute", left: 16, top: 470 }} aria-hidden>
+      <path d="M20 60 C 90 10, 150 90, 220 40 S 320 30, 340 50" fill="none" stroke={ink} strokeOpacity=".35" strokeWidth="3" strokeDasharray="2 9" strokeLinecap="round" />
+      {stops.map((x, i) => (
+        <circle key={x} cx={x} cy={i % 2 ? 62 : 34} r={i < 3 ? 9 : 7} fill={i < 3 ? color : "none"} stroke={ink} strokeOpacity={i < 3 ? 0 : 0.5} strokeWidth="2.5" />
+      ))}
+      <circle cx="340" cy="50" r="16" fill="#9fe3ff" stroke={ink} strokeWidth="3" />
+      <path d="M190 52 l14 -6 -14 -6 4 6z" fill={ink} />
+    </svg>
   );
 }
 
@@ -74,7 +90,7 @@ export function BakeReader({ reader }: { reader: string }) {
         ))}
       </div>
       <div style={{ position: "absolute", left: 16, right: 16, bottom: 22 }}>
-        <button data-bot="bs-bell" style={{ width: "100%", height: 64, borderRadius: 32, background: g.palette.accent, color: "#16130f", font: "800 22px 'Baloo 2'", boxShadow: "0 6px 0 #c94a6c" }}>Ring the bell</button>
+        <button data-bot="bs-bell" style={{ width: "100%", height: 64, borderRadius: 32, background: g.palette.accent, color: "#16130f", font: "800 22px 'Baloo 2'", boxShadow: "0 6px 0 #c94a6c" }}><span>Ring the bell</span></button>
       </div>
     </Frame>
   );

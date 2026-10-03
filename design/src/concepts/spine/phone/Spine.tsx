@@ -104,8 +104,8 @@ export function Spine({ s, store }: { s: S; store: Store<S> }) {
         >
           <TurnGlyph size={24} />
           {turns > 0 && (
-            <span style={{ position: "absolute", top: 8, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: "var(--sp-bone)", color: "var(--sp-ink)", font: "700 13px/20px var(--sp-font)", textAlign: "center", padding: "0 5px" }}>
-              {turns}
+            <span style={{ position: "absolute", top: 8, right: 6, minWidth: 26, height: 26, borderRadius: 13, background: "var(--sp-bone)", color: "var(--sp-ink)", font: "700 14px/26px var(--sp-font)", textAlign: "center", padding: "0 5px" }}>
+              <span>{turns}</span>
             </span>
           )}
         </button>
@@ -133,7 +133,7 @@ function IdleSpine({ s, store, turns }: { s: S; store: Store<S>; turns: number }
         </button>
         <button data-bot="spine-turns" onClick={() => store.update((x) => ({ ...x, phone: "duel-list" }))} style={{ ...slot, width: 56, justifyContent: "center", position: "relative", color: "var(--sp-bone)" }} aria-label={`${turns} of your turns waiting`}>
           <TurnGlyph size={24} />
-          {turns > 0 && <span style={badge}>{turns}</span>}
+          {turns > 0 && <span style={badge}><span>{turns}</span></span>}
         </button>
       </div>
       <HomeBar />
@@ -141,7 +141,7 @@ function IdleSpine({ s, store, turns }: { s: S; store: Store<S>; turns: number }
   );
 }
 
-const badge: CSSProperties = { position: "absolute", top: 8, right: 6, minWidth: 20, height: 20, borderRadius: 10, background: "var(--sp-bone)", color: "var(--sp-ink)", font: "700 13px/20px var(--sp-font)", textAlign: "center", padding: "0 5px" };
+const badge: CSSProperties = { position: "absolute", top: 8, right: 6, minWidth: 26, height: 26, borderRadius: 13, background: "var(--sp-bone)", color: "var(--sp-ink)", font: "700 14px/26px var(--sp-font)", textAlign: "center", padding: "0 5px" };
 
 const HomeBar = () => <div style={{ height: 22, display: "flex", justifyContent: "center", alignItems: "center" }}><span style={{ width: 134, height: 5, borderRadius: 3, background: "var(--sp-bone)", opacity: 0.85 }} /></div>;
 

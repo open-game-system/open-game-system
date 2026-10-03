@@ -41,7 +41,7 @@ export function SwapProgress({ s }: { s: S }) {
           <span className="sp-binding" />
           <span className="sp-tag" style={{ position: "absolute", left: 14, bottom: 10, fontSize: 12 }}>
             {at >= 1 ? <CheckGlyph size={14} /> : <span className="sp-bead is-wait" />}
-            {at >= 1 ? "Saved" : "Saving"}
+            <span>{at >= 1 ? "Saved" : "Saving"}</span>
           </span>
         </div>
         <div style={{ position: "absolute", right: 0, top: 0, width: 230, height: 300, borderRadius: `0 ${Math.min(k.radius, 16)}px ${Math.min(k.radius, 16)}px 0`, overflow: "hidden", background: k.ground, boxShadow: "0 18px 30px -14px rgba(0,0,0,.55)", animation: "sp-card-in .8s cubic-bezier(.2,.8,.2,1) both" }}>
