@@ -70,4 +70,20 @@ export const flows: Flow[] = [
       { device: "phone", bot: "night-back", mark: "Home: the night waits for next Friday", wait: 1400 },
     ],
   },
+  {
+    id: "your-turn",
+    flow: "world-clock",
+    label: "A push on Dad's phone → the move → next game waiting, across games",
+    start: "world-clock.01-push-duel",
+    steps: [
+      { device: "phone", bot: "push-open", mark: "Nana played. The push lands on Dad's phone only, and opens her board", wait: 1400 },
+      { device: "phone", bot: "rack-C", mark: "Tiles into the glowing squares", wait: 600 },
+      { device: "phone", bot: "rack-R", wait: 600 },
+      { device: "phone", bot: "rack-A", wait: 600 },
+      { device: "phone", bot: "rack-N", wait: 1000 },
+      { device: "phone", bot: "play", mark: "CRANE for 27. Next waiting on you, whatever the game", wait: 1800 },
+      { device: "phone", bot: "duel-next", mark: "Next: Mom's game", wait: 1600 },
+      { device: "phone", bot: "duel-back", mark: "Back to the list", wait: 1200 },
+    ],
+  },
 ];

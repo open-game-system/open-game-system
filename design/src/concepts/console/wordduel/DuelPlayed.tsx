@@ -1,5 +1,7 @@
 // After a move: what happened, and the next game that's waiting on you (one tap to it).
 import type { Store } from "../../../harness/store";
+import { nextLabel, nextTurn } from "../inbox";
+import { openTurn } from "../phone/TurnRows";
 import type { S } from "../state";
 import { StatusBar } from "../ui/Brand";
 import { Check } from "../ui/Icons";
@@ -7,7 +9,7 @@ import { Check } from "../ui/Icons";
 export function DuelPlayed({ s, store }: { s: S; store: Store<S> }) {
   const d = s.duels.find((x) => x.id === s.duel.open);
   if (!d) return null;
-  const next = s.duels.find((x) => x.status === "yourTurn" && x.id !== d.id);
+  const next = nextTurn(s, d.id);
   const lead = d.you - d.them;
   return (
     <div className="wd wd--played">
@@ -26,8 +28,8 @@ export function DuelPlayed({ s, store }: { s: S; store: Store<S> }) {
       </div>
       <div className="wd-played__next">
         {next && (
-          <button className="cx-btn cx-btn--primary" data-bot="duel-next" onClick={() => store.update((x) => ({ ...x, duel: { open: next.id, placed: [], result: null } }))}>
-            <span>Next: {next.opponent}'s game · your turn</span>
+          <button className="cx-btn cx-btn--primary" data-bot="duel-next" onClick={() => store.update((x) => openTurn(x, next.target))}>
+            <span>{nextLabel(next, s)}</span>
           </button>
         )}
         <button className="cx-btn cx-btn--ghost" data-bot="all-games" onClick={() => store.update((x) => ({ ...x, phone: "duels", duel: { open: null, placed: [], result: null } }))}>

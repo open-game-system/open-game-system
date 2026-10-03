@@ -7,6 +7,9 @@ import type { S } from "./state";
 import { CLOSED, DONE, st, type Status } from "./status";
 import { ago } from "./ui/time";
 
+/** Where an item opens: a duel's board, a night's page, or a game's own list (finished games). */
+export type TurnTarget = { kind: "duel"; id: string } | { kind: "night"; id: string } | { kind: "duels" };
+
 export interface TurnItem {
   id: string;
   gameId: string;
@@ -16,7 +19,7 @@ export interface TurnItem {
   detail: string;
   status: Status;
   /** What opening it does. */
-  target: { kind: "duel"; id: string } | { kind: "night"; id: string };
+  target: TurnTarget;
   at: string;
 }
 
@@ -60,8 +63,8 @@ export function waiting(s: S): TurnItem[] {
       (d): TurnItem => ({
         id: `wait-${d.id}`,
         gameId: "word-duel",
-        title: `${d.opponent} · ${d.lastMove.replace(/^You played /, "you played ")}`,
-        detail: `Word Duel · ${ago(d.updatedAt)}`,
+        title: `${d.opponent}'s move`,
+        detail: `Word Duel · you played ${d.lastWord ?? ""} · ${ago(d.updatedAt)}`,
         status: st("theirs", "Their turn"),
         target: { kind: "duel", id: d.id },
         at: d.updatedAt,
@@ -73,8 +76,8 @@ export function waiting(s: S): TurnItem[] {
       (n): TurnItem => ({
         id: `wait-${n.id}`,
         gameId: n.gameId,
-        title: `Game night · ${n.homes.map((h) => short(h.name)).join(", ")}`,
-        detail: `${gameById(n.gameId).name} · ${nightLine(n)}`,
+        title: `Game night · ${n.homes.length} homes`,
+        detail: `${gameById(n.gameId).name} · ${nightLine(n).replace(/ · .*/, "")}`,
         status: nightStatus(n, s.onTv),
         target: { kind: "night", id: n.id },
         at: "2026-10-03T17:00:00-07:00",
@@ -91,11 +94,23 @@ export function finished(s: S): TurnItem[] {
       (d): TurnItem => ({
         id: `done-${d.id}`,
         gameId: "word-duel",
-        title: `${d.opponent} · ${d.lastMove}`,
-        detail: `Word Duel · ${d.status === "expired" ? "closed" : "finished"} ${ago(d.updatedAt)}`,
+        title: d.status === "expired" ? `${d.opponent} · closed` : `${d.opponent} · ${d.you > d.them ? "you won" : "they won"} by ${Math.abs(d.you - d.them)}`,
+        detail: d.status === "expired" ? "Word Duel · no move in 14 days" : `Word Duel · ${ago(d.updatedAt)}`,
         status: d.status === "expired" ? CLOSED : DONE,
-        target: { kind: "duel", id: d.id },
+        target: { kind: "duels" },
         at: d.updatedAt,
       }),
     );
+}
+
+/** "Next: …" after a move: the next thing waiting on you, in any game. */
+export function nextTurn(s: S, after: string): TurnItem | undefined {
+  return inbox(s).find((t) => t.id !== `turn-${after}`);
+}
+
+export function nextLabel(t: TurnItem, s: S): string {
+  if (t.target.kind === "night") return `Next: your roll in ${gameById(t.gameId).name}`;
+  const id = t.target.kind === "duel" ? t.target.id : "";
+  const d = s.duels.find((x) => x.id === id);
+  return d ? `Next: ${d.opponent}'s game · your turn` : "Next game";
 }

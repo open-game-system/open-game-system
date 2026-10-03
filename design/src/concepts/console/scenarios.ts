@@ -1,11 +1,31 @@
 import type { Scenario } from "../../harness/types";
 import { answerInvites, baseNights, beginNewNight, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
-import { base, playDuel, type S } from "./state";
+import { base, playDuel, type Push, type S } from "./state";
 
 const at = (patch: Partial<S>) => (): S => ({ ...base(), ...patch });
 const switching = (phase: "saving" | "cutover" | "following", extra: Partial<S> = {}) =>
   at({ phone: "controller", switching: { from: "rocket-crew", to: "bake-shop", phase, undo: false }, ...extra });
 const bakeLive: Partial<S> = { phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop", left: { gameId: "rocket-crew", undone: false }, savedTonight: { "rocket-crew": "7:14 pm" } };
+
+function liveOurRoll(n: Nights): Nights {
+  return passTurn(resumeNight(n, "hi-1"), "hi-1");
+}
+
+const PUSH_DUEL: Push = {
+  gameId: "word-duel",
+  title: "Nana played QUILT for 34",
+  body: "Your turn in Word Duel. You're 26 behind; the triple word is open.",
+  open: { kind: "duel", id: "wd-1" },
+  more: ["Word Duel · Mom played FERN · your turn", "Hearthisle · game night tonight 8:00 · Okafors are in"],
+};
+
+const PUSH_ROLL: Push = {
+  gameId: "hearthisle",
+  title: "Your roll in Hearthisle",
+  body: "Turn 15. The Okafors and Nana & Pop are waiting on the Mumms.",
+  open: { kind: "night", id: "hi-1" },
+  more: ["Word Duel · 2 games are your turn"],
+};
 
 export const scenarios: Scenario<S>[] = [
   // Home: Friday 7:10 pm
@@ -40,6 +60,14 @@ export const scenarios: Scenario<S>[] = [
   { id: "word-duel.06-list-after", label: "List after: Nana's game moved to their turn", flow: "word-duel", state: "success", devices: ["phone"], build: () => ({ ...playedState(), phone: "duels", duel: { open: null, placed: [], result: null } }) },
   { id: "word-duel.07-not-a-word", label: "Not a word: nothing played", flow: "word-duel", state: "error", devices: ["phone"], build: at({ phone: "duel", duel: { open: "wd-1", placed: ["D", "R", "A", "N"], result: "invalid" } }) },
   { id: "word-duel.08-empty", label: "No duels yet", flow: "word-duel", state: "empty", devices: ["phone"], build: at({ phone: "duels", duels: [] }) },
+
+  // Your turn, across games (flow 6): the push, the inbox, chaining moves
+  { id: "world-clock.01-push-duel", label: "Lock screen: Nana played QUILT (Jonathan's phone only, never a kid's iPad)", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "lock", onTv: null, push: PUSH_DUEL }) },
+  { id: "world-clock.02-push-our-roll", label: "Lock screen: your roll in Hearthisle, two homes waiting", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "lock", onTv: null, nights: nightsWith(liveOurRoll), push: PUSH_ROLL }) },
+  { id: "world-clock.03-inbox", label: "Every game: your turn, waiting on them, finished", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "inbox" }) },
+  { id: "world-clock.04-inbox-our-roll", label: "Every game: Hearthisle roll sits beside two duels", flow: "world-clock", state: "partial", devices: ["phone"], build: at({ phone: "inbox", onTv: null, nights: nightsWith(liveOurRoll) }) },
+  { id: "world-clock.05-next-is-a-roll", label: "Played CRANE; next up is your Hearthisle roll", flow: "world-clock", state: "success", devices: ["phone"], build: () => ({ ...playedState(), onTv: null, nights: nightsWith(liveOurRoll) }) },
+  { id: "world-clock.06-caught-up", label: "Every game: nothing waiting on you", flow: "world-clock", state: "empty", devices: ["phone"], build: () => ({ ...base(), phone: "inbox", duels: base().duels.filter((d) => d.status !== "yourTurn") }) },
 
   // Game night across three homes (flow 5), phone side
   { id: "game-night.01-lane", label: "Home: Game nights lane, Hearthisle paused at turn 14", flow: "game-night", state: "default", devices: ["phone"], build: at({ onTv: null }) },

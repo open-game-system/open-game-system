@@ -59,7 +59,7 @@ export interface Push {
   title: string;
   body: string;
   /** Where tapping it lands. */
-  open: { kind: "duel"; id: string } | { kind: "night"; id: string };
+  open: { kind: "duel"; id: string } | { kind: "night"; id: string } | { kind: "duels" };
   /** Other pushes stacked under it, as one line each. */
   more: string[];
 }

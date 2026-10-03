@@ -10,7 +10,7 @@ export function LockScreen({ s, store }: { s: S; store: Store<S> }) {
   const p = s.push;
   return (
     <div className="cx-lock">
-      <img className="cx-lock__wall" src="/art/night-flight/tv.jpg" alt="" />
+      <img className="cx-lock__wall" src="/art/hearthisle/dusk.jpg" alt="" />
       <div className="cx-lock__top">
         <Lock size={18} />
         <span className="cx-lock__time">7:10</span>

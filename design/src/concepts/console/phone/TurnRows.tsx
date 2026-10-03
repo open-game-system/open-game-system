@@ -1,14 +1,18 @@
 // Rows of the "Your turn" inbox: one row per game waiting on you, whatever the game. Art leads;
 // the chip says the status in the shared vocabulary.
 import type { Store } from "../../../harness/store";
-import type { TurnItem } from "../inbox";
+import type { TurnItem, TurnTarget } from "../inbox";
 import { openNight } from "../nights";
 import { night, openDuel, type S } from "../state";
 import { Chip } from "../ui/Chip";
 import { DuelArt, GameArt } from "../ui/GameArt";
 import { Chevron } from "../ui/Icons";
 
-export const openTurn = (s: S, t: TurnItem["target"]): S => (t.kind === "duel" ? openDuel(s, t.id) : night({ ...s, push: null }, (n) => openNight(n, t.id)));
+export function openTurn(s: S, t: TurnTarget): S {
+  if (t.kind === "duel") return openDuel(s, t.id);
+  if (t.kind === "duels") return { ...s, phone: "duels", push: null };
+  return night({ ...s, push: null }, (n) => openNight(n, t.id));
+}
 
 export function TurnRow({ item, store }: { item: TurnItem; store: Store<S> }) {
   return (

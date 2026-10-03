@@ -704,3 +704,4 @@
 .cx-switchrow input:checked { background: none; }
 .cx-switchrow input:checked::before { background: #ff6a2b; }
 .cx-homes__row, .cx-row, .cx-wide, .cx-push, .cx-nightcard, .cx-nextbox, .cx-trust, .cx-dock, .cx-switchrow--card, .cx-keeps { box-sizing: border-box; }
+.cx-row__text b, .cx-row__text span { white-space: normal; overflow: visible; text-overflow: clip; }
