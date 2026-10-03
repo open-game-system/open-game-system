@@ -13,11 +13,11 @@ export function SwitchSheet({ s, store }: { s: S; store: Store<S> }) {
   return (
     <>
       <div className="pf-scrim" onClick={() => store.update(closeSwitcher)} />
-      <div className="pf-sheet" role="dialog" aria-label="Next on the couch">
+      <div className="pf-sheet" style={{ top: 172, maxHeight: "none" }} role="dialog" aria-label="Next on the couch">
         <div className="pf-grabber" />
         <h2>Next on the couch</h2>
         <p className="pf-sheet-sub">{current ? `${current.name} saves where you are. Everyone's iPad comes along.` : "Everyone's iPad comes along."}</p>
-        <div className="pf-scroll" style={{ flex: "0 1 auto" }}>
+        <div className="pf-scroll">
           {options.map((i) => {
             const g = gameById(i.gameId);
             return (

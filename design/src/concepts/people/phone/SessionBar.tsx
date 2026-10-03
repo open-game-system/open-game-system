@@ -46,7 +46,7 @@ export function SessionBar({ s, store }: { s: S; store: Store<S> }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 className="pf-session-title">Us, on the couch</h2>
           <p className="pf-session-sub">
-            <IconTv size={15} /> Living room TV · {game?.name ?? "nothing on"}
+            <IconTv size={15} /> {game ? `${game.name} · living room` : "Living room TV"}
           </p>
         </div>
         {!swapping && game && (

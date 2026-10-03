@@ -75,6 +75,7 @@ export function PeopleHome({ s, store }: { s: S; store: Store<S> }) {
   const mine = s.duels.filter((d) => d.status === "yourTurn");
   const theirs = s.duels.filter((d) => d.status === "waiting");
   const done = s.duels.filter((d) => d.status === "completed" || d.status === "expired");
+  const pushFrom = s.duels.find((d) => d.id === "wd-1");
   const setFilter = (f: "all" | "yourMove") => store.update(go({ kind: "people", filter: f }));
   return (
     <div className="pf-phone">
@@ -135,6 +136,18 @@ export function PeopleHome({ s, store }: { s: S; store: Store<S> }) {
         <div style={{ height: 24 }} />
       </div>
       <TabBar current="people" badge={mine.length} onTab={(t) => tabTo(store, t)} />
+      {s.phone.kind === "people" && s.phone.push && pushFrom && (
+        <button className="pf-push" data-bot="push-nana" onClick={() => store.update(go({ kind: "duel", duelId: "wd-1", from: "people" }))}>
+          <Patch person={opponent(pushFrom)} size={44} />
+          <span className="pf-push-main">
+            <span className="pf-push-top">
+              <b>Nana</b>
+              <span>now</span>
+            </span>
+            <span>Played QUILT for 34 on the triple. Your move, whenever you like.</span>
+          </span>
+        </button>
+      )}
     </div>
   );
 }

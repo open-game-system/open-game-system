@@ -3,8 +3,8 @@
 import { useId } from "react";
 import type { Person } from "../../../world";
 
-const PATTERNS = ["dots", "stripes", "waves", "check", "chevron", "grid"] as const;
-type Pattern = (typeof PATTERNS)[number];
+type Pattern = "dots" | "stripes" | "waves" | "check" | "chevron" | "grid";
+const PATTERNS: Pattern[] = ["dots", "stripes", "waves", "check", "chevron", "grid"];
 
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 const patternFor = (id: string): Pattern => PATTERNS[hash(id) % PATTERNS.length] ?? "dots";

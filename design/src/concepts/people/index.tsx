@@ -18,7 +18,7 @@ function Surface({ device, store, shot }: SurfaceProps<S>) {
   );
 }
 
-const ALL = ["phone", "tv", "ipad"] as const;
+const ALL: Scenario<S>["devices"] = ["phone", "tv", "ipad"];
 const sc = (id: string, label: string, state: Scenario<S>["state"], devices: Scenario<S>["devices"], build: () => S): Scenario<S> => ({
   id,
   label,
@@ -29,7 +29,7 @@ const sc = (id: string, label: string, state: Scenario<S>["state"], devices: Sce
 });
 
 const toBake = { gameId: "bake-shop", left: { gameId: "rocket-crew", savedAt: "Mission 6" } };
-const atCouch = { phone: { kind: "couch" as const } };
+const atCouch: Pick<S, "phone"> = { phone: { kind: "couch" } };
 
 const scenarios: Scenario<S>[] = [
   // ---- home: Friday 7:10 pm
@@ -58,6 +58,7 @@ const scenarios: Scenario<S>[] = [
   sc("swap.12-baking", "Juneau frosts the first cupcake", "success", ["ipad", "tv"], () => base({ ...atCouch, couch: couch({ ...toBake, phase: "playing", frosting: "mint", pokes: 1 }) })),
 
   // ---- word duel
+  sc("word-duel.00-push", "A push lands: Nana played QUILT, your move", "default", ["phone"], () => base({ phone: { kind: "people", filter: "all", push: true } })),
   sc("word-duel.01-list", "Word Duel: two your move, three waiting, finished, expired", "default", ["phone"], () => base({ phone: { kind: "duels" } })),
   sc("word-duel.02-nana", "Nana's game: QUILT for 34, your move", "default", ["phone"], () => base({ phone: { kind: "duel", duelId: "wd-1", from: "duels" } })),
   sc("word-duel.03-placing", "Placing HAZE on the L of QUILT", "partial", ["phone"], () => base({ phone: { kind: "duel", duelId: "wd-1", from: "duels" }, placed: [0, 1, 2, 3] })),

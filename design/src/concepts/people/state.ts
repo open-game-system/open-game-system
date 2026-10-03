@@ -3,7 +3,7 @@ import { DUELS, type DuelGame } from "../../world";
 
 /** Where the grown-up phone is. */
 export type PhoneScreen =
-  | { kind: "people"; filter: "all" | "yourMove" }
+  | { kind: "people"; filter: "all" | "yourMove"; push?: boolean }
   | { kind: "people-empty" }
   | { kind: "us" }
   | { kind: "couch" }
@@ -49,7 +49,7 @@ export interface S {
   firstRun: boolean;
 }
 
-export const KIDS = ["juneau", "ava"] as const;
+export const KIDS: string[] = ["juneau", "ava"];
 
 export const base = (over: Partial<S> = {}): S => ({
   phone: { kind: "people", filter: "all" },
