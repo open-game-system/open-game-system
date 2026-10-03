@@ -10,13 +10,13 @@ import { Kids } from "./docs/Kids";
 import { LibraryTiers } from "./docs/LibraryTiers";
 import { Manifest } from "./docs/Manifest";
 import { Overview } from "./docs/Overview";
-import { initialPage, type DevPage } from "./pages";
+import { ConsoleView } from "./console/ConsolePages";
+import { initialPage, isConsole, type DevPage } from "./pages";
 import { Shell } from "./Shell";
 
 function Page({ page, go }: { page: DevPage; go: (p: DevPage) => void }) {
+  if (isConsole(page)) return <ConsoleView page={page} go={go} />;
   switch (page) {
-    case "overview":
-      return <Overview go={go} />;
     case "manifest":
       return <Manifest go={go} />;
     case "identity":
@@ -29,7 +29,7 @@ function Page({ page, go }: { page: DevPage; go: (p: DevPage) => void }) {
       return <Kids go={go} />;
     case "library":
       return <LibraryTiers go={go} />;
-    default:
+    case "overview":
       return <Overview go={go} />;
   }
 }
