@@ -128,6 +128,41 @@ describe("couch session", () => {
     expect(taken.remote).toBe("phone-mom");
   });
 
+  it("frames the TV view the game asks for, and tells the host phone to open the game", () => {
+    const { s, outs } = run([
+      ...living(),
+      { type: "focus.set", itemId: "game:rocket-crew" },
+      { type: "select", deviceId: "phone-dad" },
+      { type: "select", deviceId: "phone-dad" },
+    ]);
+    expect(s.current?.hostDeviceId).toBe("phone-dad");
+    expect(s.current?.viewUrl).toBeNull();
+    expect(outs).toContainEqual({
+      to: { deviceId: "phone-dad" },
+      msg: {
+        type: "follow",
+        target: {
+          kind: "game",
+          appId: "rocket-crew",
+          instanceId: s.current?.instanceId,
+          roleId: "host",
+        },
+      },
+    });
+    const { s: viewed } = run(
+      [
+        {
+          type: "game.view",
+          appId: "rocket-crew",
+          url: "https://rocket-crew.example/tv/ABCD?stream=1",
+        },
+      ],
+      s,
+    );
+    expect(viewed.current?.viewUrl).toBe("https://rocket-crew.example/tv/ABCD?stream=1");
+    expect(viewed.casts).toBe(1);
+  });
+
   it("forwards remote moves to the launcher, which owns its own layout", () => {
     const { outs } = run([...living(), { type: "focus.move", dir: "right" }]);
     expect(outs).toContainEqual({ to: "launcher", msg: { type: "focus.move", dir: "right" } });

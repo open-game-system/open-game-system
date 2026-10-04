@@ -33,8 +33,12 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     mode: z.enum(["continue", "new"]),
     roster: z.array(RosterEntrySchema).optional(),
     instanceId: z.string().optional(),
+    /** The phone that runs the game's start page (defaults to the remote holder). */
+    hostDeviceId: z.string().optional(),
   }),
   z.object({ type: z.literal("game.resume-point"), appId: z.string(), label: z.string() }),
+  /** The game's phone page asked for its TV view (cast-kit SET_VIEW_URL); the launcher frames it. */
+  z.object({ type: z.literal("game.view"), appId: z.string(), url: z.string().url() }),
   z.object({ type: z.literal("remote.take"), deviceId: z.string() }),
   z.object({ type: z.literal("end") }),
 ]);
@@ -54,6 +58,10 @@ export interface CurrentGame {
   roster: RosterEntry[];
   label: string;
   startedAt: number;
+  /** The TV page the game asked for, framed by the launcher. Null until the game sends it. */
+  viewUrl: string | null;
+  /** The phone hosting the game (runs its start page as the controller). */
+  hostDeviceId: string | null;
 }
 
 export interface SessionDevice {
@@ -128,6 +136,21 @@ function suspendCurrent(s: SessionState, now: number): SessionState {
 
 function followAll(s: SessionState, before: SessionState): Outbound[] {
   const out: Outbound[] = [];
+  const host = s.current?.hostDeviceId;
+  if (s.current && host && before.current?.instanceId !== s.current.instanceId) {
+    out.push({
+      to: { deviceId: host },
+      msg: {
+        type: "follow",
+        target: {
+          kind: "game",
+          appId: s.current.appId,
+          instanceId: s.current.instanceId,
+          roleId: "host",
+        },
+      },
+    });
+  }
   for (const d of s.devices) {
     if (d.kind !== "tablet" || !d.online) continue;
     const entry = s.current?.roster.find((r) => r.personId === d.personId);
@@ -204,7 +227,11 @@ export function reduceSession(
       const appId = gameOf(s.focus);
       if (s.screen === "home" && appId) s = { ...s, screen: "game-page", page: appId };
       else if (s.screen === "game-page" && s.page)
-        return reduceSession(s, { type: "game.start", appId: s.page, mode: "continue" }, now);
+        return reduceSession(
+          s,
+          { type: "game.start", appId: s.page, mode: "continue", hostDeviceId: msg.deviceId },
+          now,
+        );
       break;
     }
     case "back":
@@ -235,12 +262,17 @@ export function reduceSession(
           roster,
           label: resuming?.label ?? "",
           startedAt: now,
+          viewUrl: null,
+          hostDeviceId: msg.hostDeviceId ?? s.remote,
         },
         suspended: s.suspended.filter((g) => g.appId !== msg.appId),
         rosters: { ...s.rosters, [msg.appId]: roster },
       };
       break;
     }
+    case "game.view":
+      if (s.current?.appId === msg.appId) s = { ...s, current: { ...s.current, viewUrl: msg.url } };
+      break;
     case "game.resume-point":
       if (s.current?.appId === msg.appId) s = { ...s, current: { ...s.current, label: msg.label } };
       break;

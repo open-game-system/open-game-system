@@ -21,7 +21,7 @@ export const ManifestSchema = z
     tv: TvNeedSchema,
     /** Played on a phone or tablet (also the controller URL when the TV shows tvUrl). */
     startUrl: z.string().url(),
-    /** The TV page, framed by the launcher inside the cast stream. Required unless tv is "none". */
+    /** A static TV page. Room-based games omit it: their phone page sends the room's TV URL at runtime (cast-kit useCastViewUrl). */
     tvUrl: z.string().url().optional(),
     roles: z.array(RoleSchema).default([]),
     art: z.object({
