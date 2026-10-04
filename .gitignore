@@ -36,3 +36,4 @@ test-results/
 # Stryker reports + incremental state
 **/reports/mutation/
 **/reports/stryker-incremental.json
+.stryker-tmp-*/

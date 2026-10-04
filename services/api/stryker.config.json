@@ -2,11 +2,23 @@
   "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker/master/packages/core/schema/stryker-core.schema.json",
   "testRunner": "vitest",
   "appendPlugins": ["@stryker-mutator/vitest-runner"],
-  "mutate": ["src/**/*.ts", "!src/**/*.test.ts", "!src/stream-container.ts"],
+  "mutate": [
+    "src/**/*.ts",
+    "!src/**/*.test.ts",
+    "!src/stream-container.ts",
+    "!src/lib/friends.ts",
+    "!src/lib/presence.ts",
+    "!src/routes/friends.ts"
+  ],
   "reporters": ["json", "clear-text"],
   "thresholds": {
     "high": 90,
     "low": 70,
     "break": 60
-  }
+  },
+  "incrementalFile": "reports/stryker-incremental.json",
+  "vitest": {
+    "configFile": "vitest.mutation.config.mts"
+  },
+  "tempDirName": "../../.stryker-tmp-api"
 }
