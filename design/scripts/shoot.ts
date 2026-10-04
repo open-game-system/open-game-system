@@ -20,7 +20,7 @@ const SIZE: Record<Device, { width: number; height: number; dsf: number }> = {
 /** Thresholds. Changing one is a decision: log old → new and why in the scorecard. */
 export const THRESHOLDS = { minTarget: 44, contrastBody: 4.5, contrastLarge: 3, tvMinText: 24 };
 
-interface TextBox { text: string; x: number; y: number; w: number; h: number; color: string; size: number; weight: number; grownup: boolean; clipped: boolean }
+interface TextBox { text: string; x: number; y: number; w: number; h: number; color: string; size: number; weight: number; grownup: boolean; clipped: boolean; scrolls: boolean; underSurface: string[] }
 interface TargetBox { label: string; w: number; h: number; x: number; y: number }
 interface Probe { texts: TextBox[]; targets: TargetBox[] }
 
@@ -54,8 +54,20 @@ async function probe(page: Page): Promise<Probe> {
       const cx = Math.min(Math.max(r.left + r.width / 2, rb.left + 1), rb.right - 1);
       const cy = Math.min(Math.max(r.top + r.height / 2, rb.top + 1), rb.bottom - 1);
       const top = document.elementFromPoint(cx, cy);
-      return !!top && top !== el && !el.contains(top) && !top.contains(el);
+      if (!top || top === el || el.contains(top) || top.contains(el)) return false;
+      // Covered by another run of text is a collision (keep it, so the overlap check sees it);
+      // covered by a surface without text (scrim, sheet, image) means it's hidden: skip it.
+      const topHasText = [...top.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? "").trim());
+      return !topHasText;
     };
+    // Cards and images: anything with its own paint that could sit on top of text.
+    const surfaces = [...root.querySelectorAll<HTMLElement>("*")].filter((e) => {
+      if (!visible(e)) return false;
+      const r = e.getBoundingClientRect();
+      if (r.width * r.height > 0.5 * rb.width * rb.height) return false;
+      const c = getComputedStyle(e);
+      return e.tagName === "IMG" || c.backgroundImage !== "none" || !/rgba\(.*, 0\)|transparent/.test(c.backgroundColor);
+    });
     for (const el of root.querySelectorAll<HTMLElement>("*")) {
       const nodes = [...el.childNodes].filter((n) => n.nodeType === 3 && (n.textContent ?? "").trim());
       const own = nodes.map((n) => n.textContent ?? "").join("").trim();
@@ -70,11 +82,29 @@ async function probe(page: Page): Promise<Probe> {
       if (r.width < 1 || r.height < 1 || covered(el, r)) continue;
       const cs = getComputedStyle(el);
       const clipped = (cs.overflow !== "visible" || cs.textOverflow === "ellipsis") && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 2);
+      // The ink band of the text (line boxes of big type overlap their neighbours without touching).
+      const ink = { left: r.left, right: r.right, top: r.top + r.height * 0.2, bottom: r.bottom - r.height * 0.2 };
+      const underSurface: string[] = [];
+      for (const sf of surfaces) {
+        if (sf === el || sf.contains(el) || el.contains(sf)) continue;
+        const sr = sf.getBoundingClientRect();
+        const ix0 = Math.max(ink.left, sr.left), ix1 = Math.min(ink.right, sr.right);
+        const iy0 = Math.max(ink.top, sr.top), iy1 = Math.min(ink.bottom, sr.bottom);
+        if (ix1 - ix0 < 4 || iy1 - iy0 < 4) continue;
+        // Same component (text and art inside one small card) is composition, not collision.
+        let lca: Element | null = sf.parentElement;
+        while (lca && !lca.contains(el)) lca = lca.parentElement;
+        const lr = lca?.getBoundingClientRect();
+        if (lr && lr.width * lr.height < 0.5 * rb.width * rb.height) continue;
+        // Scrolling content passing under fixed chrome (a tab bar) is not a collision.
+        if (inScroller(el) !== inScroller(sf)) continue;
+        underSurface.push(sf.tagName.toLowerCase() + (sf.className ? "." + String(sf.className).split(" ")[0] : ""));
+      }
       const offscreen = !inScroller(el) && (r.left < rb.left - 1 || r.right > rb.right + 1 || r.top < rb.top - 1 || r.bottom > rb.bottom + 1);
       texts.push({
         text: own.slice(0, 60), x: r.left - rb.left, y: r.top - rb.top, w: r.width, h: r.height,
         color: cs.color, size: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400,
-        grownup: !!el.closest("[data-grownup]"), clipped: clipped || offscreen,
+        grownup: !!el.closest("[data-grownup]"), clipped: clipped || offscreen, scrolls: inScroller(el), underSurface,
       });
     }
     const targets: TargetBox[] = [];
@@ -137,7 +167,7 @@ async function main() {
 async function shootConcept(concept: ConceptMeta, browser: import("playwright").Browser, base: string, out: string, only?: string) {
   await mkdir(join(out, "shots"), { recursive: true });
   const shots: unknown[] = [];
-  const summary = { shots: 0, targetsUnder44: 0, contrastFails: 0, kidWords: 0, tvSmallText: 0, clippedText: 0, ackFailures: 0 };
+  const summary = { shots: 0, targetsUnder44: 0, contrastFails: 0, kidWords: 0, tvSmallText: 0, clippedText: 0, textOverlaps: 0, ackFailures: 0 };
   const contexts = new Map<Device, Page>();
   const devices: Device[] = ["phone", "ipad", "tv", "desktop"];
   for (const d of devices) {
@@ -180,13 +210,28 @@ async function shootConcept(concept: ConceptMeta, browser: import("playwright").
       const kidWords = device === "ipad" ? texts.filter((t) => !t.grownup && /\p{L}/u.test(t.text)).map((t) => t.text) : [];
       const tvSmall = device === "tv" ? texts.filter((t) => t.size < THRESHOLDS.tvMinText).map((t) => ({ text: t.text, size: t.size })) : [];
       const clipped = texts.filter((t) => t.clipped).map((t) => t.text);
+      // Two runs of text whose boxes overlap by > 10% of the smaller one are colliding (a title under a
+      // card). Scrolling content passing under fixed chrome (a tab bar) is not a collision.
+      const overlaps: string[] = [];
+      for (const t of texts) for (const sf of t.underSurface) overlaps.push(`${t.text} meets ${sf}`);
+      texts.forEach((a, i) => {
+        for (const b of texts.slice(i + 1)) {
+          if (a.scrolls !== b.scrolls) continue;
+          // Compare ink bands (middle 60% of each line box).
+          const ay = a.y + a.h * 0.2, ah = a.h * 0.6, by = b.y + b.h * 0.2, bh = b.h * 0.6;
+          const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
+          const iy = Math.max(0, Math.min(ay + ah, by + bh) - Math.max(ay, by));
+          if (ix * iy > 0.1 * Math.min(a.w * a.h, b.w * b.h)) overlaps.push(`${a.text} × ${b.text}`);
+        }
+      });
       summary.shots++;
       summary.targetsUnder44 += small.length;
       summary.contrastFails += contrastFails.length;
       summary.kidWords += kidWords.length;
       summary.tvSmallText += tvSmall.length;
       summary.clippedText += clipped.length;
-      shots.push({ name, scenario: sc.id, label: sc.label, flow: sc.flow, state: sc.state, device, targetsUnder44: small, contrastFails, kidWords, tvSmallText: tvSmall, clippedText: clipped });
+      summary.textOverlaps += overlaps.length;
+      shots.push({ name, scenario: sc.id, label: sc.label, flow: sc.flow, state: sc.state, device, targetsUnder44: small, contrastFails, kidWords, tvSmallText: tvSmall, clippedText: clipped, textOverlaps: overlaps });
       process.stdout.write(".");
     }
   }

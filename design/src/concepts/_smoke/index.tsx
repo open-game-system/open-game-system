@@ -15,6 +15,9 @@ function Surface({ device, store, seat }: SurfaceProps<S>) {
         <img src={game?.art.tv} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" />
         {/* fault: TV text under 24 px */}
         <span style={{ position: "absolute", left: 40, top: 40, font: "16px system-ui", color: "#fff", background: "#000" }}>fault-tv-small</span>
+        {/* fault: two text runs colliding */}
+        <span style={{ position: "absolute", left: 400, top: 400, font: "700 60px system-ui", color: "#fff", background: "#000" }}>fault-title</span>
+        <span style={{ position: "absolute", left: 430, top: 410, font: "700 48px system-ui", color: "#ff0", background: "#000" }}>fault-card</span>
       </div>
     );
   if (device === "ipad")

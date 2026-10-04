@@ -31,7 +31,7 @@ for device, (w, h, cols) in TILE.items():
         d.text((x, y + 2), s["id"], fill=(255, 216, 74), font=font)
         c = bad.get(f"{s['id']}--{device}", {})
         flags = []
-        for k, short in (("targetsUnder44", "tgt"), ("contrastFails", "contrast"), ("kidWords", "WORDS"), ("tvSmallText", "small"), ("clippedText", "clip")):
+        for k, short in (("targetsUnder44", "tgt"), ("contrastFails", "contrast"), ("kidWords", "WORDS"), ("tvSmallText", "small"), ("clippedText", "clip"), ("textOverlaps", "overlap")):
             n = len(c.get(k, []))
             if n:
                 flags.append(f"{short}:{n}")

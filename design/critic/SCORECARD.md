@@ -26,7 +26,7 @@ lists) · Board Game Arena (multi-home play). Use their patterns, never their tr
 | **Accessibility** | some labels | WCAG AA contrast, 44 pt targets, Dynamic Type survives, colour never carries meaning alone (graded mostly from checks.json) | exemplary |
 
 Thresholds in `scripts/shoot.ts` (`THRESHOLDS`): targets 44 pt, contrast 4.5 (3.0 for ≥ 24 px or
-≥ 18.66 px bold), TV text ≥ 24 px, kid words 0. Changing one is logged here as old → new + why.
+≥ 18.66 px bold), TV text ≥ 24 px, kid words 0, text overlaps 0 (added after round 01: text colliding with other text or with another component's card/art). Changing one is logged here as old → new + why.
 
 ## Log
 
@@ -37,3 +37,4 @@ Thresholds in `scripts/shoot.ts` (`THRESHOLDS`): targets 44 pt, contrast 4.5 (3.
 | 00-channel | 5.5 | 7 | 6.5 | — | 6 | 7 | 6.5 | 4 | 6.5 | 6 | 4 | — | 7 | 4 | concept C: best broadcast cut; time-first IA can't hold async |
 | 00-spine | 6.5 | 7.5 | 7 | 5 | 6.5 | 6.5 | 5.5 | 5 | 6 | 6.5 | 4 | — | 6 | 4 | concept D: fastest swap; TV band covers game; Tier-0 quality cliff |
 | 00-people | 6 | 7.5 | 7 | 6.5 | 7 | 6.5 | 6.5 | 7 | 6.5 | 5.5 | 4 | — | 7 | 4 | concept E: best multi-home/async/trust; threads mix nouns; Tier-0 has no thread |
+| 01 | 6.5 | 7.25 | 7 | 6.5 | 6.75 | 7.5 | 6.75 | 6.5 | 6 | 6 | 3.75 | 7.5 | 7 | 3.75 | pass 1 (model lanes, game nights, inbox, landscape kids, TV rules, dev page): mean 6.54; largest gaps: flow 9 + first run + Continue/New undesigned (structural: session model), generic phone identity |

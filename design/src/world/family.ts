@@ -11,6 +11,9 @@ export interface Person {
   color: string;
   /** Painted portrait or character art if one exists (Story Nook made Juneau's). */
   portrait?: string;
+  /** The painted paper character this person picked as their sticker (shown instead of initials or a
+   * generic person glyph). Kids' come from Story Nook; grown-ups pick one at setup. */
+  sticker: string;
 }
 
 export type DeviceKind = "phone" | "ipad" | "tv" | "laptop";
@@ -38,11 +41,11 @@ export const HOME: Household = {
   name: "The Mumms",
   city: "Portland",
   people: [
-    { id: "dad", name: "Jonathan", band: "grownup", color: "#2f6fc8" },
-    { id: "mom", name: "Mom", band: "grownup", color: "#c8412f" },
-    { id: "juneau", name: "Juneau", band: "kid", age: 5, color: "#e08a1e", portrait: "/art/story-nook/char-dragon.webp" },
+    { id: "dad", name: "Jonathan", band: "grownup", color: "#2f6fc8", sticker: "/art/story-nook/char-bear.webp" },
+    { id: "mom", name: "Mom", band: "grownup", color: "#c8412f", sticker: "/art/story-nook/char-owl.webp" },
+    { id: "juneau", name: "Juneau", band: "kid", age: 5, color: "#e08a1e", portrait: "/art/story-nook/char-dragon.webp", sticker: "/art/story-nook/char-dragon.webp" },
     // Fake-data name (Story Nook's test fixture); the real name is the family's to give.
-    { id: "ava", name: "Ava", band: "little", age: 2, color: "#9b5fc0", portrait: "/art/story-nook/char-dinosaur.webp" },
+    { id: "ava", name: "Ava", band: "little", age: 2, color: "#9b5fc0", portrait: "/art/story-nook/char-dinosaur.webp", sticker: "/art/story-nook/char-dinosaur.webp" },
   ],
   devices: [
     { id: "dev-dad-phone", kind: "phone", name: "Jonathan's iPhone", personId: "dad", online: true, battery: 0.71 },
@@ -60,9 +63,9 @@ export const OKAFORS: Household = {
   name: "The Okafors",
   city: "Seattle",
   people: [
-    { id: "tunde", name: "Tunde", band: "grownup", color: "#1f8a5b" },
-    { id: "ada", name: "Ada", band: "grownup", color: "#d14d72" },
-    { id: "kemi", name: "Kemi", band: "kid", age: 8, color: "#7b6ad6" },
+    { id: "tunde", name: "Tunde", band: "grownup", color: "#1f8a5b", sticker: "/art/story-nook/char-whale.webp" },
+    { id: "ada", name: "Ada", band: "grownup", color: "#d14d72", sticker: "/art/story-nook/char-firefly.webp" },
+    { id: "kemi", name: "Kemi", band: "kid", age: 8, color: "#7b6ad6", sticker: "/art/story-nook/char-mouse.webp" },
   ],
   devices: [
     { id: "ok-tv", kind: "tv", name: "Family room TV", online: true },
@@ -76,8 +79,8 @@ export const NANA: Household = {
   name: "Nana & Pop",
   city: "Boise",
   people: [
-    { id: "nana", name: "Nana", band: "grownup", color: "#b5623c" },
-    { id: "pop", name: "Pop", band: "grownup", color: "#5a6b7d" },
+    { id: "nana", name: "Nana", band: "grownup", color: "#b5623c", sticker: "/art/story-nook/char-turtle.webp" },
+    { id: "pop", name: "Pop", band: "grownup", color: "#5a6b7d", sticker: "/art/story-nook/char-cloud.webp" },
   ],
   // No TV paired: Nana & Pop play on their phones.
   devices: [

@@ -15,7 +15,7 @@ const count = (k: string): number => {
   const v: unknown = Object.entries(summary).find(([key]) => key === k)?.[1];
   return typeof v === "number" ? v : 0;
 };
-const expectations = ["targetsUnder44", "contrastFails", "kidWords", "tvSmallText", "clippedText"];
+const expectations = ["targetsUnder44", "contrastFails", "kidWords", "tvSmallText", "clippedText", "textOverlaps"];
 const failures = expectations.filter((k) => count(k) === 0).map((k) => `${k} missed its fault`);
 
 const { base, server } = await buildAndServe(`prove-${process.pid}`, ["_smoke"]);

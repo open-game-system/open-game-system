@@ -2,6 +2,7 @@
 // The console owns: who is here tonight, what is on the TV, the switch between games, and saves.
 // Games own: everything inside their own view (controllers, TV scene).
 import { COUCH, DUELS, HOME, gameById, type DuelGame, type GameManifest, type OwnedDevice, type Person, type Role } from "../../world";
+import type { Fault } from "./edge/fault";
 import { baseNights, pauseNight, resumeNight, startNight, type Nights } from "./nights";
 
 export type { Nights } from "./nights";
@@ -26,6 +27,8 @@ export interface DuelView {
 }
 
 export interface S {
+  /** A failure being shown (flow 9); null when all is well. Owned by the edge owner (edge/fault.ts). */
+  fault: Fault | null;
   firstRun: boolean;
   phone: PhoneView;
   tab: "home" | "library";
@@ -74,6 +77,7 @@ export const PRESENT: Person[] = HOME.people.filter((p) => p.id !== "mom");
 
 export function base(): S {
   return {
+    fault: null,
     firstRun: false,
     phone: "home",
     tab: "home",
