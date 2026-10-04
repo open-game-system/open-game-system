@@ -71,6 +71,28 @@ describe("POST and GET /me/instances", () => {
     expect(got.body).toEqual([{ ...report, profileId: "mom", updatedAt: 1_000 }]);
   });
 
+  it("lists the most recently written instance first, even when writes share a millisecond", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(Date.now());
+    const report = async (instanceId: string, status: string) =>
+      call("POST", "/instances", await phone("mom"), {
+        instanceId,
+        appId: "bake-shop",
+        status,
+        source: "bridge",
+      });
+    await report("i1", "active");
+    await report("i2", "active");
+    await report("i1", "waiting");
+    const order = async () =>
+      z
+        .array(z.object({ instanceId: z.string() }))
+        .parse((await call("GET", "/instances", await phone("mom"))).body)
+        .map((i) => i.instanceId);
+    expect(await order()).toEqual(["i1", "i2"]);
+    await report("i2", "suspended");
+    expect(await order()).toEqual(["i2", "i1"]);
+  });
+
   it("keeps optional fields absent, stores yourTurn false, and upserts by instance id", async () => {
     await call("POST", "/instances", await launcherOf("mom"), {
       instanceId: "i1",

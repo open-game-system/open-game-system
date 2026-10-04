@@ -137,7 +137,7 @@ route → 403 `profile_token_required`.
 | POST | `/api/v1/profiles` | none | `{ name, handle?, sticker, device: { deviceId, kind: phone\|tablet, name } }` → 201 `{ profile, token }`; 409 `handle_taken` |
 | GET / PATCH | `/api/v1/me` | phone/tablet | → `Me` / `{ name?, handle?, sticker? }` → `Me`; 409 `handle_taken` |
 | GET / PUT | `/api/v1/me/library` | GET any (launcher = host's), PUT phone/tablet | `{ appIds }` (whole catalogue until changed) |
-| GET / POST | `/api/v1/me/instances` | any (launcher = host's) | `Instance[]` newest first / `InstanceReport & { source: bridge\|visit }` → `Instance` |
+| GET / POST | `/api/v1/me/instances` | any (launcher = host's) | `Instance[]` newest first (same-ms tie: latest write) / `InstanceReport & { source: bridge\|visit }` → `Instance` |
 | POST | `/api/v1/sessions` | phone/tablet | `{ tvName }` → 201 `{ sessionId, code, tvName, host, token }` (launcher token) |
 | GET | `/api/v1/sessions/:sid` | its launcher, host or a member | → `{ sessionId, code, tvName, host }`; 403 `not_a_member`, 404 `session_not_found` |
 | POST | `/api/v1/sessions/join` | phone/tablet | `{ code }` (TV code; case, spaces, dashes ignored) → session view; 404 `session_not_found` |

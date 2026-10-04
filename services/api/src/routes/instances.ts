@@ -45,17 +45,17 @@ function toInstance(row: z.infer<typeof InstanceRowSchema>): Instance {
   });
 }
 
-/** Inserts or replaces the profile's instance (by instance id). */
+/**
+ * Inserts or replaces the profile's instance (by instance id). REPLACE (not an in-place update)
+ * gives every write a fresh rowid, larger than any in the table, so `rowid DESC` breaks a tie on
+ * `updated_at` (two writes in one millisecond) in favour of the most recent write.
+ */
 function upsertInstance(db: D1Database, instance: Instance) {
   return db
     .prepare(
-      `INSERT INTO instances (profile_id, instance_id, app_id, status, title, detail, your_turn,
-         starts_at, resume_url, source, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(profile_id, instance_id) DO UPDATE SET
-         app_id = excluded.app_id, status = excluded.status, title = excluded.title,
-         detail = excluded.detail, your_turn = excluded.your_turn, starts_at = excluded.starts_at,
-         resume_url = excluded.resume_url, source = excluded.source, updated_at = excluded.updated_at`,
+      `INSERT OR REPLACE INTO instances (profile_id, instance_id, app_id, status, title, detail,
+         your_turn, starts_at, resume_url, source, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       instance.profileId,
