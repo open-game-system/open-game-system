@@ -181,10 +181,13 @@ export const resumeNight = (ns: Nights, id: string): Nights => mapNight(ns, id, 
 export const homesReturn = (ns: Nights, id: string): Nights => mapNight(ns, id, (n) => ({ ...n, homes: n.homes.map((h) => ({ ...h, back: true })) }));
 
 /** The turn moves on to the next home in seat order. */
+/** The roll moves to the next home at the table. A home that's away (dropped, and the host chose to
+ * play on) is skipped: its seat keeps its score and it rejoins on a later turn. */
 export const passTurn = (ns: Nights, id: string): Nights =>
   mapNight(ns, id, (n) => {
     const i = n.homes.findIndex((h) => h.householdId === n.turnOf);
-    const next = n.homes[(i + 1) % n.homes.length];
+    const order = [...n.homes.slice(i + 1), ...n.homes.slice(0, i + 1)];
+    const next = order.find((h) => h.back && h.reply !== "declined") ?? order[0];
     return { ...n, turn: n.turn + 1, turnOf: next?.householdId ?? n.turnOf };
   });
 
