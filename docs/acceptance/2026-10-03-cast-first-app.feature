@@ -25,13 +25,9 @@ Feature: Cast-first OGS app with games inside one stream
     Then the Settings screen opens with Notifications, Developer and About
     And closing it returns to the Profile tab
 
-  Scenario: Friends is honestly empty until the profiles backend exists
+  Scenario: Friends lists your friends (detail in 2026-10-04-ogs-friends.feature)
     When Jonathan opens the Friends tab
-    Then it says friends can join each other's TV and see what you're playing
-    And it lists no friends
-    And there is no "Add a friend" button
-    When Jonathan taps "Share my profile"
-    Then the share sheet offers "Jonathan wants to be friends on OGS: https://opengame.org/add/<his profile id>"
+    Then he sees his friends with their presence, any requests, and "Add a friend"
 
   Scenario: The app opens on Playing when a game is live
     Given Rocket Crew is live on the living room TV
@@ -54,7 +50,7 @@ Feature: Cast-first OGS app with games inside one stream
   Scenario: First run: the hero is the first game, ready to start
     Given Jonathan has never played anything
     When Jonathan opens the Library tab
-    Then the hero is the first game in his library and its button reads "Start game"
+    Then the hero is the first game in his library and its button reads "Start game" (cast) or "Cast to play" (not cast)
     And All Games lists every game in library order
 
   Scenario: The hero is the game you played last, one tap to rejoin
@@ -64,11 +60,12 @@ Feature: Cast-first OGS app with games inside one stream
     And its button reads "Rejoin" and rejoins Night Flight's newest sitting
     And All Games keeps library order, whatever was played
 
-  Scenario: The hero never repeats the return pill's Rejoin
-    Given Jonathan swiped back from Night Flight, so the return pill reads "Night Flight · Rejoin"
+  Scenario: The hero's button uses the game page's verb
+    Given the TV is not cast and Jonathan has never played anything
     When Jonathan opens the Library tab
-    Then the hero is Night Flight with no button of its own
-    And tapping its art opens Night Flight's page
+    Then the hero's button reads "Cast to play", as the game's page does
+    And once a game was played the hero reads "Last played" and its button reads "Rejoin"
+    And tapping the hero's art opens its game's page
 
   Scenario: The game on the TV is the hero
     Given Story Nook is on the TV now
