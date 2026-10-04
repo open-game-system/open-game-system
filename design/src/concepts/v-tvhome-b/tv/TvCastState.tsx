@@ -1,11 +1,10 @@
 // Before tonight starts the living room TV isn't ours: nothing from OGS is on it. The moment the phone
-// says Play on TV, the console comes up as one calm moment (never a spinner on black): which room,
-// which game, and who is joining, each person's sticker checking in as their device arrives.
+// says Play on TV, the curtain goes up: the game's poster drops in and each person's sticker checks
+// in on its starring credit as their device arrives (never a spinner on black).
 import { gameById, type Person } from "../../../world";
-import { hereTonight, type S } from "../state";
-import { Sticker } from "../ui/Sticker";
+import { hereTonight, resumePoint, type S } from "../state";
 import { Check } from "../ui/Icons";
-import { PulseMark } from "./Motif";
+import { Billing, Marquee, titleSize } from "./poster/parts";
 import { TvArt } from "./TvArt";
 
 export function TvOff() {
@@ -18,36 +17,31 @@ const joinOrder = (p: Person): number => (p.band === "grownup" ? 0 : 1);
 export function TvConnecting({ s }: { s: S }) {
   const game = s.onTv ? gameById(s.onTv) : null;
   const people = [...hereTonight(s)].sort((a, b) => joinOrder(a) - joinOrder(b));
-  const names = people.map((p) => p.name);
-  const who = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : (names[0] ?? "");
+  const point = game ? resumePoint(game.id) : "";
   return (
-    <div className="ct-connecting">
+    <div className="pw-home pw-curtain">
       {game && (
-        <div className="ct-connecting__bg" aria-hidden>
+        <div className="pw-home__art is-in" aria-hidden>
           <TvArt gameId={game.id} />
         </div>
       )}
-      <div className="ct-connecting__shade" />
-      <header className="ct-connecting__top">
-        <PulseMark size={52} />
-        <span>Living room</span>
-      </header>
-      <section className="ct-connecting__body">
-        <h1 className="ct-connecting__line">{game ? `Starting ${game.name}` : "Connecting"}</h1>
-        {who && <p className="ct-connecting__sub">{who} joining</p>}
-        <ul className="ct-connecting__who">
-          {people.map((p, i) => (
-            <li key={p.id} style={{ animationDelay: `${120 + i * 90}ms` }}>
-              <span className="ct-connecting__sticker" style={{ animationDelay: `${300 + i * 450}ms` }}>
-                <Sticker person={p} size={128} />
-                <i style={{ animationDelay: `${600 + i * 450}ms` }}>
-                  <Check size={30} />
-                </i>
-              </span>
-              <b>{p.name}</b>
-            </li>
-          ))}
-        </ul>
+      <div className="pw-home__shade" />
+      <Marquee>
+        Curtain up <em>· living room</em>
+      </Marquee>
+      <section className="pw-poster pw-curtain__poster">
+        <p className="pw-poster__tagline">{game ? `Tonight, picking up at ${point}` : "Tonight in the living room"}</p>
+        <h1 className="pw-poster__title" style={{ fontSize: titleSize(game?.name ?? "Connecting", 196, 1240) }}>
+          {game ? game.name : "Connecting"}
+        </h1>
+        <Billing people={people} size={96}>
+          {(p) => (
+            <i className="pw-billing__in" style={{ animationDelay: `${600 + people.indexOf(p) * 450}ms` }}>
+              <Check size={30} />
+            </i>
+          )}
+        </Billing>
+        <p className="pw-curtain__line">Everyone's device is taking its seat by name</p>
       </section>
     </div>
   );

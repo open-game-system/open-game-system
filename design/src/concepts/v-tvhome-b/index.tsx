@@ -1,10 +1,12 @@
-// Concept A: "Living Room Console". OGS is the family's game console: one library, TV-first.
+// Variant TV B, "Poster wall": the console concept with the TV between games as a cinema lobby
+// (tv/poster/, poster.css). OGS is the family's game console: one library, TV-first.
 // When a TV is cast, the TV is the home screen and the phone is the remote and controller.
 import { defineConcept, type SurfaceProps } from "../../harness/types";
 import css from "./concept.css?raw";
 import devCss from "./dev.css?raw";
 import kidCss from "./kid.css?raw";
 import tvCss from "./tv.css?raw";
+import posterCss from "./poster.css?raw";
 import { flows } from "./flows";
 import { fontFaces } from "./fonts";
 import { DevSurface } from "./dev/DevSurface";
@@ -36,7 +38,7 @@ export const concept = defineConcept<S>({
   name: "TV B · Poster wall",
   brief: "OGS is the family's console: one library for every game, TV-first. When a TV is cast it is the home screen; the phone is the remote and controller; paired kid iPads follow by name.",
   // concept.css is the phone/model owner's; tv.css and kid.css load after it and belong to those owners.
-  css: fontFaces + css + tvCss + kidCss + devCss + edgeCss,
+  css: fontFaces + css + tvCss + posterCss + kidCss + devCss + edgeCss,
   Surface,
   // One scenario file per owner (phone/model, TV, kid) so parallel fix passes never collide.
   scenarios: [...scenarios, ...tvScenarios, ...kidScenarios, ...devScenarios, ...edgeScenarios],

@@ -18,8 +18,11 @@ export function TvPlaying({ s, gameId, arrived = false }: { s: S; gameId: string
   // Right after a cut the stream starts at the cut-over's HUD-safe zoom and eases out to the game's
   // own full frame as the console's band settles: while OGS chrome is up, no HUD is in view.
   const landing: Record<string, string> = f ? { "--ct-z": String(f.scale), transformOrigin: `${f.ox}% ${f.oy}%` } : {};
+  // Intermission crops the live stream to a one-sheet (poster.css): a 720 px portrait window centred
+  // on the manifest's safe anchor, so the game's subject stays in the poster.
+  const crop: Record<string, string> = { "--pw-crop": `${Math.round(Math.min(1200, Math.max(0, ((f?.ox ?? 50) / 100) * 1920 - 360)))}px` };
   return (
-    <div className={`ct-play ${s.menu ? "is-paused" : ""} ${s.left ? "is-landed" : ""}`}>
+    <div className={`ct-play ${s.menu ? "is-paused" : ""} ${s.left ? "is-landed" : ""}`} style={crop}>
       <div className="ct-play__blur" aria-hidden>
         <TvArt gameId={gameId} />
       </div>
