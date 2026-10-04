@@ -1,4 +1,4 @@
-import type { ClientMessage, Manifest, SessionState } from "@open-game-system/ogs-protocol";
+import { type Manifest, readPlayItem, type SessionState } from "@open-game-system/ogs-protocol";
 import {
   Suspense,
   use,
@@ -7,12 +7,13 @@ import {
   useEffectEvent,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
 } from "react";
 import type { Boot } from "../boot";
 import { buildHome, homeFocusRows, homeMove, recoverFocus } from "../launcher/home";
 import { nameForDevice, phoneOf, playersOf } from "../launcher/people";
-import { pageMove, readShortcut, shortcutStart } from "../launcher/shortcuts";
+import { pageMove } from "../launcher/shortcuts";
 import type { Connection, SessionClient } from "../session/client";
 import type { LauncherData } from "../session/data";
 import { Assembling } from "./Assembling";
@@ -67,14 +68,26 @@ function Living(props: {
   const { state, connection } = props;
   const now = useNow();
   const games = useMemo(() => new Map(data.games.map((g) => [g.appId, g])), [data.games]);
+  // Surprise me's pick is rolled once per visit home, so its card keeps one item id while focused.
+  const [surpriseSeed, setSurpriseSeed] = useState(Math.random);
+  const [lastScreen, setLastScreen] = useState(state.screen);
+  if (lastScreen !== state.screen) {
+    setLastScreen(state.screen);
+    if (state.screen === "home") setSurpriseSeed(Math.random());
+  }
   const home = useMemo(
     () =>
-      buildHome({ games: data.games, instances: data.instances, suspended: state.suspended, now }),
-    [data, state.suspended, now],
+      buildHome({
+        games: data.games,
+        instances: data.instances,
+        suspended: state.suspended,
+        now,
+        surpriseSeed,
+      }),
+    [data, state.suspended, now, surpriseSeed],
   );
   const grid = useMemo(() => homeFocusRows(home), [home]);
   const pageGame = state.page ? games.get(state.page) : undefined;
-  const shortcut = state.screen === "game-page" ? readShortcut(state.page) : null;
 
   // The launcher owns its layout: a remote press arrives as focus.move, the ring's new place goes back.
   const onMove = useEffectEvent((dir: "up" | "down" | "left" | "right") => {
@@ -108,29 +121,24 @@ function Living(props: {
     }
   }, [state.screen, state.focus, grid, connection, client]);
 
-  // A sitting card opened: continue that sitting at once (the Surprise card spins first).
-  const startedFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (shortcut?.kind !== "continue" || connection !== "open") return;
-    if (startedFor.current === state.page) return;
-    startedFor.current = state.page;
-    const msg = shortcutStart(shortcut, {
-      surprise: null,
-      suspended: state.suspended,
-      remote: state.remote,
-    });
-    if (msg) client.send(msg);
-  }, [shortcut, state.page, state.suspended, state.remote, connection, client]);
-  if (state.screen !== "game-page") startedFor.current = null;
-  const startSurprise = useCallback(
-    (appId: string) =>
-      shortcutStart(
-        { kind: "surprise" },
-        { surprise: appId, suspended: state.suspended, remote: state.remote },
-      ),
-    [state.suspended, state.remote],
-  );
-  const send = useCallback((m: ClientMessage) => client.send(m), [client]);
+  // A sitting started from the Surprise card plays the reel over Getting ready, once.
+  const homeFocus = useRef<string | null>(null);
+  const surpriseFor = useRef<string | null>(null);
+  if (state.screen === "home") homeFocus.current = state.focus;
+  else if (state.screen === "game" && state.current && homeFocus.current) {
+    const play = readPlayItem(homeFocus.current);
+    const picked = play && !play.instanceId && play.appId === state.current.appId;
+    surpriseFor.current = picked ? state.current.instanceId : null;
+    homeFocus.current = null;
+  }
+  const [reelDone, setReelDone] = useState<string | null>(null);
+  const surprising =
+    state.screen === "game" &&
+    state.current !== null &&
+    surpriseFor.current === state.current.instanceId &&
+    reelDone !== state.current.instanceId;
+  const reelInstance = state.current?.instanceId ?? null;
+  const endReel = useCallback(() => setReelDone(reelInstance), [reelInstance]);
   const surpriseCard = home.cards.find((c) => c.kind === "surprise");
   const surprisePool = surpriseCard?.kind === "surprise" ? surpriseCard.pool : [];
   const playersFor = useCallback((appId: string) => playersOf(state, appId), [state]);
@@ -170,14 +178,6 @@ function Living(props: {
       {state.screen === "game-page" && pageGame && (
         <GamePage game={pageGame} state={state} remoteHolder={remoteHolder} now={now} />
       )}
-      {shortcut?.kind === "surprise" && (
-        <Surprise
-          icons={home.icons.filter((i) => surprisePool.includes(i.appId))}
-          recent={state.suspended[0]?.appId ?? null}
-          start={startSurprise}
-          send={send}
-        />
-      )}
       <Player
         screen={state.screen}
         game={currentGame ?? lastGame.current}
@@ -185,6 +185,13 @@ function Living(props: {
         remoteHolder={remoteHolder}
         frames={frames}
       />
+      {surprising && state.current && (
+        <Surprise
+          icons={home.icons.filter((i) => surprisePool.includes(i.appId))}
+          pick={state.current.appId}
+          onDone={endReel}
+        />
+      )}
       {connection === "reconnecting" && (
         <div className="connection-chip" data-testid="reconnecting">
           <span className="pulse" />

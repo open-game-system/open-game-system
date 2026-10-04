@@ -68,6 +68,16 @@ describe("remoteView: what's on the TV", () => {
     });
   });
 
+  it("Home: a card that starts a game at once (a sitting, Surprise me's pick) names that game", () => {
+    expect(view(session({ focus: "play:bake-shop:bake-shop-k1" })).onTv).toMatchObject({
+      kind: "home",
+      focus: "Bake Shop",
+    });
+    expect(view(session({ focus: "play:rocket-crew" })).onTv).toMatchObject({
+      focus: "Rocket Crew",
+    });
+  });
+
   it("Home: focus on something that isn't a game reads as no focus", () => {
     expect(view(session({ focus: "settings" })).onTv).toMatchObject({ focus: null });
   });

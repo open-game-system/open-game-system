@@ -176,6 +176,22 @@ const gameOf = (itemId: string | null): string | null =>
   itemId?.startsWith("game:") ? itemId.slice(5) : null;
 const newId = (appId: string, now: number) => `${appId}-${now.toString(36)}`;
 
+/**
+ * A launcher card that starts a game at once instead of opening its page: a paused sitting
+ * (`play:<appId>:<instanceId>`) or a game picked for the player (`play:<appId>`, e.g. Surprise me).
+ * `select` on one is a `game.start` from the selecting phone.
+ */
+export type PlayItem = { appId: string; instanceId?: string };
+
+export const playItem = (appId: string, instanceId?: string): string =>
+  instanceId ? `play:${appId}:${instanceId}` : `play:${appId}`;
+
+export function readPlayItem(itemId: string | null): PlayItem | null {
+  const m = itemId ? /^play:([^:]+)(?::(.+))?$/.exec(itemId) : null;
+  if (!m?.[1]) return null;
+  return m[2] ? { appId: m[1], instanceId: m[2] } : { appId: m[1] };
+}
+
 function suspendCurrent(s: SessionState, now: number): SessionState {
   if (!s.current) return s;
   const { appId, instanceId, label } = s.current;
@@ -296,9 +312,17 @@ function onBye(s: SessionState, msg: MessageOf<"bye">): Step {
   return { s: { ...next, remote: null }, extra: offers };
 }
 
+/** A play item continues its sitting (or the game's paused one), else starts the game new. */
+function playStart(s: SessionState, play: PlayItem, hostDeviceId: string): MessageOf<"game.start"> {
+  const paused = play.instanceId !== undefined || s.suspended.some((g) => g.appId === play.appId);
+  return { type: "game.start", ...play, mode: paused ? "continue" : "new", hostDeviceId };
+}
+
 function onSelect(s: SessionState, msg: MessageOf<"select">, now: number): Step {
   const appId = gameOf(s.focus);
   if (s.screen === "home" && appId) return { s: { ...s, screen: "game-page", page: appId } };
+  const play = readPlayItem(s.focus);
+  if (s.screen === "home" && play) return onGameStart(s, playStart(s, play, msg.deviceId), now);
   if (s.screen !== "game-page" || !s.page) return { s };
   const mode = s.focus === "action:new" ? "new" : "continue";
   return onGameStart(

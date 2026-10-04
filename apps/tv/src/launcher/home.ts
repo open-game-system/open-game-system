@@ -1,7 +1,12 @@
-import type { Instance, Manifest, SuspendedGame } from "@open-game-system/ogs-protocol";
+import {
+  type Instance,
+  type Manifest,
+  playItem,
+  type SuspendedGame,
+} from "@open-game-system/ogs-protocol";
 import { type Dir, type FocusRow, firstFocus, locate, move } from "./focus-grid";
 import { buildRows } from "./layout";
-import { continueItem, SURPRISE_ITEM } from "./shortcuts";
+import { pickSurprise } from "./shortcuts";
 
 export interface Art {
   src: string;
@@ -38,7 +43,10 @@ export type CardModel =
     }
   | {
       kind: "surprise";
+      /** `play:<pick>`: OK starts the picked game at once. */
       itemId: string;
+      /** The game this visit's Surprise me starts (never the one just played, when there is another). */
+      appId: string;
       icons: Art[];
       /** The games Surprise me picks from: the kid-friendly ones. */
       pool: string[];
@@ -78,6 +86,8 @@ export function buildHome(input: {
   instances: Instance[];
   suspended: SuspendedGame[];
   now: number;
+  /** 0..1, rolled once per visit home: which kids' game Surprise me starts. */
+  surpriseSeed?: number;
 }): HomeModel {
   const rows = buildRows(input);
   const byId = new Map(input.games.map((g) => [g.appId, g]));
@@ -108,7 +118,7 @@ export function buildHome(input: {
         ? [
             {
               kind: "sitting" as const,
-              itemId: continueItem(b.appId, b.instanceId),
+              itemId: playItem(b.appId, b.instanceId),
               appId: b.appId,
               name: b.name,
               art: roomArt(g),
@@ -124,10 +134,13 @@ export function buildHome(input: {
     const g = byId.get(i.appId);
     return g ? forKids(g) : false;
   });
-  if (kids.length >= 2)
+  const recent = input.suspended[0]?.appId ?? null;
+  const pick = pickSurprise(kids, recent, () => input.surpriseSeed ?? 0);
+  if (kids.length >= 2 && pick)
     cards.splice(Math.min(1, cards.length), 0, {
       kind: "surprise",
-      itemId: SURPRISE_ITEM,
+      itemId: playItem(pick),
+      appId: pick,
       icons: kids.map((i) => i.icon),
       pool: kids.map((i) => i.appId),
     });

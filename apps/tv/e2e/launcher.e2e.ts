@@ -66,11 +66,10 @@ describe("TV launcher (fake session)", () => {
       .locator('[data-row="activity"] [data-item]')
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
     expect(cards).toHaveLength(3);
-    expect(cards[0]).toMatch(/^game:~continue:bake-shop:/);
-    expect(cards.slice(1)).toEqual([
-      "game:~surprise",
-      "game:~continue:story-nook:story-nook-ember",
-    ]);
+    // Cards start a game at once: the latest sitting, Surprise me (this visit's pick), the next sitting.
+    expect(cards[0]).toMatch(/^play:bake-shop:/);
+    expect(cards[1]).toMatch(/^play:(story-nook|rocket-crew|peekaboo-garden|night-flight)$/);
+    expect(cards[2]).toBe("play:story-nook:story-nook-ember");
     expect(
       await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
     ).toContain("Day 4");
@@ -134,7 +133,7 @@ describe("TV launcher (fake session)", () => {
   it("continues a sitting straight from its card", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
     await send(page, { type: "focus.move", dir: "down" });
-    await expect.poll(focused).toMatch(/^game:~continue:bake-shop:/);
+    await expect.poll(focused).toMatch(/^play:bake-shop:/);
     expect(await page.getByTestId("hero").getAttribute("data-hero")).toBe("bake-shop");
     await shot(page, "01b-home-card-focus");
     await expectTvRules();
@@ -152,22 +151,30 @@ describe("TV launcher (fake session)", () => {
   });
 
   it("Surprise me spins the icons, lands on a game and starts it", async () => {
-    await send(page, { type: "focus.set", itemId: "game:~surprise" });
-    await expect.poll(focused).toBe("game:~surprise");
+    const item = await page.locator('[data-card="surprise"]').getAttribute("data-item");
+    const pick = item?.replace(/^play:/, "") ?? "";
+    expect(pick).toMatch(/^[a-z-]+$/);
+    await send(page, { type: "focus.set", itemId: `play:${pick}` });
+    await expect.poll(focused).toBe(`play:${pick}`);
     expect(await page.getByTestId("hero").getAttribute("data-hero")).toBe("surprise");
     await send(page, { type: "select", deviceId: "jonathan-phone" });
+    // The select itself starts the pick on the selecting phone; the reel plays over Getting ready.
     await page.getByTestId("surprise").waitFor();
-    const pick = await page.getByTestId("surprise").getAttribute("data-pick");
-    expect(pick).toMatch(/^[a-z-]+$/);
+    expect(await page.getByTestId("surprise").getAttribute("data-pick")).toBe(pick);
+    const started = await sessionState(page);
+    expect([started?.screen, started?.current?.appId, started?.current?.hostDeviceId]).toEqual([
+      "game",
+      pick,
+      "jonathan-phone",
+    ]);
+    expect(started?.page).toBeNull();
     // Not the game just played (Bake Shop is the last paused one), and never a grown-up game.
     expect(pick).not.toBe("bake-shop");
     expect(pick).not.toBe("hearthisle");
     await page.locator('[data-testid=surprise][data-phase="landed"]').waitFor();
     await shot(page, "07-surprise");
-    await expect
-      .poll(async () => (await sessionState(page))?.current?.appId, { timeout: 4000 })
-      .toBe(pick);
-    expect((await sessionState(page))?.screen).toBe("game");
+    // Then the reel gives way to the game.
+    await page.getByTestId("surprise").waitFor({ state: "detached", timeout: 4000 });
   });
 
   it("shows who played last time on a game's page, by profile", async () => {
@@ -195,9 +202,9 @@ describe("TV launcher (fake session)", () => {
     expect((await sessionState(page))?.focus).toBe("game:story-nook");
     // Down goes to the first card (the latest sitting); up comes back to the icon it left.
     await send(page, { type: "focus.move", dir: "down" });
-    await expect.poll(focused).toMatch(/^game:~continue:bake-shop:/);
+    await expect.poll(focused).toMatch(/^play:bake-shop:/);
     await send(page, { type: "focus.move", dir: "right" });
-    await expect.poll(focused).toBe("game:~surprise");
+    await expect.poll(focused).toMatch(/^play:[a-z-]+$/);
     await send(page, { type: "focus.move", dir: "up" });
     await expect.poll(focused).toBe("game:story-nook");
     await send(page, { type: "focus.move", dir: "right" });

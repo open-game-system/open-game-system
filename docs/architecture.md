@@ -169,7 +169,9 @@ vercel-labs/emulate (`pnpm --filter @open-game-system/api emulate`; integration 
 via `idFromName(sessionId)`, WebSocket hibernation, state persisted in DO storage). On connect the
 DO applies `hello` from the verified token and the profile in D1 (the joiner becomes a member); when a device's last socket closes, `bye`. Client frames
 are JSON `ClientMessage`s (except `hello`/`bye`, which are refused); `select` and `remote.take`
-always act as the sending device. Each is applied with `reduceSession` and the `Outbound`s routed:
+always act as the sending device. `select` on home opens the focused `game:<appId>` icon's page, or,
+on a `play:<appId>[:<instanceId>]` card (a paused sitting, Surprise me's pick), starts that game at
+once as a `game.start` hosted by the selecting phone. Each is applied with `reduceSession` and the `Outbound`s routed:
 `all` → every socket, `launcher` → launcher sockets, `{ deviceId }` → that device's sockets. Server
 frames: `{ type: "state", state }`, `{ type: "focus.move", dir }` (launcher),
 `{ type: "follow", target }`, `{ type: "remote.offer", from }`, and

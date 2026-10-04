@@ -4,6 +4,8 @@ import {
   ClientMessageSchema,
   initialSession,
   type Outbound,
+  playItem,
+  readPlayItem,
   reduceSession,
   type SessionState,
   SessionStateSchema,
@@ -327,6 +329,106 @@ describe("couch session: select and back", () => {
     expect(run([{ type: "back" }], home).s).toEqual(home);
     const { s: playing } = run([...living(), startRc]);
     expect(run([{ type: "back" }], playing).s).toEqual(playing);
+  });
+});
+
+describe("couch session: play items (cards that start a game at once)", () => {
+  const selectOn = (itemId: string, extra: ClientMessage[] = []) =>
+    run([
+      ...living(),
+      ...extra,
+      { type: "focus.set", itemId },
+      { type: "select", deviceId: "phone-dad" },
+    ]);
+
+  it("builds and reads a play item for a game, and for one of its sittings", () => {
+    expect(playItem("bake-shop")).toBe("play:bake-shop");
+    expect(playItem("bake-shop", "bake-shop-k1:x")).toBe("play:bake-shop:bake-shop-k1:x");
+    expect(readPlayItem("play:bake-shop")).toEqual({ appId: "bake-shop" });
+    expect(readPlayItem("play:bake-shop:bake-shop-k1:x")).toEqual({
+      appId: "bake-shop",
+      instanceId: "bake-shop-k1:x",
+    });
+  });
+
+  it.each([
+    null,
+    "game:bake-shop",
+    "play:",
+    "play::i-1",
+    "xplay:bake-shop",
+    "play:bake-shop:",
+    "action:new",
+  ])("%j is not a play item", (itemId) => {
+    expect(readPlayItem(itemId)).toBeNull();
+  });
+
+  it("select on a sitting's play item continues that sitting at once, hosted by the selecting phone", () => {
+    const { s } = selectOn(playItem("bake-shop", "bake-shop-k1"));
+    expect(s.screen).toBe("game");
+    expect(s.page).toBeNull();
+    expect(s.focus).toBe("game:bake-shop");
+    expect(s.current).toMatchObject({
+      appId: "bake-shop",
+      instanceId: "bake-shop-k1",
+      mode: "continue",
+      hostDeviceId: "phone-dad",
+    });
+  });
+
+  it("select on a game's play item starts it new when nothing of it is paused", () => {
+    const { s } = selectOn(playItem("night-flight"));
+    expect(s.screen).toBe("game");
+    expect(s.current).toMatchObject({
+      appId: "night-flight",
+      instanceId: `night-flight-${(T + 5).toString(36)}`,
+      mode: "new",
+    });
+  });
+
+  it("another game's paused sitting does not make a play item continue", () => {
+    const { s } = selectOn(playItem("night-flight"), [startRc, { type: "home" }]);
+    expect(s.current).toMatchObject({ appId: "night-flight", mode: "new" });
+  });
+
+  it("select on a game's play item continues its paused sitting", () => {
+    const { s } = selectOn(playItem("rocket-crew"), [startRc, { type: "home" }]);
+    const paused = run([...living(), startRc]).s.current?.instanceId;
+    expect(s.current).toMatchObject({ appId: "rocket-crew", mode: "continue", instanceId: paused });
+    expect(s.suspended).toEqual([]);
+  });
+
+  it("select on a play item during a game does nothing", () => {
+    const { s: playing } = run([...living(), startRc]);
+    const from = { ...playing, focus: playItem("night-flight") };
+    expect(run([{ type: "select", deviceId: "phone-dad" }], from).s).toEqual(from);
+  });
+
+  it("on a game's page a play item focus still selects that page's game", () => {
+    const { s: page } = run([
+      ...living(),
+      { type: "focus.set", itemId: "game:bake-shop" },
+      { type: "select", deviceId: "phone-dad" },
+    ]);
+    const from = { ...page, focus: playItem("night-flight") };
+    expect(run([{ type: "select", deviceId: "phone-dad" }], from).s.current?.appId).toBe(
+      "bake-shop",
+    );
+  });
+
+  it("the phone that selected a play item follows the new sitting as its host", () => {
+    const r = reduceSession(
+      run([...living(), { type: "focus.set", itemId: playItem("bake-shop", "bake-shop-k1") }]).s,
+      { type: "select", deviceId: "phone-dad" },
+      T,
+    );
+    expect(follows(r.out)).toContainEqual({
+      to: { deviceId: "phone-dad" },
+      msg: {
+        type: "follow",
+        target: { kind: "game", appId: "bake-shop", instanceId: "bake-shop-k1", roleId: "host" },
+      },
+    });
   });
 });
 
@@ -728,9 +830,9 @@ describe("session state schema", () => {
   });
 
   it("rejects an unknown screen", () => {
-    expect(SessionStateSchema.safeParse({ ...initialSession("s-1", "dad"), screen: "menu" }).success).toBe(
-      false,
-    );
+    expect(
+      SessionStateSchema.safeParse({ ...initialSession("s-1", "dad"), screen: "menu" }).success,
+    ).toBe(false);
   });
 
   it("rejects a current game in an unknown mode", () => {

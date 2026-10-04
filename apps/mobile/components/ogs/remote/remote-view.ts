@@ -1,4 +1,4 @@
-import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
+import { type Manifest, readPlayItem, type SessionState } from "@open-game-system/ogs-protocol";
 import type { CastDevice } from "../../../services/cast-store";
 
 export type OnTv =
@@ -38,7 +38,11 @@ function onTvOf(state: SessionState | null, find: (appId: string) => Manifest | 
     };
   }
   const nameOf = (appId: string) => find(appId)?.name ?? appId;
-  const focused = state?.focus?.startsWith("game:") ? state.focus.slice(5) : null;
+  const focus = state?.focus ?? null;
+  // A game's icon, or a card that starts a game at once (a sitting, Surprise me's pick).
+  const focused = focus?.startsWith("game:")
+    ? focus.slice(5)
+    : (readPlayItem(focus)?.appId ?? null);
   const last = state?.suspended.reduce<SessionState["suspended"][number] | null>(
     (a, b) => (a && a.at >= b.at ? a : b),
     null,

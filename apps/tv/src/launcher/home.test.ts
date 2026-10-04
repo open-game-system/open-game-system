@@ -10,7 +10,6 @@ import {
   recoverFocus,
   roomArt,
 } from "./home";
-import { SURPRISE_ITEM } from "./shortcuts";
 
 const NOW = new Date(2026, 9, 3, 19, 10).getTime(); // a Saturday, 7:10 pm
 const suspended: SuspendedGame[] = [
@@ -60,9 +59,9 @@ describe("home: a row of game icons, the room, activity cards", () => {
 
   it("puts the latest sitting first, then Surprise me, then the next sitting: three large cards", () => {
     expect(home.cards.map((c) => c.itemId)).toEqual([
-      "game:~continue:rocket-crew:rc-1",
-      SURPRISE_ITEM,
-      "game:~continue:bake-shop:bs-1",
+      "play:rocket-crew:rc-1",
+      "play:bake-shop",
+      "play:bake-shop:bs-1",
     ]);
     const first = home.cards[0];
     expect(first?.kind === "sitting" && [first.name, first.tag, first.resume]).toEqual([
@@ -80,9 +79,9 @@ describe("home: a row of game icons, the room, activity cards", () => {
       now: NOW,
     });
     expect(h.cards.map((c) => c.itemId)).toEqual([
-      "game:~continue:story-nook:story-nook-ember",
-      SURPRISE_ITEM,
-      "game:~continue:hearthisle:hearthisle-night",
+      "play:story-nook:story-nook-ember",
+      "play:story-nook",
+      "play:hearthisle:hearthisle-night",
     ]);
     const night = h.cards[2];
     expect(night?.kind === "sitting" && night.tag).toBe("Tonight at 8:00");
@@ -104,7 +103,7 @@ describe("home: a row of game icons, the room, activity cards", () => {
     const rows = homeFocusRows(home);
     expect(rows.map((r) => r.id)).toEqual(["games", "activity"]);
     expect(rows[0]?.items).toHaveLength(6);
-    expect(rows[1]?.items[1]).toBe(SURPRISE_ITEM);
+    expect(rows[1]?.items[1]).toBe("play:bake-shop");
     const fresh = buildHome({ games: [], instances: [], suspended: [], now: NOW });
     expect(homeFocusRows(fresh).map((r) => r.items)).toEqual([[], []]);
   });
@@ -193,6 +192,22 @@ describe("for the kids", () => {
     expect(forKids({ ...base, shop: { ages: "5+" } })).toBe(true);
     expect(forKids({ ...base, shop: { ages: "10+" } })).toBe(false);
     expect(forKids({ ...base, shop: {} })).toBe(true);
+  });
+  it("Surprise me starts this visit's pick: a kids' game, never the one just played", () => {
+    const pickWith = (surpriseSeed: number, recent: SuspendedGame[] = suspended) => {
+      const h = buildHome({
+        games: FIXTURE_GAMES,
+        instances: [],
+        suspended: recent,
+        now: NOW,
+        surpriseSeed,
+      });
+      const card = h.cards.find((c) => c.kind === "surprise");
+      return card?.kind === "surprise" ? [card.appId, card.itemId] : null;
+    };
+    expect(pickWith(0)).toEqual(["bake-shop", "play:bake-shop"]);
+    expect(pickWith(0.99)).toEqual(["night-flight", "play:night-flight"]);
+    expect(pickWith(0, [])).toEqual(["rocket-crew", "play:rocket-crew"]);
   });
   it("lets Surprise me pick only kid-friendly games", () => {
     const games = FIXTURE_GAMES.map((g) =>

@@ -188,8 +188,9 @@ const scenarios: Scenario[] = [
     label: "Surprise me · picked (OK pressed on the Surprise card)",
     optional: true,
     run: async (p) => {
-      if ((await p.locator('[data-item="game:~surprise"]').count()) === 0) return "";
-      await send(p, { type: "focus.set", itemId: "game:~surprise" });
+      const item = await p.locator('[data-card="surprise"]').getAttribute("data-item");
+      if (!item) return "";
+      await send(p, { type: "focus.set", itemId: item });
       await p.waitForTimeout(500);
       await select(p);
       await p.waitForTimeout(900);
