@@ -49,6 +49,10 @@ Persistent project knowledge. Review at the start of each task.
 
 - **CRAP of services/api needs Node-side route tests**: coverage from the workerd integration suite can't be collected (`@vitest/coverage-istanbul` fails inside vitest-pool-workers with "template is not a function"). `test/support/d1.ts` gives Node tests a real local D1 (wrangler `getPlatformProxy`, schema.sql applied, `reset()` between tests), so `app.request(path, init, { DB })` route tests are measured. Measure with `scripts/crap.mjs` (AST-based); the regex crap4ts misses inline Hono handlers.
 
+- **Inlining a workspace package with tsdown: prefer its ESM build**: profile-kit bundles app-bridge-web (main = cjs, module = esm, no `exports` map). Rolldown resolved `main`, inlined the CJS and emitted `import { createRequire } from "node:module"` for its `require("fast-json-patch")`, which breaks every game's esbuild browser bundle. Set `inputOptions.resolve.mainFields: ["module", "main"]`; `src/dist.test.ts` bundles the dist with esbuild `platform: "browser"` and fails on any `node:` import.
+- **Games get packages from packed tarballs**: ogs-protocol and the workspace app-bridge versions are not on npm, so a package games install (profile-kit) bundles them (`deps.alwaysBundle`) and keeps only npm deps (zod, fast-json-patch, react) external. Re-pack with `pnpm pack` and re-vendor with `pnpm install --force` (same file name, new integrity).
+- **Game tokens never touch the app token**: the game WebView gets a token for that game only (`profile` bridge store); the TV page gets the session's game token in `ogs:start`. A frame that attaches its listener after `load` says `ogs:ready` and the launcher re-sends the start.
+
 ## Process
 
 - **Monorepo consolidation (2026-03-13)**: Merged 5 repos. Key issues were import path changes (`app-bridge` → `app-bridge-web`/`app-bridge-react`), vitest version mismatches (v4 needs vite v6+), and React types version conflicts across packages.
