@@ -32,3 +32,4 @@ When requirements change:
 1. Update the product spec (the intent)
 2. Update or create the `.feature` file (the contract)
 3. Failing acceptance tests drive the implementation change
+| 2026-10-03 | [cast-first-app.feature](2026-10-03-cast-first-app.feature) | Cast-first app: Playing · TV · Library, instances, launcher, games in one stream, swipe back, swap with 0 recasts (17 scenarios); supersedes the 2026-03-15 home screen |
