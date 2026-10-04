@@ -1,4 +1,5 @@
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { SymbolView } from "expo-symbols";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -9,21 +10,24 @@ import {
   useOgsCast,
   usePlaying,
 } from "../../services/runtime";
+import { profileView } from "./profile/profile-view";
+import { Sticker } from "./Sticker";
+import { tabAccessibilityLabel, tabItem } from "./tab-items";
 import { colors, fonts, TARGET } from "./theme";
 
-const LABELS: Record<string, { label: string; testID: string }> = {
-  playing: { label: "Playing", testID: "tabPlaying" },
-  tv: { label: "TV", testID: "tabTV" },
-  library: { label: "Library", testID: "tabLibrary" },
-};
+const ICON = 24;
 
-/** Playing · TV · Library (always all three), with the return pill and the remote offer above. */
+/**
+ * Playing · TV · Library · Friends · Profile (always all five): a small icon over each label
+ * (Profile is your sticker), with the return pill and the remote offer above.
+ */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { pill } = useApp();
+  const { pill, identity } = useApp();
   const { remoteOffer } = useCouch();
   const cast = useOgsCast();
   const { badge } = usePlaying();
+  const me = profileView(identity).me;
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
@@ -65,22 +69,17 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       ) : null}
       <View style={styles.bar}>
         {state.routes.map((route, index) => {
-          const meta = LABELS[route.name];
+          const meta = tabItem(route.name);
           if (!meta) return null;
           const focused = state.index === index;
+          const tint = focused ? colors.lamp : colors.cream3;
           return (
             <Pressable
               key={route.key}
               testID={meta.testID}
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
-              accessibilityLabel={
-                route.name === "playing" && badge
-                  ? `Playing, ${badge} your turn`
-                  : route.name === "tv" && cast
-                    ? "TV, cast"
-                    : meta.label
-              }
+              accessibilityLabel={tabAccessibilityLabel(meta, { badge, cast })}
               style={styles.tab}
               onPress={() => {
                 const event = navigation.emit({
@@ -91,17 +90,31 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                 if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
               }}
             >
-              <View style={styles.labelRow}>
-                <Text style={[styles.label, focused && styles.labelOn]}>{meta.label}</Text>
-                {route.name === "playing" && badge > 0 ? (
+              <View style={styles.icon}>
+                {meta.symbol ? (
+                  <SymbolView
+                    name={focused ? meta.symbol.on : meta.symbol.idle}
+                    size={ICON}
+                    tintColor={tint}
+                    style={styles.symbol}
+                  />
+                ) : (
+                  <View style={[styles.me, focused && styles.meOn]}>
+                    <Sticker id={me?.sticker ?? "bear"} size={ICON} />
+                  </View>
+                )}
+                {meta.route === "playing" && badge > 0 ? (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{badge}</Text>
                   </View>
                 ) : null}
-                {route.name === "tv" && cast ? (
+                {meta.route === "tv" && cast ? (
                   <View style={styles.live} testID="tvLiveDot" />
                 ) : null}
               </View>
+              <Text style={[styles.label, focused && styles.labelOn]} numberOfLines={1}>
+                {meta.label}
+              </Text>
               <View style={[styles.underline, focused && styles.underlineOn]} />
             </Pressable>
           );
@@ -119,23 +132,48 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   bar: { flexDirection: "row" },
-  tab: { flex: 1, minHeight: TARGET + 6, alignItems: "center", justifyContent: "center" },
-  labelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  label: { fontSize: 16, fontWeight: "700", color: colors.cream3 },
-  labelOn: { color: colors.lamp },
-  underline: { marginTop: 6, height: 3, width: 26, borderRadius: 2 },
-  underlineOn: { backgroundColor: colors.lamp },
-  badge: {
-    backgroundColor: colors.lamp,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 5,
+  tab: { flex: 1, minHeight: TARGET + 6, alignItems: "center", justifyContent: "center", gap: 3 },
+  icon: { width: 34, height: ICON + 4, alignItems: "center", justifyContent: "center" },
+  symbol: { width: ICON + 4, height: ICON },
+  me: {
+    width: ICON + 4,
+    height: ICON + 4,
+    borderRadius: (ICON + 4) / 2,
     alignItems: "center",
     justifyContent: "center",
+    opacity: 0.75,
   },
-  badgeText: { color: colors.ink, fontWeight: "800", fontSize: 12 },
-  live: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.ember },
+  meOn: { opacity: 1, borderWidth: 2, borderColor: colors.lamp },
+  label: { fontSize: 12, fontWeight: "700", color: colors.cream3, letterSpacing: 0.1 },
+  labelOn: { color: colors.lamp },
+  underline: { marginTop: 1, height: 3, width: 20, borderRadius: 2 },
+  underlineOn: { backgroundColor: colors.lamp },
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -6,
+    backgroundColor: colors.lamp,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: colors.dusk0,
+  },
+  badgeText: { color: colors.ink, fontWeight: "800", fontSize: 11 },
+  live: {
+    position: "absolute",
+    top: -1,
+    right: -1,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.ember,
+    borderWidth: 2,
+    borderColor: colors.dusk0,
+  },
   pill: {
     marginHorizontal: 16,
     marginBottom: 8,

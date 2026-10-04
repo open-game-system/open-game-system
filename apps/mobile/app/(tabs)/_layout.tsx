@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { TabBar } from "../../components/ogs/TabBar";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../../services/game-url-store";
 
-/** Spec v3, App structure: three tabs, always all three, in this order. Games push on top. */
+/** Owner decision (Oct 2026): five tabs, always all five, in this order. Games push on top. */
 export default function TabsLayout() {
   const router = useRouter();
 
@@ -19,6 +19,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="playing" />
       <Tabs.Screen name="tv" />
       <Tabs.Screen name="library" />
+      <Tabs.Screen name="friends" />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
