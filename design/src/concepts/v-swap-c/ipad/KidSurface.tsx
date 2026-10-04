@@ -11,8 +11,7 @@ import { KidArrive } from "./KidArrive";
 import { KidAsleep } from "./KidAsleep";
 import { KidIdle } from "./KidIdle";
 import { KidTag } from "./KidTag";
-import { mashing } from "./mash";
-import { KidTravel } from "./KidTravel";
+import { KidHeld, KidPop } from "./KidPop";
 import { isUnpaired, KidUnpaired } from "./KidUnpaired";
 
 /** `seat` is whose iPad this is (from the harness stage); scenarios without one use `s.ipad`. */
@@ -43,16 +42,28 @@ export function KidSurface({ store, seat }: { store: Store<S>; seat?: string }) 
 function KidScreen({ s, who }: { s: S; who: Person }) {
   const device = HOME.devices.find((d) => d.personId === who.id && d.kind === "ipad");
   if (device && s.asleep.includes(device.id)) return <KidAsleep who={who} battery={device.battery ?? 0} />;
-  // Menu (TV paused) and the switch are one continuous journey: same component, keyed by the game
-  // being left, so the character keeps walking from "paused" through "following" without a cut.
-  if (s.switching) return <KidTravel key={s.switching.from} from={s.switching.from} to={s.switching.to} phase={s.switching.phase} who={who} mashDemo={mashing.has(s)} />;
-  if (s.menu && s.onTv) return <KidTravel key={s.onTv} from={s.onTv} to={null} phase="paused" who={who} />;
+  // Variant "Instant + receipt": no journey. The menu just holds the game (a big pause, wordless);
+  // the switch is a flash, then the child's character pops straight into the new game.
+  if (s.switching) {
+    const sw = s.switching;
+    if (sw.phase === "saving") return <KidHeld gameId={sw.from} who={who} flash />;
+    const seat = seatPlan(gameById(sw.to)).find((x) => x.person.id === who.id);
+    if (seat) {
+      return (
+        <div className="kd-game kd-game--pop" key={sw.to}>
+          <GameKidView gameId={sw.to} who={who} role={seat.role} />
+          {sw.phase === "following" && <KidPop who={who} />}
+        </div>
+      );
+    }
+  }
+  if (s.menu && s.onTv) return <KidHeld gameId={s.onTv} who={who} />;
   if (s.onTv) {
     const place = seatPlan(gameById(s.onTv)).find((x) => x.person.id === who.id);
     if (place) {
       const late = !!device && s.lateJoin === device.id;
       return (
-        <div className={`kd-game ${late ? "kd-game--late" : ""}`} key={s.onTv}>
+        <div className={`kd-game ${late ? "kd-game--late" : s.left ? "kd-game--pop" : ""}`} key={s.onTv}>
           <GameKidView gameId={s.onTv} who={who} role={place.role} />
           {late && <KidArrive who={who} />}
         </div>

@@ -1,14 +1,11 @@
-// The console menu (the phone's Home button): pause this game and pick the next one.
-// Picking a game IS the switch: the current game saves itself, and undo is one tap afterwards,
-// so there is no confirm step.
+// Variant "Instant + receipt": the console button opens a quick-switch sheet, not a menu. Four big
+// art tiles; tapping one IS the switch (the game on the TV saves itself, Back is on the receipt
+// afterwards), so there is no confirm and no ceremony. The TV only pauses while this is open.
 import type { Store } from "../../../harness/store";
 import { GAMES, HOME, gameById } from "../../../world";
-import { closeMenu, pointIn, seatPlan, startSwitch, type S } from "../state";
-import { couchLine, couchStatus } from "../status";
-import { Portrait } from "../ui/Brand";
-import { Chip } from "../ui/Chip";
+import { closeMenu, pointIn, startSwitch, type S } from "../state";
 import { GameArt } from "../ui/GameArt";
-import { Battery, Chevron } from "../ui/Icons";
+import { Battery } from "../ui/Icons";
 
 export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
   const current = s.onTv;
@@ -17,48 +14,34 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
   return (
     <div className="cx-sheetwrap">
       <button className="cx-scrim" aria-label="Close menu" data-bot="menu-close" onClick={() => store.update(closeMenu)} />
-      <div className="cx-sheet" role="dialog" aria-label="Console menu">
+      <div className="cx-sheet cx-qs" role="dialog" aria-label="Switch game">
         <div className="cx-sheet__grab" />
+        <h3 className="cx-qs__h ogs-display">Switch to</h3>
         {current && (
-          <div className="cx-sheet__now">
-            <span className="cx-sheet__kicker">Paused on the TV</span>
-            <b>
-              {gameById(current).name} · {pointIn(s, current)}
-            </b>
-            <span>Switching saves it here. Back to it any time tonight.</span>
-          </div>
-        )}
-        <h3 className="cx-sheet__h">Play next on Living room TV</h3>
-        {low && (
-          <p className="cx-next__warn">
-            <Battery size={20} level={low.battery ?? 0} /> {low.name} is at {Math.round((low.battery ?? 0) * 100)}%. It keeps its seat if it falls asleep.
+          <p className="cx-qs__save">
+            {gameById(current).name} saves at {pointIn(s, current).toLowerCase()}. Back is one tap.
           </p>
         )}
-        <div className="cx-next">
-          {next.map((g) => {
-            const seats = seatPlan(g);
-            return (
-              <button key={g.id} className="cx-next__row" data-bot={`next-${g.id}`} onClick={() => store.update((x) => startSwitch(x, g.id))}>
-                <span className="cx-next__art">
-                  <GameArt gameId={g.id} alt />
-                </span>
-                <span className="cx-next__text">
-                  <b>{g.name}</b>
-                  <span>{couchLine(g.id, null, s.savedTonight)}</span>
-                  <span className="cx-next__seats">
-                    <Chip status={couchStatus(g.id, null, s.savedTonight)} />
-                    {seats.map((x) => (
-                      <Portrait key={x.person.id} person={x.person} size={20} />
-                    ))}
-                  </span>
-                </span>
-                <Chevron size={18} />
-              </button>
-            );
-          })}
+        <div className="cx-qs__grid">
+          {next.map((g) => (
+            <button key={g.id} className="cx-qs__tile" data-bot={`next-${g.id}`} onClick={() => store.update((x) => startSwitch(x, g.id))}>
+              <span className="cx-qs__art">
+                <GameArt gameId={g.id} alt />
+              </span>
+              <span className="cx-qs__text">
+                <b>{g.name}</b>
+                <span>{s.savedTonight[g.id] ? `Saved ${s.savedTonight[g.id]}` : pointIn(s, g.id)}</span>
+              </span>
+            </button>
+          ))}
         </div>
+        {low && (
+          <p className="cx-qs__warn">
+            <Battery size={20} level={low.battery ?? 0} /> {low.name} {Math.round((low.battery ?? 0) * 100)}% · keeps its seat if it sleeps
+          </p>
+        )}
         <div className="cx-sheet__foot">
-          <button className="cx-btn cx-btn--ghost" data-bot="menu-console-home"><span>Console home on TV</span></button>
+          <button className="cx-btn cx-btn--ghost" data-bot="menu-console-home"><span>Console home</span></button>
           <button className="cx-btn cx-btn--ghost" data-bot="menu-end"><span>End for tonight</span></button>
         </div>
       </div>

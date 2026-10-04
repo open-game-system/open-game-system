@@ -1,0 +1,103 @@
+/* ============ Variant "Instant + receipt" (v-swap-c). Loads last; owns only the switch moment. ============
+   The switch is a cut (~1 s on every device). Trust lives in the receipt (phone chip, TV stamp) and
+   the one-tap Back, not in the animation. */
+
+/* ---- phone: quick-switch sheet ---- */
+.cx-qs { padding-bottom: 26px; }
+.cx-qs__h { font-size: 28px; line-height: 1.05; margin: 2px 2px 4px; color: var(--ogs-cream, #fbf2e4); }
+.cx-qs__save { margin: 0 2px 14px; font-size: 14px; color: var(--ogs-cream-2, #e6dacb); }
+.cx-qs__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cx-qs__tile { display: grid; grid-template-rows: auto auto; text-align: left; border-radius: 16px; overflow: hidden; background: var(--ogs-dusk-2, #272148) !important; color: var(--ogs-cream, #fbf2e4) !important; padding: 0 !important; transition: transform 0.12s; }
+.cx-qs__tile:active { transform: scale(0.96); }
+.cx-qs__art { display: block; aspect-ratio: 16 / 10; overflow: hidden; }
+.cx-qs__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cx-qs__text { display: grid; gap: 1px; padding: 8px 10px 10px; min-height: 52px; }
+.cx-qs__text b { font-size: 16px; font-weight: 800; }
+.cx-qs__text span { font-size: 13px; color: var(--ogs-cream-2, #e6dacb); }
+.cx-qs__warn { display: flex; align-items: center; gap: 8px; margin: 12px 2px 0; font-size: 13px; color: var(--ogs-peach, #f7c6a3); }
+
+/* ---- phone: the cut ---- */
+.cx-cut { position: relative; flex: 1; overflow: hidden; background: var(--ogs-dusk-0, #120f22); }
+.cx-cut__from, .cx-cut__to { position: absolute; inset: 0; }
+.cx-cut__from img, .cx-cut__to img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cx-cut__from { filter: saturate(0.4) brightness(0.8); }
+.cx-cut--saving .cx-cut__from { animation: sw-flash-el 0.22s ease-out both; }
+.cx-cut__to { clip-path: inset(0 0 0 100%); }
+.cx-cut--cutover .cx-cut__to { animation: sw-wipe 0.34s cubic-bezier(.7,0,.2,1) both; }
+.cx-cut--following .cx-cut__to { clip-path: inset(0 0 0 0); }
+.cx-cut__to::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(18, 15, 34, 0) 30%, rgba(18, 15, 34, 0.92) 78%); }
+@keyframes sw-wipe { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+@keyframes sw-flash-el { 50% { filter: brightness(1.8) saturate(0.4); } }
+.cx-cut__body { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 20px 34px; color: var(--ogs-cream, #fbf2e4); }
+.cx-cut--saving .cx-cut__body { opacity: 0; }
+.cx-cut__body h2 { font-size: 44px; line-height: 1; margin: 12px 0 4px; }
+.cx-cut__body p { margin: 0; font-size: 17px; font-weight: 600; color: var(--ogs-cream-2, #e6dacb); }
+.cx-cut__saved { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 8px; border-radius: 15px; background: rgba(18, 15, 34, 0.78); color: var(--ogs-mint, #9fe3bf); font-size: 13px; font-weight: 700; }
+.cx-cut__who { display: flex; gap: 10px; margin: 16px 0 0; padding: 0; list-style: none; }
+.cx-cut__who li { position: relative; }
+.cx-cut__who li.is-in { animation: sw-pop 0.32s cubic-bezier(.3,1.6,.5,1) both; }
+.cx-cut__who li i { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ogs-dusk-3, #352c5e); color: var(--ogs-lilac, #c9b8ff); }
+@keyframes sw-pop { from { transform: scale(0.2); opacity: 0; } 70% { transform: scale(1.18); opacity: 1; } }
+
+/* ---- phone: the receipt chip ---- */
+.cx-receipt { flex: none; display: flex; align-items: center; gap: 8px; margin: 0 12px 10px; min-height: 44px; padding: 0 4px 0 10px; border-radius: 22px; background: var(--ogs-dusk-2, #272148); color: var(--ogs-cream, #fbf2e4); animation: sw-receipt 0.3s 0.1s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes sw-receipt { from { opacity: 0; transform: translateY(-6px) scale(0.96); } }
+.cx-receipt__tick { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ogs-mint, #9fe3bf); color: #10261b; }
+.cx-receipt__text { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cx-receipt__back { flex: none; display: inline-flex; align-items: center; gap: 5px; min-height: 44px; min-width: 76px; justify-content: center; padding: 0 14px; border-radius: 20px; background: var(--ogs-cream, #fbf2e4) !important; color: #16122a !important; font-size: 15px; font-weight: 800; margin: 0; }
+.cx-receipt.is-undone { padding-right: 14px; }
+
+/* ---- TV: the snap ---- */
+.ct-snap { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.ct-snap__from, .ct-snap__to { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; }
+.ct-snap--saving .ct-snap__from { filter: saturate(0.5); }
+.ct-snap__to { animation: sw-wipe 0.36s cubic-bezier(.7,0,.2,1) both; }
+.ct-snap--following .ct-snap__to { animation: none; }
+.ct-snap__to::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 10px; background: rgba(255, 246, 224, 0.9); box-shadow: 0 0 60px 20px rgba(255, 246, 224, 0.5); z-index: 2; animation: sw-edge 0.36s both; }
+@keyframes sw-edge { to { opacity: 0; } }
+.ct-snap__flash { position: absolute; inset: 0; background: #fff6e0; opacity: 0; pointer-events: none; }
+.ct-snap--saving .ct-snap__flash { animation: sw-flash 0.22s ease-out both; }
+@keyframes sw-flash { 0% { opacity: 0; } 40% { opacity: 0.35; } 100% { opacity: 0; } }
+
+/* ---- TV: the receipt stamp (top-left corner, small) ---- */
+.ct-stamp { position: absolute; left: 48px; top: 40px; display: inline-flex; align-items: center; gap: 14px; height: 72px; padding: 0 26px 0 8px; border-radius: 36px; background: rgba(11, 12, 14, 0.66); backdrop-filter: blur(14px); color: var(--ct-ink, #f4f2ee); animation: sw-stamp 0.42s cubic-bezier(.3,1.5,.5,1) both; z-index: 3; }
+@keyframes sw-stamp { from { opacity: 0; transform: scale(1.5) rotate(-4deg); } 60% { opacity: 1; transform: scale(0.96) rotate(0); } }
+.ct-stamp__thumb { position: relative; width: 96px; height: 56px; border-radius: 28px; overflow: hidden; flex: none; }
+.ct-stamp__thumb .ct-art { position: absolute; inset: 0; }
+.ct-stamp__thumb img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.7) brightness(0.75); }
+.ct-stamp__thumb i { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ogs-mint, #9fe3bf); }
+.ct-stamp__text { display: inline-flex; align-items: baseline; gap: 12px; white-space: nowrap; }
+.ct-stamp__text b { font-size: 28px; font-weight: 800; }
+.ct-stamp__text span { font-size: 26px; font-weight: 600; color: var(--ct-ink2, #c4c1ba); }
+
+/* ---- TV: corner chip, people pop in ---- */
+.ct-chip--pop { animation: none; }
+.ct-chip__p { display: inline-flex; }
+.ct-chip--pop .ct-chip__p.is-ready { animation: sw-pop 0.34s cubic-bezier(.3,1.6,.5,1) both; }
+.ct-play--after .ct-play__game, .ct-play--after .ct-chip, .ct-play--after .ct-stamp { animation: none; }
+
+/* ---- TV: hold (phone's switch sheet open) ---- */
+.ct-play.ct-play--hold .ct-play__game { transform: none; border-radius: 0; box-shadow: none; filter: brightness(0.7) saturate(0.8); }
+.ct-play.ct-play--hold .ct-play__blur { opacity: 0; }
+.ct-hold { position: absolute; left: 48px; top: 40px; display: inline-flex; align-items: center; gap: 16px; height: 72px; padding: 0 28px 0 12px; border-radius: 36px; background: rgba(11, 12, 14, 0.7); backdrop-filter: blur(14px); color: var(--ct-ink, #f4f2ee); animation: sw-receipt 0.24s both; white-space: nowrap; }
+.ct-hold__glyph { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 50%; background: var(--ct-ink, #f4f2ee); color: #16122a; }
+.ct-hold__text { display: inline-flex; align-items: baseline; gap: 12px; }
+.ct-hold__text b { font-size: 28px; font-weight: 800; }
+.ct-hold__text span { font-size: 26px; font-weight: 600; color: var(--ct-ink2, #c4c1ba); }
+.ct-hold__sep { width: 2px; height: 32px; background: rgba(244, 242, 238, 0.25); }
+.ct-hold__phone { display: inline-flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 600; color: var(--ct-ink2, #c4c1ba); }
+
+/* ---- iPad: held, flash, pop ---- */
+.kd-held { position: absolute; inset: 0; }
+.kd-held__veil { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(16, 10, 30, 0.42); animation: cx-fade 0.2s both; }
+.kd-held__pause { display: grid; place-items: center; width: 220px; height: 220px; border-radius: 50%; background: #fff6e0; margin-top: -160px; animation: sw-pop 0.32s cubic-bezier(.3,1.6,.5,1) both; }
+.kd-held--flash .kd-held__veil { background: #fff6e0; animation: sw-flash 0.22s ease-out both; }
+.kd-game.kd-game--pop { animation: sw-wipe 0.34s cubic-bezier(.7,0,.2,1) both; }
+.kd-game--pop .gk-me { animation: sw-char-pop 0.46s 0.18s cubic-bezier(.3,1.7,.5,1) both; }
+@keyframes sw-char-pop { from { transform: scale(0); } 65% { transform: scale(1.18, 0.9); } }
+.kd-pop { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+.kd-pop__ring { position: absolute; left: 440px; top: 535px; width: 300px; height: 300px; border-radius: 50%; border: 14px solid; opacity: 0; animation: sw-ring 0.7s 0.2s ease-out both; }
+.kd-pop__ring--b { border-color: #ffd23f; animation-delay: 0.32s; }
+@keyframes sw-ring { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+.kd-pop__star { position: absolute; left: 578px; top: 673px; width: 24px; height: 24px; border-radius: 6px; opacity: 0; animation: sw-star 0.7s 0.22s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes sw-star { from { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); } to { opacity: 0; transform: rotate(var(--a)) translateY(-260px) scale(0.4) rotate(90deg); } }

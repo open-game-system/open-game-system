@@ -24,9 +24,9 @@ export function InGame({ s, store }: { s: S; store: Store<S> }) {
           <Mark size={26} />
         </button>
         <div className="cx-bar__what">
-          <b>{s.cast === "connecting" ? "Starting tonight" : sw ? "Switching games" : g.name}</b>
+          <b>{s.cast === "connecting" ? "Starting tonight" : sw ? gameById(sw.to).name : g.name}</b>
           <span>
-            <span className="cx-live-dot" /> Living room TV{sw ? "" : ` · ${pointIn(s, g.id)}`}
+            <span className="cx-live-dot" /> Living room TV · {pointIn(s, sw ? sw.to : g.id)}
           </span>
         </div>
         <div className="cx-bar__who">

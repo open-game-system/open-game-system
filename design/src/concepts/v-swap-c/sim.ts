@@ -13,10 +13,11 @@ import { advance, type S, type SwitchPhase } from "./state";
  *               characters walk the dotted path on their iPads (TV: their seats are on the way).
  *   following — the iPads arrive (TV seats check in), then the new game opens from its own tile on the
  *               TV and on the iPads; the "now playing" strip rises along the TV's bottom edge.
- * After `following` the strip collapses into the corner chip (TvPlaying, ~1.5 s of CSS), so the whole
- * switch is ~5.3 s of continuous motion: no frozen tail.
+ * Variant "Instant + receipt" (v-swap-c): the switch is a cut, not a journey. ~1.1 s end to end on
+ * every device: saving is a 0.2 s freeze-flash, cutover a 0.4 s wipe, following the kids' characters
+ * popping in. The trust lives in the receipt afterwards (phone chip, TV stamp) and the one-tap Back.
  */
-export const SWITCH_MS: Record<SwitchPhase, number> = { saving: 1300, cutover: 1500, following: 1300 };
+export const SWITCH_MS: Record<SwitchPhase, number> = { saving: 220, cutover: 380, following: 520 };
 
 /** The phone drives the switch's timeline (one clock for the whole session; frozen in shots). */
 export function useSwitchClock(s: S, store: Store<S>, shot: boolean) {

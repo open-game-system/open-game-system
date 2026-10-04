@@ -1,30 +1,22 @@
 // A game on the TV. The game owns every pixel; the console only steps in when the phone's console
 // button is pressed (the game pauses back into a card) and, right after a switch, with a short
 // "now playing" that settles into a corner chip.
-import type { CSSProperties } from "react";
 import { gameById } from "../../../world";
 import { GameTvView } from "../games/registry";
 import type { S } from "../state";
 import { NightChip } from "./GameNight";
 import { NowBand, NowChip } from "./NowPlaying";
 import { seatViews } from "./Roster";
-import { frameFor } from "./frame";
-import { TvArt } from "./TvArt";
+import { Stamp } from "./Stamp";
 import { TvPaused } from "./TvPaused";
 
 export function TvPlaying({ s, gameId, arrived = false }: { s: S; gameId: string; arrived?: boolean }) {
-  const f = frameFor(gameId);
-  const zoom: CSSProperties = f ? { transform: `scale(${f.scale})`, transformOrigin: `${f.ox}% ${f.oy}%` } : {};
-  // Right after a cut the stream starts at the cut-over's HUD-safe zoom and eases out to the game's
-  // own full frame as the console's band settles: while OGS chrome is up, no HUD is in view.
-  const landing: Record<string, string> = f ? { "--ct-z": String(f.scale), transformOrigin: `${f.ox}% ${f.oy}%` } : {};
+  // Variant "Instant + receipt": the game keeps its full frame through the menu and after a cut
+  // (no zooms, no bands); the menu only dims it, and the receipt stamp sits in the corner.
   return (
-    <div className={`ct-play ${s.menu ? "is-paused" : ""} ${s.left ? "is-landed" : ""}`}>
-      <div className="ct-play__blur" aria-hidden>
-        <TvArt gameId={gameId} />
-      </div>
+    <div className={`ct-play ${s.menu ? "is-paused ct-play--hold" : ""} ${s.left ? "ct-play--after" : ""}`}>
       <div className="ct-play__game">
-        <div className={`ct-play__zoom ${s.left && !s.menu ? "is-landing" : ""}`} style={s.menu ? zoom : s.left ? landing : undefined}>
+        <div className="ct-play__zoom">
           <GameTvView gameId={gameId} />
         </div>
       </div>
@@ -40,11 +32,11 @@ function NowOverlay({ s, gameId, arrived }: { s: S; gameId: string; arrived: boo
   if (game.shape === "live") return <NightChip s={s} />;
   const seats = seatViews(game, s.asleep, () => true);
   const left = s.left;
-  const band = left || arrived;
   return (
     <>
-      {band && <NowBand s={s} gameId={gameId} kicker={left?.undone ? "Back to" : "Now playing"} seats={seats} settle />}
-      <NowChip s={s} gameId={gameId} seats={seats} delayed={!!band} />
+      {arrived && !left && <NowBand s={s} gameId={gameId} kicker="Now playing" seats={seats} settle />}
+      {left && <Stamp s={s} gameId={left.gameId} />}
+      <NowChip s={s} gameId={gameId} seats={seats} delayed={arrived && !left} />
     </>
   );
 }

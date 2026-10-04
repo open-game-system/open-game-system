@@ -17,8 +17,8 @@ export const flows: Flow[] = [
     label: "Rocket Crew mission 6 → Bake Shop day 4, every device",
     start: "swap.01-mid-rocket-crew",
     steps: [
-      { device: "phone", bot: "console-home", mark: "Dad presses the console button: Rocket Crew pauses on the TV, the next games come up", wait: 1800 },
-      { device: "phone", bot: "next-bake-shop", mark: "Picks Bake Shop: mission 6 saves, the TV cuts over, Juneau's iPad follows on its own", wait: 4800 },
+      { device: "phone", bot: "console-home", mark: "Console button: Rocket Crew just pauses; four games to switch to", wait: 1400 },
+      { device: "phone", bot: "next-bake-shop", mark: "Bake Shop: a cut, not a journey. Every device is in in about a second; the receipt stays", wait: 3200 },
     ],
   },
   {
@@ -26,7 +26,7 @@ export const flows: Flow[] = [
     flow: "swap",
     label: "Changed our minds: back to Rocket Crew",
     start: "swap.06-everyone-in",
-    steps: [{ device: "phone", bot: "undo-switch", mark: "Back to it: Bake Shop saves day 4, mission 6 resumes everywhere", wait: 5600 }],
+    steps: [{ device: "phone", bot: "undo-switch", mark: "Back on the receipt: Bake Shop saves day 4, mission 6 is back everywhere in a second", wait: 3000 }],
   },
   {
     id: "word-duel",

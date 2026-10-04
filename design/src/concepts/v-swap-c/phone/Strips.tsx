@@ -6,6 +6,38 @@ import { Portrait } from "../ui/Brand";
 import { Battery, Bell, Check, Undo } from "../ui/Icons";
 
 export function Strips({ s, store }: { s: S; store: Store<S> }) {
+  // Variant "Instant + receipt": the receipt chip always sits on top after a switch, even when a
+  // device needs attention underneath, so Back is never more than one tap away.
+  return (
+    <>
+      {s.onTv && s.left && <Receipt s={s} store={store} />}
+      <Status s={s} store={store} />
+    </>
+  );
+}
+
+function Receipt({ s, store }: { s: S; store: Store<S> }) {
+  const left = s.left;
+  if (!left) return null;
+  const was = gameById(left.gameId);
+  return (
+    <div className={`cx-receipt ${left.undone ? "is-undone" : ""}`} role="status">
+      <span className="cx-receipt__tick">
+        <Check size={14} />
+      </span>
+      <span className="cx-receipt__text">
+        {was.name} saved at {pointIn(s, was.id).toLowerCase()}
+      </span>
+      {!left.undone && (
+        <button className="cx-receipt__back" data-bot="undo-switch" onClick={() => store.update(undoSwitch)}>
+          <Undo size={15} /> <span>Back</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Status({ s, store }: { s: S; store: Store<S> }) {
   const onTv = s.onTv;
   if (!onTv) return null;
   const game = gameById(onTv);
@@ -63,38 +95,6 @@ export function Strips({ s, store }: { s: S; store: Store<S> }) {
         <span className="cx-strip__text">
           <b>New {game.name} started</b>
           <span>{fresh === "keep" ? `${save?.point ?? "The old save"} is kept as a second save. Continue lists both.` : `${save?.point ?? "The old save"} was replaced.`}</span>
-        </span>
-        <Check size={22} />
-      </div>
-    );
-  }
-  if (s.left && !s.left.undone) {
-    const left = gameById(s.left.gameId);
-    return (
-      <div className="cx-strip" role="status">
-        <span className="cx-strip__text">
-          <b>
-            {left.name} saved at {pointIn(s, left.id).toLowerCase()}
-          </b>
-          <span>Everyone moved to {game.name}.</span>
-        </span>
-        <button className="cx-btn cx-btn--sm cx-btn--dark" data-bot="undo-switch" onClick={() => store.update(undoSwitch)}>
-          <Undo size={16} /> <span>Back to it</span>
-        </button>
-      </div>
-    );
-  }
-  if (s.left && s.left.undone) {
-    const left = gameById(s.left.gameId);
-    return (
-      <div className="cx-strip" role="status">
-        <span className="cx-strip__text">
-          <b>
-            Back on {game.name} · {pointIn(s, game.id).toLowerCase()}
-          </b>
-          <span>
-            {left.name} kept {pointIn(s, left.id).toLowerCase()} for later, in Jump back in.
-          </span>
         </span>
         <Check size={22} />
       </div>

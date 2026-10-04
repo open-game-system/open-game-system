@@ -1,73 +1,49 @@
-// The switch, as the phone sees it: the old game saves, the TV cuts over, each paired device
-// follows by name. Nobody scans, nobody picks a role.
+// Variant "Instant + receipt": on the phone the switch is a cut. The next game's art wipes across
+// in a fraction of a second; the people pop in under it as their devices land. ~1 s, then the new
+// controller, with the receipt chip on top (Strips.tsx). No seat list, no progress screen.
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
 import { pointIn, seatPlan, type S, type Switching as Sw } from "../state";
-import { Portrait } from "../ui/Brand";
 import { GameArt } from "../ui/GameArt";
-import { Battery, Check, Moon, PhoneIcon, Spinner, TabletIcon } from "../ui/Icons";
+import { Check, Moon } from "../ui/Icons";
+import { Sticker } from "../ui/Sticker";
 
-const STEP = { saving: 0, cutover: 1, following: 2 };
-
-export function Switching({ s, sw, asleep, store }: { s: S; sw: Sw; asleep: string[]; store: Store<S> }) {
+export function Switching({ s, sw, asleep }: { s: S; sw: Sw; asleep: string[]; store: Store<S> }) {
   const from = gameById(sw.from);
   const to = gameById(sw.to);
-  const step = STEP[sw.phase];
   const seats = seatPlan(to);
+  const cut = sw.phase !== "saving";
   return (
-    <div className={`cx-switch cx-switch--${sw.phase}`}>
-      <div className="cx-switch__cards">
-        <div className="cx-switch__from">
-          <GameArt gameId={from.id} alt />
-          <span className="cx-switch__saved">
-            {step === 0 ? <Spinner size={16} /> : <Check size={16} />}
-            {step === 0 ? "Saving" : `Saved · ${pointIn(s, from.id)}`}
-          </span>
-        </div>
-        <div className="cx-switch__arrow" aria-hidden>
-          <svg width="28" height="28" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-        <div className="cx-switch__to">
-          <GameArt gameId={to.id} alt />
-        </div>
+    <div className={`cx-cut cx-cut--${sw.phase}`}>
+      <div className="cx-cut__from" aria-hidden>
+        <GameArt gameId={from.id} alt />
       </div>
-      <h2 className="cx-switch__title">
-        {step === 0 ? `Saving ${from.name}, ${pointIn(s, from.id).toLowerCase()}` : step === 1 ? `${to.name} is coming up on the TV` : "Everyone's moving over"}
-      </h2>
-      <p className="cx-switch__sub">
-        {to.name} · {pointIn(s, to.id)} · Living room TV
-      </p>
-      <ul className="cx-seats">
-        {seats.map((x, i) => {
-          const isPhone = x.device?.kind === "phone";
-          const sleeping = !!x.device && asleep.includes(x.device.id);
-          const ready = !sleeping && (step === 2 ? true : step === 1 ? isPhone : false);
-          const battery = x.device?.battery ?? 1;
-          return (
-            <li key={x.person.id} className={ready ? "is-ready" : ""} style={{ animationDelay: `${i * 120}ms` }}>
-              <Portrait person={x.person} size={40} />
-              <span className="cx-seats__text">
-                <b>
-                  {x.person.name} · {x.role.label}
-                </b>
-                <span>
-                  {isPhone ? <PhoneIcon size={14} /> : <TabletIcon size={14} />}
-                  {isPhone ? "This phone" : x.device?.name}
-                  {battery < 0.15 && (
-                    <span className="cx-seats__low">
-                      <Battery size={16} level={battery} /> {Math.round(battery * 100)}%
-                    </span>
-                  )}
-                </span>
-              </span>
-              <span className="cx-seats__state">{ready ? <Check size={20} /> : sleeping && step === 2 ? <Moon size={20} /> : <Spinner size={20} />}</span>
-            </li>
-          );
-        })}
-      </ul>
-      <button className="cx-btn cx-btn--ghost cx-switch__cancel" data-bot="switch-cancel" onClick={() => store.update((x) => ({ ...x, switching: null, onTv: sw.from }))}>
-        <span>Stay on {from.name}</span>
-      </button>
+      <div className="cx-cut__to" aria-hidden>
+        <GameArt gameId={to.id} alt />
+      </div>
+      <div className="cx-cut__body">
+        <span className={`cx-cut__saved ${cut ? "is-saved" : ""}`}>
+          <Check size={16} /> {from.name} saved · {pointIn(s, from.id)}
+        </span>
+        <h2 className="ogs-display">{to.name}</h2>
+        <p>{pointIn(s, to.id)}</p>
+        <ul className="cx-cut__who" aria-label="Who's in">
+          {seats.map((x, i) => {
+            const sleeping = !!x.device && asleep.includes(x.device.id);
+            const inNow = sw.phase === "following" || (cut && x.device?.kind === "phone");
+            return (
+              <li key={x.person.id} className={sleeping ? "is-asleep" : inNow ? "is-in" : ""} style={{ animationDelay: `${i * 70}ms` }}>
+                <Sticker person={x.person} size={52} dim={sleeping || !inNow} />
+                {sleeping && (
+                  <i>
+                    <Moon size={14} />
+                  </i>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

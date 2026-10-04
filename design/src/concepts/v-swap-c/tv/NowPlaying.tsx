@@ -27,16 +27,18 @@ export function NowBand({ s, gameId, kicker, seats, settle, stagger = 0 }: { s: 
   );
 }
 
-export function NowChip({ s, gameId, seats, delayed }: { s: S; gameId: string; seats: SeatView[]; delayed: boolean }) {
+export function NowChip({ s, gameId, seats, delayed, pop = false }: { s: S; gameId: string; seats: SeatView[]; delayed: boolean; pop?: boolean }) {
   const g = gameById(gameId);
   return (
-    <div className={`ct-chip ${delayed ? "ct-chip--after" : ""}`}>
+    <div className={`ct-chip ${delayed ? "ct-chip--after" : ""} ${pop ? "ct-chip--pop" : ""}`}>
       <Mark size={34} />
       <b>{g.name}</b>
       <span>{pointIn(s, gameId)}</span>
       <span className="ct-chip__who">
-        {seats.map((x) => (
-          <Portrait key={x.person.id} person={x.person} size={40} dim={x.state === "asleep"} />
+        {seats.map((x, i) => (
+          <span key={x.person.id} className={`ct-chip__p is-${x.state}`} style={{ animationDelay: `${i * 80}ms` }}>
+            <Portrait person={x.person} size={40} dim={x.state !== "ready"} />
+          </span>
         ))}
       </span>
     </div>
