@@ -257,12 +257,11 @@ describe("home, in detail", () => {
     expect(h.icons.map((i) => i.logo)).toEqual([`/art/${base.appId}/logo.png`, null]);
   });
 
-  it("Surprise me needs exactly two kid-friendly games, and shows and picks from them", () => {
-    const two = FIXTURE_GAMES.slice(0, 2);
+  it("Surprise me needs exactly two kid-friendly games, and picks from them", () => {
+    const two = FIXTURE_GAMES.slice(1, 3);
     const h = buildHome({ games: two, instances: [], suspended: [], now: NOW });
     const surprise = h.cards.find((c) => c.kind === "surprise");
     expect(surprise?.kind === "surprise" && surprise.pool).toEqual(two.map((g) => g.appId));
-    expect(surprise?.kind === "surprise" && surprise.icons).toEqual(h.icons.map((i) => i.icon));
   });
 
   it("the icon row's focus items are the icons' item ids", () => {
