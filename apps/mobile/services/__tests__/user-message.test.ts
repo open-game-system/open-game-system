@@ -103,3 +103,31 @@ describe("userMessage: what people read when something fails", () => {
     expect(userMessage(new Error("boom"), "cast").text).toBe("Something went wrong. Try again.");
   });
 });
+
+describe("userMessage: telling offline apart from a bug", () => {
+  const OFFLINE_TEXT = "Can't reach OGS. Check your Wi-Fi and try again.";
+  const UNKNOWN = { text: "Something went wrong. Try again.", action: "retry" };
+
+  it("a failed fetch (TypeError naming the network or fetch) is offline", () => {
+    expect(userMessage(new TypeError("Network request failed"), "load").text).toBe(OFFLINE_TEXT);
+    expect(userMessage(new TypeError("Failed to FETCH"), "load").text).toBe(OFFLINE_TEXT);
+  });
+
+  it("any other TypeError, or a network-ish plain Error, is a bug, not offline", () => {
+    expect(userMessage(new TypeError("x is undefined"), "load")).toEqual(UNKNOWN);
+    expect(userMessage(new Error("network down"), "load")).toEqual(UNKNOWN);
+  });
+
+  it("logs a non-OGS failure with its context", () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    userMessage(new TypeError("Network request failed"), "join");
+    expect(warn).toHaveBeenCalledWith("[ogs] join failed: TypeError: Network request failed");
+  });
+
+  it("OGS trouble starts at 500", () => {
+    expect(userMessage(api("internal", 500), "load").text).toBe(
+      "OGS is having trouble. Try again in a minute.",
+    );
+    expect(userMessage(api("teapot", 499), "load")).toEqual(UNKNOWN);
+  });
+});

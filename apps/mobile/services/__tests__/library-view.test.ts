@@ -139,4 +139,54 @@ describe("Playing's empty state suggests what to start", () => {
     const many = ["a", "b", "c", "d", "e"].map((id) => game(id, "optional"));
     expect(playingSuggestions(many, [], false)).toHaveLength(3);
   });
+
+  it("puts the most recently played game first, even when it doesn't fit the moment", () => {
+    const instances = [
+      inst("hearthisle", { updatedAt: NOW - 3 * DAY }),
+      inst("rocket-crew", { updatedAt: NOW - DAY }),
+      inst("word-duel", { updatedAt: NOW - 2 * DAY }),
+    ];
+    expect(playingSuggestions(library, instances, false).map((g) => g.appId)).toEqual([
+      "rocket-crew",
+      "hearthisle",
+      "word-duel",
+    ]);
+  });
+
+  it("cast: phone-only games go last", () => {
+    const phoneFirst = [
+      game("word-duel", "none"),
+      game("rocket-crew"),
+      game("hearthisle", "optional"),
+    ];
+    expect(playingSuggestions(phoneFirst, [], true).map((g) => g.appId)).toEqual([
+      "rocket-crew",
+      "hearthisle",
+      "word-duel",
+    ]);
+  });
+});
+
+describe("status line edges", () => {
+  it("a sitting exactly at its TTL is still open", () => {
+    const instances = [inst("rocket-crew", { title: "Mission 2", updatedAt: NOW - 7 * DAY })];
+    expect(gameStatusLine(game("rocket-crew"), instances, null, NOW)).toBe("Mission 2");
+  });
+
+  it("another game's pause or sitting says nothing about this one", () => {
+    const s = session({
+      suspended: [{ appId: "bake-shop", instanceId: "x", label: "Day 4", at: NOW }],
+    });
+    const instances = [inst("bake-shop", { title: "Day 4" })];
+    expect(gameStatusLine(game("rocket-crew"), instances, s, NOW)).toBe("New");
+  });
+
+  it("Your turn only while the sitting is waiting on you", () => {
+    const yours = [inst("word-duel", { status: "waiting", yourTurn: true })];
+    expect(gameStatusLine(game("word-duel", "none"), yours, null, NOW)).toBe("Your turn");
+    const theirs = [inst("word-duel", { status: "waiting", yourTurn: false, title: "vs Nana" })];
+    expect(gameStatusLine(game("word-duel", "none"), theirs, null, NOW)).toBe("vs Nana");
+    const paused = [inst("word-duel", { status: "suspended", yourTurn: true, title: "vs Nana" })];
+    expect(gameStatusLine(game("word-duel", "none"), paused, null, NOW)).toBe("vs Nana");
+  });
 });

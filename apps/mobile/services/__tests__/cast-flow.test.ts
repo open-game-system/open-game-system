@@ -160,4 +160,76 @@ describe("Switch TV from the remote's TV picker", () => {
     await expect(switchTv({ ...t, backend: tvs.backend, deviceId: "den" })).resolves.toBe("no-tv");
     expect(tvs.calls).toEqual(["end:true", "start:den"]);
   });
+
+  it("only 'already on it' when connected to that very TV", async () => {
+    const t = setup();
+    const tvs = twoTvs();
+    t.castStore.dispatch({
+      type: "SESSION_CONNECTED",
+      deviceId: "living",
+      deviceName: "Living room",
+      sessionId: "s",
+      streamSessionId: "",
+    });
+    await expect(switchTv({ ...t, backend: tvs.backend, deviceId: "den" })).resolves.toBe(
+      "started",
+    );
+    t.castStore.dispatch({ type: "START_CASTING", deviceId: "den" });
+    await expect(switchTv({ ...t, backend: tvs.backend, deviceId: "den" })).resolves.toBe(
+      "started",
+    );
+  });
+});
+
+describe("cast flow edges", () => {
+  it("a TV that throws on start is no-TV", async () => {
+    const t = setup();
+    const sessionManager = {
+      ...t.backend.sessionManager,
+      startSession: async () => {
+        throw new Error("unreachable");
+      },
+    };
+    await expect(castToTv({ ...t, backend: { sessionManager }, deviceId: "den" })).resolves.toBe(
+      "no-tv",
+    );
+  });
+
+  it("Stop casting also stops the receiver app on the TV", async () => {
+    const t = setup();
+    const end = jest.fn(async (_stop?: boolean) => {});
+    await endForTonight({
+      send: t.send,
+      sessionManager: { ...t.backend.sessionManager, endCurrentSession: end },
+    });
+    expect(end).toHaveBeenCalledWith(true);
+  });
+
+  it("the game's store resets and reports events through the app's cast store", () => {
+    const t = setup();
+    const gameStore = createGameCastStore(
+      t.castStore,
+      () => ({ ogsCast: false, appId: null }),
+      t.send,
+    );
+    const errors = jest.fn();
+    gameStore.on("SET_ERROR", errors);
+    t.castStore.dispatch({ type: "SET_ERROR", error: "x" });
+    expect(errors).toHaveBeenCalledTimes(1);
+    gameStore.reset();
+    expect(t.castStore.getSnapshot().error).toBeNull();
+  });
+
+  it("cast through OGS, the game's own cast buttons change nothing", () => {
+    const t = setup();
+    const gameStore = createGameCastStore(
+      t.castStore,
+      () => ({ ogsCast: true, appId: "rocket-crew" }),
+      t.send,
+    );
+    const before = t.castStore.getSnapshot();
+    gameStore.dispatch({ type: "START_CASTING", deviceId: "den" });
+    expect(t.castStore.getSnapshot()).toBe(before);
+    expect(t.sent).toEqual([]);
+  });
 });

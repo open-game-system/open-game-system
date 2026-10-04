@@ -268,5 +268,76 @@ describe("deep-links", () => {
       capturedHandler!({ url: "myapp://settings" });
       expect(callback).not.toHaveBeenCalled();
     });
+
+    it("logs each incoming URL", () => {
+      const log = jest.spyOn(console, "log").mockImplementation(() => {});
+      addDeepLinkListener(jest.fn());
+      const handler = mockAddEventListener.mock.calls[0]?.[1];
+      mockParse.mockReturnValue({ path: null, queryParams: {}, hostname: null, scheme: "myapp" });
+      handler?.({ url: "myapp://" });
+      expect(log).toHaveBeenCalledWith("[DeepLinks] Incoming URL:", "myapp://");
+      log.mockRestore();
+    });
+  });
+
+  describe("extractGameUrl edges", () => {
+    let error: jest.SpyInstance;
+    beforeEach(() => {
+      error = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
+    afterEach(() => error.mockRestore());
+
+    it("keeps a game domain link whole, query and all", () => {
+      mockParse.mockReturnValue({
+        path: "games/abc",
+        queryParams: { join: "1" },
+        hostname: "triviajam.tv",
+        scheme: "https",
+      });
+      expect(extractGameUrl("https://triviajam.tv/games/abc?join=1")).toBe(
+        "https://triviajam.tv/games/abc?join=1",
+      );
+    });
+
+    it("accepts a game path that already starts with a slash", () => {
+      mockParse.mockReturnValue({
+        path: "/games/abc",
+        queryParams: {},
+        hostname: "triviajam.tv",
+        scheme: "https",
+      });
+      expect(extractGameUrl("https://triviajam.tv/games/abc?x")).toBe(
+        "https://triviajam.tv/games/abc?x",
+      );
+      mockParse.mockReturnValue({
+        path: "/spectate/abc",
+        queryParams: {},
+        hostname: null,
+        scheme: "myapp",
+      });
+      expect(extractGameUrl("myapp:///spectate/abc")).toBe("https://triviajam.tv/spectate/abc");
+    });
+
+    it("a link with no path is not a game, and is not an error", () => {
+      mockParse.mockReturnValue({ path: null, queryParams: {}, hostname: null, scheme: "myapp" });
+      expect(extractGameUrl("myapp://")).toBeNull();
+      mockParse.mockReturnValue({
+        path: null,
+        queryParams: {},
+        hostname: "triviajam.tv",
+        scheme: "https",
+      });
+      expect(extractGameUrl("https://triviajam.tv")).toBeNull();
+      expect(error).not.toHaveBeenCalled();
+    });
+
+    it("logs a URL it can't parse", () => {
+      const err = new Error("Invalid URL");
+      mockParse.mockImplementation(() => {
+        throw err;
+      });
+      expect(extractGameUrl("::")).toBeNull();
+      expect(error).toHaveBeenCalledWith("[DeepLinks] Failed to parse URL:", err);
+    });
   });
 });
