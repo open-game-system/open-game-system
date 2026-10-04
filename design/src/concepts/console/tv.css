@@ -116,6 +116,11 @@
 .tv-shelf__art { position: relative; }
 
 /* ---- console home ---- */
+/* The hero at native resolution, slid off its HUD (heroFor); the uncovered edges fade into the night. */
+.ct-hero { position: absolute; inset: 0; overflow: hidden; display: block; background: var(--ct-night); }
+.ct-hero img { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; transform-origin: 0 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 30%), linear-gradient(0deg, transparent 0, #000 22%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent 0, #000 30%), linear-gradient(0deg, transparent 0, #000 22%); mask-composite: intersect; }
 .ct-home { position: absolute; inset: 0; overflow: hidden; color: var(--ct-ink); }
 .ct-home__bg { position: absolute; inset: 0; animation: ct-drift 30s ease-in-out infinite alternate both, ct-fade 1s both; }
 @keyframes ct-drift { from { transform: scale(1.035) translate(0.6%, 0.4%); } to { transform: none; } }
@@ -125,30 +130,32 @@
   linear-gradient(90deg, rgba(8, 9, 11, 0.94) 0%, rgba(8, 9, 11, 0.7) 34%, rgba(8, 9, 11, 0.08) 62%, transparent 75%),
   linear-gradient(0deg, rgba(8, 9, 11, 0.97) 0%, rgba(8, 9, 11, 0.5) 30%, transparent 46%); }
 .ct-brand em { font-style: normal; color: var(--ct-ink2); font-weight: 600; }
-.ct-home__focus { position: absolute; left: 80px; top: 196px; width: 960px; animation: ct-rise 0.8s var(--ct-ease) both; }
-.ct-home__focus h1 { font-size: 132px; font-weight: 900; letter-spacing: -0.045em; line-height: 0.96; margin-top: 14px; text-shadow: 0 6px 50px rgba(0, 0, 0, .45); }
+.ct-home__focus { position: absolute; left: 80px; top: 186px; width: 1060px; animation: ct-rise 0.8s var(--ct-ease) both; }
+.ct-home__focus h1 { max-width: 1060px; margin-left: -6px; white-space: nowrap; font-size: 128px; font-weight: 900; letter-spacing: -0.045em; line-height: 0.96; margin-top: 14px; text-shadow: 0 6px 50px rgba(0, 0, 0, .45); }
 .ct-home__title { font-size: 46px; font-weight: 800; margin-top: 20px; letter-spacing: -0.01em; }
 .ct-home__detail { font-size: 32px; color: var(--ct-ink2); margin-top: 6px; }
 .ct-home__here { display: flex; gap: 34px; margin-top: 34px; }
 .ct-here { display: inline-flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 700; }
 .ct-here svg { color: var(--ct-ink2); }
 
-.ct-night { position: absolute; right: 80px; top: 232px; display: flex; align-items: center; gap: 20px; padding: 14px 28px 14px 14px; border-radius: 26px; background: rgba(11, 12, 14, 0.72); backdrop-filter: blur(16px); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .07); animation: ct-rise 0.7s 0.3s var(--ct-ease) both; }
-.ct-night__art { position: relative; display: block; width: 168px; height: 96px; border-radius: 14px; overflow: hidden; }
-.ct-night__text { display: grid; gap: 2px; }
+/* Tonight's game night: its own row, bottom-left, beside the phone hint (never in the title's row). */
+.ct-home__foot { position: absolute; left: 80px; right: 80px; bottom: 40px; display: flex; justify-content: space-between; align-items: center; gap: 40px; }
+.ct-night { display: flex; align-items: center; gap: 18px; min-width: 0; animation: ct-rise 0.7s 0.3s var(--ct-ease) both; }
+.ct-night__art { position: relative; flex: none; display: block; width: 120px; height: 68px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 2px rgba(244, 242, 238, .18); }
+.ct-night__text { display: grid; gap: 0; min-width: 0; }
 .ct-night__when { font-size: 24px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ct-warm); }
-.ct-night__text b { font-size: 32px; font-weight: 800; }
-.ct-night__text > span:last-child { font-size: 26px; color: var(--ct-ink2); }
+.ct-night__line { font-size: 28px; color: var(--ct-ink2); white-space: nowrap; }
+.ct-night__line b { color: var(--ct-ink); font-weight: 800; }
 
-.ct-shelf { position: absolute; left: 80px; bottom: 130px; display: flex; gap: 24px; align-items: flex-end; }
+.ct-shelf { position: absolute; left: 80px; bottom: 148px; display: flex; gap: 24px; align-items: flex-end; }
 .ct-shelf__tile { display: grid; gap: 14px; animation: ct-rise 0.7s var(--ct-ease) both; }
 .ct-shelf__art { position: relative; width: 272px; height: 153px; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 34px rgba(0, 0, 0, .5); }
 .ct-shelf__tile.is-focus .ct-shelf__art { width: 400px; height: 225px; border-radius: 20px; box-shadow: 0 0 0 5px var(--ct-ink), 0 0 0 12px rgba(244, 242, 238, 0.18), 0 24px 60px rgba(0, 0, 0, .6); }
 .ct-shelf__label { font-size: 28px; font-weight: 700; white-space: nowrap; }
 .ct-shelf__tile.is-focus .ct-shelf__label { font-weight: 800; }
-.ct-home__hint { position: absolute; right: 80px; bottom: 52px; display: inline-flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 700; color: var(--ct-ink); }
+.ct-home__hint { flex: none; display: inline-flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 700; color: var(--ct-ink); }
 .ct-home__hint svg { color: var(--ct-warm); }
-.ct-home__path { position: absolute; right: 100px; bottom: 100px; }
+.ct-home__path { position: absolute; right: 100px; bottom: 108px; }
 
 /* The old game's blurred room stays behind the saving card (as in the paused state), then clears. */
 .ct-cut__blur { position: absolute; inset: -60px; filter: blur(48px) brightness(0.32) saturate(1.2); transition: opacity 0.5s; }

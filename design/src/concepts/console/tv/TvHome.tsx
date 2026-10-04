@@ -8,7 +8,7 @@ import { Mark, Portrait } from "../ui/Brand";
 import { PhoneIcon, TabletIcon } from "../ui/Icons";
 import { GameNightLine } from "./GameNight";
 import { Clock, FollowPath } from "./Motif";
-import { TvArt } from "./TvArt";
+import { HeroArt, TvArt } from "./TvArt";
 
 export function TvHome({ s }: { s: S }) {
   const all = couchShelf(s);
@@ -20,7 +20,7 @@ export function TvHome({ s }: { s: S }) {
   return (
     <div className="ct-home">
       <div className="ct-home__bg" key={focus.gameId}>
-        <TvArt gameId={focus.gameId} />
+        <HeroArt gameId={focus.gameId} />
       </div>
       <div className="ct-home__shade" />
       <header className="ct-top">
@@ -32,12 +32,14 @@ export function TvHome({ s }: { s: S }) {
         </span>
         <Clock />
       </header>
-      {focusIsCouch && <GameNightLine s={s} />}
       <Focus focus={focus} here={hereTonight(s)} />
       <Shelf shelf={shelf} focus={focus} />
-      <footer className="ct-home__hint">
-        <PhoneIcon size={32} />
-        Choose on Jonathan's phone
+      <footer className="ct-home__foot">
+        {focusIsCouch ? <GameNightLine s={s} /> : <span />}
+        <span className="ct-home__hint">
+          <PhoneIcon size={32} />
+          Choose on Jonathan's phone
+        </span>
       </footer>
       <FollowPath className="ct-home__path" w={170} h={120} d="M160 110 C 120 40, 60 30, 10 20" />
     </div>

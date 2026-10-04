@@ -22,9 +22,8 @@ export function GameNightLine({ s }: { s: S }) {
       </span>
       <span className="ct-night__text">
         <span className="ct-night__when">{n.when ? `Game night ${n.when.replace(/^Tonight /, "")}` : nightStatus(n, s.onTv).label}</span>
-        <b>{gameById(n.gameId).name}</b>
-        <span>
-          with {others.join(" and ")} · {nightLine(n)}
+        <span className="ct-night__line">
+          <b>{gameById(n.gameId).name}</b> with {others.join(" and ")} · {nightLine(n).split(" · ")[0]}
         </span>
       </span>
     </aside>
