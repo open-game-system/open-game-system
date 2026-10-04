@@ -71,6 +71,8 @@ export interface S {
   arrival: { id: string; phase: "armed" | "landed" } | null;
   /** The phone's text size (iOS Dynamic Type): 1 is the default; 1.3 is "larger text". */
   textScale: 1 | 1.3;
+  /** Which card the home deck opens on (0 = the TV card). Shots use it to show cards further in. */
+  deckAt: number;
 }
 
 // ---- First run ----
@@ -180,6 +182,7 @@ export function base(): S {
     fresh: {},
     arrival: null,
     textScale: 1,
+    deckAt: 0,
   };
 }
 

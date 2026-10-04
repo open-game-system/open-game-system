@@ -1,16 +1,11 @@
-// Phone home: three lanes, one system. "On the TV tonight" (the couch session) · "Your turn" (every
-// game waiting on you, one inbox) · "Game nights" (games across homes). The library is a tab.
+// Phone home: the activity deck (Deck.tsx). One ordering of every open game, what needs you now
+// first; the same order as a compact list is the "inbox" view. The library is a tab.
 import type { Store } from "../../../harness/store";
 import { HOME } from "../../../world";
 import type { S } from "../state";
 import { Wordmark } from "../ui/Brand";
 import { Crest } from "../ui/Sticker";
-import { Lane } from "../ui/Lane";
-import { NightsLane } from "./NightsLane";
-import { CouchRail, NowPlaying } from "./NowPlaying";
-import { TurnRows } from "./TurnRows";
-import { everyGame } from "../inbox";
-import { Chevron } from "../ui/Icons";
+import { Deck } from "./Deck";
 
 export function HomeHeader() {
   return (
@@ -24,31 +19,6 @@ export function HomeHeader() {
   );
 }
 
-export function Home({ s, store }: { s: S; store: Store<S> }) {
-  const all = everyGame(s);
-  const turns = all.yours;
-  const others = all.theirs.length + all.paused.length;
-  return (
-    <div className="cx-scroll">
-      <HomeHeader />
-      <Lane id="tv" title="On the TV tonight">
-        <NowPlaying s={s} store={store} />
-        <CouchRail s={s} store={store} />
-      </Lane>
-      <Lane
-        id="turns"
-        title="Your turn"
-        count={turns.length}
-        action={
-          <button className="cx-lane__more" data-bot="inbox-all" onClick={() => store.update((x) => ({ ...x, phone: "inbox" }))}>
-            All turns <Chevron size={16} />
-          </button>
-        }
-      >
-        <TurnRows items={turns.slice(0, 2)} store={store} />
-        {others > 0 && <p className="cx-lane__foot">{others} more waiting on other people, in All turns.</p>}
-      </Lane>
-      <NightsLane s={s} store={store} />
-    </div>
-  );
+export function Home({ s, store, list = false }: { s: S; store: Store<S>; list?: boolean }) {
+  return <Deck s={s} store={store} list={list} />;
 }

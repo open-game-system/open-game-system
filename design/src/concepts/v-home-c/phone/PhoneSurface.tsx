@@ -8,7 +8,6 @@ import { DuelGameView } from "../wordduel/DuelGame";
 import { DuelList } from "../wordduel/DuelList";
 import { FirstRun } from "./firstrun/FirstRun";
 import { StartNewSheet } from "./StartNew";
-import { Inbox } from "./Inbox";
 import { WhoSheet } from "./WhoSheet";
 import { LockScreen } from "./LockScreen";
 import { NightPage } from "./night/NightPage";
@@ -25,7 +24,6 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
   useArrivalClock(s, store, shot);
   if (s.phone === "lock") return <LockScreen s={s} store={store} />;
   if (s.phone === "night") return <NightPage s={s} store={store} />;
-  if (s.phone === "inbox") return <Inbox s={s} store={store} />;
   if (s.phone === "controller" && (s.onTv || s.switching)) return <InGame s={s} store={store} />;
   if (s.phone === "duels") return <DuelList s={s} store={store} />;
   if (s.phone === "duel") return <DuelGameView s={s} store={store} />;
@@ -40,7 +38,7 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
   return (
     <div className={`cx-phone ${s.textScale > 1 ? "cx-phone--dt" : ""}`}>
       <StatusBar dark />
-      {s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
+      {s.tab === "library" && s.phone !== "inbox" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} list={s.phone === "inbox"} />}
       {!s.who && !s.start && <TabBar s={s} store={store} />}
       {s.who && <WhoSheet s={s} store={store} />}
       {s.start && <StartNewSheet s={s} store={store} />}

@@ -7,8 +7,19 @@ export const flows: Flow[] = [
     label: "Console home: the phone is the remote",
     start: "home.02-tv-console-home",
     steps: [
-      { device: "phone", bot: "act-bake-shop", mark: "Tap Bake Shop on the phone: the TV home turns to it", wait: 1800 },
-      { device: "phone", bot: "play-on-tv", mark: "Play on TV: day 4 opens, Juneau's iPad drops into his seat", wait: 300 },
+      { device: "phone", bot: "act-bake-shop", mark: "Tap the Bake Shop card: the TV home turns to it, and it becomes the deck's TV card", wait: 1800 },
+      { device: "phone", bot: "play-on-tv", mark: "Continue: day 4 opens, Juneau's iPad drops into his seat", wait: 300 },
+    ],
+  },
+  {
+    id: "deck",
+    flow: "home",
+    label: "One deck, one order: the same games as a list, then Nana's move",
+    start: "home.07-our-roll",
+    steps: [
+      { device: "phone", bot: "view-list", mark: "The same order as a compact list: on the TV, your turn, tonight, paused, waiting on others", wait: 1600 },
+      { device: "phone", bot: "view-cards", mark: "Back to the cards", wait: 1400 },
+      { device: "phone", bot: "turn-wd-1", mark: "Nana's card: her board opens", wait: 1200 },
     ],
   },
   {
@@ -138,7 +149,7 @@ export const flows: Flow[] = [
     label: "A move arrives while Home is open",
     start: "home.09-move-incoming",
     steps: [
-      { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His whale hops down the path onto his board; Your turn counts 3", wait: 1100 },
+      { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His card is dealt in right after the TV card; 3 waiting on you", wait: 1100 },
       { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 0 },
     ],
   },

@@ -46,6 +46,10 @@ export const scenarios: Scenario<S>[] = [
 
   // First run (flow 1): the TV, who plays here (each picks a sticker), the kids' iPads
   { id: "home.09-move-incoming", label: "Home, a beat before Tunde's move arrives", flow: "home", state: "default", devices: ["phone"], build: at({ onTv: null, arrival: { id: "wd-3", phase: "armed" } }) },
+  { id: "home.11-deck-your-turn", label: "Deck, one swipe in: Nana's move, the board as the card", flow: "home", state: "default", devices: ["phone"], build: at({ deckAt: 1 }) },
+  { id: "home.12-deck-game-night", label: "Deck, further in: tonight's Hearthisle night across three homes", flow: "home", state: "default", devices: ["phone"], build: at({ onTv: null, deckAt: 3 }) },
+  { id: "home.13-deck-paused-save", label: "Deck: Bake Shop paused at day 4, one action", flow: "home", state: "default", devices: ["phone"], build: at({ onTv: null, deckAt: 5 }) },
+  { id: "home.14-deck-their-turn", label: "Deck, the end: games waiting on other people", flow: "home", state: "default", devices: ["phone"], build: at({ onTv: null, deckAt: 8 }) },
   { id: "home.10-larger-text", label: "Home at iOS Larger Text (1.3×): lanes reflow, nothing overlaps", flow: "home", state: "default", devices: ["phone"], build: at({ textScale: 1.3 }) },
   { id: "world-clock.08-inbox-larger-text", label: "All turns at Larger Text (1.3×)", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "inbox", textScale: 1.3 }) },
   { id: "first-run.01-welcome", label: "First run: the library is full; set up the living room", flow: "first-run", state: "empty", devices: ["phone"], build: setupAt({}) },

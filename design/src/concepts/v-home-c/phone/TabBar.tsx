@@ -7,7 +7,7 @@ import { Crest } from "../ui/Sticker";
 
 export function TabBar({ s, store }: { s: S; store: Store<S> }) {
   const go = (tab: S["tab"]) => store.update((x) => ({ ...x, tab, phone: "home" }));
-  const on = (t: S["tab"]) => s.phone === "home" && s.tab === t;
+  const on = (t: S["tab"]) => (s.phone === "home" || s.phone === "inbox") && s.tab === t;
   return (
     <nav className="cx-tabs">
       <button className={on("home") ? "is-on" : ""} data-bot="tab-home" onClick={() => go("home")}>
