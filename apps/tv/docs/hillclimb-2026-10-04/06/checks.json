@@ -1,0 +1,86 @@
+[
+  {
+    "id": "01-connecting",
+    "textRuns": 6,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "02-home-fresh",
+    "textRuns": 14,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "03-home-evening",
+    "textRuns": 21,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "04-home-focus-right2",
+    "textRuns": 23,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "05-home-focus-down",
+    "textRuns": 20,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "06-home-focus-down-right",
+    "textRuns": 20,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "07-game-page-paused",
+    "textRuns": 30,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "08-game-page-start",
+    "textRuns": 29,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "09-game-page-new",
+    "textRuns": 28,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "10-starting",
+    "textRuns": 25,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "13-home-after-play",
+    "textRuns": 21,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "14-frame-failed",
+    "textRuns": 25,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "15-reconnecting",
+    "textRuns": 22,
+    "under24px": [],
+    "outsideTitleSafe": []
+  },
+  {
+    "id": "16-surprise",
+    "textRuns": 27,
+    "under24px": [],
+    "outsideTitleSafe": []
+  }
+]

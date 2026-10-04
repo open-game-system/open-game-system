@@ -37,7 +37,10 @@ export type CardModel =
       name: string;
       art: Art;
       tag: string;
+      /** Its resume point, else when it started: what tells it from another sitting. */
       resume: string;
+      /** When, short ("Just now", "Thursday"): the row already says these are sittings. */
+      chip: string;
       /** Tonight's game night: on the calendar, not a sitting to continue. */
       upcoming: boolean;
     }
@@ -134,6 +137,7 @@ export function buildHome(input: {
               art: roomArt(g),
               tag: b.tag,
               resume: b.resume,
+              chip: b.chip,
               upcoming: b.tag.startsWith("Tonight"),
             },
           ]

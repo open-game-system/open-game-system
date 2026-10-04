@@ -76,6 +76,14 @@ describe("home: a row of game icons, the room, activity cards", () => {
     ]);
   });
 
+  it("gives each sitting card its short chip (no status word) and never the tagline", () => {
+    const chips = home.cards.flatMap((c) => (c.kind === "sitting" ? [[c.chip, c.resume]] : []));
+    expect(chips).toEqual([
+      ["Just now", "Mission 6"],
+      ["Tuesday", "Day 4"],
+    ]);
+  });
+
   it("keeps tonight's game night as a card when there is room", () => {
     const h = buildHome({
       games: FIXTURE_GAMES,

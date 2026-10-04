@@ -1,5 +1,6 @@
 import type { Member } from "@open-game-system/ogs-protocol";
 import { useState } from "react";
+import { cardChip, spotLine } from "../launcher/facts";
 import type { Art, CardModel, HomeModel, IconModel } from "../launcher/home";
 import { clock } from "../launcher/layout";
 import { type CouchSession, stickerUrl } from "../session/data";
@@ -41,6 +42,7 @@ export function Home(props: {
   const { home, focus, session, now } = props;
   const spot = spotOf(home, focus);
   const inCards = home.cards.some((c) => c.itemId === focus);
+  const spotApp = spot?.kind === "game" ? spot.icon.appId : null;
   return (
     <div className="screen home" data-testid="home" data-zone={inCards ? "cards" : "icons"}>
       <Room spot={spot} />
@@ -68,13 +70,19 @@ export function Home(props: {
       {spot && (
         <Spotlight
           spot={spot}
+          zone={inCards ? "cards" : "icons"}
           players={spot.kind === "game" ? props.playersOf(spot.icon.appId) : []}
         />
       )}
       {home.cards.length > 0 && (
         <div className="cards" data-row="activity">
           {home.cards.map((c) => (
-            <Card key={c.itemId} card={c} focused={c.itemId === focus} />
+            <Card
+              key={c.itemId}
+              card={c}
+              focused={c.itemId === focus}
+              chip={c.kind === "sitting" ? cardChip(c, spotApp) : ""}
+            />
           ))}
         </div>
       )}
@@ -137,8 +145,12 @@ function GameIcon(props: { icon: IconModel; focused: boolean; current: boolean }
   );
 }
 
-/** The left third: the game's logo, large, and where you left off. */
-function Spotlight({ spot, players }: { spot: NonNullable<Spot>; players: Member[] }) {
+/**
+ * The left third: the game's logo, large, and where you left off. The only place the focused
+ * game's status and tagline are said (its card doesn't repeat them).
+ */
+function Spotlight(props: { spot: NonNullable<Spot>; zone: "icons" | "cards"; players: Member[] }) {
+  const { spot, players } = props;
   if (spot.kind === "surprise")
     return (
       <div className="spotlight" key="surprise">
@@ -147,6 +159,7 @@ function Spotlight({ spot, players }: { spot: NonNullable<Spot>; players: Member
       </div>
     );
   const { icon } = spot;
+  const line = spotLine(icon, props.zone);
   return (
     <div className="spotlight" key={icon.appId}>
       {icon.logo ? (
@@ -155,9 +168,11 @@ function Spotlight({ spot, players }: { spot: NonNullable<Spot>; players: Member
         <p className="spot-wordmark">{icon.name}</p>
       )}
       <p className="spot-line">
-        {icon.tag && <span className="spot-tag">{icon.tag}</span>}
-        <span className="spot-resume">{icon.resume}</span>
+        {line.tag && <span className="spot-tag">{line.tag}</span>}
+        {line.resume && <span className="spot-resume">{line.resume}</span>}
+        {!line.tag && <span className="spot-resume">{line.tagline}</span>}
       </p>
+      {line.tag && line.tagline && <p className="spot-tagline">{line.tagline}</p>}
       {players.length > 0 && (
         <p className="spot-players" data-testid="spot-players">
           {players.map((m) => (
@@ -170,7 +185,8 @@ function Spotlight({ spot, players }: { spot: NonNullable<Spot>; players: Member
   );
 }
 
-function Card({ card, focused }: { card: CardModel; focused: boolean }) {
+/** `chip`: when, short; "" on the spotlit game's card (the spotlight already says it). */
+function Card({ card, focused, chip }: { card: CardModel; focused: boolean; chip: string }) {
   const common = {
     "data-item": card.itemId,
     "data-focused": focused || undefined,
@@ -195,7 +211,7 @@ function Card({ card, focused }: { card: CardModel; focused: boolean }) {
     >
       <div className="card-art" data-cover-card={card.appId}>
         <img src={card.art.src} alt="" style={safeStyle(card.art.safe)} />
-        <span className="card-tag">{card.tag}</span>
+        {chip && <span className="card-tag">{chip}</span>}
         {card.upcoming ? <ClockMark /> : <PlayMark />}
       </div>
       <span className="card-name">{card.name}</span>

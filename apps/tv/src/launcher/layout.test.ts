@@ -69,16 +69,77 @@ describe("rows", () => {
     });
   });
 
-  it("a paused game with no resume point shows its tagline, not the pause time twice", () => {
+  // Owner, 2026-10-04: a sitting is told apart by its resume point, else when it started (the
+  // phone's name for it); never the game's tagline, which the spotlight already says.
+  it("a paused game with no resume point is named by when it started, as the phone names it", () => {
+    const started = at(3, 18, 42);
     const rows = buildRows({
       games: FIXTURE_GAMES,
       instances: [],
-      suspended: [{ appId: "rocket-crew", instanceId: "rc-1", label: "", at: NOW - 60_000 }],
+      suspended: [
+        {
+          appId: "rocket-crew",
+          instanceId: `rocket-crew-${started.toString(36)}`,
+          label: "",
+          at: NOW - 60_000,
+        },
+      ],
       now: NOW,
     });
     const rc = rows[0]?.boxes[0];
-    const tagline = FIXTURE_GAMES.find((g) => g.appId === "rocket-crew")?.tagline;
-    expect(rc).toMatchObject({ appId: "rocket-crew", tag: "Paused just now", resume: tagline });
+    expect(rc).toMatchObject({
+      appId: "rocket-crew",
+      tag: "Paused just now",
+      resume: "Started 6:42 PM",
+    });
+    expect(rc?.resume).not.toBe(FIXTURE_GAMES[0]?.tagline);
+  });
+
+  it("a game's own room code with no resume point falls back to when it was last played", () => {
+    const rows = buildRows({
+      games: FIXTURE_GAMES,
+      instances: [],
+      suspended: [{ appId: "rocket-crew", instanceId: "PQWS", label: "", at: at(3, 18, 5) }],
+      now: NOW,
+    });
+    expect(rows[0]?.boxes[0]?.resume).toBe("Started 6:05 PM");
+  });
+
+  it("a visit's title (only the game's name) is not a resume point", () => {
+    const visit: Instance = {
+      instanceId: "visit-1",
+      appId: "bake-shop",
+      profileId: "p",
+      status: "suspended",
+      title: "Bake Shop",
+      detail: "",
+      updatedAt: at(3, 17, 30),
+      source: "visit",
+    };
+    const rows = buildRows({ games: FIXTURE_GAMES, instances: [visit], suspended: [], now: NOW });
+    expect(rows[0]?.boxes[0]).toMatchObject({ tag: "Played at 5:30", resume: "Started 5:30 PM" });
+  });
+
+  it("gives each sitting a short card chip: when, without the status word the row already says", () => {
+    const rows = buildRows({
+      games: FIXTURE_GAMES,
+      instances: fixtureInstances(NOW),
+      suspended: [
+        ...suspended,
+        { appId: "night-flight", instanceId: "nf-1", label: "Level 2", at: at(3, 18, 5) },
+      ],
+      now: NOW,
+    });
+    const chips = rows.flatMap((r) => r.boxes.map((b) => [b.appId, b.chip]));
+    expect(chips).toEqual([
+      ["rocket-crew", "Just now"],
+      ["bake-shop", "Tuesday"],
+      ["night-flight", "Today 6:05"],
+      ["story-nook", "Yesterday"],
+      ["hearthisle", "Tonight at 8:00"],
+      ["peekaboo-garden", ""],
+    ]);
+    for (const [, chip] of chips) expect(chip).not.toMatch(/Paused|Played/);
   });
 
   it("uses the session's label over an older instance report for the same game", () => {

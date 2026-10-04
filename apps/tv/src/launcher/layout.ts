@@ -3,6 +3,7 @@ import {
   type Manifest,
   playingView,
   type SuspendedGame,
+  sittingName,
 } from "@open-game-system/ogs-protocol";
 import type { FocusRow } from "./focus-grid";
 
@@ -19,8 +20,13 @@ export interface BoxModel {
   hero: string;
   /** The status chip, e.g. "Paused Tuesday". Empty for a game you haven't started. */
   tag: string;
-  /** The resume point on the spine, e.g. "Mission 6". */
+  /**
+   * What tells the sitting apart: its resume point ("Mission 6"), else when it started ("Started
+   * 7:42 PM", the phone's name for it). For a game not started, its tagline.
+   */
   resume: string;
+  /** The card's chip: when, without the status word ("Just now", "Thursday"); "" for no sitting. */
+  chip: string;
   /** The sitting this box resumes (paused or tonight); none for a game from the library. */
   instanceId?: string;
 }
@@ -54,7 +60,22 @@ export function when(t: number, now: number): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-function box(game: Manifest, tag: string, resume: string, instanceId?: string): BoxModel {
+/** A card chip: "Just now", "Today 7:02", "Yesterday", "Thursday", "Sep 1". */
+export function chipWhen(t: number, now: number): string {
+  const w = when(t, now);
+  return w.startsWith("at ") ? `Today ${w.slice(3)}` : w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+/** An instance's resume point: a Tier 0 visit's title is only the game's name, so none. */
+const instanceLabel = (i: Instance) => (i.source === "visit" ? "" : i.title || i.detail);
+
+function box(
+  game: Manifest,
+  tag: string,
+  resume: string,
+  chip = "",
+  instanceId?: string,
+): BoxModel {
   return {
     ...(instanceId ? { instanceId } : {}),
     itemId: `game:${game.appId}`,
@@ -66,6 +87,7 @@ function box(game: Manifest, tag: string, resume: string, instanceId?: string): 
     safe: game.art.safe,
     tag,
     resume,
+    chip,
   };
 }
 
@@ -109,15 +131,23 @@ export function buildRows(input: {
 
   const cont = [
     ...place(input.suspended, (g, s) =>
-      box(g, `Paused ${when(s.at, now)}`, s.label || g.tagline, s.instanceId),
+      box(g, `Paused ${when(s.at, now)}`, sittingName(s, now), chipWhen(s.at, now), s.instanceId),
     ),
     ...place(section("paused"), (g, i) =>
-      box(g, `Played ${when(i.updatedAt, now)}`, i.title || i.detail, i.instanceId),
+      box(
+        g,
+        `Played ${when(i.updatedAt, now)}`,
+        sittingName({ ...i, label: instanceLabel(i), at: i.updatedAt }, now),
+        chipWhen(i.updatedAt, now),
+        i.instanceId,
+      ),
     ),
   ];
-  const tonight = place(section("tonight"), (g, i) =>
-    box(g, `Tonight at ${clock(i.startsAt ?? now)}`, i.title || i.detail, i.instanceId),
-  );
+  const tonight = place(section("tonight"), (g, i) => {
+    const tag = `Tonight at ${clock(i.startsAt ?? now)}`;
+    const name = sittingName({ ...i, label: instanceLabel(i), at: i.updatedAt }, now);
+    return box(g, tag, name, tag, i.instanceId);
+  });
   const library = place(
     [...tvGames.keys()].map((appId) => ({ appId })),
     (g) => box(g, "", g.tagline),

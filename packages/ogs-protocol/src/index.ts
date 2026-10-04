@@ -4,4 +4,5 @@ export * from "./game-token";
 export * from "./instance";
 export * from "./manifest";
 export * from "./session";
+export * from "./sitting";
 export * from "./token";

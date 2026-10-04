@@ -311,6 +311,15 @@ figure {
   overflow: hidden;
   line-height: 1.2;
 }
+/* The tagline, quieter, on its own line: only when it fits on one (launcher/facts.ts). */
+.spot-tagline {
+  margin-top: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cream-dim);
+  white-space: nowrap;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+}
 .spot-players {
   margin-top: 18px;
   display: flex;
@@ -806,10 +815,6 @@ figure {
   object-fit: cover;
   opacity: 0;
   pointer-events: none;
-}
-/* The card already says when: in the cards, the spotlight shows only the resume point. */
-.home[data-zone="cards"] .spot-tag {
-  display: none;
 }
 .game-frame {
   position: absolute;

@@ -247,8 +247,12 @@ describe("TV launcher (fake session)", () => {
     await page.locator('[data-testid=player][data-phase="hidden"]').waitFor({ state: "attached" });
     const card = page.locator('[data-card="sitting"][data-app="rocket-crew"]');
     expect(await card.textContent()).toContain("Mission 6");
-    expect(await card.textContent()).toContain("Paused just now");
     await expect.poll(focused).toBe("game:rocket-crew");
+    // Each fact once (owner, 2026-10-04): the focused game's status is said by the spotlight only,
+    // not again on its card.
+    expect(await page.locator(".spot-tag").textContent()).toBe("Paused just now");
+    expect(await card.textContent()).not.toContain("Paused");
+    expect(await page.getByText("Paused just now").count()).toBe(1);
     // The parked frame was told to suspend and stays loaded for an instant Continue.
     const afterHome = await receivedBy(page, "parked-frame");
     expect(afterHome).toEqual(["ogs:start", "ogs:suspend"]);
