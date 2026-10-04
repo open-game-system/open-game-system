@@ -60,7 +60,9 @@ describe("playingView", () => {
     expect(view.sections[0]?.kind).toBe("finished");
   });
 
-  it("keeps one entry per game for unreported (Tier 0) visits, the newest", () => {
+  // Owner, 2026-10-04: "you might have say multiple games of catan going": every sitting is its
+  // own row (visits are per sitting now, one id each), newest first.
+  it("keeps every sitting of an unreported (Tier 0) game as its own entry, newest first", () => {
     const view = playingView(
       [
         base({
@@ -88,7 +90,7 @@ describe("playingView", () => {
       { now: NOW, liveInstanceIds: [], ttlFor: ttl },
     );
     const ids = view.sections.flatMap((s) => s.items.map((i) => i.instanceId));
-    expect(ids).toEqual(["v2"]);
+    expect(ids).toEqual(["v2", "v1", "v3"]);
   });
 
   it("is empty with no badge when nothing is in flight", () => {

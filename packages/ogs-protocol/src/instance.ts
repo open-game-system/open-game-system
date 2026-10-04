@@ -78,7 +78,7 @@ function sectionFor(i: Instance, now: number): SectionKind | null {
 
 /**
  * The Playing tab: the live game pinned, then everything in flight ordered by what needs you.
- * Silent instances past their game's TTL are hidden; Tier 0 visits collapse to one per game.
+ * Silent instances past their game's TTL are hidden; each sitting (instance id) is its own entry.
  */
 export function playingView(
   instances: Instance[],
@@ -88,13 +88,8 @@ export function playingView(
   const fresh = instances.filter(
     (i) => i.status === "completed" || now - i.updatedAt <= ttlFor(i.appId),
   );
-  const newestVisit = new Map<string, Instance>();
-  for (const i of fresh) {
-    if (i.source !== "visit") continue;
-    const seen = newestVisit.get(i.appId);
-    if (!seen || seen.updatedAt < i.updatedAt) newestVisit.set(i.appId, i);
-  }
-  const kept = fresh.filter((i) => i.source !== "visit" || newestVisit.get(i.appId) === i);
+  // Every sitting is its own entry, Tier 0 visits too (one id per sitting, so a sitting appears once).
+  const kept = fresh;
   const live =
     kept.find((i) => liveInstanceIds.includes(i.instanceId) && i.status !== "completed") ?? null;
   const byKind = new Map<SectionKind, Instance[]>();

@@ -426,6 +426,47 @@ describe("couch session: game.start", () => {
     expect(s.current?.instanceId).toBe("rc-from-link");
   });
 
+  it("Rejoin of a named sitting takes its own label, not another paused sitting's", () => {
+    const { s: paused } = run([
+      ...living(),
+      startRc,
+      { type: "game.resume-point", appId: "rocket-crew", label: "Mission 6" },
+      { type: "home" },
+    ]);
+    const { s } = run(
+      [{ type: "game.start", appId: "rocket-crew", mode: "continue", instanceId: "rc-older" }],
+      paused,
+    );
+    expect(s.current).toMatchObject({ instanceId: "rc-older", label: "" });
+  });
+
+  it("Rejoin of another sitting of the live game switches the TV to it", () => {
+    const { s: playing } = run([...living(), startRc]);
+    const live = playing.current?.instanceId;
+    const { s } = run(
+      [{ type: "game.start", appId: "rocket-crew", mode: "continue", instanceId: "rc-older" }],
+      playing,
+    );
+    expect(s.current?.instanceId).toBe("rc-older");
+    expect(s.suspended.map((g) => g.instanceId)).not.toContain("rc-older");
+    expect(live).not.toBe("rc-older");
+  });
+
+  it("Rejoin naming the live sitting itself is a no-op", () => {
+    const { s: playing } = run([...living(), startRc]);
+    const r = reduceSession(
+      playing,
+      {
+        type: "game.start",
+        appId: "rocket-crew",
+        mode: "continue",
+        instanceId: playing.current?.instanceId,
+      },
+      T,
+    );
+    expect(r.state).toEqual(playing);
+  });
+
   it("Continue resumes the matching paused game, not the first one", () => {
     const { s: paused } = run([
       ...living(),

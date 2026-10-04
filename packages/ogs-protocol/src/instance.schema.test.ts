@@ -220,7 +220,8 @@ describe("playing tab", () => {
     expect(v.sections[0]?.items.map((i) => i.instanceId)).toEqual(["newest", "middle", "older"]);
   });
 
-  it("Tier 0 visits collapse per game, independently of other games and reported instances", () => {
+  // Owner, 2026-10-04: several sittings of one game (two Catan games) each get their own row.
+  it("Tier 0 visits with distinct ids stay separate, alongside other games and reported instances", () => {
     const v = view([
       inst({ instanceId: "pg-old", appId: "peekaboo", source: "visit", updatedAt: NOW - 2 * H }),
       inst({ instanceId: "pg-new", appId: "peekaboo", source: "visit", updatedAt: NOW - H }),
@@ -232,7 +233,12 @@ describe("playing tab", () => {
         updatedAt: NOW - 4 * H,
       }),
     ]);
-    expect(v.sections[0]?.items.map((i) => i.instanceId)).toEqual(["pg-new", "bs", "pg-reported"]);
+    expect(v.sections[0]?.items.map((i) => i.instanceId)).toEqual([
+      "pg-new",
+      "pg-old",
+      "bs",
+      "pg-reported",
+    ]);
   });
 
   it("a Tier 0 visit still shows when the game also reported a newer instance", () => {

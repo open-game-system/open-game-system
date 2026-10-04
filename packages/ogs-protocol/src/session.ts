@@ -289,9 +289,15 @@ export function reduceSession(
       }
       break;
     case "game.start": {
+      // A named sitting (Rejoin from a game's page) resumes that one; else the game's paused one.
       const resuming =
-        msg.mode === "continue" ? s.suspended.find((g) => g.appId === msg.appId) : undefined;
-      if (s.current && s.current.appId === msg.appId) break;
+        msg.mode !== "continue"
+          ? undefined
+          : msg.instanceId
+            ? s.suspended.find((g) => g.instanceId === msg.instanceId)
+            : s.suspended.find((g) => g.appId === msg.appId);
+      const otherSitting = msg.instanceId !== undefined && msg.instanceId !== s.current?.instanceId;
+      if (s.current && s.current.appId === msg.appId && !otherSitting) break;
       s = suspendCurrent(s, now);
       const roster = msg.roster ?? s.rosters[msg.appId] ?? [];
       const instanceId = msg.instanceId ?? resuming?.instanceId ?? newId(msg.appId, now);
