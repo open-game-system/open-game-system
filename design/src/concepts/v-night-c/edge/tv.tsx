@@ -103,30 +103,9 @@ export function EdgeTv({ s, f, children }: { s: S; f: Fault; children: ReactNode
         </WithChip>
       );
     }
-    case "home-drops": {
-      const n = s.nights.list.find((x) => x.gameId === "hearthisle");
-      return (
-        <WithChip
-          chip={
-            <Chip tone={f.phase === "recovered" ? "ok" : "info"}>
-              <i className="eg-tvchip__seat" style={{ background: "#c8412f" }} />
-              <b>Okafors</b>
-              <span>
-                {f.phase === "recovered"
-                  ? f.night === "play-on"
-                    ? "rejoin on their next turn"
-                    : "back · nothing missed"
-                  : f.phase === "recovering"
-                    ? `reconnecting · board held`
-                    : `offline · turn ${n?.turn ?? 15} held`}
-              </span>
-            </Chip>
-          }
-        >
-          {children}
-        </WithChip>
-      );
-    }
+    case "home-drops":
+      // The lobby table in the corner shows it: the Okafors' chair goes dark, then blinks while held.
+      return children;
     case "game-down":
       if (f.phase === "now") {
         const down = f.subject ?? "bake-shop";

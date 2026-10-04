@@ -1,30 +1,33 @@
-// A game night's page on the phone. One page, four moments: the night itself (detail), and the
-// three setup steps for a new one (invite → seats → where each home plays).
+// A game night's page on the phone: the lobby table. One screen is the whole night; setting one up,
+// playing, pausing, a home dropping and finishing are the same table in different states.
 import type { Store } from "../../../../harness/store";
 import { nightOpen } from "../../nights";
 import { goHome, type S } from "../../state";
 import { StatusBar } from "../../ui/Brand";
 import { Chevron } from "../../ui/Icons";
 import { InvitePreview } from "./InvitePreview";
-import { NightDetail } from "./NightDetail";
-import { NightInvite } from "./NightInvite";
-import { NightSeats, NightWhere } from "./NightSetup";
+import { LobbyTable } from "./LobbyTable";
+import type { Drop } from "./table";
 
-export function NightPage({ s, store }: { s: S; store: Store<S> }) {
-  const n = nightOpen(s.nights);
-  const step = s.nights.step;
+export function NightHeader({ store, title }: { store: Store<S>; title: string }) {
   return (
-    <div className="cx-phone cx-nightpage">
+    <>
       <StatusBar dark />
-      <div className="cx-topbar">
+      <div className="cx-topbar lt-topbar">
         <button className="cx-back" data-bot="night-back" onClick={() => store.update(goHome)}>
           <Chevron size={20} dir="left" /> Home
         </button>
-        {step !== "detail" && <span className="cx-topbar__step">Step {step === "invite" ? 1 : step === "seats" ? 2 : 3} of 3</span>}
+        <span className="lt-topbar__title ogs-display">{title}</span>
       </div>
-      <div className="cx-scroll">
-        {step === "detail" && n ? <NightDetail n={n} s={s} store={store} /> : step === "seats" && n ? <NightSeats n={n} s={s} store={store} /> : step === "where" && n ? <NightWhere n={n} store={store} /> : <NightInvite n={n} s={s} store={store} />}
-      </div>
+    </>
+  );
+}
+
+export function NightPage({ s, store, drop = null }: { s: S; store: Store<S>; drop?: Drop | null }) {
+  const n = nightOpen(s.nights);
+  return (
+    <div className="lt-wrap">
+      <LobbyTable s={s} store={store} drop={drop} header={<NightHeader store={store} title={n ? "Hearthisle night" : "New Hearthisle night"} />} />
       {s.nights.preview && n && <InvitePreview n={n} s={s} store={store} />}
     </div>
   );

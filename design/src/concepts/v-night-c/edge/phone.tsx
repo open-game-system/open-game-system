@@ -7,6 +7,10 @@ import { castAndPlay, gameName, hereTonight, pointIn, seatPlan, type S } from ".
 import { GameArt } from "../ui/GameArt";
 import { TabletIcon } from "../ui/Icons";
 import type { Fault, FaultPhase } from "./fault";
+import { NightPage } from "../phone/night/NightPage";
+import { GuestTable } from "../phone/night/LobbyTable";
+import type { Drop } from "../phone/night/table";
+import { StatusBar } from "../ui/Brand";
 import { Banner, Btn, HomeDot, Lock, Page, PersonIcon, Quiet, TvGlyph, type Row } from "./parts";
 
 const set = (store: Store<S>, patch: Partial<Fault>) => store.update((x) => (x.fault ? { ...x, fault: { ...x.fault, ...patch } } : x));
@@ -243,10 +247,11 @@ function SaveConflict({ s, store, f, children }: { s: S; store: Store<S>; f: Fau
 
 function HomeDrops({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; children: ReactNode }) {
   const turn = s.nights.list.find((n) => n.gameId === "hearthisle")?.turn ?? 15;
-  const okafors = OKAFORS;
   const viewer = f.viewer ?? "dad";
-  if (viewer === "tunde") return <OkaforPhone store={store} f={f} turn={turn} />;
-  if (viewer === "nana") return <NanaWaiting f={f} turn={turn} />;
+  const subject = f.subject ?? "hh-okafor";
+  const drop: Drop | null = f.phase === "now" ? { householdId: subject, phase: "now" } : f.phase === "recovering" ? { householdId: subject, phase: "holding" } : null;
+  if (viewer === "tunde") return <OkaforPhone s={s} store={store} f={f} turn={turn} drop={drop} />;
+  if (viewer === "nana") return <NanaWaiting s={s} f={f} turn={turn} drop={drop} />;
   if (f.phase === "recovered") {
     return (
       <Banner
@@ -258,78 +263,63 @@ function HomeDrops({ s, store, f, children }: { s: S; store: Store<S>; f: Fault;
       </Banner>
     );
   }
-  const recovering = f.phase === "recovering";
-  const homes: Row[] = [
-    { key: "ok", icon: <HomeDot color="#c8412f" />, name: okafors.name, note: recovering ? "Reconnecting · board held for them" : "Offline since 8:21 · seat held", state: recovering ? "busy" : "off" },
-    { key: "nana", icon: <HomeDot color="#e08a1e" />, name: NANA.name, note: "Waiting · they see the board is held", state: "wait" },
-    { key: "us", icon: <HomeDot color="#2f6fc8" />, name: `${HOME.name} · hosting`, note: "You decide for the table", state: "ok" },
-  ];
+  // The host's phone: the same lobby table, the Okafors' chair gone dark, the choice in the tray.
+  return <NightPage s={{ ...s, nights: { ...s.nights, open: s.nights.list.find((n) => n.gameId === "hearthisle")?.id ?? s.nights.open } }} store={store} drop={drop} />;
+}
+
+/** A guest home's phone: the same table from their chair, with a header naming whose phone it is. */
+function GuestShell({ who, children }: { who: string; children: ReactNode }) {
   return (
-    <Page
-      title="Hearthisle"
-      where={`Game night · turn ${turn}`}
-      gameId="hearthisle"
-      pointLabel={`Held at turn ${turn}`}
-      line={recovering ? "Holding the board for the Okafors" : "The Okafors dropped off."}
-      sub={recovering ? "Everyone sees the board waiting. If they're not back in 10 minutes, you can pause the night for everyone." : `It was their roll at turn ${turn}. Their seat is held; you're hosting, so you decide.`}
-      model="The night lives on the game's server. A home that drops keeps its seat."
-      rows={homes}
-      action={
-        recovering ? undefined : (
-          <Btn bot="edge-night-wait" onClick={() => set(store, { phase: "recovering", night: "wait" })}>
-            Hold the board for them
-          </Btn>
-        )
-      }
-      quiet={
-        recovering ? undefined : (
-          <Quiet bot="edge-night-play-on" onClick={() => store.update((x) => nightResumes(x, "play-on"))}>
-            Play on and skip their turns
-          </Quiet>
-        )
-      }
-    />
+    <div className="cx-phone cx-nightpage lt-page">
+      <StatusBar dark />
+      <div className="cx-topbar lt-topbar">
+        <span className="lt-topbar__who">{who}</span>
+        <span className="lt-topbar__title ogs-display">Hearthisle night</span>
+      </div>
+      {children}
+    </div>
   );
 }
 
-function OkaforPhone({ store, f, turn }: { store: Store<S>; f: Fault; turn: number }) {
+function OkaforPhone({ s, store, f, turn, drop }: { s: S; store: Store<S>; f: Fault; turn: number; drop: Drop | null }) {
   const back = f.phase === "recovered";
   const recovering = f.phase === "recovering";
   return (
-    <Page
-      title="Hearthisle"
-      where={`Tunde's phone · ${OKAFORS.name}`}
-      gameId="hearthisle"
-      pointLabel={`Your seat · turn ${turn}`}
-      glyph={back ? "live" : "pause"}
-      line={back ? "You're back. Your roll." : "You're offline."}
-      sub={back ? `Turn ${turn}. The Mumms held the board for you.` : `Your seat is held at turn ${turn}. The Mumms are hosting and holding the board.`}
-      action={
-        back ? (
-          <Btn bot="edge-okafor-roll">Roll</Btn>
-        ) : (
-          <Btn bot="edge-okafor-retry" busy={recovering} onClick={() => to(store, "recovering")}>
-            {recovering ? "Reconnecting" : "Reconnect"}
-          </Btn>
-        )
-      }
-    />
+    <GuestShell who={`Tunde's phone`}>
+      <GuestTable
+        s={s}
+        viewer="hh-okafor"
+        drop={drop}
+        title={back ? "You're back. Your roll." : "You're offline"}
+        line={back ? `Turn ${turn}. The Mumms held the board for you.` : `Your chair is held at turn ${turn}. The Mumms are hosting and holding the board.`}
+        action={
+          back ? (
+            <button className="cx-btn cx-btn--light lt-note__btn" data-bot="edge-okafor-roll">
+              Roll
+            </button>
+          ) : (
+            <button className="cx-btn cx-btn--light lt-note__btn" data-bot="edge-okafor-retry" disabled={recovering} onClick={() => to(store, "recovering")}>
+              {recovering ? "Reconnecting" : "Reconnect"}
+            </button>
+          )
+        }
+      />
+    </GuestShell>
   );
 }
 
-function NanaWaiting({ f, turn }: { f: Fault; turn: number }) {
+function NanaWaiting({ s, f, turn, drop }: { s: S; f: Fault; turn: number; drop: Drop | null }) {
   const back = f.phase === "recovered";
   return (
-    <Page
-      title="Hearthisle"
-      where={`Nana's phone · ${NANA.name}`}
-      gameId="hearthisle"
-      pointLabel={back ? `Turn ${turn} · Okafors to roll` : `Held at turn ${turn}`}
-      glyph={back ? "live" : "pause"}
-      line={back ? "The Okafors are back." : "Waiting on the Okafors."}
-      sub={back ? "Their roll, then yours." : "They lost their connection. The Mumms are hosting and holding the board; nothing for you to do."}
-      model="Nobody loses a move while a home reconnects."
-    />
+    <GuestShell who="Nana's phone">
+      <GuestTable
+        s={s}
+        viewer="hh-nana"
+        drop={drop}
+        title={back ? "The Okafors are back" : "Waiting on the Okafors"}
+        line={back ? "Their roll, then yours." : `They lost their connection at turn ${turn}. Nothing for you to do; nobody loses a move.`}
+      />
+    </GuestShell>
   );
 }
 

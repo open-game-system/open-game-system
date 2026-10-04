@@ -44,6 +44,6 @@ export const edgeFlows: Flow[] = [
     flow: "failure",
     label: "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
     start: "failure.40-okafors-drop",
-    steps: [{ device: "phone", bot: "edge-night-wait", mark: "We're hosting, so we decide: hold the board. Every home sees it waiting", wait: 2300 }],
+    steps: [{ device: "phone", bot: "edge-night-wait", mark: "The Okafors' chair goes dark at their roll. We host, so the tray decides: Hold. Their light blinks while every home waits", wait: 2300 }],
   },
 ];

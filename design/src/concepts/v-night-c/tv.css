@@ -236,3 +236,20 @@
 .ct-welcome__device.is-waiting { color: var(--ct-warm); border-color: var(--ct-warm); animation: ct-wait 1.2s ease-in-out infinite alternate both; }
 .ct-welcome__device.is-paired { color: #10241a; background: var(--ogs-mint, #9fe3bf); border: 0; animation: ct-pop 0.4s cubic-bezier(.3, 1.6, .5, 1) both; }
 .ct-welcome__device i { position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #10241a; box-shadow: 0 0 0 4px var(--ogs-dusk-0, #120f22); }
+
+/* v-night-c: the lobby table, small, in the TV's corner (replaces the night chip). */
+.ct-ring { position: absolute; left: 40px; bottom: 36px; display: flex; align-items: center; gap: 18px; padding: 10px 34px 10px 10px; border-radius: 120px; background: rgba(14, 11, 28, 0.66); backdrop-filter: blur(14px); color: #fbf2e4; animation: ct-fade 0.6s 0.4s both; }
+.ct-ring.is-ours { box-shadow: 0 0 0 3px var(--ogs-lamp, #ffc861), 0 0 40px rgba(255, 200, 97, .35); }
+.ct-ring__table { position: relative; flex: none; }
+.ct-ring__top { position: absolute; width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #2c2550, #1b1733); box-shadow: 0 0 0 6px #5b3b2c, 0 0 0 8px #3a2419; }
+.ct-ring__top b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: 760; font-size: 32px; }
+.ct-ring__seat { position: absolute; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: #272148; outline: 4px solid; outline-offset: -1px; }
+.ct-ring__seat.is-turn { box-shadow: 0 0 0 6px rgba(255, 200, 97, .4), 0 0 24px 8px rgba(255, 200, 97, .45); }
+.ct-ring__seat--away { background: #15122a; }
+.ct-ring__seat--coming { animation: ct-ring-blink 1.4s ease-in-out infinite both; }
+@keyframes ct-ring-blink { 50% { opacity: .55; } }
+.ct-ring__text { display: grid; gap: 2px; }
+.ct-ring__turn { font-size: 24px; font-weight: 700; color: #e6dacb; }
+.ct-ring__text b { font-size: 32px; font-weight: 800; }
+.ct-ring.is-ours .ct-ring__text b { color: var(--ogs-lamp, #ffc861); }
+.ct-ring__text > span:last-child { font-size: 24px; color: #e6dacb; }

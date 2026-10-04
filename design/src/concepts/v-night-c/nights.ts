@@ -8,7 +8,7 @@ import { st, type Status } from "./status";
 
 export type NightScreen = "tv" | "phones";
 export type Reply = "host" | "in" | "invited" | "declined";
-export type NightStatus = "setup" | "lobby" | "live" | "paused";
+export type NightStatus = "setup" | "lobby" | "live" | "paused" | "finished";
 export type NightStep = "detail" | "invite" | "seats" | "where";
 
 export interface NightHome {
@@ -54,6 +54,8 @@ export interface Nights {
   kidNames: boolean;
   /** An invite link is out for a free seat (after a home couldn't make it). */
   link: boolean;
+  /** The seat at the lobby table whose card is open (a household id), if any. */
+  seat: string | null;
 }
 
 export const US = "hh-mumm";
@@ -97,7 +99,7 @@ export function hearthisleNight(): Night {
 }
 
 export function baseNights(): Nights {
-  return { list: [hearthisleNight()], open: null, step: "detail", picked: ["hh-okafor", "hh-nana"], preview: false, kidNames: false, link: false };
+  return { list: [hearthisleNight()], open: null, step: "detail", picked: ["hh-okafor", "hh-nana"], preview: false, kidNames: false, link: false, seat: null };
 }
 
 export const homeName = (n: Night, id: string): string => n.homes.find((h) => h.householdId === id)?.name ?? "";
@@ -109,6 +111,7 @@ export const everyoneBack = (n: Night): boolean => n.homes.every((h) => h.back |
 /** The night's status, in the shared vocabulary (status.ts). A night with a time set is "Coming up". */
 export function nightStatus(n: Night, onTv: string | null): Status {
   if (n.status === "live") return onTv === n.gameId ? st("live", "Live") : isOurs(n) ? st("yours", "Your roll") : st("theirs", "Their turn");
+  if (n.status === "finished") return st("done", "Finished");
   if (n.status === "setup" && n.homes.some((h) => h.reply === "invited")) return st("invited", "Invited");
   if (n.when) return st("coming", n.when);
   return st("paused", `Paused at turn ${n.turn}`);
@@ -118,6 +121,7 @@ export function nightStatus(n: Night, onTv: string | null): Status {
 export function nightLine(n: Night): string {
   if (n.status === "setup") return "Setting up · new game";
   if (n.status === "lobby") return "New game · everyone's in";
+  if (n.status === "finished") return `Finished at turn ${n.turn}`;
   const who = n.turnOf === US ? "your roll" : `${short(homeName(n, n.turnOf))} to roll`;
   if (n.status === "live") return `Turn ${n.turn} · ${who}`;
   return `Paused at turn ${n.turn} · ${who}`;
@@ -141,10 +145,16 @@ export const screenWords = (h: NightHome): string => {
 const mapNight = (ns: Nights, id: string, f: (n: Night) => Night): Nights => ({ ...ns, list: ns.list.map((n) => (n.id === id ? f(n) : n)) });
 const current = (ns: Nights): Night | undefined => ns.list.find((n) => n.id === ns.open);
 
-export const openNight = (ns: Nights, id: string): Nights => ({ ...ns, open: id, step: "detail", preview: false });
+export const openNight = (ns: Nights, id: string): Nights => ({ ...ns, open: id, step: "detail", preview: false, seat: null });
+
+/** Open (or close) one seat's card at the lobby table. */
+export const focusSeat = (ns: Nights, id: string | null): Nights => ({ ...ns, seat: ns.seat === id ? null : id });
+
+/** The host ends the night: the board is final, every home sees the scores. */
+export const endNight = (ns: Nights, id: string): Nights => mapNight(ns, id, (n) => ({ ...n, status: "finished", when: null, pausedOn: null }));
 
 /** A new night while another is paused: the paused one keeps its place and stays in Game nights. */
-export const beginNewNight = (ns: Nights): Nights => ({ ...ns, open: null, step: "invite", picked: ["hh-okafor", "hh-nana"], preview: false });
+export const beginNewNight = (ns: Nights): Nights => ({ ...ns, open: null, step: "invite", picked: ["hh-okafor", "hh-nana"], preview: false, seat: null });
 
 export const togglePick = (ns: Nights, id: string): Nights => ({ ...ns, picked: ns.picked.includes(id) ? ns.picked.filter((x) => x !== id) : [...ns.picked, id] });
 
@@ -165,7 +175,8 @@ export function sendInvites(ns: Nights): Nights {
 /** The other homes answer (in the prototype, a beat after the invite goes out). */
 export const answerInvites = (ns: Nights): Nights => (ns.open ? mapNight(ns, ns.open, (n) => ({ ...n, homes: n.homes.map((h) => (h.reply === "invited" ? { ...h, reply: "in" } : h)) })) : ns);
 
-export const toStep = (ns: Nights, step: NightStep): Nights => ({ ...ns, step, preview: false });
+/** Seats open our own seat's card at the table (a seat is a person or a whole home). */
+export const toStep = (ns: Nights, step: NightStep): Nights => ({ ...ns, step, preview: false, seat: step === "seats" ? US : null });
 
 export const toggleSplit = (ns: Nights): Nights =>
   ns.open ? mapNight(ns, ns.open, (n) => ({ ...n, homes: n.homes.map((h) => (h.householdId === US ? { ...h, seat: h.seat === "together" ? "split" : "together" } : h)) })) : ns;

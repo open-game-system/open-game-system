@@ -5,6 +5,7 @@ import { Crest } from "../ui/Sticker";
 import { nightLine, nightStatus, short, US, type Night } from "../nights";
 import type { S } from "../state";
 import { TvArt } from "./TvArt";
+import { seatAngles, seatsOf, type Drop } from "../phone/night/table";
 
 /** The night the console home should mention: a live one, else the next one with a time, else the latest. */
 export function headlineNight(s: S): Night | undefined {
@@ -54,17 +55,46 @@ export function NightChip({ s }: { s: S }) {
           </span>
         </div>
       )}
-      <div className={`ct-chip ct-chip--night ${ourRoll ? "is-ours" : ""}`}>
-        <span className="ct-chip__crest" style={{ boxShadow: `0 0 0 4px ${ours.color}` }}>
-          <Crest household={home} size={50} />
-        </span>
-        <b>{short(ours.name)}</b>
-        <span>our seat</span>
-        <span className="ct-chip__sep" />
-        <span className="ct-chip__turn">{ourRoll ? "Our roll" : `${short(turnHome?.name ?? "")} to roll`}</span>
-      </div>
+      <TableRing s={s} n={n} ourRoll={ourRoll} />
     </>
   );
 }
 
 const seatLine = (seat: string): string => (seat === "together" ? "Jonathan and Juneau, together" : "Jonathan, then Juneau");
+
+/** The lobby table, small, in the corner of our TV: every home's chair around a round table, its
+ * light (here · reconnecting · away), and a lamp on the rim at whoever is rolling. Never on the board. */
+function TableRing({ s, n, ourRoll }: { s: S; n: Night; ourRoll: boolean }) {
+  const f = s.fault?.kind === "home-drops" ? s.fault : null;
+  const who = f?.subject ?? "hh-okafor";
+  const drop: Drop | null = f?.phase === "now" ? { householdId: who, phase: "now" } : f?.phase === "recovering" ? { householdId: who, phase: "holding" } : null;
+  const seats = seatsOf(s.nights, n, drop);
+  const angles = seatAngles(seats.length);
+  const R = 74;
+  const C = 100;
+  const turn = seats.find((x) => x.turn);
+  const dropName = drop ? short(n.homes.find((h) => h.householdId === drop.householdId)?.name ?? "") : "";
+  const line = drop ? (drop.phase === "now" ? `${dropName} offline` : `Holding for ${dropName}`) : ourRoll ? "Our roll" : `${turn?.name ?? ""} to roll`;
+  return (
+    <div className={`ct-ring ${ourRoll ? "is-ours" : ""}`}>
+      <div className="ct-ring__table" style={{ width: C * 2, height: C * 2 }}>
+        <span className="ct-ring__top" style={{ left: C - 34, top: C - 34 }}>
+          <b>{n.turn}</b>
+        </span>
+        {seats.map((seat, i) => {
+          const a = ((angles[i] ?? 90) * Math.PI) / 180;
+          return (
+            <span key={seat.key} className={`ct-ring__seat ct-ring__seat--${seat.light} ${seat.turn ? "is-turn" : ""}`} style={{ left: C + R * Math.cos(a) - 26, top: C + R * Math.sin(a) - 26, outlineColor: seat.color }}>
+              <Crest household={seat.crest} size={40} shared dim={seat.light === "away"} />
+            </span>
+          );
+        })}
+      </div>
+      <span className="ct-ring__text">
+        <span className="ct-ring__turn">Turn {n.turn}</span>
+        <b>{line}</b>
+        <span>Our seat: blue</span>
+      </span>
+    </div>
+  );
+}

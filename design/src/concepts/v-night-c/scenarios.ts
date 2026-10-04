@@ -1,5 +1,5 @@
 import type { Scenario } from "../../harness/types";
-import { answerInvites, baseNights, beginNewNight, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
+import { answerInvites, baseNights, beginNewNight, endNight, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
 import { base, baseSetup, moveArrives, playDuel, type Push, type S, type Setup } from "./state";
 
 /** First run at a given point: the household partly set up. */
@@ -125,6 +125,7 @@ export const scenarios: Scenario<S>[] = [
   { id: "game-night.15-resumed", label: "Resumed: turn 14, Nana & Pop rolling, ours next", flow: "game-night", state: "success", devices: ["phone", "tv"], build: nightAt((n) => openNight(resumeNight(n, "hi-1"), "hi-1"), { onTv: "hearthisle", tvFocus: "hearthisle" }) },
   { id: "game-night.16-our-roll", label: "Our roll across homes: Controller or pause", flow: "game-night", state: "partial", devices: ["phone", "tv"], build: nightAt((n) => openNight(passTurn(resumeNight(n, "hi-1"), "hi-1"), "hi-1"), { onTv: "hearthisle", tvFocus: "hearthisle" }) },
   { id: "game-night.17-paused-again", label: "Paused at turn 15: resumes when everyone's back, next Friday", flow: "game-night", state: "interrupted", devices: ["phone"], build: nightAt((n) => openNight(pauseNight(passTurn(resumeNight(n, "hi-1"), "hi-1"), "hi-1"), "hi-1"), { onTv: null }) },
+  { id: "game-night.18-finished", label: "The host ends the night: final scores at the same table, rematch one tap away", flow: "game-night", state: "success", devices: ["phone"], build: nightAt((n) => openNight(endNight(passTurn(resumeNight(n, "hi-1"), "hi-1"), "hi-1"), "hi-1"), { onTv: null }) },
 ];
 
 /** The phone on a game night's page, with the nights in a given state. */
