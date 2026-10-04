@@ -50,6 +50,18 @@ game, a move whenever, over days; design-only stand-in).
 - **Pairing:** a kid's iPad is paired once ("this iPad is Juneau's") and follows tonight's game.
 - **Brand (open):** a family hub, an app per game, or a hub with spin-outs on one shell.
 
+## Cast first (the family's direction after testing the real app, Oct 3)
+
+Testing today's app: each game owns its own cast, so switching games tears the stream down and
+recasts (unload, reload, wait). New model: **casting is the first thing you do in OGS,
+independent of any game.** The TV then shows the OGS launcher (a PS5 / Switch / Netflix-style
+home) in the cloud browser that streams to the Chromecast; games launch inside that same cast
+session, so a switch never reloads the stream. The grown-up phone is the controller, either by
+browsing on the phone (the TV follows) or as a Roku-like remote that moves a focus ring on the TV.
+In a game the phone is that game's controller with an OGS Home button back to the launcher.
+Architecture consequence: the launcher hosts each game's TV page (e.g. in a frame) inside one
+long-lived cloud browser, so games need no cast code at all; a TV URL in the manifest is enough.
+
 ## Taste rules (the family's)
 
 No emoji. No faces on objects (rockets, planets, props). Nothing covers the focal area of the TV
