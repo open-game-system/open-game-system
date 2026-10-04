@@ -1,5 +1,5 @@
 import type { Instance, Manifest, SectionKind } from "@open-game-system/ogs-protocol";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ogs/Button";
@@ -116,24 +116,42 @@ function EmptyPlaying({
   instances: Instance[];
   cast: boolean;
 }) {
+  const router = useRouter();
   const picks = playingSuggestions(library, instances, cast);
+  const rows: Manifest[][] = [];
+  for (let i = 0; i < picks.length; i += 2) rows.push(picks.slice(i, i + 2));
   return (
     <View testID="playingEmpty">
       <Text style={styles.emptyLead}>
-        {cast ? "On the TV · your games. Pick one to start." : "Start something tonight."}
+        {cast
+          ? "On the TV · your games. Pick one to start."
+          : "Nothing in flight. Start something tonight:"}
       </Text>
       <View style={styles.picks}>
-        {picks.map((game) => (
-          <GameTile
-            key={game.appId}
-            testID={`playingSuggestion-${game.appId}`}
-            game={game}
-            status={gameStatusLine(game, instances, null, Date.now())}
-            onPress={() => openGame(game)}
-          />
+        {rows.map((row) => (
+          <View key={row.map((g) => g.appId).join()} style={styles.pickRow}>
+            {row.map((game) => (
+              <GameTile
+                key={game.appId}
+                testID={`playingSuggestion-${game.appId}`}
+                game={game}
+                status={gameStatusLine(game, instances, null, Date.now())}
+                onPress={() => openGame(game)}
+              />
+            ))}
+            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+          </View>
         ))}
-        {picks.length === 1 ? <View style={{ flex: 1 }} /> : null}
       </View>
+      {cast ? null : (
+        <Button
+          testID="playingCast"
+          label="Cast to the TV"
+          kind="ghost"
+          style={{ marginTop: 24 }}
+          onPress={() => router.navigate("/tv")}
+        />
+      )}
     </View>
   );
 }
@@ -169,5 +187,6 @@ const styles = StyleSheet.create({
   rowSub: { color: colors.cream3, fontSize: 14, marginTop: 2 },
   chevron: { color: colors.cream3, fontSize: 26 },
   emptyLead: { color: colors.cream2, fontSize: 17, marginBottom: 16, lineHeight: 24 },
-  picks: { flexDirection: "row", gap: 14 },
+  picks: { gap: 22 },
+  pickRow: { flexDirection: "row", gap: 14 },
 });

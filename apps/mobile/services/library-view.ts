@@ -25,7 +25,8 @@ export function gameStatusLine(
 
 /**
  * Spec v3, When nothing's going: Playing suggests what to start now and what you played last.
- * Last played first, then games that fit the moment (TV games when cast, phone games when not).
+ * Last played first, then games that fit the moment (TV games when cast, phone games when not),
+ * then the rest, so a TV-only library still suggests something before casting.
  */
 export function playingSuggestions(
   library: Manifest[],
@@ -34,8 +35,9 @@ export function playingSuggestions(
 ): Manifest[] {
   const lastPlayed = [...instances].sort((a, b) => b.updatedAt - a.updatedAt)[0];
   const first = library.find((g) => g.appId === lastPlayed?.appId);
-  const fits = library.filter(
-    (g) => g !== first && (ogsCast ? g.tv !== "none" : g.tv !== "required"),
-  );
-  return [...(first ? [first] : []), ...fits].slice(0, 3);
+  const rest = library.filter((g) => g !== first);
+  const fits = (g: Manifest) => (ogsCast ? g.tv !== "none" : g.tv !== "required");
+  // What fits the moment first; TV games still show when not cast (they offer Cast to play).
+  const ordered = [...rest.filter(fits), ...rest.filter((g) => !fits(g))];
+  return [...(first ? [first] : []), ...ordered].slice(0, 3);
 }

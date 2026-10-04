@@ -106,6 +106,7 @@ describe("Playing's empty state suggests what to start", () => {
     expect(playingSuggestions(library, instances, false).map((g) => g.appId)).toEqual([
       "hearthisle",
       "word-duel",
+      "rocket-crew",
     ]);
   });
 
@@ -113,6 +114,15 @@ describe("Playing's empty state suggests what to start", () => {
     expect(playingSuggestions(library, [], true).map((g) => g.appId)).toEqual([
       "rocket-crew",
       "hearthisle",
+      "word-duel",
+    ]);
+  });
+
+  it("not cast with only TV games still suggests them (they offer Cast to play)", () => {
+    const tvOnly = [game("rocket-crew"), game("bake-shop")];
+    expect(playingSuggestions(tvOnly, [], false).map((g) => g.appId)).toEqual([
+      "rocket-crew",
+      "bake-shop",
     ]);
   });
 
