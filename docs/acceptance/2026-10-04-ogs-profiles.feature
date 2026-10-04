@@ -49,6 +49,14 @@ Feature: OGS profiles
     Then Juneau has his own profile "@juneau" on that iPad
     And no sign-in was needed
 
+  Scenario: Someone who already has a profile signs in instead of making one
+    Given a fresh install
+    Then the welcome offers "Make my profile" and "I already have a profile" as equal buttons
+    And "Make your OGS profile" offers "Already have a profile? Sign in"
+    When either one is tapped
+    Then the sign-in flow opens (Apple, Google or email code)
+    And signing in with a backed-up login lands on the Library with that profile
+
   Scenario: There is no family step
     When onboarding runs
     Then it never asks "Who's in your family?"

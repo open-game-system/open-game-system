@@ -2,6 +2,11 @@
 # pages are "Make your OGS profile" and a done page that offers "Back up your profile". There is no
 # family step and no "You're all set" page. Skip skips the intro, never the profile: every device
 # needs one (one profile per device). Detox: apps/mobile/e2e/onboarding.test.ts.
+# Updated 2026-10-04 (owner: "it seems like I am being forced to register ... what if I already have
+# an account?" and "how do I go back a step?"): the welcome offers two equal paths, "Make my profile"
+# and "I already have a profile"; the profile step offers "Already have a profile? Sign in"; every
+# page after the welcome (but the done page) has Back. The welcome says what OGS is now (cast once,
+# the TV is the console) in the app's dusk palette.
 
 Feature: OGS App Onboarding
   As a first-time OGS user
@@ -12,28 +17,29 @@ Feature: OGS App Onboarding
     Given the OGS app is freshly installed
     And this device has no OGS profile
 
-  # --- Page 1: What is OGS ---
+  # --- Page 1: Welcome ---
 
-  Scenario: First launch shows onboarding page 1
+  Scenario: First launch shows the welcome with two equal paths
     When the user launches the app for the first time
     Then the onboarding screen is displayed
-    And the heading reads "Web games, supercharged"
-    And three feature pillars are shown: "Notifications", "TV Casting", "Native Feel"
-    And a "Next" button is displayed
+    And the heading reads "Your TV is the console"
+    And it says to cast once from this phone and play together on the big screen
+    And a "Make my profile" button is displayed
+    And an "I already have a profile" button is displayed, as a button the same size
     And a "Skip" link is displayed
-    And "I already have a profile — sign in" is displayed
+    And no "Back" is displayed
     And page dots show position 1 of 4
 
-  Scenario: Tapping Next advances to page 2
+  Scenario: Make my profile advances to page 2
     Given the user is on onboarding page 1
     And notification permission has not been asked yet
-    When the user taps "Next"
+    When the user taps "Make my profile"
     Then onboarding page 2 is displayed
     And page dots show position 2 of 4
 
   Scenario: Notifications already granted skip page 2
     Given notification permission is already granted
-    When the user taps "Next" on page 1
+    When the user taps "Make my profile" on page 1
     Then "Make your OGS profile" is displayed
 
   # --- Page 2: Notifications ---
@@ -131,8 +137,47 @@ Feature: OGS App Onboarding
 
   Scenario: Signing in to an existing profile skips making one
     Given the user is on onboarding page 1
-    When the user taps "I already have a profile — sign in" and signs in with a backed-up login
+    When the user taps "I already have a profile" and signs in with a backed-up login
     Then the Library is displayed with that profile
+
+  Scenario: The profile step offers Sign in too
+    Given the user is on "Make your OGS profile"
+    Then "Already have a profile? Sign in" is displayed without scrolling
+    When the user types a name
+    Then "Already have a profile? Sign in" is still above the keyboard
+    When the user taps it and signs in with a backed-up login
+    Then the Library is displayed with that profile
+
+  Scenario: A login no profile has offers Make a profile
+    When the user signs in from onboarding with a login no profile has
+    Then it says "No OGS profile has that login yet." with "Make a profile"
+    When the user taps "Make a profile"
+    Then onboarding is displayed
+
+  # --- Back ---
+
+  Scenario: Back returns a step and keeps what was typed
+    Given notification permission is already granted
+    And the user typed "Back Kid" and picked a sticker on "Make your OGS profile"
+    When the user taps "Back" (top left)
+    Then the welcome is displayed
+    When the user taps "Make my profile"
+    Then the name still reads "Back Kid" with the same @id and sticker
+
+  Scenario: Back from the profile step goes to page 2 when it was shown
+    Given notification permission has not been asked yet
+    And the user is on "Make your OGS profile"
+    When the user taps "Back"
+    Then onboarding page 2 is displayed
+
+  Scenario: No Back on the done page
+    Given the profile was just made
+    Then no "Back" is displayed (one profile per device: there is no making it again)
+
+  Scenario: Pages do not swipe
+    Given the user is on any onboarding page
+    When the user swipes sideways
+    Then the page does not change (a swipe forward would pass the profile step without a profile)
 
   Scenario: There is no family step
     When onboarding runs

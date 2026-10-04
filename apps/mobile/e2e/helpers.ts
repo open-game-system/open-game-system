@@ -92,7 +92,8 @@ export async function skipOnboarding(name = "Tester"): Promise<void> {
 
 /** Back up / sign in with email: address, then the code the local API's email binding sent. */
 export async function continueWithEmail(email: string): Promise<void> {
-  await waitFor(element(by.id("signInScreen")))
+  // The sheet's root is transparent (Detox's pixel check can't see it on an SE): its button can.
+  await waitFor(element(by.id("signInEmail")))
     .toBeVisible()
     .withTimeout(5000);
   await element(by.id("signInEmail")).tap();
@@ -123,4 +124,22 @@ export async function freshLaunchWithOnboardingDone(): Promise<void> {
  */
 export async function relaunchApp(): Promise<void> {
   await device.launchApp({ newInstance: true });
+}
+
+/**
+ * On a game's page, start a game: Play when it lists no sittings, else Start game. Cast already,
+ * so neither asks to cast first.
+ */
+export async function startFromGamePage(): Promise<void> {
+  await waitFor(element(by.id("gamePage")))
+    .toExist()
+    .withTimeout(5000);
+  try {
+    await waitFor(element(by.id("gamePlay")))
+      .toBeVisible()
+      .withTimeout(2000);
+    await element(by.id("gamePlay")).tap();
+  } catch {
+    await element(by.id("gameNew")).tap();
+  }
 }

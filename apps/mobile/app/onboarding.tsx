@@ -1,24 +1,35 @@
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SymbolView } from "expo-symbols";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  Keyboard,
   type ListRenderItemInfo,
-  Platform,
-  StatusBar as RNStatusBar,
+  Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   type ViewToken,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DoneStep } from "../components/ogs/onboarding/DoneStep";
+import { NotificationsStep } from "../components/ogs/onboarding/NotificationsStep";
 import { ProfileStep } from "../components/ogs/onboarding/ProfileStep";
-import { Sticker } from "../components/ogs/Sticker";
+import { WelcomeStep } from "../components/ogs/onboarding/WelcomeStep";
+import { colors, TARGET } from "../components/ogs/theme";
 import { markOnboardingComplete } from "../services/onboarding";
+import {
+  backFrom,
+  nextFrom,
+  ONBOARDING_PAGES,
+  showsBack,
+  showsSkip,
+  skipTo,
+} from "../services/onboarding-steps";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -29,118 +40,20 @@ type PageProps = {
   onBackUp: () => void;
 };
 
-type OnboardingPage = {
-  key: string;
-  index: number;
-  component: React.ComponentType<PageProps>;
+const PAGE_COMPONENTS: Record<(typeof ONBOARDING_PAGES)[number], React.ComponentType<PageProps>> = {
+  welcome: ({ onNext, onSignIn }) => <WelcomeStep onMakeProfile={onNext} onSignIn={onSignIn} />,
+  notifications: NotificationsStep,
+  profile: ProfileStep,
+  done: DoneStep,
 };
 
-// --- Page 1: What is OGS ---
-
-function Page1({ onSignIn }: PageProps) {
-  return (
-    <View style={styles.page}>
-      <View style={styles.heroArea}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>OGS</Text>
-        </View>
-        <View style={styles.pillarsRow}>
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLabel}>Notifications</Text>
-          </View>
-          <View style={styles.pillarDivider} />
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLabel}>TV Casting</Text>
-          </View>
-          <View style={styles.pillarDivider} />
-          <View style={styles.pillar}>
-            <Text style={styles.pillarLabel}>Native Feel</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.textArea}>
-        <Text style={styles.heading}>Web games, supercharged</Text>
-        <Text style={styles.body}>
-          OGS gives your favorite web games push notifications, TV casting, and a native app
-          experience.
-        </Text>
-      </View>
-      <TouchableOpacity
-        testID="onboardingSignInButton"
-        accessibilityRole="button"
-        style={styles.secondaryButton}
-        onPress={onSignIn}
-      >
-        <Text style={styles.secondaryButtonText}>I already have a profile — sign in</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// --- Page 2: Notifications ---
-
-function Page2({ onNext }: PageProps) {
-  const handleEnableNotifications = useCallback(async () => {
-    await Notifications.requestPermissionsAsync();
-    onNext();
-  }, [onNext]);
-
-  return (
-    <View style={styles.page}>
-      <View style={styles.heroArea}>
-        <View style={styles.iconContainer}>
-          <Sticker id="owl" size={72} />
-        </View>
-      </View>
-      <View style={styles.textArea}>
-        <Text style={styles.heading}>Stay in the game</Text>
-        <Text style={styles.body}>
-          Get notified when it's your turn, when friends invite you, or when a live game is about to
-          start.
-        </Text>
-      </View>
-      <View style={styles.benefitsList}>
-        <BenefitRow text="Turn alerts for board games" />
-        <BenefitRow text="Game invites from friends" />
-        <BenefitRow text="Live game countdowns" />
-      </View>
-      <View style={styles.actionArea}>
-        <TouchableOpacity
-          testID="onboardingEnableNotificationsButton"
-          style={styles.primaryButton}
-          onPress={handleEnableNotifications}
-        >
-          <Text style={styles.primaryButtonText}>Enable Notifications</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          testID="onboardingMaybeLaterButton"
-          style={styles.secondaryButton}
-          onPress={onNext}
-        >
-          <Text style={styles.secondaryButtonText}>Maybe Later</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function BenefitRow({ text }: { text: string }) {
-  return (
-    <View style={styles.benefitRow}>
-      <View style={styles.checkIcon}>
-        <Text style={styles.checkText}>✓</Text>
-      </View>
-      <Text style={styles.benefitText}>{text}</Text>
-    </View>
-  );
-}
-
-// --- Page Dots ---
+const PAGES = ONBOARDING_PAGES.map((key, index) => ({ key, index }));
+type OnboardingPage = (typeof PAGES)[number];
 
 function PageDots({ currentPage }: { currentPage: number }) {
   return (
     <View style={styles.dotsContainer}>
-      {PAGES.map((p) => p.index).map((i) => (
+      {PAGES.map(({ index: i }) => (
         <View
           key={i}
           testID={`pageDot-${i}-${i === currentPage ? "active" : "inactive"}`}
@@ -151,24 +64,14 @@ function PageDots({ currentPage }: { currentPage: number }) {
   );
 }
 
-// --- Main Onboarding Screen ---
-
-const PAGES: OnboardingPage[] = [
-  { key: "page1", index: 0, component: Page1 },
-  { key: "page2", index: 1, component: Page2 },
-  { key: "profile", index: 2, component: ProfileStep },
-  { key: "done", index: 3, component: DoneStep },
-];
-
-const PROFILE_PAGE = 2;
-
 export default function OnboardingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [notificationsAlreadyGranted, setNotificationsAlreadyGranted] = useState(false);
 
-  // Check if notifications are already granted on mount
+  // Whether notifications are already granted is a native query (an effect is the sync point).
   useEffect(() => {
     Notifications.getPermissionsAsync().then(({ status }) => {
       setNotificationsAlreadyGranted(status === "granted");
@@ -180,29 +83,26 @@ export default function OnboardingScreen() {
     router.replace("/");
   }, [router]);
 
-  const goToPage = useCallback(
-    (page: number) => {
-      // Skip notification page (index 1) if already granted
-      if (page === 1 && notificationsAlreadyGranted) {
-        page = 2;
-      }
-      if (page >= PAGES.length) {
-        handleComplete();
-        return;
-      }
-      flatListRef.current?.scrollToIndex({ index: page, animated: true });
+  const scrollTo = useCallback((index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+  }, []);
+
+  const goNext = useCallback(
+    (from: number) => {
+      const next = nextFrom(from, notificationsAlreadyGranted);
+      if (next === "finish") void handleComplete();
+      else scrollTo(next);
     },
-    [handleComplete, notificationsAlreadyGranted],
+    [handleComplete, notificationsAlreadyGranted, scrollTo],
   );
 
-  const handleNext = useCallback(() => {
-    goToPage(currentPage + 1);
-  }, [currentPage, goToPage]);
-
-  // Skip the intro, never the profile: every device needs one.
-  const handleSkip = useCallback(() => {
-    flatListRef.current?.scrollToIndex({ index: PROFILE_PAGE, animated: true });
-  }, []);
+  // Pages stay mounted: going back keeps what was typed (name, @id, sticker).
+  // The keyboard goes with the page it was typing on (it would cover the page Back returns to).
+  const handleBack = useCallback(() => {
+    Keyboard.dismiss();
+    scrollTo(backFrom(currentPage, notificationsAlreadyGranted));
+  }, [currentPage, notificationsAlreadyGranted, scrollTo]);
+  const handleSkip = useCallback(() => scrollTo(skipTo()), [scrollTo]);
   const handleSignIn = useCallback(() => {
     router.push({ pathname: "/sign-in", params: { mode: "signin" } });
   }, [router]);
@@ -216,18 +116,15 @@ export default function OnboardingScreen() {
     }
   }).current;
 
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const renderPage = useCallback(
     ({ item }: ListRenderItemInfo<OnboardingPage>) => {
-      const PageComponent = item.component;
-      const pageNext = () => goToPage(item.index + 1);
+      const PageComponent = PAGE_COMPONENTS[item.key];
       return (
         <View style={{ width: SCREEN_WIDTH }}>
           <PageComponent
-            onNext={pageNext}
+            onNext={() => goNext(item.index)}
             onDone={() => void handleComplete()}
             onSignIn={handleSignIn}
             onBackUp={handleBackUp}
@@ -235,29 +132,43 @@ export default function OnboardingScreen() {
         </View>
       );
     },
-    [goToPage, handleComplete, handleSignIn, handleBackUp],
+    [goNext, handleComplete, handleSignIn, handleBackUp],
   );
 
-  // Page 2 has its own action buttons, page 3 has its own
-  // Only show Next button on page 1
-  const showNextButton = currentPage === 0;
-
   return (
-    <View style={styles.container} testID="onboardingScreen">
+    <View style={[styles.container, { paddingTop: insets.top }]} testID="onboardingScreen">
       <StatusBar style="light" />
 
-      {/* Skip: past the intro to the profile step (hidden from there on) */}
-      <View style={styles.skipContainer}>
-        {currentPage < PROFILE_PAGE ? (
-          <TouchableOpacity testID="onboardingSkipButton" onPress={handleSkip}>
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
+      {/* Back (top left) on every page after the welcome; Skip (top right) past the intro. */}
+      <View style={styles.topBar}>
+        {showsBack(currentPage) ? (
+          <Pressable
+            testID="onboardingBack"
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={8}
+            onPress={handleBack}
+            style={({ pressed }) => [styles.topButton, pressed && styles.pressed]}
+          >
+            <SymbolView name="chevron.left" size={17} weight="semibold" tintColor={colors.cream} />
+            <Text style={styles.backText}>Back</Text>
+          </Pressable>
         ) : (
-          <Text style={styles.skipText}> </Text>
+          <View style={styles.topButton} />
         )}
+        {showsSkip(currentPage) ? (
+          <Pressable
+            testID="onboardingSkipButton"
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={handleSkip}
+            style={({ pressed }) => [styles.topButton, styles.skip, pressed && styles.pressed]}
+          >
+            <Text style={styles.skipText}>Skip</Text>
+          </Pressable>
+        ) : null}
       </View>
 
-      {/* Pages */}
       <FlatList
         ref={flatListRef}
         data={PAGES}
@@ -265,197 +176,51 @@ export default function OnboardingScreen() {
         keyExtractor={(item) => item.key}
         horizontal
         pagingEnabled
-        // Buttons move between pages: no swiping past the profile step without a profile.
+        // Buttons move between pages (Back, Next, Skip). No swiping: a swipe forward would pass the
+        // profile step without a profile.
         scrollEnabled={false}
         // The profile step's Next sits outside its own scroll view: with the keyboard up, a tap on
         // it must press it (the pager would otherwise swallow the tap to close the keyboard).
         keyboardShouldPersistTaps="handled"
+        // Every page stays mounted, so Back keeps what was typed.
+        windowSize={PAGES.length * 2 + 1}
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
         style={styles.pager}
       />
 
-      {/* Bottom area: dots + next button */}
-      <View style={styles.bottomArea}>
+      <View style={[styles.bottomArea, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
         <PageDots currentPage={currentPage} />
-        {showNextButton && (
-          <TouchableOpacity
-            testID="onboardingNextButton"
-            style={styles.primaryButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.primaryButtonText}>Next</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0A0A0F",
-    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
-  },
-  skipContainer: {
-    alignItems: "flex-end",
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-  },
-  skipText: {
-    fontFamily: "System",
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#8888A0",
-  },
-  pager: {
-    flex: 1,
-  },
-  page: {
-    flex: 1,
-    justifyContent: "center",
+  container: { flex: 1, backgroundColor: colors.dusk0 },
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 40,
+    paddingHorizontal: 12,
+    minHeight: TARGET,
   },
-  heroArea: {
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: "rgba(168, 85, 246, 0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#A855F6",
-  },
-  iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: "rgba(168, 85, 246, 0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconEmoji: {
-    fontSize: 32,
-  },
-  pillarsRow: {
+  topButton: {
+    minHeight: TARGET,
+    minWidth: TARGET,
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 24,
-    gap: 16,
+    gap: 4,
+    paddingHorizontal: 8,
   },
-  pillar: {
-    alignItems: "center",
-    gap: 6,
-  },
-  pillarLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: "#8888A0",
-  },
-  pillarDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: "#1C1C2E",
-  },
-  textArea: {
-    alignItems: "center",
-    gap: 12,
-  },
-  heading: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#E8E8ED",
-    textAlign: "center",
-    letterSpacing: -0.5,
-  },
-  body: {
-    fontSize: 15,
-    fontWeight: "400",
-    color: "#8888A0",
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  benefitsList: {
-    marginTop: 24,
-    gap: 16,
-    width: "100%",
-  },
-  benefitRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  checkIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "rgba(74, 222, 128, 0.1)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkText: {
-    fontSize: 16,
-    color: "#4ADE80",
-    fontWeight: "600",
-  },
-  benefitText: {
-    fontSize: 14,
-    color: "#E8E8ED",
-  },
-  actionArea: {
-    marginTop: 24,
-    width: "100%",
-    gap: 10,
-  },
-  primaryButton: {
-    backgroundColor: "#A855F6",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    width: "100%",
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  secondaryButton: {
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "#8888A0",
-    fontSize: 15,
-    fontWeight: "500",
-  },
-  bottomArea: {
-    alignItems: "center",
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    gap: 20,
-  },
-  dotsContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#8888A0",
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: "#A855F6",
-  },
+  pressed: { opacity: 0.6 },
+  backText: { color: colors.cream, fontSize: 17, fontWeight: "600" },
+  skip: { justifyContent: "flex-end" },
+  skipText: { color: colors.cream3, fontSize: 17, fontWeight: "600" },
+  pager: { flex: 1 },
+  bottomArea: { alignItems: "center", paddingTop: 12 },
+  dotsContainer: { flexDirection: "row", gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.dusk3 },
+  dotActive: { width: 24, backgroundColor: colors.peach },
 });

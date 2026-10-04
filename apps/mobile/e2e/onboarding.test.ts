@@ -28,14 +28,17 @@ describe("Onboarding: make your OGS profile", () => {
   beforeAll(freshInstall);
 
   it("makes a profile (@id from the name), backs it up with email, and shows it on Profile", async () => {
-    // Page 1: Next, Skip, and signing in to an existing profile.
-    await expect(element(by.text("Web games, supercharged"))).toBeVisible();
+    // The welcome: two equal paths (Make my profile, I already have a profile), and Skip. No Back.
+    await expect(element(by.text("Your TV is the console"))).toBeVisible();
+    await expect(element(by.id("onboardingMakeProfile"))).toBeVisible();
+    await expect(element(by.id("onboardingSignIn"))).toBeVisible();
     await expect(element(by.id("onboardingSkipButton"))).toBeVisible();
-    await expect(element(by.id("onboardingSignInButton"))).toBeVisible();
+    await expect(element(by.id("onboardingBack"))).not.toExist();
     await expect(element(by.id("pageDot-0-active"))).toExist();
 
-    // Notifications are pre-granted, so Next goes straight to the profile step. No family step.
-    await element(by.id("onboardingNextButton")).tap();
+    // Notifications are pre-granted, so Make my profile goes straight to the profile step. No
+    // family step.
+    await element(by.id("onboardingMakeProfile")).tap();
     await waitFor(element(by.text("Make your OGS profile")))
       .toBeVisible()
       .withTimeout(5000);
@@ -170,7 +173,7 @@ describe("Sign in on a new phone restores the profile", () => {
   beforeAll(freshInstall);
 
   it("I already have a profile → email → the same @id, name and sticker", async () => {
-    await element(by.id("onboardingSignInButton")).tap();
+    await element(by.id("onboardingSignIn")).tap();
     await continueWithEmail(email);
     await waitFor(element(by.id("libraryScreen")))
       .toExist()
@@ -183,11 +186,83 @@ describe("Sign in on a new phone restores the profile", () => {
   });
 });
 
+describe("Already have a profile? Sign in, from the profile step with the keyboard up", () => {
+  beforeAll(freshInstall);
+
+  it("profile step → type a name → Sign in (keyboard still up) → email → the same @id", async () => {
+    await element(by.id("onboardingSkipButton")).tap();
+    await waitFor(element(by.id("profileStep")))
+      .toBeVisible()
+      .withTimeout(10000);
+    // Visible without scrolling, before anything is typed.
+    await expect(element(by.id("profileStepSignIn"))).toBeVisible(100);
+    await element(by.id("profileNameInput")).typeText("Second Phone");
+    // The keyboard is up (the name field has it): Sign in is on screen above it, whole.
+    await expect(element(by.id("profileNameInput"))).toBeFocused();
+    await expect(element(by.id("profileStepSignIn"))).toBeVisible(100);
+    await element(by.id("profileStepSignIn")).tap();
+    await continueWithEmail(email);
+    await waitFor(element(by.id("libraryScreen")))
+      .toExist()
+      .withTimeout(10000);
+    await element(by.id("tabProfile")).tap();
+    await waitFor(element(by.id("profileHandle")))
+      .toHaveText(`@${handle}`)
+      .withTimeout(5000);
+    await expect(element(by.id("profileName"))).toHaveText("Jonathan Mumm");
+  });
+});
+
+describe("Back on onboarding returns a step and keeps what was typed", () => {
+  beforeAll(freshInstall);
+
+  it("profile step → Back → the welcome; Make my profile → the typed name is still there", async () => {
+    await element(by.id("onboardingSkipButton")).tap();
+    await waitFor(element(by.id("profileStep")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await element(by.id("profileNameInput")).typeText("Back Kid");
+    await waitFor(element(by.id("profileHandleStatus")))
+      .toHaveText("free")
+      .withTimeout(10000);
+    const typedHandle = await textOf("profileHandleInput");
+    await element(by.id("profileSticker-dragon")).tap();
+    // Back sits top left, standard iOS, on every page after the welcome.
+    await expect(element(by.id("onboardingBack"))).toBeVisible();
+    await element(by.id("onboardingBack")).tap();
+    // Notifications are pre-granted: Back passes over that page to the welcome.
+    await waitFor(element(by.id("onboardingMakeProfile")))
+      .toBeVisible()
+      .withTimeout(5000);
+    await expect(element(by.id("pageDot-0-active"))).toExist();
+    await expect(element(by.id("onboardingBack"))).not.toExist();
+    await element(by.id("onboardingMakeProfile")).tap();
+    await waitFor(element(by.id("profileStep")))
+      .toBeVisible()
+      .withTimeout(5000);
+    await expect(element(by.id("profileNameInput"))).toHaveText("Back Kid");
+    await expect(element(by.id("profileHandleInput"))).toHaveText(typedHandle);
+    await expect(element(by.id("profileSticker-dragon").and(by.traits(["selected"])))).toExist();
+    await element(by.id("profileNameInput")).tapReturnKey();
+    await waitFor(element(by.id("profileNext")))
+      .toBeVisible()
+      .whileElement(by.id("profileStep"))
+      .scroll(150, "down");
+    await element(by.id("profileNext")).tap();
+    await waitFor(element(by.id("profileDone")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Back");
+    // The profile is made: no Back from the done page (one profile per device).
+    await expect(element(by.id("onboardingBack"))).not.toExist();
+  });
+});
+
 describe("Signing in with a login no profile has", () => {
   beforeAll(freshInstall);
 
   it("offers to make a profile", async () => {
-    await element(by.id("onboardingSignInButton")).tap();
+    await element(by.id("onboardingSignIn")).tap();
     await continueWithEmail(uniqueEmail("nobody"));
     // The container is transparent (Detox's pixel check can't see it): its button can be seen.
     await waitFor(element(by.id("signInMakeProfile")))
