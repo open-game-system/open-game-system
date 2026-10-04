@@ -58,7 +58,17 @@ const styles = StyleSheet.create({
   stand: { width: 8, height: 1.5, marginTop: 2, backgroundColor: colors.cream3 },
   standOn: { backgroundColor: colors.ember },
   text: { flex: 1, color: colors.cream, fontSize: 16, fontWeight: "700" },
-  link: { color: colors.lamp, fontSize: 15, fontWeight: "800" },
+  link: {
+    color: colors.lamp,
+    fontSize: 14,
+    fontWeight: "800",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.hair,
+    overflow: "hidden",
+  },
   // Not cast, Cast to TV is a quiet way out; the card below holds the one primary action.
   linkQuiet: { color: colors.cream2 },
 });

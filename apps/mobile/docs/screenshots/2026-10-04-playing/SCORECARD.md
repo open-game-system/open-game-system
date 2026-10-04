@@ -36,3 +36,8 @@ Per round: both critics' scores, then the minimum per row.
 | 02 | product (Claude Opus) | 7 | 7 | 6 | 6 | 7 | 5 | 6 | 6 | 6 | 5 |
 | 02 | visual (Codex gpt-5.6-sol, medium) | 7 | 6 | 6 | 7 | 6 | 5 | 6 | 6 | 6 | 5 |
 | 02 | **min per row** | 7 | 6 | 6 | 6 | 6 | 5 | 6 | 6 | 6 | **5** |
+| 03 | product (Codex gpt-5.6-sol, medium)* | 6 | 5 | 4 | 6 | 6 | 4 | 6 | 5 | 5 | 4 |
+| 03 | visual (Claude Opus) | 7 | 7 | 7 | 6 | 6 | 5 | 5 | 6 | 6 | 5 |
+| 03 | **min per row** | 6 | 5 | 4 | 6 | 6 | 4 | 5 | 5 | 5 | **4** |
+
+\* Round 03's brief still said friends' Join cards were "not built"; the Codex critic graded the (real, slice 2) Nana card as an unbuilt feature (Primary, Edge, Job). Brief fixed for round 04.

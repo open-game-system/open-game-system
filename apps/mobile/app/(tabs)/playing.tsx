@@ -15,8 +15,10 @@ import { Screen, SectionTitle } from "../../components/ogs/Screen";
 import { colors, fonts } from "../../components/ogs/theme";
 import {
   asSitting,
+  groupNote,
   heroSitting,
   liveHeadline,
+  liveMeta,
   liveVerb,
   sharedLine,
   sittingRows,
@@ -61,7 +63,8 @@ export default function PlayingScreen() {
   const now = Date.now();
   const games = [...app.library, ...app.catalogue];
   const find = (appId: string) => games.find((g) => g.appId === appId);
-  const tvName = cast ? (castState.session?.deviceName ?? null) : null;
+  // The cast's device name, else the couch session's TV (kept across an app restart).
+  const tvName = cast ? (castState.session?.deviceName ?? app.session?.tvName ?? null) : null;
 
   const current = state?.current;
   const liveGame = current ? find(current.appId) : undefined;
@@ -73,7 +76,7 @@ export default function PlayingScreen() {
   const rows = sittingRows(items, find, now, cast, liveName);
   const offline = app.status === "offline";
   const sectionWhere = (group: Instance[]) =>
-    sharedLine(group.flatMap((i) => rows.get(i.instanceId)?.where ?? []));
+    groupNote(sharedLine(group.flatMap((i) => rows.get(i.instanceId)?.where ?? [])));
   const heroRow = hero ? rows.get(hero.instanceId) : undefined;
   const inProgress = live || items.some((i) => i.status !== "completed");
 
@@ -125,7 +128,8 @@ export default function PlayingScreen() {
             live
             sitting={null}
             headline={liveHeadline(current, now)}
-            meta={liveBy ? `${liveBy} started it` : null}
+            meta={liveMeta(liveBy)}
+            named={current.label !== ""}
             verb={liveVerb(liveBy)}
           />
         ) : hero && heroGame ? (
@@ -137,6 +141,7 @@ export default function PlayingScreen() {
             tag={heroRow?.where ?? ""}
             live={false}
             headline={heroRow?.headline ?? ""}
+            named={heroRow?.named ?? false}
             meta={
               [hero.status === "waiting" ? "Your turn" : "", heroRow?.meta ?? ""]
                 .filter(Boolean)

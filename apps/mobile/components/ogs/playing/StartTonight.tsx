@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { gameFacts, type Pick } from "../../../services/playing-home";
+import { gameFacts, groupNote, type Pick, sharedLine } from "../../../services/playing-home";
 import { Button } from "../Button";
 import { artUrl } from "../GameArt";
 import { artKit, shelfShape } from "../library/art-kit";
@@ -39,8 +39,7 @@ export function StartTonight({
   const covers = rest.filter((p): p is Pick => p !== null);
   const shape = shelfShape(covers.map((p) => p.game));
   // Said once above the row when every cover would repeat it.
-  const sharedWhy =
-    covers.length > 1 && covers.every((p) => p.why === covers[0].why) ? covers[0].why : null;
+  const sharedWhy = groupNote(sharedLine(covers.map((p) => p.why)));
   const openPage = (pick: Pick) =>
     router.push({ pathname: "/library/[appId]", params: { appId: pick.game.appId } });
   return (

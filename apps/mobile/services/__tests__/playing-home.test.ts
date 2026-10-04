@@ -2,8 +2,10 @@ import type { Instance, Manifest } from "@open-game-system/ogs-protocol";
 import {
   asSitting,
   gameFacts,
+  groupNote,
   heroSitting,
   liveHeadline,
+  liveMeta,
   liveVerb,
   sharedLine,
   sittingRow,
@@ -188,12 +190,15 @@ describe("a sitting's card in Playing", () => {
       playsOn: "tv",
       where: "Casts to the TV first",
       action: "Rejoin",
+      named: true,
     });
   });
 
   it("named by when it started when the game never said where you are, never a status word", () => {
     const row = sittingRow(inst("rocket-crew", { instanceId: minted }), rc, NOW);
     expect(row.headline).toBe(`Started ${clock(started)}`);
+    expect(row.named).toBe(false);
+    expect(sittingRow(inst("rocket-crew", { title: "Mission 6" }), rc, NOW).named).toBe(true);
     expect(row.headline).not.toMatch(/In progress/);
   });
 
@@ -220,6 +225,7 @@ describe("a sitting's card in Playing", () => {
       playsOn: "phone",
       where: "On this phone",
       action: "Rejoin",
+      named: true,
     });
   });
 
@@ -245,7 +251,8 @@ describe("a sitting's card in Playing", () => {
     expect(row.where).toBe("Pauses Rocket Crew");
     // Another sitting of the live game swaps sittings rather than games.
     const other = sittingRow(inst("rocket-crew"), game("rocket-crew"), NOW, true, "rocket crew");
-    expect(other.where).toBe("Pauses the game on the TV");
+    // Every TV sitting says the same thing, so its group can say it once.
+    expect(other.where).toBe("Pauses rocket crew");
     // A phone game doesn't touch the TV.
     const duel = sittingRow(inst("word-duel"), game("word-duel", "none"), NOW, true, "Rocket Crew");
     expect(duel.where).toBe("On this phone");
@@ -372,6 +379,26 @@ describe("a line every card in a group would repeat", () => {
     expect(sharedLine(["Casts to the TV first"])).toBeNull();
     expect(sharedLine(["On this phone", "Casts to the TV first"])).toBeNull();
     expect(sharedLine([])).toBeNull();
+  });
+});
+
+describe("a group's note about the TV", () => {
+  it("says once what Switch TV does", () => {
+    expect(groupNote("Pauses Rocket Crew")).toBe(
+      "Switching the TV pauses Rocket Crew for everyone",
+    );
+  });
+  it("other shared lines read as they are; none, nothing", () => {
+    expect(groupNote("Casts to the TV first")).toBe("Casts to the TV first");
+    expect(groupNote(null)).toBeNull();
+  });
+});
+
+describe("the live game's second line", () => {
+  it("who started it, once", () => {
+    expect(liveMeta("Mom")).toBe("Mom started it");
+    expect(liveMeta("You")).toBe("You started it");
+    expect(liveMeta(null)).toBeNull();
   });
 });
 

@@ -22,6 +22,7 @@ export function HeroSitting({
   meta,
   verb = "Rejoin",
   compact = false,
+  named = true,
   testID,
   buttonTestID,
 }: {
@@ -33,6 +34,8 @@ export function HeroSitting({
   meta: string | null;
   /** Rejoin your own game; Join one someone else started. */
   verb?: "Rejoin" | "Join";
+  /** The headline is the game's name for the sitting (set in the display face), not a time. */
+  named?: boolean;
   /** Shorter art, so the sittings below start above the fold (the live game keeps 16:9). */
   compact?: boolean;
   testID: string;
@@ -54,7 +57,7 @@ export function HeroSitting({
         <Text style={styles.eyebrow} numberOfLines={1}>
           {game.name}
         </Text>
-        <Text style={styles.headline} numberOfLines={2}>
+        <Text style={named ? styles.headline : styles.headlineTime} numberOfLines={2}>
           {headline}
         </Text>
         {meta ? <Text style={styles.meta}>{meta}</Text> : null}
@@ -88,6 +91,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   headline: { fontFamily: fonts.display, color: colors.cream, fontSize: 26, lineHeight: 30 },
+  headlineTime: { color: colors.cream, fontSize: 20, fontWeight: "700" },
   meta: { color: colors.cream3, fontSize: 15 },
   button: { marginTop: 12 },
   note: { color: colors.peach, fontSize: 14, marginTop: 6 },

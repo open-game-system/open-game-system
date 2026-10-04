@@ -83,18 +83,17 @@ export function SittingCard({
 }
 
 const styles = StyleSheet.create({
+  // Flat rows on the dusk page, split by hairlines: a list, not a stack of cards.
   card: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 10,
-    paddingRight: 12,
-    borderRadius: 18,
-    backgroundColor: colors.dusk1,
-    marginBottom: 10,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.hair,
   },
-  pressed: { backgroundColor: colors.dusk2 },
-  art: { width: 84, height: 84, borderRadius: 14, backgroundColor: colors.dusk2 },
+  pressed: { opacity: 0.7 },
+  art: { width: 76, height: 76, borderRadius: 16, backgroundColor: colors.dusk2 },
   text: { flex: 1, gap: 1 },
   eyebrow: {
     color: colors.lamp,

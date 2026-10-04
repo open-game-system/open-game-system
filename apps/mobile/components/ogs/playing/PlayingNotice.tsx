@@ -67,7 +67,8 @@ export function PlayingNotice({
 
 const styles = StyleSheet.create({
   loading: { paddingVertical: 80, alignItems: "center" },
-  box: { paddingTop: 8, gap: 12 },
+  // Low on the page, in thumb reach, rather than a line under the title and an empty screen.
+  box: { paddingTop: 160, gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 28, color: colors.cream },
   body: { color: colors.cream2, fontSize: 17, lineHeight: 24 },
   button: { marginTop: 8 },

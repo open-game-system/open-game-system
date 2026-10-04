@@ -99,6 +99,8 @@ export interface SittingRow {
   where: string;
   /** Rejoin, or Switch TV when it pauses the game live on the TV for everyone (asks first). */
   action: "Rejoin" | "Switch TV";
+  /** The headline is the game's own name for the sitting, not the time it started. */
+  named: boolean;
 }
 
 /** An instance as a sitting to rejoin (its id, resume point and URL). */
@@ -124,7 +126,7 @@ export function sittingRow(
   liveName: string | null = null,
 ): SittingRow {
   const { headline, detail } = sittingTitle(asSitting(item), item.appId, now);
-  return row(item, game, headline, detail, cast, liveName);
+  return row(item, game, headline, detail, cast, liveName, !!asSitting(item).label);
 }
 
 /** The live game's headline: its resume point, else when it started. */
@@ -149,8 +151,9 @@ const row = (
   meta: string,
   cast: boolean,
   liveName: string | null,
+  named: boolean,
 ): SittingRow => {
-  const where = whereItPlays(playsOn(game), cast, liveName, game?.name ?? item.appId);
+  const where = whereItPlays(playsOn(game), cast, liveName);
   return {
     name: game?.name ?? item.appId,
     headline,
@@ -158,6 +161,7 @@ const row = (
     playsOn: playsOn(game),
     where,
     action: where.startsWith("Pauses") ? "Switch TV" : "Rejoin",
+    named,
   };
 };
 
@@ -165,6 +169,17 @@ const row = (
 export function sharedLine(lines: string[]): string | null {
   return lines.length > 1 && lines.every((l) => l === lines[0]) ? lines[0] : null;
 }
+
+/** A group's shared line as a note under its title: what Switch TV does, said once. */
+export function groupNote(shared: string | null): string | null {
+  if (!shared) return null;
+  return shared.startsWith("Pauses ")
+    ? `Switching the TV pauses ${shared.slice("Pauses ".length)} for everyone`
+    : shared;
+}
+
+/** The live game's second line: who started it. */
+export const liveMeta = (who: string | null): string | null => (who ? `${who} started it` : null);
 
 /** The live game's button: Join a game someone else started, Rejoin your own (or unknown). */
 export const liveVerb = (startedBy: string | null): "Join" | "Rejoin" =>
@@ -185,18 +200,25 @@ export function sittingRows(
     mine.forEach((item, k) => {
       rows.set(
         item.instanceId,
-        row(item, find(appId), titles[k].headline, titles[k].detail, cast, liveName),
+        row(
+          item,
+          find(appId),
+          titles[k].headline,
+          titles[k].detail,
+          cast,
+          liveName,
+          !!asSitting(item).label && titles[k].headline === asSitting(item).label,
+        ),
       );
     });
   }
   return rows;
 }
 
-function whereItPlays(on: PlaysOn, cast: boolean, liveName: string | null, name: string): string {
+function whereItPlays(on: PlaysOn, cast: boolean, liveName: string | null): string {
   if (on === "phone" || (on === "either" && !cast)) return "On this phone";
   if (!cast) return "Casts to the TV first";
-  if (!liveName) return "On the TV";
-  return liveName === name ? "Pauses the game on the TV" : `Pauses ${liveName}`;
+  return liveName ? `Pauses ${liveName}` : "On the TV";
 }
 
 /** Who started the game live on the TV: a member's name, "You" for this phone, else null. */
