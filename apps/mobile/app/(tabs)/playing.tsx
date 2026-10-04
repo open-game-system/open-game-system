@@ -20,7 +20,7 @@ import {
 const TITLES: Record<SectionKind, string> = {
   yourTurn: "Your turn",
   tonight: "Tonight",
-  paused: "Paused",
+  paused: "In progress",
   waiting: "Waiting on them",
   finished: "Finished",
 };

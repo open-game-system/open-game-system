@@ -12,7 +12,7 @@ export function gameStatusLine(
 ): string {
   if (session?.current?.appId === game.appId) return "On the TV now";
   const paused = session?.suspended.find((g) => g.appId === game.appId);
-  if (paused) return paused.label ? `Paused · ${paused.label}` : "Paused";
+  if (paused) return paused.label ? `In progress · ${paused.label}` : "In progress";
   const newest = instances
     .filter((i) => i.appId === game.appId && isOpen(i, now, game.instanceTtlMs))
     .sort((a, b) => b.updatedAt - a.updatedAt)[0];
@@ -20,7 +20,7 @@ export function gameStatusLine(
   const label = newest.title || newest.detail;
   if (newest.status === "waiting" && newest.yourTurn)
     return label ? `Your turn · ${label}` : "Your turn";
-  return label || "Paused";
+  return label || "In progress";
 }
 
 /**

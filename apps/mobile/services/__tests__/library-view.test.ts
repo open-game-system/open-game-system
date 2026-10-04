@@ -90,18 +90,20 @@ describe("each Library game's status line", () => {
       suspended: [{ appId: "rocket-crew", instanceId: "x", label: "Mission 7", at: NOW }],
     });
     const instances = [inst("rocket-crew", { title: "Mission 6" })];
-    expect(gameStatusLine(game("rocket-crew"), instances, s, NOW)).toBe("Paused · Mission 7");
+    expect(gameStatusLine(game("rocket-crew"), instances, s, NOW)).toBe("In progress · Mission 7");
   });
 
-  it("a game paused on the TV with no resume point says Paused, not a dangling separator", () => {
+  it("a game paused on the TV with no resume point says In progress, not a dangling separator", () => {
     const s = session({
       suspended: [{ appId: "rocket-crew", instanceId: "x", label: "", at: NOW }],
     });
-    expect(gameStatusLine(game("rocket-crew"), [], s, NOW)).toBe("Paused");
+    expect(gameStatusLine(game("rocket-crew"), [], s, NOW)).toBe("In progress");
   });
 
-  it("a paused sitting without a title still says it's paused", () => {
-    expect(gameStatusLine(game("rocket-crew"), [inst("rocket-crew")], null, NOW)).toBe("Paused");
+  it("a paused sitting without a title still says it's in progress", () => {
+    expect(gameStatusLine(game("rocket-crew"), [inst("rocket-crew")], null, NOW)).toBe(
+      "In progress",
+    );
   });
 });
 
