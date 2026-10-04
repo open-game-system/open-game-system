@@ -4,13 +4,16 @@ import type { RemoteButton } from "../../../services/remote";
 import { colors } from "../theme";
 import { feel, IDS } from "./press";
 
-const KEY = 64;
+const KEY = 60;
 const META = {
   back: { label: "Back", symbol: "arrow.uturn.backward" },
-  home: { label: "Home", symbol: "house.fill" },
+  home: { label: "Home", symbol: "house" },
 } as const;
 
-/** Back / Home: round secondary keys with their name under them, like a real remote. */
+/**
+ * Back / Home: round keys flanking the pad, their name under them. Pressed, they light like the
+ * pad's quarters (lamp tint, lamp glyph) and sink a little.
+ */
 export function RoundKey({
   button,
   onPress,
@@ -39,7 +42,7 @@ export function RoundKey({
               style={styles.symbol}
             />
           </View>
-          <Text style={styles.label}>{meta.label}</Text>
+          <Text style={[styles.label, pressed && styles.labelOn]}>{meta.label}</Text>
         </>
       )}
     </Pressable>
@@ -47,18 +50,23 @@ export function RoundKey({
 }
 
 const styles = StyleSheet.create({
-  hit: { alignItems: "center", gap: 8, minWidth: 88 },
+  hit: { alignItems: "center", gap: 6, minWidth: 72 },
   key: {
     width: KEY,
     height: KEY,
     borderRadius: KEY / 2,
-    backgroundColor: colors.dusk2,
+    backgroundColor: colors.padFace,
     borderWidth: 1,
     borderColor: colors.padEdge,
     alignItems: "center",
     justifyContent: "center",
   },
-  keyOn: { backgroundColor: colors.dusk3, transform: [{ scale: 0.94 }] },
+  keyOn: {
+    backgroundColor: colors.keyLitSolid,
+    borderColor: colors.keyLitEdge,
+    transform: [{ scale: 0.94 }],
+  },
   symbol: { width: 24, height: 24 },
-  label: { color: colors.cream2, fontSize: 14, fontWeight: "600", letterSpacing: 0.2 },
+  label: { color: colors.cream2, fontSize: 13, fontWeight: "600", letterSpacing: 0.2 },
+  labelOn: { color: colors.lamp },
 });

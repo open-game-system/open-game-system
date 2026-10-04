@@ -4,20 +4,14 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, TARGET } from "../theme";
 import { feel, IDS } from "./press";
+import type { CastControls } from "./remote-view";
 
 /**
- * Stop casting: a quiet control in the header, away from the thumb's path over the d-pad. It asks
- * first in a sheet (the session keeps the game's place, so it's a soft stop, never a delete).
+ * The remote's end control, away from the thumb's path over the pad: the caster's "Stop casting"
+ * (in the header) or a joined phone's "Leave Mom's TV" (on the TV row). Both ask first in a sheet;
+ * the session keeps the game's place, so it's a soft stop, never a delete.
  */
-export function StopCasting({
-  tvName,
-  gameName,
-  onStop,
-}: {
-  tvName: string;
-  gameName: string | null;
-  onStop: () => void;
-}) {
+export function StopCasting({ end, onStop }: { end: CastControls["end"]; onStop: () => void }) {
   const [asking, setAsking] = useState(false);
   const insets = useSafeAreaInsets();
   return (
@@ -25,13 +19,19 @@ export function StopCasting({
       <Pressable
         testID={IDS.end}
         accessibilityRole="button"
-        accessibilityLabel="Stop casting"
+        accessibilityLabel={end.label}
         onPress={() => setAsking(true)}
         hitSlop={8}
         style={({ pressed }) => [styles.quiet, pressed && styles.quietOn]}
       >
-        <SymbolView name="stop.fill" size={11} tintColor={colors.cream2} style={styles.sym} />
-        <Text style={styles.quietText}>Stop casting</Text>
+        <SymbolView
+          name="stop.circle"
+          size={15}
+          weight="semibold"
+          tintColor={colors.cream2}
+          style={styles.sym}
+        />
+        <Text style={styles.quietText}>{end.label}</Text>
       </Pressable>
       <Modal
         visible={asking}
@@ -41,7 +41,7 @@ export function StopCasting({
       >
         <Pressable
           style={styles.scrim}
-          accessibilityLabel="Keep casting"
+          accessibilityLabel={end.keep}
           onPress={() => setAsking(false)}
         />
         <View
@@ -49,13 +49,16 @@ export function StopCasting({
           testID="remoteEndAsk"
         >
           <View style={styles.grab} />
-          <Text style={styles.title}>Stop casting?</Text>
-          <Text style={styles.body}>
-            {tvName} goes back to its own screen.{" "}
-            {gameName
-              ? `${gameName} keeps its place: cast again to pick it back up.`
-              : "Cast again any time from this tab."}
-          </Text>
+          <Text style={styles.title}>{end.title}</Text>
+          <Text style={styles.body}>{end.body}</Text>
+          <Pressable
+            testID="remoteEndCancel"
+            accessibilityRole="button"
+            onPress={() => setAsking(false)}
+            style={({ pressed }) => [styles.btn, styles.keep, pressed && styles.keepOn]}
+          >
+            <Text style={styles.keepText}>{end.keep}</Text>
+          </Pressable>
           <Pressable
             testID="remoteEndConfirm"
             accessibilityRole="button"
@@ -64,17 +67,9 @@ export function StopCasting({
               setAsking(false);
               onStop();
             }}
-            style={({ pressed }) => [styles.btn, styles.stop, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.btn, styles.stop, pressed && styles.stopOn]}
           >
-            <Text style={styles.stopText}>Stop casting</Text>
-          </Pressable>
-          <Pressable
-            testID="remoteEndCancel"
-            accessibilityRole="button"
-            onPress={() => setAsking(false)}
-            style={({ pressed }) => [styles.btn, styles.keep, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={styles.keepText}>Keep casting</Text>
+            <Text style={styles.stopText}>{end.confirm}</Text>
           </Pressable>
         </View>
       </Modal>
@@ -86,15 +81,15 @@ const styles = StyleSheet.create({
   quiet: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: 6,
     height: 34,
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     borderRadius: 17,
     borderWidth: 1,
     borderColor: colors.hair,
   },
   quietOn: { backgroundColor: colors.dusk2 },
-  sym: { width: 11, height: 11 },
+  sym: { width: 15, height: 15 },
   quietText: { color: colors.cream2, fontSize: 14, fontWeight: "600" },
   scrim: { flex: 1, backgroundColor: "rgba(10, 8, 20, 0.6)" },
   sheet: {
@@ -123,8 +118,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stop: { backgroundColor: colors.ember },
-  stopText: { color: colors.ink, fontSize: 17, fontWeight: "800" },
   keep: { backgroundColor: colors.dusk2 },
+  keepOn: { backgroundColor: colors.dusk3 },
   keepText: { color: colors.cream, fontSize: 17, fontWeight: "700" },
+  stop: { borderWidth: 1.5, borderColor: colors.ember },
+  stopOn: { backgroundColor: colors.emberGlow },
+  stopText: { color: colors.ember, fontSize: 17, fontWeight: "800" },
 });

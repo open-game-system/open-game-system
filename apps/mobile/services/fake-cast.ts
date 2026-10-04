@@ -11,21 +11,31 @@ import type { SessionManagerLike } from "./cast-sync";
 
 export const FAKE_TV: CastDevice = {
   id: "fake-living-room",
-  name: "Living room TV (simulated)",
+  name: "Living room TV",
   type: "chromecast",
 };
+
+/** A second TV (EXPO_PUBLIC_FAKE_CAST=2), found a moment after the first, as real discovery does. */
+export const FAKE_TV_2: CastDevice = {
+  id: "fake-bedroom",
+  name: "Bedroom TV",
+  type: "chromecast",
+};
+export const FAKE_TV_2_DELAY_MS = 1500;
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 type Message = Record<string, unknown> | string;
 type Handler<A extends unknown[]> = (...args: A) => void;
 
 export function createFakeCastBackend(opts: {
-  mode: "one" | "none";
+  mode: "one" | "two" | "none";
   loadUrl: string;
   fetch: FetchLike;
 }): CastBackend {
-  const devices = opts.mode === "one" ? [FAKE_TV] : [];
+  const devices =
+    opts.mode === "none" ? [] : opts.mode === "two" ? [FAKE_TV, FAKE_TV_2] : [FAKE_TV];
   let discovered: CastDevice[] = [];
+  let trickle: ReturnType<typeof setTimeout> | null = null;
   const deviceListeners = new Set<(d: CastDevice[]) => void>();
 
   type Session = ReturnType<typeof makeSession>;
@@ -92,8 +102,18 @@ export function createFakeCastBackend(opts: {
   return {
     sessionManager,
     startDiscovery() {
-      discovered = devices;
-      for (const l of deviceListeners) l(discovered);
+      const publish = (found: CastDevice[]) => {
+        discovered = found;
+        for (const l of deviceListeners) l(discovered);
+      };
+      if (trickle) clearTimeout(trickle);
+      trickle = null;
+      if (devices.length < 2) return publish(devices);
+      publish(devices.slice(0, 1));
+      trickle = setTimeout(() => {
+        trickle = null;
+        publish(devices);
+      }, FAKE_TV_2_DELAY_MS);
     },
     getDevices: () => discovered,
     subscribeDevices(listener) {

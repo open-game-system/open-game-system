@@ -140,18 +140,37 @@ Feature: Cast-first OGS app with games inside one stream
     When Jonathan presses right on the remote
     Then the focus ring on the TV moves to the next game
 
-  Scenario: The remote says what's on the TV and what OK will do
+  Scenario: The remote mirrors what's on the TV and says what OK will do
     Given the launcher is on the TV with Rocket Crew paused and focused
     When Jonathan opens the TV tab
-    Then the remote shows "Home" and "OK continues Rocket Crew"
+    Then the remote's "On the TV" card shows Rocket Crew's art and logo, "Paused just now" and "OK continues Rocket Crew"
     And it shows which TV is cast to and that he has the remote
+
+  Scenario: The remote keeps Surprise me a surprise
+    Given the launcher's focus is on the Surprise me card
+    Then the remote shows "Surprise me" with the kids' games and "OK picks a game for the kids", never the pick
 
   Scenario: Stop casting asks first
     Given the launcher is on the TV
     When Jonathan taps Stop casting on the remote
     Then he is asked to confirm, and the TV is still cast
     When he confirms
-    Then the session ends, the cast stops and the TV tab offers Cast again
+    Then the session ends, the cast stops and the TV tab says "Stopped casting on Living room TV"
+    And one tap on Cast again casts to "Living room TV"
+
+  Scenario: A phone that joined someone else's TV leaves it, never stops it
+    Given Jonathan joined Mom's "Den TV" with the code on the TV
+    When he opens the TV tab
+    Then the remote offers "Leave Mom's TV", not Stop casting, and no Change TV
+    When he taps it and confirms Leave
+    Then he leaves Mom's couch and Mom's TV keeps playing
+
+  Scenario: The TV picker searches, lists every TV, and says when there's no other
+    Given the launcher is on "Living room TV"
+    When Jonathan opens the TV picker
+    Then it shows "Living room TV" as casting now and "Looking for TVs…" while it searches
+    And "Bedroom TV" appears when it is found
+    And in a house with one TV it ends with "No other TVs nearby" and Look again
 
   Scenario: Move the evening to another TV
     Given the launcher is on "Living room TV" with Rocket Crew paused

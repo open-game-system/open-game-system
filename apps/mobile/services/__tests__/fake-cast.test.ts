@@ -5,11 +5,11 @@ jest.mock("react-native-google-cast", () => ({
 
 import { createCastStore } from "../cast-store";
 import { castCommands, startCastSync } from "../cast-sync";
-import { createFakeCastBackend, FAKE_TV } from "../fake-cast";
+import { createFakeCastBackend, FAKE_TV, FAKE_TV_2, FAKE_TV_2_DELAY_MS } from "../fake-cast";
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function setup(mode: "one" | "none" = "one") {
+function setup(mode: "one" | "two" | "none" = "one") {
   const posts: { url: string; body: unknown }[] = [];
   const fetchImpl = jest.fn(async (url: string, init?: RequestInit) => {
     posts.push({ url, body: JSON.parse(String(init?.body)) });
@@ -24,15 +24,62 @@ function setup(mode: "one" | "none" = "one") {
 }
 
 describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
-  it("=1 discovers one simulated living room TV", async () => {
+  it("=1 discovers one living room TV, named like a real one (owner: no '(simulated)')", async () => {
     const { backend } = setup();
     const seen = jest.fn();
     backend.subscribeDevices(seen);
     backend.startDiscovery();
     await flush();
     expect(backend.getDevices()).toEqual([FAKE_TV]);
-    expect(FAKE_TV.name).toBe("Living room TV (simulated)");
+    expect(FAKE_TV.name).toBe("Living room TV");
     expect(seen).toHaveBeenCalledWith([FAKE_TV]);
+  });
+
+  it("=2: the living room TV at once, a second TV a moment later (discovery trickles in)", () => {
+    jest.useFakeTimers();
+    try {
+      const { backend } = setup("two");
+      const seen = jest.fn();
+      backend.subscribeDevices(seen);
+      backend.startDiscovery();
+      expect(backend.getDevices()).toEqual([FAKE_TV]);
+      jest.advanceTimersByTime(FAKE_TV_2_DELAY_MS - 1);
+      expect(backend.getDevices()).toEqual([FAKE_TV]);
+      jest.advanceTimersByTime(1);
+      expect(backend.getDevices()).toEqual([FAKE_TV, FAKE_TV_2]);
+      expect(seen).toHaveBeenLastCalledWith([FAKE_TV, FAKE_TV_2]);
+      expect(FAKE_TV_2.name).toBe("Bedroom TV");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("=2: a new search starts over, so the second TV trickles in again", () => {
+    jest.useFakeTimers();
+    try {
+      const { backend } = setup("two");
+      backend.startDiscovery();
+      jest.advanceTimersByTime(FAKE_TV_2_DELAY_MS);
+      backend.startDiscovery();
+      expect(backend.getDevices()).toEqual([FAKE_TV]);
+      jest.advanceTimersByTime(FAKE_TV_2_DELAY_MS);
+      expect(backend.getDevices()).toEqual([FAKE_TV, FAKE_TV_2]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("=2: casting to the second TV names it in the session", async () => {
+    const { backend } = setup("two");
+    const store = createCastStore();
+    startCastSync(store, backend.sessionManager, castCommands(), "s");
+    await expect(backend.sessionManager.startSession(FAKE_TV_2.id)).resolves.toBe(true);
+    await flush();
+    await flush();
+    expect(store.getSnapshot().session).toMatchObject({
+      status: "connected",
+      deviceName: "Bedroom TV",
+    });
   });
 
   it("=none finds no TV at all", async () => {
@@ -54,7 +101,7 @@ describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
     await flush();
     expect(store.getSnapshot().session).toMatchObject({
       status: "connected",
-      deviceName: "Living room TV (simulated)",
+      deviceName: "Living room TV",
     });
     expect(posts).toEqual([
       { url: "http://fake.test/load", body: { viewUrl: "http://localhost:5180/?api=a&token=t" } },

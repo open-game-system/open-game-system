@@ -23,6 +23,12 @@ export const colors = {
   peachPressed: "#e8ad86",
   lampGlow: "rgba(255, 200, 97, 0.16)",
   emberGlow: "rgba(255, 122, 82, 0.28)",
+  // The remote, round 2: a flat clickpad face with seams; one lit style for every pressed key.
+  padFace: "#221c41",
+  padSeam: "rgba(251, 242, 228, 0.07)",
+  keyLit: "rgba(255, 200, 97, 0.2)",
+  keyLitSolid: "#4e3e47",
+  keyLitEdge: "rgba(255, 200, 97, 0.45)",
 } as const;
 
 export const fonts = {

@@ -4,14 +4,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CastDevice } from "../../../services/cast-store";
 import { colors, fonts, TARGET } from "../theme";
 
-/** A bottom sheet of the TVs in the room: the one you're casting to, and the others to switch to. */
+/**
+ * A bottom sheet of the TVs in the room: the one you're casting to, the others to switch to, a
+ * "Looking for TVs…" row while the search runs, and a plain empty state when it finds no other.
+ */
 export function TvPicker({
   visible,
   devices,
   currentId,
   switchingId,
   error,
+  searching,
   onPick,
+  onRescan,
   onClose,
 }: {
   visible: boolean;
@@ -19,10 +24,13 @@ export function TvPicker({
   currentId: string | null;
   switchingId: string | null;
   error: string | null;
+  searching: boolean;
   onPick: (device: CastDevice) => void;
+  onRescan: () => void;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const others = devices.filter((d) => d.id !== currentId).length;
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.scrim} accessibilityLabel="Close" onPress={onClose} />
@@ -92,11 +100,40 @@ export function TvPicker({
             </Pressable>
           );
         })}
+        {searching ? (
+          <View style={[styles.row, styles.looking]} testID="tvPickerLooking">
+            <View style={styles.icon}>
+              <ActivityIndicator color={colors.cream2} />
+            </View>
+            <Text style={styles.lookingText}>Looking for TVs…</Text>
+          </View>
+        ) : others === 0 ? (
+          <View style={styles.empty} testID="tvPickerEmpty">
+            <Text style={styles.emptyTitle}>No other TVs nearby</Text>
+            <Text style={styles.foot}>
+              A TV shows up here when it's on and on the same Wi-Fi as this phone.
+            </Text>
+            <Pressable
+              testID="tvPickerRescan"
+              accessibilityRole="button"
+              onPress={onRescan}
+              style={({ pressed }) => [styles.rescan, pressed && styles.rowPressed]}
+            >
+              <SymbolView
+                name="arrow.clockwise"
+                size={15}
+                weight="semibold"
+                tintColor={colors.cream}
+                style={styles.rescanSym}
+              />
+              <Text style={styles.rescanText}>Look again</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Text style={styles.foot}>
-          Don't see a TV? It needs to be on, and on the same Wi-Fi as this phone. The game on the TV
-          keeps its place when you switch.
-        </Text>
+        {others > 0 ? (
+          <Text style={styles.foot}>The game on the TV keeps its place when you switch.</Text>
+        ) : null}
       </View>
     </Modal>
   );
@@ -154,4 +191,26 @@ const styles = StyleSheet.create({
   check: { width: 24, height: 24 },
   error: { color: colors.peach, fontSize: 15 },
   foot: { color: colors.cream3, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  looking: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.hair,
+    borderStyle: "dashed",
+  },
+  lookingText: { color: colors.cream2, fontSize: 16, fontWeight: "600" },
+  empty: { paddingTop: 6, gap: 4 },
+  emptyTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },
+  rescan: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: TARGET,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 22,
+    backgroundColor: colors.dusk2,
+  },
+  rescanSym: { width: 15, height: 15 },
+  rescanText: { color: colors.cream, fontSize: 15, fontWeight: "700" },
 });

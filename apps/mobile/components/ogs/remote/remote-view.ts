@@ -94,3 +94,56 @@ export function nowLine(onTv: OnTv): string {
       return onTv.detail ?? "Playing now";
   }
 }
+
+export interface CastControls {
+  role: "host" | "member";
+  tvName: string;
+  /** Only the caster moves the cast to another TV. */
+  changeTv: boolean;
+  /** The remote's end control and its confirm sheet. */
+  end: { label: string; title: string; body: string; confirm: string; keep: string };
+}
+
+/**
+ * The caster stops casting (with a confirm); a phone that joined someone else's cast (a friend's
+ * Join, the TV's code) only leaves that couch: "Leave Mom's TV", and no Change TV.
+ */
+export function castControls(input: {
+  session: { role: "host" | "member"; tvName: string; host: { name: string } } | null;
+  castDeviceName: string | null;
+  gameName: string | null;
+}): CastControls {
+  const { session, castDeviceName, gameName } = input;
+  if (session?.role === "member") {
+    const host = session.host.name;
+    return {
+      role: "member",
+      tvName: session.tvName,
+      changeTv: false,
+      end: {
+        label: `Leave ${host}'s TV`,
+        title: `Leave ${host}'s TV?`,
+        body: `The TV keeps playing for everyone on ${host}'s couch. To come back, type the code on the TV.`,
+        confirm: "Leave",
+        keep: "Stay",
+      },
+    };
+  }
+  const tvName = castDeviceName ?? session?.tvName ?? "the TV";
+  return {
+    role: "host",
+    tvName,
+    changeTv: true,
+    end: {
+      label: "Stop casting",
+      title: "Stop casting?",
+      body: `${tvName} goes back to its own screen. ${
+        gameName
+          ? `${gameName} keeps its place: cast again to pick it back up.`
+          : "Cast again any time from this tab."
+      }`,
+      confirm: "Stop casting",
+      keep: "Keep casting",
+    },
+  };
+}

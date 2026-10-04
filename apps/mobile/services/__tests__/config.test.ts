@@ -30,6 +30,10 @@ describe("app config from EXPO_PUBLIC_* env", () => {
     expect(readConfig({ EXPO_PUBLIC_FAKE_CAST: "none" }).fakeCast).toBe("none");
   });
 
+  it("EXPO_PUBLIC_FAKE_CAST=2 simulates a house with two TVs", () => {
+    expect(readConfig({ EXPO_PUBLIC_FAKE_CAST: "2" }).fakeCast).toBe("two");
+  });
+
   it("any other EXPO_PUBLIC_FAKE_CAST value keeps real Google Cast", () => {
     expect(readConfig({ EXPO_PUBLIC_FAKE_CAST: "0" }).fakeCast).toBe("off");
   });

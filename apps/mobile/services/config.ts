@@ -1,10 +1,10 @@
 /** Where the app finds OGS (API, TV launcher) and which cast backend it uses. */
-export type FakeCastMode = "off" | "one" | "none";
+export type FakeCastMode = "off" | "one" | "two" | "none";
 
 export interface AppConfig {
   apiBase: string;
   tvBase: string;
-  /** off = real Google Cast; one = a simulated "Living room TV"; none = no TV found. */
+  /** off = real Google Cast; one = a simulated "Living room TV"; two = and a "Bedroom TV"; none = no TV found. */
   fakeCast: FakeCastMode;
   /** Where the fake Chromecast (a Playwright browser) takes { viewUrl }. */
   fakeCastUrl: string;
@@ -16,6 +16,7 @@ const trim = (url: string) => url.replace(/\/+$/, "");
 
 function fakeCastMode(value: string | undefined): FakeCastMode {
   if (value === "1") return "one";
+  if (value === "2") return "two";
   if (value === "none") return "none";
   return "off";
 }

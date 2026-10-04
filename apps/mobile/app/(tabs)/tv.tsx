@@ -1,14 +1,23 @@
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../components/ogs/Button";
 import { ErrorLine } from "../../components/ogs/ErrorLine";
-import { RemotePad } from "../../components/ogs/RemotePad";
+import { padSize, RemotePad } from "../../components/ogs/RemotePad";
 import { JoinTv } from "../../components/ogs/remote/JoinTv";
+import { castTarget, lastStop } from "../../components/ogs/remote/last-stop";
 import { HolderLine, NowOnTv } from "../../components/ogs/remote/NowOnTv";
-import { type OnTv, pickerDevices, remoteView } from "../../components/ogs/remote/remote-view";
+import {
+  castControls,
+  type OnTv,
+  pickerDevices,
+  remoteView,
+} from "../../components/ogs/remote/remote-view";
 import { StopCasting } from "../../components/ogs/remote/StopCasting";
 import { TvPicker } from "../../components/ogs/remote/TvPicker";
+import { tvMirror } from "../../components/ogs/remote/tv-mirror";
 import { Screen } from "../../components/ogs/Screen";
 import { colors, fonts, TARGET } from "../../components/ogs/theme";
 import type { CastDevice } from "../../services/cast-store";
@@ -29,6 +38,8 @@ import {
 import { type UserMessage, userMessage } from "../../services/user-message";
 
 const SEARCH_MS = 4000;
+/** How long the TV picker shows "Looking for TVs…" after it opens. */
+const SCAN_MS = 4000;
 
 const useDevices = () =>
   useSyncExternalStore(
@@ -44,35 +55,64 @@ const useDevices = () =>
 export default function TvScreen() {
   const cast = useOgsCast();
   const castState = useCast();
-  if (cast) return <Remote tvName={castState.session.deviceName ?? "the TV"} />;
+  if (cast) return <Remote castDeviceName={castState.session.deviceName} />;
   return <NotCast connecting={castState.session.status === "connecting"} />;
 }
 
-function Remote({ tvName }: { tvName: string }) {
+/** The pad area's room for the holder line above the pad. */
+const HOLDER_ROOM = 58;
+
+function Remote({ castDeviceName }: { castDeviceName: string | null }) {
+  const insets = useSafeAreaInsets();
   const couch = useCouch();
   const app = useApp();
   const castState = useCast();
   const found = useDevices();
   const [picking, setPicking] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
+  const [room, setRoom] = useState(0);
   const view = remoteView({
     state: couch.state,
     library: app.library,
     myDeviceId: deviceId(),
   });
+  const mirror = tvMirror({ state: couch.state, library: app.library, now: Date.now() });
+  const controls = castControls({
+    session: app.session,
+    castDeviceName,
+    gameName: view.onTv.kind === "game" ? view.onTv.name : pausedName(view.onTv),
+  });
+  const tvName = controls.tvName;
   const currentId = castState.session.deviceId;
   const devices = pickerDevices(found, currentId ? { id: currentId, name: tvName } : null);
 
-  const member = app.session?.role === "member";
+  // Back on the remote: the "Stopped casting" note on the Cast screen is old news.
+  useEffect(() => lastStop.clear(), []);
+  // The picker's search runs for a few seconds after it opens (a timer: legitimate effect).
+  useEffect(() => {
+    if (!searching) return;
+    const t = setTimeout(() => setSearching(false), SCAN_MS);
+    return () => clearTimeout(t);
+  }, [searching]);
+
   const press = (button: Parameters<typeof remotePress>[0]) => {
     const { messages, stopCast } = remotePress(button, deviceId());
     // A device that joined leaves the couch; only the caster stops the cast.
-    if (stopCast) void (member ? appState.leaveSession() : endTonight());
-    else for (const m of messages) couchHub.send(m);
+    if (!stopCast) for (const m of messages) couchHub.send(m);
+    else if (controls.role === "member") void appState.leaveSession();
+    else {
+      if (currentId) lastStop.stopped({ id: currentId, name: tvName });
+      void endTonight();
+    }
+  };
+  const search = () => {
+    castBackend.startDiscovery();
+    setSearching(true);
   };
   const openPicker = () => {
-    castBackend.startDiscovery();
+    search();
     setPickError(null);
     setPicking(true);
   };
@@ -89,23 +129,28 @@ function Remote({ tvName }: { tvName: string }) {
       setSwitchingId(null);
     }
   };
+  const end = <StopCasting end={controls.end} onStop={() => press("end")} />;
 
   return (
-    <Screen
-      title="TV"
-      testID="tvRemote"
-      right={
-        <StopCasting
-          tvName={tvName}
-          gameName={view.onTv.kind === "game" ? view.onTv.name : pausedName(view.onTv)}
-          onStop={() => press("end")}
-        />
-      }
-    >
-      <NowOnTv onTv={view.onTv} tvName={tvName} onChangeTv={openPicker} />
-      <View style={styles.padArea}>
+    <View style={[styles.root, { paddingTop: insets.top + 12 }]} testID="tvRemote">
+      <StatusBar style="light" />
+      <View style={styles.header}>
+        <Text style={styles.title} accessibilityRole="header">
+          TV
+        </Text>
+        {controls.changeTv ? end : null}
+      </View>
+      <NowOnTv
+        mirror={mirror}
+        library={app.library}
+        tvName={tvName}
+        changeTv={controls.changeTv}
+        onChangeTv={openPicker}
+        rowEnd={controls.changeTv ? null : end}
+      />
+      <View style={styles.padArea} onLayout={(e) => setRoom(e.nativeEvent.layout.height)}>
         <HolderLine holder={view.holder} />
-        <RemotePad onPress={press} />
+        <RemotePad size={padSize(room - HOLDER_ROOM)} onPress={press} />
       </View>
       <TvPicker
         visible={picking}
@@ -113,10 +158,12 @@ function Remote({ tvName }: { tvName: string }) {
         currentId={currentId}
         switchingId={switchingId}
         error={pickError}
+        searching={searching}
         onPick={(tv) => void pick(tv)}
+        onRescan={search}
         onClose={() => setPicking(false)}
       />
-    </Screen>
+    </View>
   );
 }
 
@@ -129,6 +176,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
   const [picked, setPicked] = useState<CastDevice | null>(null);
   const [error, setError] = useState<UserMessage | null>(null);
   const session = useApp().session;
+  const stopped = useSyncExternalStore(lastStop.subscribe, lastStop.get, lastStop.get);
 
   useEffect(() => {
     castBackend.startDiscovery();
@@ -145,7 +193,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
     return () => clearTimeout(t);
   }, [phase, devices.length]);
 
-  const tv = picked ?? devices[0] ?? null;
+  const tv = castTarget(devices, picked, stopped);
 
   const onCast = async () => {
     setError(null);
@@ -206,14 +254,23 @@ function NotCast({ connecting }: { connecting: boolean }) {
 
   return (
     <Screen title="TV" testID="tvNotCast">
-      <Text style={styles.lead}>
-        Cast once and the TV becomes your game console for the evening.
-      </Text>
+      {stopped ? (
+        <View testID="castStopped">
+          <Text style={styles.headline}>Stopped casting on {stopped.name}</Text>
+          <Text style={styles.lead}>
+            Your games keep their place. Cast again to pick them back up.
+          </Text>
+        </View>
+      ) : (
+        <Text style={styles.lead}>
+          Cast once and the TV becomes your game console for the evening.
+        </Text>
+      )}
       <View style={styles.center}>
         <Pressable
           testID="castButton"
           accessibilityRole="button"
-          accessibilityLabel={tv ? `Cast to ${tv.name}` : "Cast"}
+          accessibilityLabel={tv ? `${stopped ? "Cast again" : "Cast"} to ${tv.name}` : "Cast"}
           disabled={connecting || phase === "searching"}
           onPress={() => void onCast()}
           style={({ pressed }) => [styles.cast, pressed && { opacity: 0.85 }]}
@@ -221,7 +278,9 @@ function NotCast({ connecting }: { connecting: boolean }) {
           {connecting || phase === "searching" ? (
             <ActivityIndicator color={colors.ink} size="large" />
           ) : (
-            <Text style={styles.castText}>Cast</Text>
+            <Text style={[styles.castText, stopped && styles.castAgain]}>
+              {stopped ? "Cast again" : "Cast"}
+            </Text>
           )}
         </Pressable>
         <Text style={styles.tvName} testID="castTarget">
@@ -277,8 +336,24 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   castText: { fontFamily: fonts.display, fontSize: 40, color: colors.ink },
+  castAgain: { fontSize: 30, textAlign: "center" },
+  root: { flex: 1, backgroundColor: colors.dusk0, paddingHorizontal: 20 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
+    minHeight: 44,
+  },
+  title: { fontFamily: fonts.display, fontSize: 34, color: colors.cream },
   tvName: { color: colors.cream, fontSize: 18, fontWeight: "700" },
-  padArea: { alignItems: "center", marginTop: 18, marginBottom: 10, gap: 6 },
+  padArea: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 12,
+    paddingBottom: 10,
+  },
   cause: { backgroundColor: colors.dusk1, borderRadius: 16, padding: 14, marginTop: 10 },
   causeTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },
   causeBody: { color: colors.cream3, fontSize: 15, marginTop: 4, lineHeight: 21 },
