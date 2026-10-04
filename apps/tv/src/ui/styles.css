@@ -650,6 +650,11 @@ figure {
   }
 }
 
+/* On home and the game page the chip sits under the clock instead of over it. */
+.launcher:not([data-screen="game"]) .connection-chip {
+  top: 150px;
+}
+
 /* ---------- assembling (connecting) ---------- */
 .assembling-hero {
   position: absolute;

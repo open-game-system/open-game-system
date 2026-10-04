@@ -35,7 +35,7 @@ export function GamePage(props: {
           {paused && <span className="action">New game</span>}
         </div>
         <p className="page-hint">
-          {props.remoteHolder ? `OK on ${props.remoteHolder}'s phone to start` : "OK to start"}
+          {props.remoteHolder ? `Press OK on ${props.remoteHolder}'s phone` : "Press OK on the phone"}
         </p>
       </div>
       <div className="page-players">

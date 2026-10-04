@@ -66,6 +66,18 @@ describe("TV launcher (fake session)", () => {
     await expectTvRules();
   });
 
+  it("opens a paused box on select: Continue at its resume point, New, who's here", async () => {
+    await expect.poll(focused).toBe("game:bake-shop");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await page.getByTestId("game-page").waitFor();
+    expect(await page.getByTestId("action-continue").textContent()).toBe("Continue Day 4");
+    expect(await page.getByTestId("game-page").textContent()).toContain("New game");
+    await shot(page, "03b-game-page-paused");
+    await expectTvRules();
+    await send(page, { type: "back" });
+    await page.getByTestId("game-page").waitFor({ state: "detached" });
+  });
+
   it("moves the ring on focus.move, through the session", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
     await send(page, { type: "focus.move", dir: "right" });
