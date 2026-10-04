@@ -20,9 +20,20 @@ export default defineConfig({
     setupFiles: ["./test/integration/setup.ts"],
   },
   resolve: {
-    alias: {
-      "cloudflare:workers": path.resolve(__dirname, "test/__mocks__/cloudflare-workers.ts"),
-      "cloudflare:test": path.resolve(__dirname, "test/node/cloudflare-test.ts"),
-    },
+    alias: [
+      {
+        find: "cloudflare:workers",
+        replacement: path.resolve(__dirname, "test/__mocks__/cloudflare-workers.ts"),
+      },
+      {
+        find: "cloudflare:test",
+        replacement: path.resolve(__dirname, "test/node/cloudflare-test.ts"),
+      },
+      // The unit tests' wrangler-proxy D1 starts workerd per file: node:sqlite here (same SQL).
+      {
+        find: /^\.\/support\/d1$/,
+        replacement: path.resolve(__dirname, "test/node/support-d1.ts"),
+      },
+    ],
   },
 });
