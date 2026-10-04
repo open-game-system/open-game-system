@@ -127,6 +127,47 @@ describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
     await expect(backend.sessionManager.getCurrentCastSession()).resolves.toBeNull();
   });
 
+  it("ending the session stops the fake Chromecast (POST /stop on its origin), like a real receiver closing", async () => {
+    const calls: { url: string; method: string | undefined }[] = [];
+    const backend = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "http://fake.test:5181/load",
+      fetch: async (url, init) => {
+        calls.push({ url, method: init?.method });
+        return new Response("{}");
+      },
+    });
+    const ended = jest.fn();
+    backend.sessionManager.onSessionEnded(ended);
+    await backend.sessionManager.startSession(FAKE_TV.id);
+    await backend.sessionManager.endCurrentSession(true);
+    expect(calls).toEqual([{ url: "http://fake.test:5181/stop", method: "POST" }]);
+    expect(ended).toHaveBeenCalledTimes(1);
+    // Ending again (no session) posts nothing more.
+    await backend.sessionManager.endCurrentSession(true);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("a stop the fake Chromecast can't take is logged, and the session still ends", async () => {
+    const err = new TypeError("offline");
+    const backend = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "http://fake.test/load",
+      fetch: async () => {
+        throw err;
+      },
+    });
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const ended = jest.fn();
+    backend.sessionManager.onSessionEnded(ended);
+    await backend.sessionManager.startSession(FAKE_TV.id);
+    await expect(backend.sessionManager.endCurrentSession(true)).resolves.toBeUndefined();
+    expect(ended).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith("[fake-cast] the fake Chromecast did not stop:", err);
+    await expect(backend.sessionManager.getCurrentCastSession()).resolves.toBeNull();
+    warn.mockRestore();
+  });
+
   it("a load the fake Chromecast can't take is logged, not thrown", async () => {
     const backend = createFakeCastBackend({
       mode: "one",

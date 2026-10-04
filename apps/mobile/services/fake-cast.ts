@@ -6,7 +6,8 @@ import type { SessionManagerLike } from "./cast-sync";
  * A Google Cast stand-in for the iOS simulator (EXPO_PUBLIC_FAKE_CAST). It sits behind the same
  * interfaces as the real one (SessionManagerLike, ViewChannelSession), so cast-sync, the TV tab
  * and the game screen run unchanged. The "receiver" is the fake Chromecast the main loop runs:
- * LOAD_VIEW becomes POST { viewUrl } to its control URL, where a browser opens the launcher.
+ * LOAD_VIEW becomes POST { viewUrl } to its control URL, where a browser opens the launcher;
+ * ending the session becomes POST /stop on the same origin, which closes it.
  */
 
 export const FAKE_TV: CastDevice = {
@@ -89,6 +90,12 @@ export function createFakeCastBackend(opts: {
     async endCurrentSession() {
       if (!current) return;
       current = null;
+      // A real receiver closes when the sender stops casting: the fake Chromecast closes its TV page.
+      try {
+        await opts.fetch(new URL("/stop", opts.loadUrl).href, { method: "POST" });
+      } catch (err) {
+        console.warn("[fake-cast] the fake Chromecast did not stop:", err);
+      }
       for (const h of handlers.ended) h();
     },
     onSessionStarting: (fn) => on(handlers.starting, fn),
