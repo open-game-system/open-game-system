@@ -132,6 +132,29 @@ describe("cast-api", () => {
     });
   });
 
+  describe("failures OGS doesn't explain", () => {
+    const unexplained = (status: number) =>
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status,
+        json: () => Promise.resolve({ oops: true }),
+      });
+
+    it("creating says which status it got", async () => {
+      unexplained(503);
+      await expect(createCastSession(API_URL, API_KEY, "cc-1", "https://g/")).rejects.toThrow(
+        "Cast session creation failed with status 503",
+      );
+    });
+
+    it("deleting says which status it got", async () => {
+      unexplained(500);
+      await expect(deleteCastSession(API_URL, API_KEY, "s1")).rejects.toThrow(
+        "Cast session deletion failed with status 500",
+      );
+    });
+  });
+
   describe("pushCastStateUpdate", () => {
     it("completes successfully", async () => {
       mockFetch.mockResolvedValueOnce({

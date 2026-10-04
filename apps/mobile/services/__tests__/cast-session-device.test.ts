@@ -30,3 +30,15 @@ describe("sessionConnectedEvent", () => {
     });
   });
 });
+
+describe("the whole SESSION_CONNECTED event", () => {
+  it("carries the fixed session id and no stream yet", () => {
+    expect(sessionConnectedEvent({ deviceId: "cc-1", friendlyName: "Den" }, [])).toEqual({
+      type: "SESSION_CONNECTED",
+      deviceId: "cc-1",
+      deviceName: "Den",
+      sessionId: "cast-session",
+      streamSessionId: "",
+    });
+  });
+});

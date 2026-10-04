@@ -1,0 +1,236 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`catalogue content > is exactly the five games as published 1`] = `
+[
+  {
+    "appId": "rocket-crew",
+    "art": {
+      "cover": "/art/rocket-crew/cover.jpg",
+      "hero": "/art/rocket-crew/tv.jpg",
+      "heroClean": "/art/rocket-crew/hero-clean.jpg",
+      "icon": "/art/rocket-crew/icon.png",
+      "logo": "/art/rocket-crew/logo.png",
+      "safe": {
+        "ox": 50,
+        "oy": 100,
+        "scale": 1.17,
+      },
+      "tile": "/art/rocket-crew/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Rocket Crew",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "captain",
+        "label": "Captain",
+      },
+      {
+        "audience": "kid",
+        "id": "fixer",
+        "label": "Fixer",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "4+",
+      "minutes": [
+        10,
+        20,
+      ],
+      "players": "2",
+    },
+    "startUrl": "https://rocket-crew.jonathanrmumm.workers.dev/",
+    "tagline": "Fly the rocket together: the Captain reads, the Fixer presses.",
+    "tv": "required",
+  },
+  {
+    "appId": "bake-shop",
+    "art": {
+      "cover": "/art/bake-shop/cover.jpg",
+      "hero": "/art/bake-shop/alt.jpg",
+      "heroClean": "/art/bake-shop/hero-clean.jpg",
+      "icon": "/art/bake-shop/icon.png",
+      "logo": "/art/bake-shop/logo.png",
+      "safe": {
+        "ox": 28,
+        "oy": 100,
+        "scale": 1.15,
+      },
+      "tile": "/art/bake-shop/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Bake Shop",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "grownup",
+        "label": "Grown-up",
+      },
+      {
+        "audience": "kid",
+        "id": "baker",
+        "label": "Baker",
+      },
+      {
+        "audience": "little",
+        "id": "sprinkler",
+        "label": "Sprinkler",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "2+",
+      "minutes": [
+        10,
+        25,
+      ],
+      "players": "2-4",
+    },
+    "startUrl": "https://bake-shop.jonathanrmumm.workers.dev/",
+    "tagline": "Animal customers, picture orders, a sprinkle of chaos.",
+    "tv": "required",
+  },
+  {
+    "appId": "story-nook",
+    "art": {
+      "cover": "/art/story-nook/cover.jpg",
+      "hero": "/art/story-nook/journey.jpg",
+      "heroClean": "/art/story-nook/hero-clean.jpg",
+      "icon": "/art/story-nook/icon.png",
+      "logo": "/art/story-nook/logo.png",
+      "safe": {
+        "ox": 50,
+        "oy": 60,
+        "scale": 1.04,
+      },
+      "tile": "/art/story-nook/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Story Nook",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "grownup",
+        "label": "Reader",
+      },
+      {
+        "audience": "kid",
+        "id": "kid",
+        "label": "Kid",
+      },
+      {
+        "audience": "little",
+        "id": "little",
+        "label": "Little one",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "2+",
+      "minutes": [
+        10,
+        20,
+      ],
+      "players": "2-4",
+    },
+    "startUrl": "https://story-nook.jonathanrmumm.workers.dev/",
+    "tagline": "A bedtime pop-up storybook you read together.",
+    "tv": "required",
+  },
+  {
+    "appId": "peekaboo-garden",
+    "art": {
+      "cover": "/art/peekaboo-garden/cover.jpg",
+      "hero": "/art/peekaboo-garden/tv.jpg",
+      "heroClean": "/art/peekaboo-garden/hero-clean.jpg",
+      "icon": "/art/peekaboo-garden/icon.png",
+      "logo": "/art/peekaboo-garden/logo.png",
+      "safe": {
+        "ox": 50,
+        "oy": 100,
+        "scale": 1.13,
+      },
+      "tile": "/art/peekaboo-garden/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Peekaboo Garden",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "grownup",
+        "label": "Clue keeper",
+      },
+      {
+        "audience": "kid",
+        "id": "seeker",
+        "label": "Seeker",
+      },
+      {
+        "audience": "little",
+        "id": "little",
+        "label": "Little one",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "2+",
+      "minutes": [
+        10,
+        20,
+      ],
+      "players": "2-4",
+    },
+    "startUrl": "https://peekaboo-garden.jonathanrmumm.workers.dev/",
+    "tagline": "Hide-and-seek in a garden: clues on the phone, a magnifier on the iPad.",
+    "tv": "required",
+  },
+  {
+    "appId": "night-flight",
+    "art": {
+      "cover": "/art/night-flight/cover.jpg",
+      "hero": "/art/night-flight/tv.jpg",
+      "heroClean": "/art/night-flight/hero-clean.jpg",
+      "icon": "/art/night-flight/icon.png",
+      "logo": "/art/night-flight/logo.png",
+      "safe": {
+        "ox": 46,
+        "oy": 49,
+        "scale": 1.85,
+      },
+      "tile": "/art/night-flight/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Night Flight",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "navigator",
+        "label": "Navigator",
+      },
+      {
+        "audience": "kid",
+        "id": "pilot",
+        "label": "Pilot",
+      },
+      {
+        "audience": "little",
+        "id": "little",
+        "label": "Little one",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "3+",
+      "minutes": [
+        10,
+        20,
+      ],
+      "players": "2-4",
+    },
+    "startUrl": "https://night-flight.jonathanrmumm.workers.dev/",
+    "tagline": "Fly through the night sky together.",
+    "tv": "required",
+  },
+]
+`;

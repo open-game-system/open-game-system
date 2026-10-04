@@ -49,6 +49,7 @@ export function when(t: number, now: number): string {
   if (days === 0) return `at ${clock(t)}`;
   if (days === 1) return "yesterday";
   const d = new Date(t);
+  // Stryker disable next-line StringLiteral: equivalent, getDay() is always 0-6
   if (days < 7) return WEEKDAYS[d.getDay()] ?? "";
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
@@ -98,10 +99,12 @@ export function buildRows(input: {
   const ttl = new Map(input.games.map((g) => [g.appId, g.instanceTtlMs]));
   const view = playingView(input.instances, {
     now,
+    // Stryker disable next-line ArrayDeclaration: equivalent, no instance is called 'Stryker was here'
     liveInstanceIds: [],
     ttlFor: (appId) => ttl.get(appId) ?? 0,
   });
   const place = placer(tvGames);
+  // Stryker disable next-line ArrayDeclaration: equivalent, a string item has no appId so take() skips it
   const section = (kind: string) => view.sections.find((s) => s.kind === kind)?.items ?? [];
 
   const cont = [

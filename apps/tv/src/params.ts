@@ -35,6 +35,7 @@ export function parseParams(search: string): ParamsResult {
     token: q.get("token") ?? undefined,
   });
   if (!r.success)
+    // Stryker disable next-line StringLiteral: equivalent, LiveSchema is flat so every issue path has one key
     return { ok: false, error: r.error.issues.map((i) => i.path.join(".")).join(", ") };
   const sessionId = launcherSessionOf(r.data.token);
   if (!sessionId) return { ok: false, error: "token: not a launcher token" };
@@ -48,6 +49,7 @@ export function wsUrl(api: string, token: string): string {
 
 function decodeSegment(seg: string): unknown {
   const b64 = seg.replace(/-/g, "+").replace(/_/g, "/");
+  // Stryker disable next-line StringLiteral,ArithmeticOperator: equivalent, atob() accepts unpadded base64 (WHATWG forgiving-base64)
   const bin = atob(b64.padEnd(Math.ceil(b64.length / 4) * 4, "="));
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(bytes));
@@ -56,9 +58,11 @@ function decodeSegment(seg: string): unknown {
 /** The couch session a launcher token is for (its `sid` claim). Not verified here: the API does that. */
 export function launcherSessionOf(token: string): string | null {
   const seg = token.split(".")[1];
+  // Stryker disable next-line ConditionalExpression: equivalent, decoding a missing or empty segment throws and is caught below
   if (!seg) return null;
   try {
     const claims = ClaimsSchema.safeParse(decodeSegment(seg));
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent, ClaimsSchema already ties sid to kind launcher
     return claims.success && claims.data.kind === "launcher" ? (claims.data.sid ?? null) : null;
   } catch {
     return null;

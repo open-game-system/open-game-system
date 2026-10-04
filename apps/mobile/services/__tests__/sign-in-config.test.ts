@@ -51,3 +51,28 @@ describe("the Google authorize URL (code + PKCE, asking for an ID token)", () =>
     });
   });
 });
+
+describe("the Google issuer", () => {
+  it("trims every trailing slash", () => {
+    const { google } = readSignInConfig({ EXPO_PUBLIC_GOOGLE_ISSUER: "http://localhost:4102//" });
+    expect(google.tokenUrl).toBe("http://localhost:4102/oauth2/token");
+  });
+});
+
+describe("sign-in config comes from the build's EXPO_PUBLIC_ values", () => {
+  it("reads each one", () => {
+    const saved = { ...process.env };
+    process.env.EXPO_PUBLIC_GOOGLE_ISSUER = "http://localhost:4102";
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID = "ogs-test.apps.googleusercontent.com";
+    process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI = "opengame://oauthredirect";
+    jest.isolateModules(() => {
+      const { signInConfig }: typeof import("../sign-in-config") = require("../sign-in-config");
+      expect(signInConfig.google).toMatchObject({
+        clientId: "ogs-test.apps.googleusercontent.com",
+        tokenUrl: "http://localhost:4102/oauth2/token",
+        redirectUri: "opengame://oauthredirect",
+      });
+    });
+    process.env = saved;
+  });
+});

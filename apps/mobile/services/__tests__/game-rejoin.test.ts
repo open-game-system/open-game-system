@@ -154,3 +154,24 @@ describe("which URL a Rejoin opens", () => {
     );
   });
 });
+
+describe("latestGameUrl edges", () => {
+  it("ignores a navigation that only contains an http URL", () => {
+    expect(latestGameUrl("https://rc.example/", "about:blank#https://x")).toBe(
+      "https://rc.example/",
+    );
+  });
+});
+
+describe("rejoin picks this game's paused sitting", () => {
+  const remembered = { appId: "rocket-crew", url: ROOM, instanceId: "i-1" };
+  it("not another game's paused sitting listed first", () => {
+    const s = session({
+      suspended: [
+        { appId: "bake-shop", instanceId: "bs-1", label: "", at: 1 },
+        { appId: "rocket-crew", instanceId: "i-1", label: "", at: 2 },
+      ],
+    });
+    expect(rejoinUrl("rocket-crew", { remembered, session: s, pill: null })).toBe(ROOM);
+  });
+});

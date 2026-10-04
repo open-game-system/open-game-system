@@ -175,5 +175,153 @@ describe("@id text", () => {
     expect(handleStatusText({ status: "checking", suggestion: null })).toBe("checking…");
     expect(handleStatusText({ status: "idle", suggestion: null })).toBe("");
     expect(handleStatusText({ status: "unknown", suggestion: null })).toBe("");
+    expect(handleStatusText({ status: "taken", suggestion: null })).toBe("taken");
+  });
+});
+
+describe("the form, at the edges", () => {
+  type Answer = { handle: string; available: boolean; suggestion: string };
+  /** A checkHandle whose answers the test releases one by one. */
+  function held() {
+    const pending: { q: Q; resolve: (a: Answer) => void; reject: (e: Error) => void }[] = [];
+    const checkHandle = jest.fn(
+      (q: Q) =>
+        new Promise<Answer>((resolve, reject) => {
+          pending.push({ q, resolve, reject });
+        }),
+    );
+    return { checkHandle, pending };
+  }
+
+  it("starts idle", () => {
+    const { form } = setup();
+    expect(form.getSnapshot().status).toBe("idle");
+    expect(form.getSnapshot().suggestion).toBeNull();
+  });
+
+  it("is checking (and can't submit) while typing pauses", () => {
+    const { form } = setup();
+    form.setName("Jonathan");
+    expect(form.getSnapshot()).toMatchObject({ status: "checking", suggestion: null });
+    expect(form.canSubmit()).toBe(false);
+  });
+
+  it("checks the trimmed name, and a blank name clears the @id without a check", async () => {
+    const { form, checkHandle } = setup();
+    form.setName("  Jonathan Mumm ");
+    await settle();
+    expect(checkHandle).toHaveBeenCalledWith({ name: "Jonathan Mumm" });
+    form.setName("   ");
+    await settle();
+    expect(checkHandle).toHaveBeenCalledTimes(1);
+    expect(form.getSnapshot()).toMatchObject({ handle: "", status: "idle" });
+    expect(form.canSubmit()).toBe(false);
+  });
+
+  it("an @id typed down to nothing is idle, not checked", async () => {
+    const { form, checkHandle } = setup();
+    form.setHandle("@!!");
+    await settle();
+    expect(checkHandle).not.toHaveBeenCalled();
+    expect(form.getSnapshot()).toMatchObject({ handle: "", status: "idle" });
+  });
+
+  it("an older answer after a clear never fills the @id", async () => {
+    const { checkHandle, pending } = held();
+    const form = createProfileForm({ checkHandle, debounceMs: 200 });
+    form.setName("Jonathan");
+    await settle();
+    form.setName("");
+    form.setName("Juneau");
+    await settle();
+    pending[1]?.resolve({ handle: "juneau", available: true, suggestion: "juneau" });
+    await settle();
+    pending[0]?.resolve({ handle: "jonathan", available: true, suggestion: "jonathan" });
+    await settle();
+    expect(form.getSnapshot()).toMatchObject({ handle: "juneau", status: "free" });
+  });
+
+  it("an older failed check never marks a newer answer unknown", async () => {
+    const { checkHandle, pending } = held();
+    const form = createProfileForm({ checkHandle, debounceMs: 200 });
+    form.setName("Jonathan");
+    await settle();
+    form.setName("Juneau");
+    await settle();
+    pending[1]?.resolve({ handle: "juneau", available: true, suggestion: "juneau" });
+    await settle();
+    pending[0]?.reject(new Error("offline"));
+    await settle();
+    expect(form.getSnapshot().status).toBe("free");
+  });
+
+  it("accepting with no suggestion changes nothing", () => {
+    const { form } = setup();
+    form.setHandle("jonny");
+    const before = form.getSnapshot();
+    form.acceptSuggestion();
+    expect(form.getSnapshot()).toBe(before);
+  });
+
+  it("an accepted suggestion is the user's @id: the name no longer fills it", async () => {
+    const { form } = setup();
+    form.setName("Jonathan");
+    await settle();
+    form.taken("jonathan.m3");
+    form.acceptSuggestion();
+    expect(form.getSnapshot()).toMatchObject({ handle: "jonathan.m3", status: "free" });
+    form.setName("Jon");
+    await settle();
+    expect(form.getSnapshot().handle).toBe("jonathan.m3");
+  });
+
+  it("a new profile's changes are all its values", async () => {
+    const { form } = setup();
+    form.setName("Juneau");
+    await settle();
+    expect(form.changes()).toEqual({ name: "Juneau", handle: "jonathan.m", sticker: "bear" });
+  });
+
+  it("Edit still checks a new @id, and says when it is taken", async () => {
+    const { form, checkHandle } = setup(undefined, {
+      name: "Jonathan",
+      handle: "jonathan.m",
+      sticker: "bear",
+    });
+    form.setHandle("taken");
+    await settle();
+    expect(checkHandle).toHaveBeenCalledWith({ handle: "taken" });
+    expect(form.getSnapshot()).toMatchObject({ status: "taken", suggestion: "taken2" });
+  });
+
+  it("notifies subscribers until they unsubscribe", () => {
+    const { form } = setup();
+    const listener = jest.fn();
+    const off = form.subscribe(listener);
+    form.setSticker("owl");
+    expect(listener).toHaveBeenCalledTimes(1);
+    off();
+    form.setSticker("fox");
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispose drops a pending check", async () => {
+    const { form, checkHandle } = setup();
+    form.setName("Jonathan");
+    form.dispose();
+    await settle();
+    expect(checkHandle).not.toHaveBeenCalled();
+    expect(form.getSnapshot().status).toBe("checking");
+  });
+
+  it("dispose ignores an answer already on its way", async () => {
+    const { checkHandle, pending } = held();
+    const form = createProfileForm({ checkHandle, debounceMs: 200 });
+    form.setName("Jonathan");
+    await settle();
+    form.dispose();
+    pending[0]?.resolve({ handle: "jonathan", available: true, suggestion: "jonathan" });
+    await settle();
+    expect(form.getSnapshot()).toMatchObject({ handle: "", status: "checking" });
   });
 });

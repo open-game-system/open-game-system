@@ -75,6 +75,25 @@ describe("swipe back from a game (spec v3: swipe back = home; a cancelled swipe 
     expect(t.goBack).toHaveBeenCalled();
   });
 
+  it("a reported game records no visit", () => {
+    const t = setup(false, true);
+    t.swipe.release(200);
+    expect(t.report).not.toHaveBeenCalled();
+    expect(t.goBack).toHaveBeenCalled();
+  });
+
+  it("a visit that can't be recorded is logged, and the exit still completes", async () => {
+    const t = setup(false, false);
+    const err = new Error("offline");
+    t.report.mockRejectedValueOnce(err);
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    t.swipe.release(200);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(warn).toHaveBeenCalledWith("[ogs] could not record the visit:", err);
+    expect(t.goBack).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("a game that reported nothing is recorded as a visit", () => {
     const t = setup(false, false);
     t.swipe.release(200);

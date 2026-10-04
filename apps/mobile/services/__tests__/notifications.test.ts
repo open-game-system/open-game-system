@@ -56,6 +56,9 @@ jest.mock("expo-constants", () => ({
 }));
 
 // Mock fetch globally
+// The foreground handler is set once, at import (before beforeEach clears the mock).
+const foregroundHandler = jest.mocked(Notifications.setNotificationHandler).mock.calls[0]?.[0];
+
 const mockFetch = jest.fn();
 (globalThis as any).fetch = mockFetch;
 
@@ -450,6 +453,42 @@ describe("notifications", () => {
       } as unknown as Notifications.Notification;
 
       expect(getGameUrlFromNotification(notification)).toBeNull();
+    });
+  });
+
+  describe("foreground display and logs", () => {
+    it("shows a notification that arrives in the foreground as a banner with sound, no badge", async () => {
+      expect(foregroundHandler).toBeDefined();
+      const shown = await Reflect.apply(
+        foregroundHandler?.handleNotification ?? (() => null),
+        undefined,
+        [],
+      );
+      expect(shown).toEqual({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      });
+    });
+
+    it("logs the push token, the device id and a rotated token", async () => {
+      const log = jest.spyOn(console, "log").mockImplementation();
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("device-9");
+      (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: "granted" });
+      (Notifications.getExpoPushTokenAsync as jest.Mock).mockResolvedValue({ data: "tok-9" });
+      mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+      await initializePushNotifications();
+      expect(log).toHaveBeenCalledWith("[Notifications] Device ID:", "device-9");
+      expect(log).toHaveBeenCalledWith("[Notifications] Push token:", "tok-9");
+      (Notifications.addPushTokenListener as jest.Mock).mockImplementation((cb) => {
+        cb({ data: "tok-10" });
+        return { remove: jest.fn() };
+      });
+      addPushTokenListener("device-9");
+      expect(log).toHaveBeenCalledWith("[Notifications] Push token changed:", "tok-10");
+      log.mockRestore();
     });
   });
 });

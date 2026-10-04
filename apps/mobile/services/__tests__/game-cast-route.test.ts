@@ -76,3 +76,17 @@ describe("is the TV cast through OGS?", () => {
     );
   });
 });
+
+describe("only an absolute http(s) TV page is framed", () => {
+  const ctx = { ogsCast: true, appId: "rocket-crew" };
+  it("takes http as well as https", () => {
+    expect(routeGameCastEvent({ type: "SET_VIEW_URL", url: "http://rc.local/tv" }, ctx).to).toBe(
+      "session",
+    );
+  });
+  it("drops a URL that only contains one", () => {
+    expect(
+      routeGameCastEvent({ type: "SET_VIEW_URL", url: "javascript:https://rc.example/tv" }, ctx).to,
+    ).toBe("drop");
+  });
+});

@@ -5,20 +5,15 @@
   "mutate": [
     "src/**/*.ts",
     "!src/**/*.test.ts",
-    "!src/stream-container.ts",
-    "!src/lib/friends.ts",
-    "!src/lib/presence.ts",
-    "!src/routes/friends.ts"
+    "!src/**/*.d.ts",
+    "!src/session/fixture.ts",
+    "!src/ui/useFrames.ts",
+    "!src/ui/useNow.ts"
   ],
   "reporters": ["json", "clear-text"],
   "thresholds": {
-    "high": 90,
-    "low": 70,
+    "high": 95,
+    "low": 80,
     "break": 60
-  },
-  "incrementalFile": "reports/stryker-incremental.json",
-  "vitest": {
-    "configFile": "vitest.mutation.config.mts"
-  },
-  "tempDirName": "../../.stryker-tmp-api"
+  }
 }

@@ -94,6 +94,7 @@ function openFresh(prev: Frames, current: CurrentGame, posts: FramePost[]): Next
 }
 
 const originOf = (url: string | null): string | null => {
+  // Stryker disable next-line ConditionalExpression: equivalent, new URL() of null or empty throws and is caught below
   if (!url) return null;
   try {
     return new URL(url).origin;

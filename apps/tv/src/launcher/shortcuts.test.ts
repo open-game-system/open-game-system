@@ -21,3 +21,10 @@ describe("launcher shortcuts: the Surprise pick and the game page's buttons", ()
     expect(pageMove("game:night-flight", "right", false)).toBeNull();
   });
 });
+
+describe("launcher shortcuts, edges", () => {
+  it("a roll at the very top of the range still picks the last game", () => {
+    const games = [{ appId: "a" }, { appId: "b" }, { appId: "c" }];
+    expect(pickSurprise(games, null, () => 1)).toBe("c");
+  });
+});

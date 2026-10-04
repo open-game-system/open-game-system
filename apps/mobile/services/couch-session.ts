@@ -19,6 +19,7 @@ const ServerMessageSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("follow"),
     target: z.discriminatedUnion("kind", [
+      // Stryker disable next-line StringLiteral: equivalent, an unparsed launcher follow is ignored just like a parsed one
       z.object({ kind: z.literal("launcher") }),
       z.object({
         kind: z.literal("game"),
@@ -124,6 +125,7 @@ export function createCouchSession(opts: CouchSessionOptions) {
     for (const l of listeners) l();
   };
 
+  // Stryker disable next-line OptionalChaining: equivalent, raw() only runs while a socket is set
   const raw = (msg: ClientMessage) => socket?.send(JSON.stringify(msg));
 
   function handle(data: unknown) {
@@ -151,6 +153,7 @@ export function createCouchSession(opts: CouchSessionOptions) {
     ws.onclose = () => {
       if (socket !== ws) return;
       socket = null;
+      // Stryker disable next-line ConditionalExpression: equivalent, stop() clears the socket first so a stopped close returns above
       if (stopped) return;
       const delay = Math.min(BASE_DELAY * 2 ** attempt, MAX_DELAY);
       attempt++;

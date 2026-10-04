@@ -30,6 +30,11 @@ describe("focus grid", () => {
     expect(move(rows, "game:bake-shop", "left")).toBe("game:rocket-crew");
   });
 
+  it("steps one item at a time in a longer row", () => {
+    expect(move(rows, "game:story-nook", "right")).toBe("game:peekaboo-garden");
+    expect(move(rows, "game:night-flight", "left")).toBe("game:peekaboo-garden");
+  });
+
   it("stops at the row's ends instead of wrapping", () => {
     expect(move(rows, "game:bake-shop", "right")).toBe("game:bake-shop");
     expect(move(rows, "game:rocket-crew", "left")).toBe("game:rocket-crew");

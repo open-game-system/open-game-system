@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { boxFrame, visibleRect } from "./cutover";
 
+describe("reading a frame back", () => {
+  it("reads a frame it can't parse as an unknown rect instead of throwing", () => {
+    const r = visibleRect({ transform: "none", clipPath: "none" });
+    expect([r.x, r.y, r.w, r.h].every(Number.isNaN)).toBe(true);
+  });
+});
+
 describe("the cut-over frame on a box", () => {
   it("covers a 16:9 box exactly with no clipping", () => {
     const f = boxFrame({ x: 100, y: 200, w: 480, h: 270 });

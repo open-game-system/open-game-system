@@ -31,6 +31,30 @@ describe("fake couch session", () => {
     expect(state?.casts).toBe(1);
   });
 
+  it("seeds the evening on the injected clock: Bake Shop started three days ago, paused 40 min in", () => {
+    const c = createFakeClient({ now: () => NOW });
+    const day = 24 * 60 * 60 * 1000;
+    const started = NOW - 3 * day;
+    expect(c.getSnapshot().state?.suspended).toEqual([
+      {
+        appId: "bake-shop",
+        instanceId: `bake-shop-${started.toString(36)}`,
+        label: "Day 4",
+        at: started + 40 * 60 * 1000,
+      },
+    ]);
+  });
+
+  it("seeds the devices on the couch", () => {
+    const c = createFakeClient({ now: () => NOW });
+    expect(c.getSnapshot().state?.devices.map((d) => [d.deviceId, d.kind, d.profileId])).toEqual([
+      ["jonathan-phone", "phone", "jonathan"],
+      ["mom-phone", "phone", "mom"],
+      ["juneau-ipad", "tablet", "juneau"],
+      ["living-room-tv", "launcher", undefined],
+    ]);
+  });
+
   it("holds in connecting until connect() when asked", () => {
     const c = createFakeClient({ now: () => NOW, hold: true });
     expect(c.getSnapshot()).toEqual({ state: null, connection: "connecting" });
@@ -72,5 +96,19 @@ describe("fake couch session", () => {
     c.subscribe(() => n++);
     c.send({ type: "focus.set", itemId: "game:rocket-crew" });
     expect(n).toBe(1);
+  });
+
+  it("stops notifying a subscriber once it unsubscribes", async () => {
+    const c = createFakeClient({ now: () => NOW });
+    let n = 0;
+    const dirs: string[] = [];
+    const off = c.subscribe(() => n++);
+    const offMoves = c.onFocusMove((d) => dirs.push(d));
+    off();
+    offMoves();
+    c.send({ type: "focus.move", dir: "down" });
+    await tick();
+    expect(n).toBe(0);
+    expect(dirs).toEqual([]);
   });
 });

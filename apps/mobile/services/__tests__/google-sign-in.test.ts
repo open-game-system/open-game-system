@@ -78,6 +78,38 @@ describe("Continue with Google", () => {
     const { d } = deps((u) => success(u));
     await expect(googleIdToken({ ...google, clientId: "" }, d)).rejects.toThrow(/isn't set up/);
   });
+
+  it("a sheet that ends without a redirect URL, or a non-success with one, is a cancel", async () => {
+    const noUrl = deps(() => ({ type: "success" }));
+    expect(await googleIdToken(google, noUrl.d)).toBeNull();
+    const dismissed = deps((u) => ({ ...success(u), type: "dismiss" }));
+    expect(await googleIdToken(google, dismissed.d)).toBeNull();
+    expect(dismissed.d.fetch).not.toHaveBeenCalled();
+  });
+
+  it("a redirect without a code is refused before any exchange", async () => {
+    const { d } = deps((u) => ({
+      type: "success",
+      url: `opengame://oauthredirect?state=${new URL(u).searchParams.get("state")}`,
+    }));
+    await expect(googleIdToken(google, d)).rejects.toThrow("Google sign-in didn't return a code.");
+    expect(d.fetch).not.toHaveBeenCalled();
+  });
+
+  it("exchanges the code with a form POST", async () => {
+    const { d } = deps((u) => success(u));
+    await googleIdToken(google, d);
+    expect(d.fetch.mock.calls[0]?.[1]).toMatchObject({
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  });
+
+  it("a token answer that isn't JSON is refused", async () => {
+    const { d } = deps((u) => success(u));
+    d.fetch.mockResolvedValueOnce(new Response("<html>oops</html>"));
+    await expect(googleIdToken(google, d)).rejects.toThrow("Google didn't return an ID token.");
+  });
 });
 
 describe("Continue with Google: more edges", () => {

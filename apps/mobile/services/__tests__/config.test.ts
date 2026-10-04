@@ -56,3 +56,30 @@ describe("is the receiver showing the launcher?", () => {
     expect(isLauncherView(config, null)).toBe(false);
   });
 });
+
+describe("config URLs", () => {
+  it("trims every trailing slash", () => {
+    const c = readConfig({ EXPO_PUBLIC_OGS_API: "https://api.example//" });
+    expect(c.apiBase).toBe("https://api.example");
+  });
+});
+
+describe("the app's config comes from the build's EXPO_PUBLIC_ values", () => {
+  it("reads each one", () => {
+    const saved = { ...process.env };
+    process.env.EXPO_PUBLIC_OGS_API = "https://api.example";
+    process.env.EXPO_PUBLIC_OGS_TV = "https://tv.example";
+    process.env.EXPO_PUBLIC_FAKE_CAST = "1";
+    process.env.EXPO_PUBLIC_FAKE_CAST_URL = "http://fake.example/load";
+    jest.isolateModules(() => {
+      const { appConfig }: typeof import("../config") = require("../config");
+      expect(appConfig).toEqual({
+        apiBase: "https://api.example",
+        tvBase: "https://tv.example",
+        fakeCast: "one",
+        fakeCastUrl: "http://fake.example/load",
+      });
+    });
+    process.env = saved;
+  });
+});

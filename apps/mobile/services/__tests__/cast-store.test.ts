@@ -267,3 +267,15 @@ describe("cast-store — view URL", () => {
     expect(store.getSnapshot().viewUrl).toBe("https://game.example/tv/ABCD");
   });
 });
+
+describe("a cast store without native commands (the game's own WebView store)", () => {
+  it("takes START_CASTING and STOP_CASTING without an error", () => {
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
+    const store = createCastStore();
+    store.dispatch({ type: "START_CASTING", deviceId: "cc-1" });
+    store.dispatch({ type: "STOP_CASTING" });
+    expect(error).not.toHaveBeenCalled();
+    expect(store.getSnapshot().session.status).toBe("disconnected");
+    error.mockRestore();
+  });
+});

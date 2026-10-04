@@ -47,6 +47,14 @@ describe("frame slots", () => {
     expect(nextFrames(a, cur({ viewUrl: `${RC}2` })).frames.active?.url).toBe(`${RC}2`);
   });
 
+  it("posts nothing to the frame while the same sitting repeats or changes URL", () => {
+    expect(EMPTY_FRAMES).toEqual({ active: null, parked: null });
+    const a = nextFrames(EMPTY_FRAMES, cur({ viewUrl: RC })).frames;
+    expect(nextFrames(a, cur({ viewUrl: RC })).posts).toEqual([]);
+    expect(nextFrames(a, cur({ viewUrl: null })).posts).toEqual([]);
+    expect(nextFrames(a, cur({ viewUrl: `${RC}2` })).posts).toEqual([]);
+  });
+
   it("parks and suspends the frame on Home", () => {
     const a = nextFrames(EMPTY_FRAMES, cur({ viewUrl: RC })).frames;
     const home = nextFrames(a, null);

@@ -11,6 +11,7 @@
     "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:watch": "vitest",
+    "test:mutate": "stryker run",
     "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql",
     "test:e2e": "playwright test",
     "db:local": "wrangler d1 execute opengame-api-db --local --file=schema.sql",

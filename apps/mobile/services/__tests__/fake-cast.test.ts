@@ -146,3 +146,139 @@ describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
     warn.mockRestore();
   });
 });
+
+describe("fake cast, the receiver channel", () => {
+  async function channel(fetchImpl: (url: string, init?: RequestInit) => Promise<Response>) {
+    const backend = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "http://fake.test/load",
+      fetch: fetchImpl,
+    });
+    await backend.sessionManager.startSession(FAKE_TV.id);
+    const session = await backend.sessionManager.getCurrentCastSession();
+    if (!session) throw new Error("no session");
+    return session.addChannel("urn:x-cast:org.opengame.view");
+  }
+  const ok = () => jest.fn(async (_url: string, _init?: RequestInit) => new Response("{}"));
+
+  it("is the simulated living room Chromecast", () => {
+    expect(FAKE_TV).toEqual({
+      id: "fake-living-room",
+      name: "Living room TV",
+      type: "chromecast",
+    });
+  });
+
+  it("POSTs LOAD_VIEW as JSON, whether the message is an object or a string", async () => {
+    const f = ok();
+    const ch = await channel(f);
+    await ch.sendMessage({ type: "LOAD_VIEW", viewUrl: "http://a/" });
+    await ch.sendMessage(JSON.stringify({ type: "LOAD_VIEW", viewUrl: "http://b/" }));
+    expect(f.mock.calls).toEqual([
+      [
+        "http://fake.test/load",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ viewUrl: "http://a/" }),
+        },
+      ],
+      [
+        "http://fake.test/load",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ viewUrl: "http://b/" }),
+        },
+      ],
+    ]);
+  });
+
+  it("ignores every other message, including a JSON null", async () => {
+    const f = ok();
+    const ch = await channel(f);
+    await ch.sendMessage({ type: "PING" });
+    await expect(ch.sendMessage("null")).resolves.toBeUndefined();
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it("logs a load the fake Chromecast can't take", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const err = new TypeError("offline");
+    const ch = await channel(async () => {
+      throw err;
+    });
+    await ch.sendMessage({ type: "LOAD_VIEW", viewUrl: "http://a/" });
+    expect(warn).toHaveBeenCalledWith(
+      "[fake-cast] the fake Chromecast did not take the view:",
+      err,
+    );
+    warn.mockRestore();
+  });
+});
+
+describe("fake cast, the session manager", () => {
+  it("finds no devices before discovery, and stops telling a listener that unsubscribed", () => {
+    const backend = createFakeCastBackend({ mode: "one", loadUrl: "x", fetch: jest.fn() });
+    expect(backend.getDevices()).toEqual([]);
+    const seen = jest.fn();
+    const off = backend.subscribeDevices(seen);
+    off();
+    backend.startDiscovery();
+    expect(seen).not.toHaveBeenCalled();
+    expect(() => backend.showCastDialog()).not.toThrow();
+  });
+
+  it("starts on the fake TV, tells listeners, and lets them unsubscribe", async () => {
+    const { sessionManager: sm } = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "x",
+      fetch: jest.fn(),
+    });
+    const starting = jest.fn();
+    const started = jest.fn();
+    const ended = jest.fn();
+    sm.onSessionStarting(starting);
+    sm.onSessionStarted(started);
+    const endSub = sm.onSessionEnded(ended);
+    await expect(sm.startSession(FAKE_TV.id)).resolves.toBe(true);
+    expect(starting).toHaveBeenCalledTimes(1);
+    expect(started).toHaveBeenCalledTimes(1);
+    const session = await sm.getCurrentCastSession();
+    await expect(session?.getCastDevice()).resolves.toEqual({
+      deviceId: "fake-living-room",
+      friendlyName: "Living room TV",
+    });
+    endSub.remove();
+    await sm.endCurrentSession(true);
+    expect(ended).not.toHaveBeenCalled();
+  });
+
+  it("ending with no session is a no-op", async () => {
+    const { sessionManager: sm } = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "x",
+      fetch: jest.fn(),
+    });
+    const ended = jest.fn();
+    sm.onSessionEnded(ended);
+    await sm.endCurrentSession(true);
+    expect(ended).not.toHaveBeenCalled();
+  });
+
+  it("gives every lifecycle hook a removable subscription (the fake never fires the rest)", () => {
+    const { sessionManager: sm } = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "x",
+      fetch: jest.fn(),
+    });
+    for (const sub of [
+      sm.onSessionStarting(() => {}),
+      sm.onSessionStartFailed(() => {}),
+      sm.onSessionSuspended(() => {}),
+      sm.onSessionResumed(() => {}),
+    ]) {
+      expect(() => sub.remove()).not.toThrow();
+    }
+  });
+});
