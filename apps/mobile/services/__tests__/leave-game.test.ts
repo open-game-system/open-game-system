@@ -70,3 +70,21 @@ describe("leaving a game (a completed swipe back)", () => {
     ).toMatchObject({ resumeUrl: undefined });
   });
 });
+
+describe("the visit's resume URL", () => {
+  const base = {
+    appId: "rocket-crew",
+    name: "Rocket Crew",
+    ogsCast: false,
+    reported: false,
+    now: 1,
+  };
+  it("keeps an http page and drops a URL that only contains one", () => {
+    expect(leaveGame({ ...base, url: "http://rc.local/" }).visit).toMatchObject({
+      resumeUrl: "http://rc.local/",
+    });
+    expect(leaveGame({ ...base, url: "about:blank?u=https://rc.example/" }).visit).toMatchObject({
+      resumeUrl: undefined,
+    });
+  });
+});

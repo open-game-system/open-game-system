@@ -51,3 +51,10 @@ describe("the Google authorize URL (code + PKCE, asking for an ID token)", () =>
     });
   });
 });
+
+describe("the Google issuer", () => {
+  it("trims every trailing slash", () => {
+    const { google } = readSignInConfig({ EXPO_PUBLIC_GOOGLE_ISSUER: "http://localhost:4102//" });
+    expect(google.tokenUrl).toBe("http://localhost:4102/oauth2/token");
+  });
+});

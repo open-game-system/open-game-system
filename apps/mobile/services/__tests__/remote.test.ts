@@ -24,3 +24,10 @@ describe("the TV tab's remote (spec v3, Messages: phone → session)", () => {
     expect(remotePress("end", "p")).toEqual({ messages: [{ type: "end" }], stopCast: true });
   });
 });
+
+describe("only End stops the cast", () => {
+  it("OK, Back and Home keep casting", () => {
+    for (const b of ["ok", "back", "home"] as const)
+      expect(remotePress(b, "p").stopCast).toBe(false);
+  });
+});

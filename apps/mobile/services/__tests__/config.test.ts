@@ -56,3 +56,10 @@ describe("is the receiver showing the launcher?", () => {
     expect(isLauncherView(config, null)).toBe(false);
   });
 });
+
+describe("config URLs", () => {
+  it("trims every trailing slash", () => {
+    const c = readConfig({ EXPO_PUBLIC_OGS_API: "https://api.example//" });
+    expect(c.apiBase).toBe("https://api.example");
+  });
+});

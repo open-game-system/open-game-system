@@ -154,3 +154,11 @@ describe("which URL a Rejoin opens", () => {
     );
   });
 });
+
+describe("latestGameUrl edges", () => {
+  it("ignores a navigation that only contains an http URL", () => {
+    expect(latestGameUrl("https://rc.example/", "about:blank#https://x")).toBe(
+      "https://rc.example/",
+    );
+  });
+});

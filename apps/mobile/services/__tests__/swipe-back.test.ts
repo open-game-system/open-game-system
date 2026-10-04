@@ -54,3 +54,35 @@ describe("swipe-back gesture", () => {
     expect(back).not.toHaveBeenCalled();
   });
 });
+
+describe("swipe-back thresholds", () => {
+  const make = () => {
+    const follow = jest.fn();
+    const settle = jest.fn();
+    const onBack = jest.fn();
+    const h = swipeBackHandlers({ edge: 30, threshold: 140, width: 400, follow, settle, onBack });
+    return { h, follow, settle, onBack };
+  };
+
+  it("starts only inside the edge, not on it", () => {
+    const { h } = make();
+    expect(h.startsAt(29)).toBe(true);
+    expect(h.startsAt(30)).toBe(false);
+  });
+
+  it("follows only a drag to the right", () => {
+    const { h, follow } = make();
+    h.move(0);
+    expect(follow).not.toHaveBeenCalled();
+    h.move(1);
+    expect(follow).toHaveBeenCalledWith(1);
+  });
+
+  it("goes back only past the threshold", () => {
+    const { h, settle } = make();
+    h.release(140);
+    expect(settle).toHaveBeenLastCalledWith(0);
+    h.release(141);
+    expect(settle).toHaveBeenLastCalledWith(400, expect.any(Function));
+  });
+});
