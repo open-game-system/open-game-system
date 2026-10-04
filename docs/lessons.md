@@ -45,6 +45,7 @@ Persistent project knowledge. Review at the start of each task.
 
 - **`wrangler dev` hot-reloads from the working tree**: the shared local API (8788) runs from `services/api`, so a commit (or even a save) there reaches it immediately, against its old local D1. A schema change then breaks the owner's running app. Run your own copy with `--port <other> --persist-to <scratch dir>` and restart the shared one (wiping `.wrangler/state/v3/d1`, `pnpm db:local`) only when you mean to.
 - **Sign-in tests use vercel-labs/emulate, not real providers**: Apple/Google ID tokens come from `POST /auth/authorize/callback` (Apple) or `/o/oauth2/v2/auth/callback` (Google) with a seeded user's email, then the token endpoint; Resend's sent mail is `GET /emails`. Apple's `email_verified` is the string `"true"`, Google's a boolean. Workers in vitest-pool-workers can fetch the emulators on localhost.
+- **New tables: apply them to the shared local D1 right after committing**: friends (slice 2) added `profile_seen`, written by `anyToken` on every phone/tablet call, so the shared 8788 (hot-reloaded from the tree, old D1) answered 500 to every authed call until the schema was applied. After any schema commit run `cd services/api && pnpm db:local` (only `CREATE ... IF NOT EXISTS`, never drop or wipe the shared DB), and keep schema changes additive (new tables over new columns, since `CREATE TABLE IF NOT EXISTS` never adds a column to an existing table).
 
 ## Process
 
