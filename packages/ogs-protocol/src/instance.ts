@@ -59,21 +59,32 @@ export interface PlayingView {
 const DAY = 24 * 60 * 60 * 1000;
 const ORDER: SectionKind[] = ["yourTurn", "tonight", "paused", "waiting", "finished"];
 
-function sectionFor(i: Instance, now: number): SectionKind | null {
-  switch (i.status) {
-    case "expired":
-      return null;
-    case "completed":
-      return now - i.updatedAt <= DAY ? "finished" : null;
-    case "waiting":
-      return i.yourTurn ? "yourTurn" : "waiting";
-    case "lobby":
-    case "suspended":
-    case "active":
-      if (i.startsAt !== undefined && i.startsAt >= now && i.startsAt - now <= DAY)
-        return "tonight";
-      return "paused";
+/** Lobby / suspended / active: tonight when it starts within a day, else paused. */
+function inFlightSection(i: Instance, now: number): SectionKind {
+  const startsSoon = i.startsAt !== undefined && i.startsAt >= now && i.startsAt - now <= DAY;
+  return startsSoon ? "tonight" : "paused";
+}
+
+const SECTION_BY_STATUS: Record<
+  Instance["status"],
+  (i: Instance, now: number) => SectionKind | null
+> = {
+  expired: () => null,
+  completed: (i, now) => (now - i.updatedAt <= DAY ? "finished" : null),
+  waiting: (i) => (i.yourTurn ? "yourTurn" : "waiting"),
+  lobby: inFlightSection,
+  suspended: inFlightSection,
+  active: inFlightSection,
+};
+
+/** Every instance but the live one, grouped by section (hidden ones dropped). */
+function bySection(instances: Instance[], live: Instance | null, now: number) {
+  const byKind = new Map<SectionKind, Instance[]>();
+  for (const i of instances) {
+    const kind = i === live ? null : SECTION_BY_STATUS[i.status](i, now);
+    if (kind) byKind.set(kind, [...(byKind.get(kind) ?? []), i]);
   }
+  return byKind;
 }
 
 /**
@@ -92,13 +103,7 @@ export function playingView(
   const kept = fresh;
   const live =
     kept.find((i) => liveInstanceIds.includes(i.instanceId) && i.status !== "completed") ?? null;
-  const byKind = new Map<SectionKind, Instance[]>();
-  for (const i of kept) {
-    if (i === live) continue;
-    const kind = sectionFor(i, now);
-    if (!kind) continue;
-    byKind.set(kind, [...(byKind.get(kind) ?? []), i]);
-  }
+  const byKind = bySection(kept, live, now);
   const sections = ORDER.flatMap((kind) => {
     const items = (byKind.get(kind) ?? []).sort((a, b) => b.updatedAt - a.updatedAt);
     return items.length ? [{ kind, items }] : [];
