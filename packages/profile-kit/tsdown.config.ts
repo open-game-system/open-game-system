@@ -8,6 +8,9 @@ export default defineConfig({
   format: ["esm", "cjs"],
   dts: { resolve: [/^@open-game-system\//] },
   clean: true,
+  // app-bridge-web has main (cjs) + module (esm) and no exports map: prefer its ESM build, or the
+  // inlined CJS pulls `node:module` (createRequire) into the browser bundle.
+  inputOptions: { resolve: { mainFields: ["module", "main"] } },
   deps: {
     alwaysBundle: [/^@open-game-system\//],
     neverBundle: ["react", "zod", "fast-json-patch"],
