@@ -31,9 +31,13 @@ function browserSocket(url: string): SocketLike {
     send: (d) => ws.send(d),
     close: () => ws.close(),
   };
+  // Stryker disable next-line OptionalChaining: equivalent, createWsClient always sets onopen
   ws.onopen = () => s.onopen?.();
+  // Stryker disable next-line OptionalChaining: equivalent, createWsClient always sets onclose
   ws.onclose = () => s.onclose?.();
+  // Stryker disable next-line ArrowFunction: equivalent, createWsClient never sets onerror (a close follows an error)
   ws.onerror = () => s.onerror?.();
+  // Stryker disable next-line OptionalChaining: equivalent, createWsClient always sets onmessage
   ws.onmessage = (e) => s.onmessage?.({ data: e.data });
   return s;
 }

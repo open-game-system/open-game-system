@@ -10,11 +10,13 @@ export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 
 export function parseServerMessage(raw: string): ServerMessage | null {
   let json: unknown;
+  // Stryker disable BlockStatement: equivalent, parsing undefined fails the schema and returns null
   try {
     json = JSON.parse(raw);
   } catch {
     return null;
   }
+  // Stryker restore BlockStatement
   const r = ServerMessageSchema.safeParse(json);
   return r.success ? r.data : null;
 }

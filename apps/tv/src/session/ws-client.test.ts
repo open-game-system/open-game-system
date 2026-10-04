@@ -1,5 +1,5 @@
 import { initialSession } from "@open-game-system/ogs-protocol";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { backoffMs, createWsClient, type SocketLike } from "./ws-client";
 
 class FakeSocket implements SocketLike {
@@ -133,5 +133,79 @@ describe("couch session socket", () => {
     expect(backoffMs(1)).toBe(1000);
     expect(backoffMs(3)).toBe(4000);
     expect(backoffMs(20)).toBe(10000);
+  });
+
+  it("only reads text frames", () => {
+    const { client, sock } = setup();
+    const dirs: string[] = [];
+    client.onFocusMove((d) => dirs.push(d));
+    sock().open();
+    // A non-string frame whose string form happens to be a valid message is still ignored.
+    const frame = { toString: () => JSON.stringify({ type: "focus.move", dir: "up" }) };
+    sock().onmessage?.({ data: frame });
+    expect(dirs).toEqual([]);
+  });
+});
+
+/** Stands in for the browser's WebSocket when the client is built without a `socket` option. */
+class BrowserWs {
+  static all: BrowserWs[] = [];
+  readyState = 0;
+  sent: string[] = [];
+  closed = false;
+  onopen: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onmessage: ((e: { data: unknown }) => void) | null = null;
+  constructor(public url: string) {
+    BrowserWs.all.push(this);
+  }
+  send(d: string) {
+    this.sent.push(d);
+  }
+  close() {
+    this.closed = true;
+  }
+}
+
+describe("couch session socket on the browser WebSocket", () => {
+  beforeEach(() => {
+    BrowserWs.all = [];
+    vi.stubGlobal("WebSocket", BrowserWs);
+    return () => {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    };
+  });
+  const last = () => BrowserWs.all[BrowserWs.all.length - 1]!;
+
+  it("opens, receives, sends and closes through the real socket", () => {
+    const client = createWsClient({ url: "ws://y/ws", setTimer: () => {} });
+    const ws = last();
+    expect(ws.url).toBe("ws://y/ws");
+    client.send({ type: "focus.set", itemId: "game:a" });
+    expect(ws.sent).toEqual([]);
+    ws.readyState = 1;
+    ws.onopen?.();
+    expect(client.getSnapshot().connection).toBe("open");
+    const state = initialSession("s1", "jonathan");
+    ws.onmessage?.({ data: JSON.stringify({ type: "state", state }) });
+    expect(client.getSnapshot().state).toEqual(state);
+    client.send({ type: "focus.set", itemId: "game:b" });
+    expect(ws.sent).toEqual(['{"type":"focus.set","itemId":"game:b"}']);
+    expect(() => ws.onerror?.()).not.toThrow();
+    client.close();
+    expect(ws.closed).toBe(true);
+  });
+
+  it("reconnects on its own timer after a drop", () => {
+    vi.useFakeTimers();
+    const client = createWsClient({ url: "ws://y/ws" });
+    last().onclose?.();
+    expect(client.getSnapshot().connection).toBe("connecting");
+    vi.advanceTimersByTime(backoffMs(0) - 1);
+    expect(BrowserWs.all).toHaveLength(1);
+    vi.advanceTimersByTime(1);
+    expect(BrowserWs.all).toHaveLength(2);
   });
 });

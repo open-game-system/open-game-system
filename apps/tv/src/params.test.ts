@@ -51,6 +51,21 @@ describe("launcher URL", () => {
   it("strips a trailing slash from the api base", () => {
     const r = parseParams(`?api=http://localhost:8787/&token=${LAUNCHER}`);
     expect(r.ok && r.params.mode === "live" && r.params.api).toBe("http://localhost:8787");
+    const many = parseParams(`?api=http://localhost:8787///&token=${LAUNCHER}`);
+    expect(many.ok && many.params.mode === "live" && many.params.api).toBe("http://localhost:8787");
+  });
+
+  it("says which params are wrong", () => {
+    expect(parseParams("")).toEqual({ ok: false, error: "api, token" });
+    expect(parseParams("?api=https://x.org")).toEqual({ ok: false, error: "token" });
+    expect(parseParams("?api=https://x.org&token=abc")).toEqual({
+      ok: false,
+      error: "token: not a launcher token",
+    });
+  });
+
+  it("only swaps a leading http for ws", () => {
+    expect(wsUrl("ftp://http.example", "t")).toBe("ftp://http.example/api/v1/couch/ws?token=t");
   });
 
   it("builds the couch socket URL from the api base", () => {
@@ -70,6 +85,14 @@ describe("session from the launcher token", () => {
     expect(
       launcherSessionOf(jwt({ sub: "ü?>>", did: "d", kind: "launcher", sid: "ü?>>", exp: 1 })),
     ).toBe("ü?>>");
+  });
+
+  it("decodes both base64url substitutions ('-' and '_')", () => {
+    const token = jwt({ sub: "h", did: "d", kind: "launcher", sid: "s???~~~", exp: 1 });
+    const payload = token.split(".")[1]!;
+    expect(payload).toContain("_");
+    expect(payload).toContain("-");
+    expect(launcherSessionOf(token)).toBe("s???~~~");
   });
 
   it("returns null for garbage and for phone or tablet tokens", () => {

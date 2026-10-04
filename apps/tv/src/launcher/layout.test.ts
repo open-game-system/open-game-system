@@ -132,3 +132,87 @@ describe("rows", () => {
     ]);
   });
 });
+
+describe("when, at the edges", () => {
+  it("names every weekday within the last week", () => {
+    // NOW is Saturday Oct 3; 2..6 days back are Thursday..Sunday.
+    const names = [1, 2, 3, 4, 5, 6].map((back) => when(at(3 - back, 12), NOW));
+    expect(names).toEqual(["yesterday", "Thursday", "Wednesday", "Tuesday", "Monday", "Sunday"]);
+    expect(when(new Date(2026, 8, 26, 12).getTime(), new Date(2026, 9, 2, 19).getTime())).toBe(
+      "Saturday",
+    );
+    expect(when(new Date(2026, 8, 25, 12).getTime(), new Date(2026, 8, 26, 19).getTime())).toBe(
+      "yesterday",
+    );
+    expect(when(new Date(2026, 8, 25, 12).getTime(), new Date(2026, 8, 27, 19).getTime())).toBe(
+      "Friday",
+    );
+  });
+
+  it("switches to a date exactly a week back", () => {
+    expect(when(at(3 - 7, 12), NOW)).toBe("Sep 26");
+  });
+
+  it("names every month for older dates", () => {
+    const later = new Date(2027, 11, 31, 12).getTime();
+    const months = Array.from({ length: 12 }, (_, m) =>
+      when(new Date(2026, m, 15).getTime(), later),
+    );
+    expect(months).toEqual([
+      "Jan 15",
+      "Feb 15",
+      "Mar 15",
+      "Apr 15",
+      "May 15",
+      "Jun 15",
+      "Jul 15",
+      "Aug 15",
+      "Sep 15",
+      "Oct 15",
+      "Nov 15",
+      "Dec 15",
+    ]);
+  });
+
+  it("is 'just now' only under two minutes", () => {
+    expect(when(NOW - 2 * 60 * 1000 + 1, NOW)).toBe("just now");
+    expect(when(NOW - 2 * 60 * 1000, NOW)).toBe("at 7:08");
+  });
+
+  it("counts calendar days, not hours: 11 pm is yesterday at 12:30 am", () => {
+    expect(when(at(2, 23), at(3, 0, 30))).toBe("yesterday");
+  });
+});
+
+describe("rows, details", () => {
+  it("titles the rows for the TV", () => {
+    const rows = buildRows({
+      games: FIXTURE_GAMES,
+      instances: fixtureInstances(NOW),
+      suspended: [{ appId: "rocket-crew", instanceId: "rc-1", label: "M", at: NOW }],
+      now: NOW,
+    });
+    expect(rows.map((r) => r.title)).toEqual(["Continue", "Tonight", "Library"]);
+  });
+
+  it("uses the hero art when a game has one, the tile otherwise", () => {
+    const withHero = FIXTURE_GAMES[0]!;
+    const noHero = { ...FIXTURE_GAMES[1]!, art: { tile: "/art/bake-shop/tv.jpg" } };
+    const rows = buildRows({ games: [withHero, noHero], instances: [], suspended: [], now: NOW });
+    expect(rows[0]?.boxes.map((b) => [b.cover, b.hero])).toEqual([
+      ["/art/rocket-crew/tv.jpg", "/art/rocket-crew/alt.jpg"],
+      ["/art/bake-shop/tv.jpg", "/art/bake-shop/tv.jpg"],
+    ]);
+  });
+
+  it("a paused game on tonight's schedule shows once, in Continue", () => {
+    const rows = buildRows({
+      games: FIXTURE_GAMES,
+      instances: fixtureInstances(NOW),
+      suspended: [{ appId: "hearthisle", instanceId: "h", label: "Turn 13", at: NOW }],
+      now: NOW,
+    });
+    expect(rows.map((r) => r.id)).toEqual(["continue", "library"]);
+    expect(rows.flatMap((r) => r.boxes).filter((b) => b.appId === "hearthisle")).toHaveLength(1);
+  });
+});

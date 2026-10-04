@@ -32,3 +32,7 @@ test-results/
 .swarm/
 .claude/
 .nightshift/
+
+# Stryker reports + incremental state
+**/reports/mutation/
+**/reports/stryker-incremental.json
