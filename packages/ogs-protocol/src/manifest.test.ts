@@ -53,6 +53,22 @@ describe("game manifest", () => {
     expect(ManifestSchema.parse({ ...valid(), art }).art).toEqual(art);
   });
 
+  it("keeps the art kit: square icon, portrait cover, transparent logo, clean hero", () => {
+    const art = {
+      tile: "tile.png",
+      icon: "/art/rocket-crew/icon.png",
+      cover: "/art/rocket-crew/cover.jpg",
+      logo: "/art/rocket-crew/logo.png",
+      heroClean: "/art/rocket-crew/hero-clean.jpg",
+    };
+    expect(ManifestSchema.parse({ ...valid(), art }).art).toEqual(art);
+  });
+
+  it.each(["icon", "cover", "logo", "heroClean"])("an empty art.%s is rejected", (key) => {
+    const art = { tile: "tile.png", [key]: "" };
+    expect(ManifestSchema.safeParse({ ...valid(), art }).success).toBe(false);
+  });
+
   it.each([0, -1])("a safe-area scale of %s is rejected", (scale) => {
     const art = { tile: "tile.png", safe: { scale, ox: 0, oy: 0 } };
     expect(ManifestSchema.safeParse({ ...valid(), art }).success).toBe(false);

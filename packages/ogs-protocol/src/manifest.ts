@@ -26,6 +26,11 @@ export const ManifestSchema = z.object({
   art: z.object({
     tile: z.string().min(1),
     hero: z.string().optional(),
+    /** The game's art kit: 1:1 icon, 2:3 cover with the title, transparent logo, 16:9 hero with no text or HUD. */
+    icon: z.string().min(1).optional(),
+    cover: z.string().min(1).optional(),
+    logo: z.string().min(1).optional(),
+    heroClean: z.string().min(1).optional(),
     safe: z.object({ scale: z.number().positive(), ox: z.number(), oy: z.number() }).optional(),
   }),
   shop: z

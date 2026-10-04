@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATALOGUE, catalogueIds, findManifest } from "../src/catalogue";
 
@@ -24,4 +26,14 @@ describe("catalogue", () => {
   it("does not know other games", () => {
     expect(findManifest("word-duel")).toBeUndefined();
   });
+
+  it.each(CATALOGUE.map((g) => [g.appId, g] as const))(
+    "%s has the full art kit, and every file is in the TV app",
+    (_id, game) => {
+      const kit = [game.art.icon, game.art.cover, game.art.logo, game.art.heroClean];
+      expect(kit.every((p) => typeof p === "string" && p.length > 0)).toBe(true);
+      for (const p of kit)
+        expect(existsSync(join(__dirname, "../../../apps/tv/public", String(p)))).toBe(true);
+    },
+  );
 });
