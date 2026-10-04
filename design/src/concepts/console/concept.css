@@ -1,4 +1,58 @@
 
+/* ============ OGS identity tokens (pass 2). Every surface adopts these: phone, TV, developer pages. ============
+   One night, warm and soft: the kid iPads' dusk (indigo sky into a peach horizon), paper stickers for
+   people, a dotted path that links people, devices and homes, and one display face for titles.
+   Display: Fraunces (OFL), soft and heavy: use `font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes)`
+   or the `.ogs-display` class. Body stays Schibsted Grotesk (`--ogs-text`). */
+.cx {
+  --ogs-display: "OGS Fraunces", "Fraunces", Georgia, serif;
+  --ogs-display-axes: "SOFT" 100, "opsz" 96;
+  --ogs-display-weight: 760;
+  --ogs-text: "Schibsted Grotesk", ui-sans-serif, sans-serif;
+  /* Ground: dusk, deepest to raised. */
+  --ogs-dusk-0: #120f22;
+  --ogs-dusk-1: #1b1733;
+  --ogs-dusk-2: #272148;
+  --ogs-dusk-3: #352c5e;
+  /* Ink on dusk. */
+  --ogs-cream: #fbf2e4;
+  --ogs-cream-2: #e6dacb;
+  --ogs-cream-3: #bdb2c9;
+  --ogs-hair: rgba(251, 242, 228, 0.14);
+  /* Signals (each always paired with a glyph and a shape, never colour alone). */
+  --ogs-lamp: #ffc861;      /* your turn: someone is waiting on you */
+  --ogs-ember: #ff7a52;     /* live on the TV */
+  --ogs-lilac: #c9b8ff;     /* new: something happened in a game */
+  --ogs-peach: #f7c6a3;
+  --ogs-mint: #9fe3bf;      /* done, joined */
+  /* The horizon: the iPads' sky, used behind heroes and at the foot of the phone. */
+  --ogs-horizon: linear-gradient(180deg, #1b1733 0%, #2e2452 48%, #6a4467 80%, #d79a82 100%);
+  --ogs-glow: radial-gradient(120% 60% at 50% 105%, rgba(247, 168, 120, 0.22), transparent 62%);
+  /* The dotted path: dots on a line (horizontal: background-size 12px 6px, repeat-x). */
+  --ogs-path: rgba(251, 242, 228, 0.5);
+  --ogs-dots: radial-gradient(circle, var(--ogs-path) 1.7px, transparent 2.2px);
+  --ogs-dots-v: radial-gradient(circle, var(--ogs-path) 1.7px, transparent 2.2px);
+  /* Paper stickers. */
+  --ogs-sticker-lift: drop-shadow(0 1.5px 0 rgba(20, 12, 40, 0.35)) drop-shadow(0 5px 6px rgba(10, 6, 24, 0.3));
+  --ogs-radius-art: 18px;
+  --ogs-radius-tile: 14px;
+}
+.ogs-display { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); letter-spacing: -0.012em; }
+.ogs-sticker { position: relative; display: inline-block; flex: none; vertical-align: middle; }
+.ogs-sticker img { width: 100%; height: 100%; object-fit: contain; filter: var(--ogs-sticker-lift); }
+.ogs-sticker.is-dim img { filter: grayscale(0.85) brightness(0.75); opacity: 0.6; }
+/* Old portrait callers get the sticker, never a clipped circle or a colour ring. */
+.cx .ogs-sticker.cx-portrait { border-radius: 0 !important; overflow: visible !important; background: none !important; box-shadow: none !important; display: inline-block; }
+.cx .ogs-sticker.cx-portrait img { width: 100%; height: 100%; }
+.ogs-stickers { display: inline-flex; align-items: center; }
+.ogs-stickers .ogs-sticker + .ogs-sticker { margin-left: -6px; }
+.ogs-crest { position: relative; display: inline-block; flex: none; }
+.ogs-crest__spot { position: absolute; display: block; }
+.ogs-crest.is-dim { filter: grayscale(0.9); opacity: 0.55; }
+/* The dotted path, horizontal and vertical. */
+.ogs-path-h { height: 6px; background: var(--ogs-dots) 0 50% / 12px 6px repeat-x; }
+.ogs-path-v { width: 6px; background: var(--ogs-dots-v) 50% 0 / 6px 12px repeat-y; }
+
 /* ============ Tokens: a neutral console OS that recedes behind game art ============ */
 .cx {
   --bone: #f1efea;

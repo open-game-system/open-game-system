@@ -1,5 +1,6 @@
 // The console's mark and the person portraits it uses everywhere.
 import type { Person } from "../../../world";
+import { Sticker } from "./Sticker";
 
 /** The OGS mark: a "home ring". An open ring (the room) around a solid core (tonight). */
 export function Mark({ size = 28, color = "currentColor" }: { size?: number; color?: string }) {
@@ -20,29 +21,13 @@ export function Wordmark({ color = "currentColor", size = 20 }: { color?: string
   );
 }
 
-/** A person, as the console knows them: painted portrait if a game made one, else their colour + silhouette. */
-export function Portrait({ person, size = 40, ring = true, dim = false }: { person: Person; size?: number; ring?: boolean; dim?: boolean }) {
-  const style = {
-    width: size,
-    height: size,
-    boxShadow: ring ? `0 0 0 ${Math.max(2, size / 18)}px ${person.color}` : undefined,
-    opacity: dim ? 0.45 : 1,
-  };
-  if (person.portrait) {
-    return (
-      <span className="cx-portrait cx-portrait--art" style={style}>
-        <img src={person.portrait} alt="" />
-      </span>
-    );
-  }
-  return (
-    <span className="cx-portrait" style={{ ...style, background: person.color }}>
-      <svg viewBox="0 0 40 40" width={size * 0.7} height={size * 0.7} aria-hidden>
-        <circle cx="20" cy="15" r="7" fill="rgba(255,255,255,.92)" />
-        <path d="M6 37c2-8 7.5-12 14-12s12 4 14 12z" fill="rgba(255,255,255,.92)" />
-      </svg>
-    </span>
-  );
+/**
+ * A person, as the console knows them: the painted paper sticker they picked (ui/Sticker.tsx). Kept
+ * under this name because every surface uses it. `ring` is accepted for old callers and ignored:
+ * identity is the character, never a coloured ring.
+ */
+export function Portrait({ person, size = 40, dim = false }: { person: Person; size?: number; ring?: boolean; dim?: boolean }) {
+  return <Sticker person={person} size={size} dim={dim} className="cx-portrait" />;
 }
 
 export function StatusBar({ dark = false }: { dark?: boolean }) {
