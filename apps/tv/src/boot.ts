@@ -1,0 +1,70 @@
+import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol";
+import { frameTimeoutMs, householdOf, type LauncherParams, wsUrl } from "./params";
+import type { SessionClient } from "./session/client";
+import { fetchLauncherData, type LauncherData } from "./session/data";
+import { createFakeClient } from "./session/fake-client";
+import { FIXTURE_GAMES, FIXTURE_HOUSEHOLD, fixtureInstances } from "./session/fixture";
+import { createWsClient } from "./session/ws-client";
+
+declare global {
+  interface Window {
+    /** Set once per page load: a game swap must never change it (the stream never reloads). */
+    __launcherBootId?: string;
+    /** Fake mode only: drive the in-browser couch session from tests. */
+    __ogsFake?: {
+      send(msg: ClientMessage): void;
+      state(): SessionState | null;
+      connect(): void;
+      drop(): void;
+      restore(): void;
+    };
+  }
+}
+
+export interface Boot {
+  client: SessionClient;
+  data: Promise<LauncherData>;
+  frameTimeoutMs: number;
+}
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function loadWithRetry(load: () => Promise<LauncherData>): Promise<LauncherData> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await load();
+    } catch (err) {
+      console.warn("[tv] launcher data failed, retrying", err);
+      await wait(Math.min(10_000, 1000 * 2 ** attempt));
+    }
+  }
+}
+
+export function boot(params: LauncherParams, search: string): Boot {
+  window.__launcherBootId ??= crypto.randomUUID();
+  const timeout = frameTimeoutMs(search);
+  if (params.mode === "fake") {
+    const fake = createFakeClient({ hold: params.hold });
+    window.__ogsFake = {
+      send: (m) => fake.send(m),
+      state: () => fake.getSnapshot().state,
+      connect: () => fake.connect(),
+      drop: () => fake.drop(),
+      restore: () => fake.restore(),
+    };
+    const data = Promise.resolve({
+      games: FIXTURE_GAMES,
+      instances: fixtureInstances(Date.now()),
+      household: FIXTURE_HOUSEHOLD,
+    });
+    return { client: fake, data, frameTimeoutMs: timeout };
+  }
+  const householdId = householdOf(params.token) ?? "";
+  return {
+    client: createWsClient({ url: wsUrl(params.api, params.token) }),
+    data: loadWithRetry(() =>
+      fetchLauncherData({ api: params.api, token: params.token, householdId }),
+    ),
+    frameTimeoutMs: timeout,
+  };
+}

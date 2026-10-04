@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { householdOf, parseParams, wsUrl } from "./params";
+import { frameTimeoutMs, householdOf, parseParams, wsUrl } from "./params";
 
 const b64url = (text: string) =>
   btoa(String.fromCharCode(...new TextEncoder().encode(text)))
@@ -17,7 +17,11 @@ describe("launcher URL", () => {
   });
 
   it("runs fake mode without api or token", () => {
-    expect(parseParams("?fake=1")).toEqual({ ok: true, params: { mode: "fake" } });
+    expect(parseParams("?fake=1")).toEqual({ ok: true, params: { mode: "fake", hold: false } });
+    expect(parseParams("?fake=1&hold=1")).toEqual({
+      ok: true,
+      params: { mode: "fake", hold: true },
+    });
   });
 
   it("rejects a missing token or a bad api", () => {
@@ -52,5 +56,14 @@ describe("household from the launcher token", () => {
     expect(householdOf("nope")).toBeNull();
     expect(householdOf("a.b.c")).toBeNull();
     expect(householdOf(jwt({ did: "x" }))).toBeNull();
+  });
+});
+
+describe("frame timeout knob", () => {
+  it("defaults to 20 s and accepts a positive override", () => {
+    expect(frameTimeoutMs("")).toBe(20_000);
+    expect(frameTimeoutMs("?frameTimeout=1500")).toBe(1500);
+    expect(frameTimeoutMs("?frameTimeout=-1")).toBe(20_000);
+    expect(frameTimeoutMs("?frameTimeout=abc")).toBe(20_000);
   });
 });

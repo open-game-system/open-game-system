@@ -10,12 +10,21 @@ const LiveSchema = z.object({
   token: z.string().min(1),
 });
 
-export type LauncherParams = { mode: "fake" } | { mode: "live"; api: string; token: string };
+export type LauncherParams =
+  | { mode: "fake"; hold: boolean }
+  | { mode: "live"; api: string; token: string };
+
+/** Knobs for tests and design: how long a frame may take to load before the launcher gives up. */
+export function frameTimeoutMs(search: string): number {
+  const n = Number(new URLSearchParams(search).get("frameTimeout"));
+  return Number.isFinite(n) && n > 0 ? n : 20_000;
+}
 export type ParamsResult = { ok: true; params: LauncherParams } | { ok: false; error: string };
 
 export function parseParams(search: string): ParamsResult {
   const q = new URLSearchParams(search);
-  if (q.get("fake") === "1") return { ok: true, params: { mode: "fake" } };
+  if (q.get("fake") === "1")
+    return { ok: true, params: { mode: "fake", hold: q.get("hold") === "1" } };
   const r = LiveSchema.safeParse({
     api: q.get("api") ?? undefined,
     token: q.get("token") ?? undefined,

@@ -21,22 +21,30 @@ export const HouseholdSchema = z.object({
 });
 export type Household = z.infer<typeof HouseholdSchema>;
 
-/** Accept `{ key: value }` or the bare value: the API's envelope is not pinned yet. */
-const enveloped = <T extends z.ZodTypeAny>(key: string, schema: T) =>
-  z.union([z.object({ [key]: schema }).transform((o) => o[key] as z.infer<T>), schema]);
-
 /** One bad manifest or instance must not blank the TV: keep the ones that parse. */
-const lenientList = <T extends z.ZodTypeAny>(schema: T) =>
+const lenientList = <T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) =>
   z.array(z.unknown()).transform((items) =>
     items.flatMap((i) => {
       const r = schema.safeParse(i);
-      return r.success ? [r.data as z.infer<T>] : [];
+      return r.success ? [r.data] : [];
     }),
   );
 
-export const CatalogueResponse = enveloped("games", lenientList(ManifestSchema));
-export const InstancesResponse = enveloped("instances", lenientList(InstanceSchema));
-export const HouseholdResponse = enveloped("household", HouseholdSchema);
+/** Each endpoint may answer `{ key: value }` or the bare value: the API's envelope is not pinned yet. */
+const Games = lenientList(ManifestSchema);
+const Instances = lenientList(InstanceSchema);
+export const CatalogueResponse = z.union([
+  z.object({ games: Games }).transform((o) => o.games),
+  Games,
+]);
+export const InstancesResponse = z.union([
+  z.object({ instances: Instances }).transform((o) => o.instances),
+  Instances,
+]);
+export const HouseholdResponse = z.union([
+  z.object({ household: HouseholdSchema }).transform((o) => o.household),
+  HouseholdSchema,
+]);
 
 export interface LauncherData {
   games: Manifest[];

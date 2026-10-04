@@ -1,0 +1,712 @@
+/* OGS TV launcher. Drawn at 1920×1080, read from 3 m: no text under 24 px, 5% title-safe margins. */
+:root {
+  --plum-950: #170b1f;
+  --plum-900: #1f1029;
+  --plum-800: #2b1637;
+  --plum-700: #3b2049;
+  --plum-600: #52306a;
+  --cream: #f8ecd9;
+  --cream-dim: #dccab8;
+  --amber: #f6bb52;
+  --amber-glow: rgba(246, 187, 82, 0.45);
+  --terracotta: #c4623d;
+  --terracotta-deep: #8f4024;
+  --ink: #2a1533;
+  --safe-x: 96px;
+  --row-pitch: 316px;
+  --box-w: 304px;
+  --box-gap: 32px;
+  --safe-y: 54px;
+  --display: "Fraunces", Georgia, serif;
+  --sans: "Nunito Sans", "Avenir Next", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--plum-950);
+  overflow: hidden;
+}
+body {
+  font-family: var(--sans);
+  color: var(--cream);
+  font-size: 28px;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+p,
+figure {
+  margin: 0;
+}
+
+.viewport {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--plum-950);
+}
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  flex: none;
+  overflow: hidden;
+  transform-origin: center;
+  background:
+    radial-gradient(1200px 700px at 30% 30%, rgba(122, 64, 120, 0.35), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 48px),
+    linear-gradient(180deg, var(--plum-800) 0%, var(--plum-900) 78%, #2a1720 100%);
+}
+.launcher,
+.screen {
+  position: absolute;
+  inset: 0;
+}
+
+.eyebrow {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: absolute;
+  top: var(--safe-y);
+  left: var(--safe-x);
+  right: var(--safe-x);
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+}
+.room-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 44px;
+  color: var(--cream);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+.clock {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+.clock-time {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 48px;
+}
+.clock-day {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--cream-dim);
+}
+
+/* ---------- hero ---------- */
+.hero {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 620px;
+}
+.hero-art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1240px;
+  height: 640px;
+  object-fit: cover;
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, #000 34%),
+    linear-gradient(180deg, #000 52%, transparent 92%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 34%),
+    linear-gradient(180deg, #000 52%, transparent 92%);
+  mask-composite: intersect;
+  animation: hero-in 420ms ease-out both;
+}
+.hero-text {
+  position: absolute;
+  left: var(--safe-x);
+  top: 150px;
+  width: 860px;
+  animation: hero-text-in 420ms ease-out both;
+}
+.hero-tag {
+  display: inline-block;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--cream);
+  border-radius: 999px;
+  padding: 6px 22px;
+  margin-bottom: 20px;
+}
+.hero-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 104px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
+}
+.hero-resume {
+  margin-top: 18px;
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--cream);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7);
+}
+.hero.empty .hero-title {
+  font-size: 80px;
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+@keyframes hero-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* ---------- rows of boxes ---------- */
+.rows-viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 488px;
+  height: 372px;
+  overflow: hidden;
+  /* Extra left room so the focused box's lift and ring stay inside title-safe. */
+  padding: 24px var(--safe-x) 0 calc(var(--safe-x) + 14px);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 24px, #000 88%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 24px, #000 88%, transparent);
+}
+.rows {
+  transform: translateY(calc(var(--row, 0) * -1 * var(--row-pitch)));
+  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.row {
+  height: var(--row-pitch);
+}
+.row-title {
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 28px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  height: 40px;
+  margin-bottom: 18px;
+  transition: color 200ms;
+}
+.row {
+  transition: opacity 240ms;
+}
+.row.above {
+  opacity: 0;
+}
+.row.current .row-title {
+  color: var(--amber);
+}
+.shelf {
+  display: flex;
+  gap: var(--box-gap);
+  transform: translateX(calc(var(--shift, 0) * -1 * (var(--box-w) + var(--box-gap))));
+  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.24, 1);
+}
+.box {
+  flex: none;
+  width: 304px;
+  transition: transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1);
+  transform-origin: 50% 60%;
+}
+.box-cover {
+  position: relative;
+  width: 304px;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--plum-700);
+  /* A printed box has depth: a darker bottom edge under the cover. */
+  box-shadow:
+    0 6px 0 #170a1e,
+    0 14px 26px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+.box-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* The box's spine: a darker printed edge with a gloss line, so it reads as a box, not a tile. */
+.box-spine {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 14px;
+  background: linear-gradient(90deg, rgba(20, 8, 26, 0.75), rgba(20, 8, 26, 0.25) 70%, rgba(255, 255, 255, 0.25) 90%, transparent);
+}
+.box-tag {
+  position: absolute;
+  top: 10px;
+  left: 24px;
+  max-width: 268px;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--cream);
+  border-radius: 999px;
+  padding: 3px 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.box-label {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 4px 0 4px;
+}
+.box-name {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 30px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.box-resume {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--cream-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Focus ring: a warm amber frame and glow, visible from the couch. */
+.box.focused {
+  transform: scale(1.07);
+}
+.box.focused .box-cover {
+  outline: 6px solid var(--amber);
+  outline-offset: 4px;
+  box-shadow:
+    0 0 0 14px var(--amber-glow),
+    0 6px 0 #170a1e,
+    0 18px 40px rgba(0, 0, 0, 0.6);
+}
+.box.focused .box-resume {
+  color: var(--amber);
+}
+
+/* ---------- couch: who's here ---------- */
+.couch {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 760px;
+  height: 196px;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+.couch-back {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: 92px;
+  height: 84px;
+  border-radius: 42px 42px 12px 12px;
+  background: linear-gradient(180deg, #d4744b, var(--terracotta));
+  box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.2);
+}
+.couch::before,
+.couch::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 70px;
+  height: 150px;
+  border-radius: 34px 34px 0 0;
+  background: linear-gradient(180deg, #cf6c43, var(--terracotta-deep));
+  z-index: 1;
+}
+.couch::before {
+  left: 0;
+}
+.couch::after {
+  right: 0;
+}
+/* The seat front carries the names, inside the bottom title-safe line. */
+.couch-seat {
+  position: absolute;
+  left: 50px;
+  right: 50px;
+  bottom: 0;
+  height: 108px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(180deg, #b9573a, #8a3d22);
+  display: flex;
+  justify-content: space-evenly;
+}
+.sitter {
+  position: relative;
+  width: 140px;
+}
+.sitter img {
+  position: absolute;
+  left: 50%;
+  bottom: 96px;
+  height: 116px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.35));
+  z-index: 2;
+}
+.sitter figcaption {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  transform: translateX(-50%);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--cream);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+.sitter.arriving {
+  animation: sitter-in 520ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+@keyframes sitter-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.9);
+  }
+}
+
+.remote-chip {
+  position: absolute;
+  right: var(--safe-x);
+  bottom: var(--safe-y);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--cream);
+  background: rgba(23, 11, 31, 0.78);
+  border: 2px solid rgba(248, 236, 217, 0.16);
+  padding: 12px 26px;
+  border-radius: 999px;
+  z-index: 3;
+}
+.remote-icon {
+  width: 18px;
+  height: 30px;
+}
+
+/* ---------- game page (the box opened) ---------- */
+.game-page {
+  z-index: 4;
+  background:
+    radial-gradient(900px 600px at 30% 40%, rgba(122, 64, 120, 0.35), transparent 70%),
+    linear-gradient(180deg, var(--plum-800), var(--plum-900));
+  animation: page-in 320ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+.page-art {
+  position: absolute;
+  left: var(--safe-x);
+  top: 96px;
+  width: 1040px;
+  aspect-ratio: 16 / 9;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
+}
+.page-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.page-card {
+  position: absolute;
+  left: 1200px;
+  right: var(--safe-x);
+  top: 120px;
+}
+.page-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 84px;
+  line-height: 1.02;
+  margin-top: 12px;
+}
+.page-resume {
+  margin-top: 16px;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--cream-dim);
+}
+.page-actions {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+}
+.action {
+  font-size: 32px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 16px 40px;
+  border: 3px solid rgba(248, 236, 217, 0.4);
+  color: var(--cream);
+}
+.action.primary {
+  background: var(--cream);
+  color: var(--ink);
+  border-color: var(--cream);
+}
+.action.focused {
+  outline: 6px solid var(--amber);
+  outline-offset: 5px;
+  box-shadow: 0 0 0 14px var(--amber-glow);
+}
+.page-hint {
+  margin-top: 28px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--cream-dim);
+}
+.page-players {
+  position: absolute;
+  left: var(--safe-x);
+  top: 726px;
+}
+.page-stickers {
+  display: flex;
+  gap: 28px;
+  margin-top: 16px;
+}
+.page-sticker {
+  width: 150px;
+  height: 196px;
+  border-radius: 20px;
+  background: rgba(248, 236, 217, 0.08);
+  border: 2px solid rgba(248, 236, 217, 0.14);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 12px;
+}
+.page-sticker img {
+  height: 124px;
+  width: auto;
+  object-fit: contain;
+}
+.page-sticker figcaption {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+/* ---------- the player: framed game, box ↔ full screen ---------- */
+.player {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background: var(--plum-950);
+}
+.player[data-phase="hidden"] {
+  visibility: hidden;
+}
+/* Behind the player the home screen rearranges instantly, so the cut-over lands on the box's resting place. */
+.launcher:has(.player:not([data-phase="hidden"])) :is(.rows, .row, .shelf, .box) {
+  transition: none;
+}
+/* The box's cover, grown to full screen; dimmed and softened while the game is on its way. */
+.player-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: filter 500ms ease-out 450ms;
+}
+.player.waiting .player-art {
+  filter: brightness(0.5) saturate(0.8) blur(6px);
+}
+.game-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 360ms ease-out;
+}
+.game-frame.live {
+  opacity: 1;
+  visibility: visible;
+}
+.player-card {
+  position: absolute;
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+  min-width: 760px;
+  max-width: 1400px;
+  text-align: center;
+  padding: 34px 56px 38px;
+  border-radius: 28px;
+  background: rgba(31, 16, 41, 0.86);
+  border: 2px solid rgba(248, 236, 217, 0.14);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: card-in 420ms 300ms ease-out both;
+}
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 16px);
+  }
+}
+.player-line {
+  margin-top: 10px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 48px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.player-sub {
+  margin-top: 12px;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--cream-dim);
+}
+
+/* ---------- connection ---------- */
+.connection-chip {
+  position: absolute;
+  top: var(--safe-y);
+  right: var(--safe-x);
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--cream);
+  padding: 12px 26px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.pulse {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--terracotta);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+}
+
+/* ---------- assembling (connecting) ---------- */
+.assembling-hero {
+  position: absolute;
+  left: var(--safe-x);
+  top: 260px;
+}
+.assembling-line {
+  margin-top: 16px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 72px;
+  animation: hero-text-in 600ms ease-out both;
+}
+.assembling-shelf {
+  position: absolute;
+  left: var(--safe-x);
+  top: 594px;
+  display: flex;
+  gap: 32px;
+}
+.ghost-box {
+  width: 304px;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  background: linear-gradient(100deg, rgba(248, 236, 217, 0.05) 30%, rgba(248, 236, 217, 0.12) 50%, rgba(248, 236, 217, 0.05) 70%);
+  background-size: 300% 100%;
+  border: 2px solid rgba(248, 236, 217, 0.1);
+  animation:
+    sitter-in 500ms ease-out both,
+    shimmer 1.8s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+
+.calm {
+  display: grid;
+  place-items: center;
+}
+.calm-card {
+  max-width: 1100px;
+  text-align: center;
+}
+.calm-card h1 {
+  font-family: var(--display);
+  font-size: 64px;
+  margin: 16px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

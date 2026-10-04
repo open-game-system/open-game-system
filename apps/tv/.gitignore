@@ -1,0 +1,3 @@
+dist/
+# Screenshots from pnpm test:e2e (regenerated every run; look at them, don't commit them).
+e2e/__screens__/
