@@ -129,7 +129,7 @@ function removeConnection(connectionId) {
  * @param {Array} params.iceServers - ICE server configurations for TURN/STUN
  * @returns {{ sessionDescription: { type: string, sdp: string }, tracks: Array<{ location: string, trackName: string }>, traceId: string }}
  */
-async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
+async function INITIALIZE_PUBLISHER({ iceServers = [], maxKbps = 4000 }) {
   const traceId = crypto.randomUUID();
   publisherTraceId = traceId;
 
@@ -526,8 +526,10 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
         transceiver.direction = "sendonly";
       }
       const params = sender.getParameters();
-      params.degradationPreference = "maintain-framerate";
-      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: 4_000_000, maxFramerate: 30 }));
+      // Hold 720p when bits run short (drop frames instead): after a dip the quality scaler kept the
+      // picture at 640x360 well after the bandwidth came back (measured Oct 3, laptop and cloud alike).
+      params.degradationPreference = "maintain-resolution";
+      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: maxKbps * 1000, maxFramerate: 30 }));
       sender.setParameters(params).catch((err) => console.warn("[PUBLISHER] setParameters failed:", err?.message));
       tracks.push({
         location: "local",
@@ -607,6 +609,45 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
  *
  * @param {{ sessionDescription: { type: string, sdp: string } }} params
  */
+/**
+ * Measured on a Chromecast HD (Oct 3): every cloud stream spent its first ~30 s at 640x360 ("limited by
+ * bandwidth") while Chrome's estimate climbed from ~300 kbps, and the quality scaler kept it small for a
+ * while after the target reached 4 Mbps. The server and the SFU are in the same datacenter (rtt ~3 ms),
+ * so starting the estimate near the cap is safe: x-google-start-bitrate in the SFU's answer seeds it.
+ */
+const START_KBPS = 3000;
+function withStartBitrate(sdp, kbps) {
+  if (typeof sdp !== "string" || sdp.includes("x-google-start-bitrate")) return sdp;
+  const eol = sdp.includes("\r\n") ? "\r\n" : "\n";
+  const lines = sdp.split(eol);
+  const param = `x-google-start-bitrate=${kbps}`;
+  const videoPts = new Set();
+  const withFmtp = new Set();
+  let video = false;
+  for (const line of lines) {
+    if (line.startsWith("m=")) video = line.startsWith("m=video");
+    if (!video) continue;
+    const rtpmap = /^a=rtpmap:(\d+) ([^/]+)\//.exec(line);
+    if (rtpmap && /^(H264|VP8|VP9|AV1)$/i.test(rtpmap[2])) videoPts.add(rtpmap[1]);
+    const fmtp = /^a=fmtp:(\d+) /.exec(line);
+    if (fmtp) withFmtp.add(fmtp[1]);
+  }
+  const out = [];
+  video = false;
+  for (const line of lines) {
+    if (line.startsWith("m=")) video = line.startsWith("m=video");
+    const fmtp = video ? /^a=fmtp:(\d+) /.exec(line) : null;
+    if (fmtp && videoPts.has(fmtp[1])) {
+      out.push(`${line};${param}`);
+      continue;
+    }
+    out.push(line);
+    const rtpmap = video ? /^a=rtpmap:(\d+) /.exec(line) : null;
+    if (rtpmap && videoPts.has(rtpmap[1]) && !withFmtp.has(rtpmap[1])) out.push(`a=fmtp:${rtpmap[1]} ${param}`);
+  }
+  return out.join(eol);
+}
+
 async function APPLY_REMOTE_DESCRIPTION({ sessionDescription }) {
   console.log(`[APPLY_REMOTE_DESCRIPTION] Applying remote description...`);
   console.log(`[APPLY_REMOTE_DESCRIPTION] Type: ${sessionDescription.type}`);
@@ -623,7 +664,7 @@ async function APPLY_REMOTE_DESCRIPTION({ sessionDescription }) {
     await publisherPc.setRemoteDescription(
       new RTCSessionDescription({
         type: sessionDescription.type,
-        sdp: sessionDescription.sdp,
+        sdp: withStartBitrate(sessionDescription.sdp, START_KBPS),
       }),
     );
     console.log(`[APPLY_REMOTE_DESCRIPTION] Remote description applied successfully`);
