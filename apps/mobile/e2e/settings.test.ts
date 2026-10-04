@@ -2,15 +2,19 @@ import { by, element, expect, waitFor } from "detox";
 import { freshLaunchWithOnboardingDone } from "./helpers";
 
 /**
- * Navigate from Library to settings.
- * Called after reloadReactNative puts us on home (onboarding already done).
+ * Navigate to Settings: Profile tab, then its Settings row (the old household button's job).
+ * Called after a fresh launch puts us on Library (onboarding already done).
  */
 async function goToSettings(): Promise<void> {
-  const { by, element, waitFor } = require("detox");
   await waitFor(element(by.id("libraryScreen")))
     .toExist()
     .withTimeout(5000);
-  await element(by.id("householdButton")).tap();
+  await element(by.id("tabProfile")).tap();
+  await waitFor(element(by.id("profileSettings")))
+    .toBeVisible()
+    .whileElement(by.id("profileScreen"))
+    .scroll(200, "down");
+  await element(by.id("profileSettings")).tap();
   await waitFor(element(by.id("settingsScreen")))
     .toExist()
     .withTimeout(3000);
@@ -58,10 +62,10 @@ describe("Settings", () => {
     await expect(element(by.text("Privacy Policy"))).toBeVisible();
   });
 
-  it("should close settings and return to Library", async () => {
+  it("should close settings and return to Profile", async () => {
     await goToSettings();
     await element(by.id("settingsCloseButton")).tap();
-    await waitFor(element(by.id("libraryScreen")))
+    await waitFor(element(by.id("profileScreen")))
       .toExist()
       .withTimeout(3000);
   });

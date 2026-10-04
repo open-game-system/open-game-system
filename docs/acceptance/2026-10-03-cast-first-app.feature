@@ -1,4 +1,5 @@
-# Spec: docs/product-specs/ogs-app-v3.html (cast first, Playing · TV · Library, games in one stream)
+# Spec: docs/product-specs/ogs-app-v3.html (cast first, Playing · TV · Library · Friends · Profile, games in one stream)
+# Five tabs: owner decision, Oct 2026 (was three). Profiles and friends: docs/product-specs/ogs-profiles.html.
 # Supersedes the home screen in 2026-03-15-ogs-app-home-screen.feature (Continue section + Game Directory).
 
 Feature: Cast-first OGS app with games inside one stream
@@ -13,7 +14,24 @@ Feature: Cast-first OGS app with games inside one stream
     Given no game Jonathan was playing is live
     When Jonathan opens the app from cold
     Then the Library tab is selected
-    And the tabs read "Playing", "TV", "Library" in that order
+    And the tabs read "Playing", "TV", "Library", "Friends", "Profile" in that order
+
+  Scenario: Profile shows you, your kids, and Settings
+    When Jonathan opens the Profile tab
+    Then it shows his sticker and the name "Jonathan"
+    And "Kids on this phone" lists Juneau (Kid) and Ava (Little)
+    And it shows no @id and no Edit until the profiles backend exists
+    When Jonathan taps Settings
+    Then the Settings screen opens with Notifications, Developer and About
+    And closing it returns to the Profile tab
+
+  Scenario: Friends is honestly empty until the profiles backend exists
+    When Jonathan opens the Friends tab
+    Then it says friends can join each other's TV and see what you're playing
+    And it lists no friends
+    And there is no "Add a friend" button
+    When Jonathan taps "Share my profile"
+    Then the share sheet offers "Jonathan wants to be friends on OGS: https://opengame.org/add/<his person id>"
 
   Scenario: The app opens on Playing when a game is live
     Given Rocket Crew is live on the living room TV

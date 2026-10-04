@@ -23,9 +23,11 @@ describe("App Launch (onboarding completed)", () => {
       .withTimeout(5000);
   });
 
-  it("should show the three tabs", async () => {
+  it("should show the five tabs", async () => {
     await expect(element(by.id("tabPlaying"))).toBeVisible();
     await expect(element(by.id("tabTV"))).toBeVisible();
     await expect(element(by.id("tabLibrary"))).toBeVisible();
+    await expect(element(by.id("tabFriends"))).toBeVisible();
+    await expect(element(by.id("tabProfile"))).toBeVisible();
   });
 });

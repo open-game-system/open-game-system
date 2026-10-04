@@ -30,6 +30,8 @@ describe("OGS app, cast-first", { tags: ["ios"], serial: true, requires: ["nativ
     await expect(screen.getByTestId("tabPlaying")).toBeVisible();
     await expect(screen.getByTestId("tabTV")).toBeVisible();
     await expect(screen.getByTestId("tabLibrary")).toBeVisible();
+    await expect(screen.getByTestId("tabFriends")).toBeVisible();
+    await expect(screen.getByTestId("tabProfile")).toBeVisible();
     await app.screenshot("library");
   });
 
