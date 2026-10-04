@@ -2,7 +2,7 @@
 // night keeps its place); after sending, each home's reply, and what they see.
 import type { Store } from "../../../../harness/store";
 import { HOUSEHOLDS } from "../../../../world";
-import { anotherNight, declined, dropDeclined, inviteInstead, nightLine, sendInvites, togglePick, toStep, US, type Night, type Nights } from "../../nights";
+import { anotherNight, declined, dropDeclined, inviteInstead, nightLine, sendInvites, togglePick, toStep, US, type Night, type Nights, whenWords } from "../../nights";
 import type { S } from "../../state";
 import { Check, Eye, Plus } from "../../ui/Icons";
 import { HomeRows } from "./HomeRows";
@@ -17,7 +17,7 @@ function Picker({ s, store }: { s: S; store: Store<S> }) {
       <h1 className="cx-title">New Hearthisle night</h1>
       {paused.map((p) => (
         <p key={p.id} className="cx-keeps">
-          <b>Your other night stays put.</b> {nightLine(p)}: it keeps its place and stays in Game nights until every home is back.
+          <b>Your other night stays put.</b> {nightLine(p)}: it keeps its place and stays in Coming up until every home is back.
         </p>
       ))}
       <h2 className="cx-subh">Invite homes you play with</h2>
@@ -59,7 +59,7 @@ function Replies({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
   return (
     <div className="cx-setup2">
       <h1 className="cx-title">{waiting > 0 ? "Invites sent" : "Everyone's in"}</h1>
-      <p className="cx-lede">{waiting > 0 ? `For ${(n.when ?? "tonight").toLowerCase()}. You can pick seats while they answer.` : `Every home said yes for ${(n.when ?? "tonight").toLowerCase()}. Next, the seats.`}</p>
+      <p className="cx-lede">{waiting > 0 ? `For ${whenWords(n.when)}. You can pick seats while they answer.` : `Every home said yes for ${whenWords(n.when)}. Next, the seats.`}</p>
       {s.nights.link && <p className="cx-keeps">Invite link ready to send. Whoever opens it takes the free seat; you'll see their name here first.</p>}
       <HomeRows n={n} store={store} mode="status" />
       <button className="cx-btn cx-btn--line cx-wide" data-bot="invite-preview" onClick={() => store.update((x) => ({ ...x, nights: { ...x.nights, preview: true } }))}>
@@ -85,7 +85,7 @@ function Declined({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
     <div className="cx-setup2">
       <h1 className="cx-title">{names} can't make it</h1>
       <p className="cx-lede">
-        They said no to {(n.when ?? "tonight").toLowerCase()}.{yes.length > 0 ? ` ${yes.join(" and ")} are in.` : ""} Nothing has started, so nothing is lost.
+        They said no to {whenWords(n.when)}.{yes.length > 0 ? ` ${yes.join(" and ")} are in.` : ""} Nothing has started, so nothing is lost.
       </p>
       <HomeRows n={n} store={store} mode="status" />
       <h2 className="cx-subh">What now?</h2>
@@ -93,7 +93,7 @@ function Declined({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
         <li>
           <button className="cx-choice" data-bot="decline-play-on" onClick={() => pick((ns) => toStep(dropDeclined(ns), "seats"))}>
             <b>Play with {playing} homes</b>
-            <span>Start {(n.when ?? "tonight").toLowerCase()} without them. Their seat leaves the board.</span>
+            <span>Start {whenWords(n.when)} without them. Their seat leaves the board.</span>
           </button>
         </li>
         <li>

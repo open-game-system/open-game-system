@@ -2,9 +2,9 @@
 // decline are theirs, so here they are shown, not pressed.
 import type { Store } from "../../../../harness/store";
 import { gameById } from "../../../../world";
-import { screenWords, short, US, type Night } from "../../nights";
+import { household, screenWords, short, US, type Night } from "../../nights";
 import type { S } from "../../state";
-import { Mark } from "../../ui/Brand";
+import { Crest } from "../../ui/Sticker";
 import { GameArt } from "../../ui/GameArt";
 import { Close } from "../../ui/Icons";
 
@@ -31,7 +31,7 @@ export function InvitePreview({ n, s, store }: { n: Night; s: S; store: Store<S>
           </div>
           <div className="cx-invite__body">
             <span className="cx-invite__from">
-              <Mark size={18} /> {us.name}{s.nights.kidNames ? " (Jonathan, Juneau)" : ""} invited you
+              <Crest household={household(US)} size={30} shared /> {us.name}{s.nights.kidNames ? " (Jonathan, Juneau)" : ""} invited you
             </span>
             <h3>{gameById(n.gameId).name} game night</h3>
             <dl>

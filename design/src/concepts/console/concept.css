@@ -1093,3 +1093,6 @@
 .fr-search--none { padding-top: 6px; }
 .fr-search--none .fr-search__pulse { animation: none; opacity: 0.55; }
 .fr-search--none .fr-search__dots { opacity: 0.35; }
+.cx .cx-ingame .cx-seats li .ogs-sticker.cx-portrait, .cx .cx-ingame .cx-seats li.is-ready .ogs-sticker.cx-portrait { box-shadow: none !important; }
+.cx .cx-strip .cx-btn--dark { background: var(--ogs-peach) !important; color: #2a1630 !important; }
+.cx-invite__from { gap: 8px; }

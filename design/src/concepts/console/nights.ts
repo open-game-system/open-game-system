@@ -207,3 +207,6 @@ export const inviteInstead = (ns: Nights): Nights => ({ ...dropDeclined(ns), lin
 export const declined = (n: Night): NightHome[] => n.homes.filter((h) => h.reply === "declined");
 
 export const nightOpen = current;
+
+/** A night's time inside a sentence: "tonight 8:00", "next Fri 8:00", "Sat 8:00". */
+export const whenWords = (when: string | null): string => (when ?? "tonight").replace(/^Tonight/, "tonight").replace(/^Next/, "next");

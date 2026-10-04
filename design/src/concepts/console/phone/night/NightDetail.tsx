@@ -2,7 +2,7 @@
 // thing to do next (resume when everyone's back · controller on our roll · pause for tonight).
 import type { Store } from "../../../../harness/store";
 import { gameById } from "../../../../world";
-import { beginNewNight, everyoneBack, homeName, household, nightLine, nightStatus, otherHomes, short, US, type Night } from "../../nights";
+import { beginNewNight, everyoneBack, homeName, household, nightLine, nightStatus, otherHomes, short, US, type Night, whenWords } from "../../nights";
 import { Crest } from "../../ui/Sticker";
 import { night, pauseNightS, resumeNightS, type S } from "../../state";
 import { Chip } from "../../ui/Chip";
@@ -45,7 +45,7 @@ function Next({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
           {by} at turn {n.turn}, for every home
         </b>
         <span>
-          Resumes when everyone's back{n.when ? `, ${n.when.toLowerCase()}` : ""}. {back ? "Every home is here." : `Waiting on ${away.join(" and ")}.`}
+          Resumes when everyone's back{n.when ? `, ${whenWords(n.when)}` : ""}. {back ? "Every home is here." : `Waiting on ${away.join(" and ")}.`}
         </span>
       </p>
       <button className="cx-btn cx-btn--light" data-bot="night-resume" disabled={!back} onClick={() => store.update((x) => resumeNightS(x, n.id))}>
@@ -68,7 +68,7 @@ function TheirView({ n }: { n: Night }) {
         <span>
           <b>The Mumms paused game night</b>
           <span>
-            {gameById(n.gameId).name} · turn {n.turn} · picks up {(n.when ?? "next time").toLowerCase()}. Your seat and hand are saved.
+            {gameById(n.gameId).name} · turn {n.turn} · picks up {whenWords(n.when)}. Your seat and hand are saved.
           </span>
         </span>
       </div>
