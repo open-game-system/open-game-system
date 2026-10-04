@@ -75,4 +75,37 @@ describe("tapping a game in Library (spec v3, Where a game plays)", () => {
     });
     expect(plan).toEqual({ kind: "phone", url: "https://rc.example/room/AB" });
   });
+
+  it("while cast: Rejoin continues the same instance and opens its room here, not the start page", () => {
+    expect(
+      launchPlan({
+        manifest: game("required"),
+        ogsCast: true,
+        deviceId: "phone-1",
+        resumeUrl: "https://rc.example/join/PQWS?t=seat",
+      }),
+    ).toEqual({
+      kind: "tv",
+      start: {
+        type: "game.start",
+        appId: "rocket-crew",
+        mode: "continue",
+        hostDeviceId: "phone-1",
+      },
+      url: "https://rc.example/join/PQWS?t=seat",
+    });
+  });
+
+  it("a new sitting always opens the start page, even with an old room to resume", () => {
+    for (const ogsCast of [true, false]) {
+      const plan = launchPlan({
+        manifest: game("optional"),
+        ogsCast,
+        deviceId: "p",
+        mode: "new",
+        resumeUrl: "https://rc.example/room/AB",
+      });
+      expect(plan.kind !== "needs-tv" && plan.url).toBe("https://rc.example/");
+    }
+  });
 });

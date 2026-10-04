@@ -14,6 +14,7 @@ import { colors, fonts } from "../components/ogs/theme";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import type { CastStores } from "../services/cast-store";
 import { exitGame } from "../services/game-exit";
+import { latestGameUrl } from "../services/game-rejoin";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
 import {
@@ -22,6 +23,7 @@ import {
   gameCastStoreFor,
   gamePresence,
   ogsCastNow,
+  rememberGameUrl,
   useApp,
 } from "../services/runtime";
 import { swipeBackHandlers } from "../services/swipe-back";
@@ -65,6 +67,15 @@ export default function GameScreen() {
     setUri(initialUri);
   }
 
+  // Where the game is now: start pages redirect into a room (Rocket Crew `/join/PQWS?t=…`), and
+  // Rejoin must return there, not to `uri` (which would open a new room).
+  const latestUrl = useRef(uri);
+  const latestFor = useRef(uri);
+  if (latestFor.current !== uri) {
+    latestFor.current = uri;
+    latestUrl.current = uri;
+  }
+
   const games = [...app.library, ...app.catalogue];
   const game =
     games.find((g) => g.appId === params.appId) ?? games.find((g) => uri.startsWith(g.startUrl));
@@ -98,10 +109,12 @@ export default function GameScreen() {
   useEffect(() => subscribeToGameUrl((url) => setUri(url)), []);
 
   const leave = useCallback(() => {
+    const url = latestUrl.current;
+    if (appId) rememberGameUrl(appId, url);
     exitGame({
       appId,
       name,
-      url: uri,
+      url,
       ogsCast: ogsCastNow(),
       reported: appId !== null && ogsStore.getSnapshot().reported.includes(appId),
       now: Date.now(),
@@ -110,7 +123,7 @@ export default function GameScreen() {
       setPill: (p) => appState.setPill(p),
       goBack: () => (router.canGoBack() ? router.back() : router.replace("/library")),
     });
-  }, [appId, name, uri, router]);
+  }, [appId, name, router]);
   const leaveRef = useRef(leave);
   leaveRef.current = leave;
 
@@ -184,6 +197,9 @@ export default function GameScreen() {
                 webviewDebuggingEnabled={true}
                 allowsInlineMediaPlayback={true}
                 mediaPlaybackRequiresUserAction={false}
+                onNavigationStateChange={(nav) => {
+                  latestUrl.current = latestGameUrl(latestUrl.current, nav.url);
+                }}
                 onLoadEnd={() => {
                   setIsLoading(false);
                   setHasError(false);

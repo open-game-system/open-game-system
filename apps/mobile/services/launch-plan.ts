@@ -22,12 +22,13 @@ export function launchPlan(input: {
   resumeUrl?: string;
 }): LaunchPlan {
   const { manifest, ogsCast, deviceId, mode = "continue", resumeUrl } = input;
-  const url = resumeUrl ?? manifest.startUrl;
+  // Continue opens the instance's own page (its room); a new sitting starts from the start page.
+  const url = mode === "new" ? manifest.startUrl : (resumeUrl ?? manifest.startUrl);
   if (ogsCast && manifest.tv !== "none")
     return {
       kind: "tv",
       start: { type: "game.start", appId: manifest.appId, mode, hostDeviceId: deviceId },
-      url: manifest.startUrl,
+      url,
     };
   if (manifest.tv === "required") return { kind: "needs-tv" };
   return { kind: "phone", url };

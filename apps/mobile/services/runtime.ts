@@ -22,6 +22,7 @@ import {
 import { createFakeCastBackend } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
 import { createGamePresence } from "./game-presence";
+import { createGameUrls, rejoinUrl, rememberGame } from "./game-rejoin";
 import { createGoogleCastBackend } from "./google-cast-backend";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
@@ -117,9 +118,13 @@ function startCouch() {
     deviceId: id.deviceId,
     createSocket: webSocket,
     // A game started from the TV with the remote: this phone hosts it, so open its start page.
-    onFollowHost: ({ appId }) => {
+    onFollowHost: ({ appId, instanceId }) => {
       const game = appState.getSnapshot().library.find((g) => g.appId === appId);
-      if (game) gamePresence.followHost(appId, () => pushGame(game, game.startUrl));
+      // Continuing a paused game hosts its same room again, not a fresh one from the start page.
+      if (game)
+        gamePresence.followHost(appId, () =>
+          pushGame(game, rejoinUrlFor(appId, instanceId) ?? game.startUrl),
+        );
     },
   });
   couch.subscribe(notifyCouch);
@@ -143,6 +148,23 @@ export const deviceId = () => appState.getSnapshot().identity?.deviceId ?? "this
 
 export const gamePresence = createGamePresence();
 
+/** Each game's latest page (its room), so Rejoin returns there instead of starting a new one. */
+const gameUrls = createGameUrls();
+
+/** The game screen is closing on `url` (the WebView's latest page): remember it for Rejoin. */
+export function rememberGameUrl(appId: string, url: string) {
+  gameUrls.record(rememberGame(appId, url, couchHub.getSnapshot().state));
+}
+
+function rejoinUrlFor(appId: string, instanceId?: string): string | undefined {
+  return rejoinUrl(appId, {
+    remembered: gameUrls.get(appId),
+    session: couchHub.getSnapshot().state,
+    pill: appState.getSnapshot().pill,
+    instanceId,
+  });
+}
+
 function pushGame(game: Pick<Manifest, "appId" | "name">, url: string) {
   gamePresence.opening(game.appId);
   router.push({ pathname: "/game", params: { url, name: game.name, appId: game.appId } });
@@ -153,7 +175,14 @@ export function openGame(
   game: Manifest,
   opts: { mode?: "continue" | "new"; resumeUrl?: string } = {},
 ) {
-  const plan = launchPlan({ manifest: game, ogsCast: ogsCastNow(), deviceId: deviceId(), ...opts });
+  const resumeUrl = opts.resumeUrl ?? (opts.mode === "new" ? undefined : rejoinUrlFor(game.appId));
+  const plan = launchPlan({
+    manifest: game,
+    ogsCast: ogsCastNow(),
+    deviceId: deviceId(),
+    mode: opts.mode,
+    resumeUrl,
+  });
   switch (plan.kind) {
     case "tv":
       couchHub.send(plan.start);
