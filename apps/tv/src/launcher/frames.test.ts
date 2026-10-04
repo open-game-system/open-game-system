@@ -26,6 +26,13 @@ describe("frame slots", () => {
     expect(nextFrames(EMPTY_FRAMES, cur())).toEqual({ frames: EMPTY_FRAMES, posts: [] });
   });
 
+  it("returns the very same frames while a game waits for its TV view (no render loop)", () => {
+    expect(nextFrames(EMPTY_FRAMES, cur()).frames).toBe(EMPTY_FRAMES);
+    const parked = nextFrames(nextFrames(EMPTY_FRAMES, cur({ viewUrl: RC })).frames, null).frames;
+    const waiting = nextFrames(parked, cur({ appId: "bake-shop", instanceId: "bs-1" }));
+    expect(nextFrames(waiting.frames, cur({ appId: "bake-shop", instanceId: "bs-1" })).frames).toBe(waiting.frames);
+  });
+
   it("frames the view URL when it arrives", () => {
     const { frames } = nextFrames(EMPTY_FRAMES, cur({ viewUrl: RC }));
     expect(frames.active).toEqual({ appId: "rocket-crew", instanceId: "rc-1", url: RC });

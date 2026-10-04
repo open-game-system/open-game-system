@@ -57,6 +57,9 @@ export function nextFrames(
   const fresh = current.viewUrl
     ? { appId: current.appId, instanceId: current.instanceId, url: current.viewUrl }
     : null;
+  // Waiting for the game's TV view with nothing to change: keep the same object, or the caller's
+  // effect sees "new frames" on every render and loops.
+  if (!fresh && !active && nextParked === parked) return { frames: prev, posts };
   return { frames: { active: fresh, parked: nextParked }, posts };
 }
 
