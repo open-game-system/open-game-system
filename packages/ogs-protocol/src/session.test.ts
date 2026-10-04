@@ -84,6 +84,15 @@ describe("couch session", () => {
     expect(s.current?.appId).toBe("bake-shop");
   });
 
+  it("a game that reported no resume point is suspended with an empty label (the launcher says when, not the label)", () => {
+    const { s } = run([
+      ...living(),
+      { type: "game.start", appId: "rocket-crew", mode: "continue", roster: crew },
+      { type: "home" },
+    ]);
+    expect(s.suspended[0]).toMatchObject({ appId: "rocket-crew", label: "" });
+  });
+
   it("swipe back (home) suspends the game with its resume point and sends kids to the launcher", () => {
     const { s, outs } = run([
       ...living(),

@@ -12,7 +12,7 @@ export function gameStatusLine(
 ): string {
   if (session?.current?.appId === game.appId) return "On the TV now";
   const paused = session?.suspended.find((g) => g.appId === game.appId);
-  if (paused) return `Paused · ${paused.label}`;
+  if (paused) return paused.label ? `Paused · ${paused.label}` : "Paused";
   const newest = instances
     .filter((i) => i.appId === game.appId && isOpen(i, now, game.instanceTtlMs))
     .sort((a, b) => b.updatedAt - a.updatedAt)[0];

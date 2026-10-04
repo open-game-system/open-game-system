@@ -95,7 +95,7 @@ export function buildRows(input: {
   const cont: BoxModel[] = [];
   for (const s of input.suspended) {
     const g = take(s.appId);
-    if (g) cont.push(box(g, `Paused ${when(s.at, now)}`, s.label));
+    if (g) cont.push(box(g, `Paused ${when(s.at, now)}`, s.label || g.tagline));
   }
   for (const i of section("paused")) {
     const g = take(i.appId);

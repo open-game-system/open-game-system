@@ -93,6 +93,13 @@ describe("each Library game's status line", () => {
     expect(gameStatusLine(game("rocket-crew"), instances, s, NOW)).toBe("Paused · Mission 7");
   });
 
+  it("a game paused on the TV with no resume point says Paused, not a dangling separator", () => {
+    const s = session({
+      suspended: [{ appId: "rocket-crew", instanceId: "x", label: "", at: NOW }],
+    });
+    expect(gameStatusLine(game("rocket-crew"), [], s, NOW)).toBe("Paused");
+  });
+
   it("a paused sitting without a title still says it's paused", () => {
     expect(gameStatusLine(game("rocket-crew"), [inst("rocket-crew")], null, NOW)).toBe("Paused");
   });

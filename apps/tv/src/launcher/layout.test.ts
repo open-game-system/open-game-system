@@ -69,6 +69,18 @@ describe("rows", () => {
     });
   });
 
+  it("a paused game with no resume point shows its tagline, not the pause time twice", () => {
+    const rows = buildRows({
+      games: FIXTURE_GAMES,
+      instances: [],
+      suspended: [{ appId: "rocket-crew", instanceId: "rc-1", label: "", at: NOW - 60_000 }],
+      now: NOW,
+    });
+    const rc = rows[0]?.boxes[0];
+    const tagline = FIXTURE_GAMES.find((g) => g.appId === "rocket-crew")?.tagline;
+    expect(rc).toMatchObject({ appId: "rocket-crew", tag: "Paused just now", resume: tagline });
+  });
+
   it("uses the session's label over an older instance report for the same game", () => {
     const inst: Instance = {
       instanceId: "x",

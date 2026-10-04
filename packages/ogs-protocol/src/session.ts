@@ -163,7 +163,7 @@ function suspendCurrent(s: SessionState, now: number): SessionState {
   if (!s.current) return s;
   const { appId, instanceId, label } = s.current;
   const suspended = [
-    { appId, instanceId, label: label || "Paused just now", at: now },
+    { appId, instanceId, label, at: now },
     ...s.suspended.filter((g) => g.appId !== appId),
   ];
   return { ...s, current: null, suspended };
