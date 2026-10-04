@@ -20,7 +20,7 @@ const SIZE: Record<Device, { width: number; height: number; dsf: number }> = {
 /** Thresholds. Changing one is a decision: log old → new and why in the scorecard. */
 export const THRESHOLDS = { minTarget: 44, contrastBody: 4.5, contrastLarge: 3, tvMinText: 24 };
 
-interface TextBox { text: string; x: number; y: number; w: number; h: number; color: string; size: number; weight: number; grownup: boolean; clipped: boolean; scrolls: boolean; underSurface: string[] }
+interface TextBox { text: string; x: number; y: number; w: number; h: number; color: string; size: number; weight: number; grownup: boolean; clipped: boolean; scrolls: boolean; underSurface: string[]; block: number }
 interface TargetBox { label: string; w: number; h: number; x: number; y: number }
 interface Probe { texts: TextBox[]; targets: TargetBox[] }
 
@@ -68,6 +68,15 @@ async function probe(page: Page): Promise<Probe> {
       const c = getComputedStyle(e);
       return e.tagName === "IMG" || c.backgroundImage !== "none" || !/rgba\(.*, 0\)|transparent/.test(c.backgroundColor);
     });
+    // Inline runs (code, bold, links) inside one paragraph share a block: they wrap around each other
+    // by design, so they are never compared for collisions.
+    const blocks = new Map<Element, number>();
+    const blockOf = (el: Element): number => {
+      let b: Element = el;
+      while (b.parentElement && b !== root && getComputedStyle(b).display.startsWith("inline")) b = b.parentElement;
+      if (!blocks.has(b)) blocks.set(b, blocks.size);
+      return blocks.get(b) ?? -1;
+    };
     for (const el of root.querySelectorAll<HTMLElement>("*")) {
       const nodes = [...el.childNodes].filter((n) => n.nodeType === 3 && (n.textContent ?? "").trim());
       const own = nodes.map((n) => n.textContent ?? "").join("").trim();
@@ -104,7 +113,7 @@ async function probe(page: Page): Promise<Probe> {
       texts.push({
         text: own.slice(0, 60), x: r.left - rb.left, y: r.top - rb.top, w: r.width, h: r.height,
         color: cs.color, size: parseFloat(cs.fontSize), weight: Number(cs.fontWeight) || 400,
-        grownup: !!el.closest("[data-grownup]"), clipped: clipped || offscreen, scrolls: inScroller(el), underSurface,
+        grownup: !!el.closest("[data-grownup]"), clipped: clipped || offscreen, scrolls: inScroller(el), underSurface, block: blockOf(el),
       });
     }
     const targets: TargetBox[] = [];
@@ -216,7 +225,7 @@ async function shootConcept(concept: ConceptMeta, browser: import("playwright").
       for (const t of texts) for (const sf of t.underSurface) overlaps.push(`${t.text} meets ${sf}`);
       texts.forEach((a, i) => {
         for (const b of texts.slice(i + 1)) {
-          if (a.scrolls !== b.scrolls) continue;
+          if (a.scrolls !== b.scrolls || a.block === b.block) continue;
           // Compare ink bands (middle 60% of each line box).
           const ay = a.y + a.h * 0.2, ah = a.h * 0.6, by = b.y + b.h * 0.2, bh = b.h * 0.6;
           const ix = Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x));
