@@ -20,6 +20,8 @@ export function HeroSitting({
   live,
   headline,
   meta,
+  verb = "Rejoin",
+  compact = false,
   testID,
   buttonTestID,
 }: {
@@ -29,6 +31,10 @@ export function HeroSitting({
   live: boolean;
   headline: string;
   meta: string | null;
+  /** Rejoin your own game; Join one someone else started. */
+  verb?: "Rejoin" | "Join";
+  /** Shorter art, so the sittings below start above the fold (the live game keeps 16:9). */
+  compact?: boolean;
   testID: string;
   buttonTestID: string;
 }) {
@@ -36,7 +42,12 @@ export function HeroSitting({
   const play = usePlay(game);
   return (
     <View style={styles.card} testID={testID}>
-      <ArtTitle game={game} width={width - 42} fadeTo={colors.dusk1}>
+      <ArtTitle
+        game={game}
+        width={width - 42}
+        aspect={compact ? 2.3 : 16 / 9}
+        fadeTo={colors.dusk1}
+      >
         <StatusTag label={tag} live={live} />
       </ArtTitle>
       <View style={styles.body}>
@@ -49,7 +60,7 @@ export function HeroSitting({
         {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         <Button
           testID={buttonTestID}
-          label={play.busy ? "Casting…" : "Rejoin"}
+          label={play.busy ? "Casting…" : verb}
           disabled={play.busy}
           onPress={() => (sitting ? play.rejoin(sitting) : openGame(game))}
           style={styles.button}

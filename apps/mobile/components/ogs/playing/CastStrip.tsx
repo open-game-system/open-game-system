@@ -21,10 +21,10 @@ export function CastStrip({ tvName, onTv }: { tvName: string | null; onTv: () =>
         </View>
         <View style={[styles.stand, cast && styles.standOn]} />
       </View>
-      <Text style={styles.text} numberOfLines={1}>
+      <Text style={styles.text} numberOfLines={2}>
         {cast ? `On ${tvName}` : "Not casting"}
       </Text>
-      <Text style={styles.link}>{cast ? "Remote" : "Cast to TV"}</Text>
+      <Text style={[styles.link, !cast && styles.linkQuiet]}>{cast ? "Remote" : "Cast to TV"}</Text>
     </Pressable>
   );
 }
@@ -35,6 +35,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     minHeight: TARGET,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 22,
     backgroundColor: colors.dusk1,
@@ -58,4 +59,6 @@ const styles = StyleSheet.create({
   standOn: { backgroundColor: colors.ember },
   text: { flex: 1, color: colors.cream, fontSize: 16, fontWeight: "700" },
   link: { color: colors.lamp, fontSize: 15, fontWeight: "800" },
+  // Not cast, Cast to TV is a quiet way out; the card below holds the one primary action.
+  linkQuiet: { color: colors.cream2 },
 });

@@ -4,6 +4,8 @@ import {
   gameFacts,
   heroSitting,
   liveHeadline,
+  liveVerb,
+  sharedLine,
   sittingRow,
   sittingRows,
   startedBy,
@@ -185,6 +187,7 @@ describe("a sitting's card in Playing", () => {
       meta: "Played 5 min ago",
       playsOn: "tv",
       where: "Casts to the TV first",
+      action: "Rejoin",
     });
   });
 
@@ -216,6 +219,7 @@ describe("a sitting's card in Playing", () => {
       meta: "Played 5 min ago",
       playsOn: "phone",
       where: "On this phone",
+      action: "Rejoin",
     });
   });
 
@@ -241,10 +245,19 @@ describe("a sitting's card in Playing", () => {
     expect(row.where).toBe("Pauses Rocket Crew");
     // Another sitting of the live game swaps sittings rather than games.
     const other = sittingRow(inst("rocket-crew"), game("rocket-crew"), NOW, true, "rocket crew");
-    expect(other.where).toBe("Pauses the live sitting");
+    expect(other.where).toBe("Pauses the game on the TV");
     // A phone game doesn't touch the TV.
     const duel = sittingRow(inst("word-duel"), game("word-duel", "none"), NOW, true, "Rocket Crew");
     expect(duel.where).toBe("On this phone");
+  });
+
+  it("Rejoin, unless it takes the TV from the live game: then Switch TV", () => {
+    expect(sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true).action).toBe("Rejoin");
+    expect(sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true, "Rocket Crew").action).toBe(
+      "Switch TV",
+    );
+    const duel = game("word-duel", "none");
+    expect(sittingRow(inst("word-duel"), duel, NOW, true, "Rocket Crew").action).toBe("Rejoin");
   });
 
   it("two sittings of one game that would read alike become Game 1 and Game 2", () => {
@@ -346,6 +359,27 @@ describe("the game live on the TV", () => {
     };
     expect(liveHeadline(live, NOW)).toMatch(/^Started \d{1,2}:\d{2} (AM|PM)$/);
     expect(liveHeadline({ ...live, label: "Mission 6" }, NOW)).toBe("Mission 6");
+  });
+});
+
+describe("a line every card in a group would repeat", () => {
+  it("is said once for the group", () => {
+    expect(sharedLine(["Casts to the TV first", "Casts to the TV first"])).toBe(
+      "Casts to the TV first",
+    );
+  });
+  it("one card, or cards that differ, keep their own", () => {
+    expect(sharedLine(["Casts to the TV first"])).toBeNull();
+    expect(sharedLine(["On this phone", "Casts to the TV first"])).toBeNull();
+    expect(sharedLine([])).toBeNull();
+  });
+});
+
+describe("the live game's button", () => {
+  it("Rejoin when you started it (or nobody knows), Join when someone else did", () => {
+    expect(liveVerb("You")).toBe("Rejoin");
+    expect(liveVerb(null)).toBe("Rejoin");
+    expect(liveVerb("Mom")).toBe("Join");
   });
 });
 

@@ -97,6 +97,8 @@ export interface SittingRow {
   playsOn: PlaysOn;
   /** Where Rejoin lands: "On the TV", "On this phone", "Casts to the TV first", or "Pauses <live game>". */
   where: string;
+  /** Rejoin, or Switch TV when it pauses the game live on the TV for everyone (asks first). */
+  action: "Rejoin" | "Switch TV";
 }
 
 /** An instance as a sitting to rejoin (its id, resume point and URL). */
@@ -147,13 +149,26 @@ const row = (
   meta: string,
   cast: boolean,
   liveName: string | null,
-): SittingRow => ({
-  name: game?.name ?? item.appId,
-  headline,
-  meta,
-  playsOn: playsOn(game),
-  where: whereItPlays(playsOn(game), cast, liveName, game?.name ?? item.appId),
-});
+): SittingRow => {
+  const where = whereItPlays(playsOn(game), cast, liveName, game?.name ?? item.appId);
+  return {
+    name: game?.name ?? item.appId,
+    headline,
+    meta,
+    playsOn: playsOn(game),
+    where,
+    action: where.startsWith("Pauses") ? "Switch TV" : "Rejoin",
+  };
+};
+
+/** A line every card in a group would repeat ("Casts to the TV first"), said once; else null. */
+export function sharedLine(lines: string[]): string | null {
+  return lines.length > 1 && lines.every((l) => l === lines[0]) ? lines[0] : null;
+}
+
+/** The live game's button: Join a game someone else started, Rejoin your own (or unknown). */
+export const liveVerb = (startedBy: string | null): "Join" | "Rejoin" =>
+  startedBy && startedBy !== "You" ? "Join" : "Rejoin";
 
 /** Every sitting's card, never two alike within a game ("Game 1", "Game 2"), by instance id. */
 export function sittingRows(
@@ -181,7 +196,7 @@ function whereItPlays(on: PlaysOn, cast: boolean, liveName: string | null, name:
   if (on === "phone" || (on === "either" && !cast)) return "On this phone";
   if (!cast) return "Casts to the TV first";
   if (!liveName) return "On the TV";
-  return liveName === name ? "Pauses the live sitting" : `Pauses ${liveName}`;
+  return liveName === name ? "Pauses the game on the TV" : `Pauses ${liveName}`;
 }
 
 /** Who started the game live on the TV: a member's name, "You" for this phone, else null. */

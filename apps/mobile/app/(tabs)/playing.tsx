@@ -1,10 +1,11 @@
-import type { SectionKind } from "@open-game-system/ogs-protocol";
+import type { Instance, SectionKind } from "@open-game-system/ogs-protocol";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../components/ogs/Button";
 import { ErrorLine } from "../../components/ogs/ErrorLine";
+import { FriendCastingCards } from "../../components/ogs/friends/FriendCastingCard";
 import { CastStrip } from "../../components/ogs/playing/CastStrip";
 import { HeroSitting } from "../../components/ogs/playing/HeroSitting";
 import { PlayingNotice } from "../../components/ogs/playing/PlayingNotice";
@@ -16,6 +17,8 @@ import {
   asSitting,
   heroSitting,
   liveHeadline,
+  liveVerb,
+  sharedLine,
   sittingRows,
   startedBy,
   whatToStart,
@@ -69,6 +72,8 @@ export default function PlayingScreen() {
   const liveName = live && liveGame ? liveGame.name : null;
   const rows = sittingRows(items, find, now, cast, liveName);
   const offline = app.status === "offline";
+  const sectionWhere = (group: Instance[]) =>
+    sharedLine(group.flatMap((i) => rows.get(i.instanceId)?.where ?? []));
   const heroRow = hero ? rows.get(hero.instanceId) : undefined;
   const inProgress = live || items.some((i) => i.status !== "completed");
 
@@ -102,6 +107,8 @@ export default function PlayingScreen() {
             testID="playingStale"
           />
         ) : null}
+        {/* A friend's cast leads (slice 2): renders nothing when no friend is casting. */}
+        {offline ? null : <FriendCastingCards />}
         {offline ? null : cast ? (
           // Unverifiable while OGS can't be reached, so the TV isn't claimed then.
           <CastStrip tvName={tvName ?? "the TV"} onTv={toTv} />
@@ -119,10 +126,12 @@ export default function PlayingScreen() {
             sitting={null}
             headline={liveHeadline(current, now)}
             meta={liveBy ? `${liveBy} started it` : null}
+            verb={liveVerb(liveBy)}
           />
         ) : hero && heroGame ? (
           <HeroSitting
             testID="playingHero"
+            compact={items.length > 1}
             buttonTestID={`playingItem-${hero.instanceId}`}
             game={heroGame}
             tag={heroRow?.where ?? ""}
@@ -145,6 +154,9 @@ export default function PlayingScreen() {
               <SectionTitle count={section.kind === "yourTurn" ? rest.length : undefined}>
                 {TITLES[section.kind]}
               </SectionTitle>
+              {sectionWhere(rest) ? (
+                <Text style={styles.sectionWhere}>{sectionWhere(rest)}</Text>
+              ) : null}
               {rest.map((item) => {
                 const game = find(item.appId);
                 const row = rows.get(item.instanceId);
@@ -157,6 +169,8 @@ export default function PlayingScreen() {
                     row={row}
                     game={game}
                     sitting={asSitting(item)}
+                    showWhere={!sectionWhere(rest)}
+                    live={liveName ? { name: liveName, tvName: tvName ?? "the TV" } : null}
                   />
                 );
               })}
@@ -217,4 +231,11 @@ const styles = StyleSheet.create({
   lead: { fontFamily: fonts.display, fontSize: 28, color: colors.cream },
   sub: { color: colors.cream2, fontSize: 17, lineHeight: 24, marginTop: 6 },
   cast: { marginTop: 18 },
+  sectionWhere: {
+    color: colors.lilac,
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: -4,
+    marginBottom: 10,
+  },
 });

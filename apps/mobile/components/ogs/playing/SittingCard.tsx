@@ -1,5 +1,5 @@
 import type { Manifest } from "@open-game-system/ogs-protocol";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { SittingRow } from "../../../services/playing-home";
 import type { Sitting } from "../../../services/sittings";
 import { artUrl, GameArt } from "../GameArt";
@@ -15,24 +15,43 @@ export function SittingCard({
   row,
   game,
   sitting,
+  showWhere = true,
+  live,
   testID,
 }: {
   row: SittingRow;
   game: Manifest;
   sitting: Sitting;
+  /** False when the group says where once, above its cards. */
+  showWhere?: boolean;
+  /** The game live on the TV and the TV's name, for Switch TV's question. */
+  live: { name: string; tvName: string } | null;
   testID: string;
 }) {
   const play = usePlay(game);
+  const rejoin = () => play.rejoin(sitting);
+  // Taking the TV from the live game pauses it for everyone, so it asks first.
+  const onPress = () =>
+    row.action === "Switch TV" && live
+      ? Alert.alert(
+          `Switch the TV to ${row.name}?`,
+          `${live.name} pauses for everyone on ${live.tvName}. It stays in progress, so anyone can Rejoin it.`,
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Switch TV", onPress: rejoin },
+          ],
+        )
+      : rejoin();
   const icon = artKit(game).icon;
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={[row.name, row.headline, row.meta, row.where, "Rejoin"]
+      accessibilityLabel={[row.name, row.headline, row.meta, row.where, row.action]
         .filter(Boolean)
         .join(", ")}
       disabled={play.busy}
-      onPress={() => play.rejoin(sitting)}
+      onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       {icon ? (
@@ -44,18 +63,20 @@ export function SittingCard({
         <Text style={styles.eyebrow} numberOfLines={1}>
           {row.name}
         </Text>
-        <Text style={styles.headline} numberOfLines={1}>
+        <Text style={styles.headline} numberOfLines={2}>
           {row.headline}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
           {play.note ?? row.meta}
         </Text>
-        <Text style={styles.where} numberOfLines={1}>
-          {row.where}
-        </Text>
+        {showWhere ? (
+          <Text style={styles.where} numberOfLines={2}>
+            {row.where}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.rejoin}>
-        <Text style={styles.rejoinText}>{play.busy ? "Casting…" : "Rejoin"}</Text>
+        <Text style={styles.rejoinText}>{play.busy ? "Casting…" : row.action}</Text>
       </View>
     </Pressable>
   );

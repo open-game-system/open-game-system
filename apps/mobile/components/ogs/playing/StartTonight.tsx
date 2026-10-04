@@ -107,7 +107,7 @@ function BigPick({ pick, primary, onOpen }: { pick: Pick; primary: boolean; onOp
         accessibilityLabel={`${pick.game.name}, ${pick.why}. Open its page`}
         onPress={onOpen}
       >
-        <ArtTitle game={pick.game} width={width - 40} />
+        <ArtTitle game={pick.game} width={width - 40} aspect={2.1} />
       </Pressable>
       <View style={styles.bigBody}>
         <Text style={styles.tagline} numberOfLines={2}>

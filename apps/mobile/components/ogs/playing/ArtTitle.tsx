@@ -14,18 +14,21 @@ export function ArtTitle({
   game,
   width,
   radius = 0,
+  aspect = 16 / 9,
   fadeTo,
   children,
 }: {
   game: Manifest;
   width: number;
   radius?: number;
+  /** Width ÷ height; wider than 16:9 trims the clean hero's empty logo third first. */
+  aspect?: number;
   /** Fade the foot of the art into this colour (the card it sits on). */
   fadeTo?: string;
   /** Overlaid at the top left (a status tag). */
   children?: ReactNode;
 }) {
-  const height = Math.round((width * 9) / 16);
+  const height = Math.round(width / aspect);
   const kit = artKit(game);
   const clean = kit.heroClean !== null;
   return (

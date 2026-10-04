@@ -33,3 +33,6 @@ Per round: both critics' scores, then the minimum per row.
 | 01 | product (Codex gpt-5.6-sol, medium) | 6 | 5 | 4 | 7 | 7 | 4 | 6 | 5 | 6 | 4 |
 | 01 | visual (Claude Opus) | 7 | 7 | 6 | 6 | 6 | 4 | 5 | 6 | 5 | 4 |
 | 01 | **min per row** | 6 | 5 | 4 | 6 | 6 | 4 | 5 | 5 | 5 | **4** |
+| 02 | product (Claude Opus) | 7 | 7 | 6 | 6 | 7 | 5 | 6 | 6 | 6 | 5 |
+| 02 | visual (Codex gpt-5.6-sol, medium) | 7 | 6 | 6 | 7 | 6 | 5 | 6 | 6 | 6 | 5 |
+| 02 | **min per row** | 7 | 6 | 6 | 6 | 6 | 5 | 6 | 6 | 6 | **5** |
