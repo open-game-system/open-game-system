@@ -38,6 +38,40 @@ describe("the ogs bridge store (a game reports its instance from the app's WebVi
     warn.mockRestore();
   });
 
+  it("remembers each game once, and tells subscribers until they leave", () => {
+    const store = createOgsBridgeStore(async () => undefined);
+    const seen = jest.fn();
+    const off = store.subscribe(seen);
+    store.dispatch({ type: "INSTANCE_REPORT", report });
+    store.dispatch({ type: "INSTANCE_REPORT", report: { ...report, title: "Mission 7" } });
+    expect(store.getSnapshot().reported).toEqual(["rocket-crew"]);
+    expect(seen).toHaveBeenCalled();
+    const calls = seen.mock.calls.length;
+    off();
+    store.dispatch({ type: "INSTANCE_REPORT", report: { ...report, appId: "bake-shop" } });
+    expect(seen).toHaveBeenCalledTimes(calls);
+    expect(store.getSnapshot().reported).toEqual(["rocket-crew", "bake-shop"]);
+  });
+
+  it("has no event listeners to offer the page (on is a no-op that unsubscribes)", () => {
+    const store = createOgsBridgeStore(async () => undefined);
+    const off = store.on("INSTANCE_REPORT", jest.fn());
+    expect(typeof off).toBe("function");
+    expect(() => off()).not.toThrow();
+  });
+
+  it("logs a failed post by name", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const err = new Error("offline");
+    const store = createOgsBridgeStore(async () => {
+      throw err;
+    });
+    store.dispatch({ type: "INSTANCE_REPORT", report });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(warn).toHaveBeenCalledWith("[ogs] could not post the game's instance report:", err);
+    warn.mockRestore();
+  });
+
   it("reset forgets what was reported (a new game screen)", () => {
     const store = createOgsBridgeStore(async () => undefined);
     store.dispatch({ type: "INSTANCE_REPORT", report: { ...report, status: "suspended" } });

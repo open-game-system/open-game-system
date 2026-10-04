@@ -1,4 +1,4 @@
-import { CAST_VIEW_NAMESPACE, connectViewChannel } from "../cast-view";
+import { CAST_VIEW_NAMESPACE, connectViewChannel, OGS_STREAM_SERVER_URL } from "../cast-view";
 
 type Msg = Record<string, unknown> | string;
 
@@ -86,5 +86,54 @@ describe("connectViewChannel", () => {
     f.fromReceiver({ type: "LOG", message: "hi" });
     await Promise.resolve();
     expect(f.sent).toHaveLength(1);
+  });
+});
+
+describe("the view channel when things go wrong", () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it("defaults to the OGS stream server the receiver also uses", () => {
+    expect(OGS_STREAM_SERVER_URL).toBe(
+      "https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream",
+    );
+  });
+
+  it("ignores a receiver string that isn't JSON", async () => {
+    const f = fakeSession();
+    await connectViewChannel(f.session, () => "https://game/tv/AB", STREAM);
+    expect(() => f.fromReceiver("REQUEST_VIEW")).not.toThrow();
+    await Promise.resolve();
+    expect(f.sent).toHaveLength(1);
+  });
+
+  it("logs a view the receiver didn't take, without throwing", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const err = new Error("receiver busy");
+    const session = {
+      addChannel: async () => ({
+        sendMessage: async () => {
+          throw err;
+        },
+        onMessage: () => {},
+      }),
+    };
+    const channel = await connectViewChannel(session, () => "https://game/tv/AB", STREAM);
+    expect(channel).not.toBeNull();
+    expect(warn).toHaveBeenCalledWith("[Cast] Could not send view to receiver:", err);
+  });
+
+  it("logs a channel that can't open", async () => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const err = new Error("receiver gone");
+    await connectViewChannel(
+      {
+        addChannel: async () => {
+          throw err;
+        },
+      },
+      () => "https://game/tv/AB",
+      STREAM,
+    );
+    expect(warn).toHaveBeenCalledWith("[Cast] Could not open the view channel:", err);
   });
 });
