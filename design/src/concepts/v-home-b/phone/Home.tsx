@@ -1,16 +1,14 @@
-// Phone home: three lanes, one system. "On the TV tonight" (the couch session) · "Your turn" (every
-// game waiting on you, one inbox) · "Game nights" (games across homes). The library is a tab.
+// Phone home, "Family table": led by who's here tonight. A line says who's at the table; the table
+// holds the family's chairs, the game on the TV (glowing) and the other games; other homes get a
+// place set; turns waiting on you are cards in your hand. The library is a tab.
 import type { Store } from "../../../harness/store";
 import { HOME } from "../../../world";
 import type { S } from "../state";
+import { hereTonight } from "../state";
 import { Wordmark } from "../ui/Brand";
 import { Crest } from "../ui/Sticker";
-import { Lane } from "../ui/Lane";
-import { NightsLane } from "./NightsLane";
-import { CouchRail, NowPlaying } from "./NowPlaying";
-import { TurnRows } from "./TurnRows";
-import { everyGame } from "../inbox";
-import { Chevron } from "../ui/Icons";
+import { FamilyTable } from "./Table";
+import { Hand } from "./Hand";
 
 export function HomeHeader() {
   return (
@@ -24,31 +22,24 @@ export function HomeHeader() {
   );
 }
 
+function whoLine(s: S): string {
+  const here = hereTonight(s);
+  const out = HOME.people.filter((p) => !s.here.includes(p.id));
+  const n = here.length;
+  const count = n === 0 ? "Nobody at the table yet" : `${n} at the table`;
+  return out.length === 0 ? `${count} · everyone's home` : `${count} · ${out.map((p) => p.name).join(" & ")} out tonight`;
+}
+
 export function Home({ s, store }: { s: S; store: Store<S> }) {
-  const all = everyGame(s);
-  const turns = all.yours;
-  const others = all.theirs.length + all.paused.length;
   return (
-    <div className="cx-scroll">
-      <HomeHeader />
-      <Lane id="tv" title="On the TV tonight">
-        <NowPlaying s={s} store={store} />
-        <CouchRail s={s} store={store} />
-      </Lane>
-      <Lane
-        id="turns"
-        title="Your turn"
-        count={turns.length}
-        action={
-          <button className="cx-lane__more" data-bot="inbox-all" onClick={() => store.update((x) => ({ ...x, phone: "inbox" }))}>
-            All turns <Chevron size={16} />
-          </button>
-        }
-      >
-        <TurnRows items={turns.slice(0, 2)} store={store} />
-        {others > 0 && <p className="cx-lane__foot">{others} more waiting on other people, in All turns.</p>}
-      </Lane>
-      <NightsLane s={s} store={store} />
+    <div className="cx-scroll ft-home">
+      <header className="ft-head">
+        <h1>Friday at the Mumms' table</h1>
+        <p>{whoLine(s)}</p>
+      </header>
+      <FamilyTable s={s} store={store} />
+      {/* Under an open sheet the hand is covered; keep it out of the way. */}
+      {!s.who && !s.start && <Hand s={s} store={store} />}
     </div>
   );
 }

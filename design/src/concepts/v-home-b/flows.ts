@@ -138,7 +138,7 @@ export const flows: Flow[] = [
     label: "A move arrives while Home is open",
     start: "home.09-move-incoming",
     steps: [
-      { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His whale hops down the path onto his board; Your turn counts 3", wait: 1100 },
+      { device: "phone", bot: "turn-wd-3", mark: "Tunde played: his card is dealt into your hand; it counts 3", wait: 1100 },
       { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 0 },
     ],
   },
