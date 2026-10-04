@@ -26,12 +26,27 @@ export function PlayingNotice({
     return (
       <View style={styles.box} testID="playingOffline">
         <Text style={styles.title}>Your games didn't load</Text>
-        <ErrorLine
-          text={error?.text ?? "Can't reach OGS. Check your Wi-Fi and try again."}
-          action={error?.action ?? "retry"}
-          onRetry={onRetry}
-          testID="playingError"
-        />
+        {!error || error.action === "retry" ? (
+          // The usual case: one calm line and a full-size Try again.
+          <>
+            <Text style={styles.body} testID="playingError">
+              {error?.text ?? "Can't reach OGS. Check your Wi-Fi and try again."}
+            </Text>
+            <Button
+              testID="playingRetry"
+              label="Try again"
+              onPress={onRetry}
+              style={styles.button}
+            />
+          </>
+        ) : (
+          <ErrorLine
+            text={error.text}
+            action={error.action}
+            onRetry={onRetry}
+            testID="playingError"
+          />
+        )}
       </View>
     );
   return (

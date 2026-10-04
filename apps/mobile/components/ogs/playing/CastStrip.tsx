@@ -11,13 +11,18 @@ export function CastStrip({ tvName, onTv }: { tvName: string | null; onTv: () =>
     <Pressable
       testID="playingCastStrip"
       accessibilityRole="button"
-      accessibilityLabel={cast ? `On ${tvName}. Open the remote` : "TV not cast. Cast to TV"}
+      accessibilityLabel={cast ? `On ${tvName}. Open the remote` : "Not casting. Cast to TV"}
       onPress={onTv}
       style={({ pressed }) => [styles.strip, pressed && { opacity: 0.8 }]}
     >
-      <View style={[styles.dot, !cast && styles.dotOff]} />
+      <View style={styles.glyph} accessibilityElementsHidden>
+        <View style={[styles.screen, cast && styles.screenOn]}>
+          {cast ? <View style={styles.dot} /> : null}
+        </View>
+        <View style={[styles.stand, cast && styles.standOn]} />
+      </View>
       <Text style={styles.text} numberOfLines={1}>
-        {cast ? `On ${tvName}` : "TV not cast"}
+        {cast ? `On ${tvName}` : "Not casting"}
       </Text>
       <Text style={styles.link}>{cast ? "Remote" : "Cast to TV"}</Text>
     </Pressable>
@@ -37,8 +42,20 @@ const styles = StyleSheet.create({
     borderColor: colors.hair,
     marginBottom: 16,
   },
-  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.ember },
-  dotOff: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: colors.cream3 },
+  glyph: { width: 20, alignItems: "center" },
+  screen: {
+    width: 20,
+    height: 14,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: colors.cream3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  screenOn: { borderColor: colors.ember },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.ember },
+  stand: { width: 8, height: 1.5, marginTop: 2, backgroundColor: colors.cream3 },
+  standOn: { backgroundColor: colors.ember },
   text: { flex: 1, color: colors.cream, fontSize: 16, fontWeight: "700" },
   link: { color: colors.lamp, fontSize: 15, fontWeight: "800" },
 });

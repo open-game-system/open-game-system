@@ -2,6 +2,7 @@ import type { SectionKind } from "@open-game-system/ogs-protocol";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../components/ogs/Button";
 import { ErrorLine } from "../../components/ogs/ErrorLine";
 import { CastStrip } from "../../components/ogs/playing/CastStrip";
@@ -16,10 +17,12 @@ import {
   heroSitting,
   liveHeadline,
   sittingRows,
+  startedBy,
   whatToStart,
 } from "../../services/playing-home";
 import {
   appState,
+  deviceId,
   useApp,
   useCast,
   useCouch,
@@ -41,6 +44,7 @@ const TITLES: Record<SectionKind, string> = {
  */
 export default function PlayingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const app = useApp();
   const { state } = useCouch();
   const castState = useCast();
@@ -62,7 +66,9 @@ export default function PlayingScreen() {
   const items = view.sections.flatMap((s) => s.items);
   const hero = heroSitting(items, live);
   const heroGame = hero ? find(hero.appId) : undefined;
-  const rows = sittingRows(items, find, now, cast);
+  const liveName = live && liveGame ? liveGame.name : null;
+  const rows = sittingRows(items, find, now, cast, liveName);
+  const offline = app.status === "offline";
   const heroRow = hero ? rows.get(hero.instanceId) : undefined;
   const inProgress = live || items.some((i) => i.status !== "completed");
 
@@ -74,125 +80,140 @@ export default function PlayingScreen() {
     instances: app.instances,
     cast,
     tvName,
+    liveName,
     now,
     exclude: inProgress
       ? [...items.map((i) => i.appId), ...(current ? [current.appId] : [])]
       : undefined,
   });
   const toTv = () => router.navigate("/tv");
+  const liveBy = state && current ? startedBy(state, current.hostDeviceId, deviceId()) : null;
   const retry = () => void appState.init().then(appState.refresh);
 
   return (
-    <Screen title="Playing" testID="playingScreen">
-      {app.status === "offline" && start.kind !== "offline" ? (
-        // Showing what loaded last; say it may be out of date, with its one action.
-        <ErrorLine
-          text={app.error?.text ?? null}
-          action={app.error?.action}
-          onRetry={retry}
-          testID="playingStale"
-        />
-      ) : null}
-      {cast ? (
-        <CastStrip tvName={tvName ?? "the TV"} onTv={toTv} />
-      ) : inProgress ? (
-        <CastStrip tvName={null} onTv={toTv} />
-      ) : null}
+    <View style={styles.root}>
+      <Screen title="Playing" testID="playingScreen">
+        {offline && start.kind !== "offline" ? (
+          // Showing what loaded last; say it may be out of date, with its one action.
+          <ErrorLine
+            text={app.error?.text ?? null}
+            action={app.error?.action}
+            onRetry={retry}
+            testID="playingStale"
+          />
+        ) : null}
+        {offline ? null : cast ? (
+          // Unverifiable while OGS can't be reached, so the TV isn't claimed then.
+          <CastStrip tvName={tvName ?? "the TV"} onTv={toTv} />
+        ) : inProgress ? (
+          <CastStrip tvName={null} onTv={toTv} />
+        ) : null}
 
-      {current && liveGame ? (
-        <HeroSitting
-          testID="nowPlaying"
-          buttonTestID="nowPlayingBackIn"
-          game={liveGame}
-          tag={tvName ? `Live on ${tvName}` : "Live on the TV"}
-          live
-          sitting={null}
-          headline={liveHeadline(current, now)}
-          meta={null}
-        />
-      ) : hero && heroGame ? (
-        <HeroSitting
-          testID="playingHero"
-          buttonTestID={`playingItem-${hero.instanceId}`}
-          game={heroGame}
-          tag={heroRow?.where ?? ""}
-          live={false}
-          headline={heroRow?.headline ?? ""}
-          meta={
-            [hero.status === "waiting" ? "Your turn" : "", heroRow?.meta ?? ""]
-              .filter(Boolean)
-              .join(" · ") || null
-          }
-          sitting={asSitting(hero)}
-        />
-      ) : null}
+        {current && liveGame ? (
+          <HeroSitting
+            testID="nowPlaying"
+            buttonTestID="nowPlayingBackIn"
+            game={liveGame}
+            tag="Live on the TV"
+            live
+            sitting={null}
+            headline={liveHeadline(current, now)}
+            meta={liveBy ? `${liveBy} started it` : null}
+          />
+        ) : hero && heroGame ? (
+          <HeroSitting
+            testID="playingHero"
+            buttonTestID={`playingItem-${hero.instanceId}`}
+            game={heroGame}
+            tag={heroRow?.where ?? ""}
+            live={false}
+            headline={heroRow?.headline ?? ""}
+            meta={
+              [hero.status === "waiting" ? "Your turn" : "", heroRow?.meta ?? ""]
+                .filter(Boolean)
+                .join(" · ") || null
+            }
+            sitting={asSitting(hero)}
+          />
+        ) : null}
 
-      {view.sections.map((section) => {
-        const rest = section.items.filter((i) => i !== hero);
-        if (!rest.length) return null;
-        return (
-          <View key={section.kind} testID={`playingSection-${section.kind}`}>
-            <SectionTitle count={section.kind === "yourTurn" ? rest.length : undefined}>
-              {TITLES[section.kind]}
-            </SectionTitle>
-            {rest.map((item) => {
-              const game = find(item.appId);
-              const row = rows.get(item.instanceId);
-              // A game the catalogue no longer has can't be opened, so it isn't offered.
-              if (!game || !row) return null;
-              return (
-                <SittingCard
-                  key={item.instanceId}
-                  testID={`playingItem-${item.instanceId}`}
-                  row={row}
-                  game={game}
-                  sitting={asSitting(item)}
-                />
-              );
-            })}
+        {view.sections.map((section) => {
+          const rest = section.items.filter((i) => i !== hero);
+          if (!rest.length) return null;
+          return (
+            <View key={section.kind} testID={`playingSection-${section.kind}`}>
+              <SectionTitle count={section.kind === "yourTurn" ? rest.length : undefined}>
+                {TITLES[section.kind]}
+              </SectionTitle>
+              {rest.map((item) => {
+                const game = find(item.appId);
+                const row = rows.get(item.instanceId);
+                // A game the catalogue no longer has can't be opened, so it isn't offered.
+                if (!game || !row) return null;
+                return (
+                  <SittingCard
+                    key={item.instanceId}
+                    testID={`playingItem-${item.instanceId}`}
+                    row={row}
+                    game={game}
+                    sitting={asSitting(item)}
+                  />
+                );
+              })}
+            </View>
+          );
+        })}
+
+        {inProgress ? null : (
+          <View testID="playingEmpty">
+            {start.kind === "suggest" ? (
+              <>
+                <Text style={styles.lead}>{start.lead}</Text>
+                <Text style={styles.sub}>{start.sub}</Text>
+                {start.offerCast ? (
+                  <Button
+                    testID="playingCast"
+                    label="Cast to TV"
+                    style={styles.cast}
+                    onPress={toTv}
+                  />
+                ) : null}
+              </>
+            ) : (
+              <PlayingNotice
+                kind={start.kind}
+                error={start.kind === "offline" ? start.error : null}
+                onRetry={retry}
+                onLibrary={() => router.navigate("/library")}
+              />
+            )}
           </View>
-        );
-      })}
+        )}
 
-      {inProgress ? null : (
-        <View testID="playingEmpty">
-          {start.kind === "suggest" ? (
-            <>
-              <Text style={styles.lead}>{start.lead}</Text>
-              <Text style={styles.sub}>{start.sub}</Text>
-              {start.offerCast ? (
-                <Button
-                  testID="playingCast"
-                  label="Cast to TV"
-                  style={styles.cast}
-                  onPress={toTv}
-                />
-              ) : null}
-            </>
-          ) : (
-            <PlayingNotice
-              kind={start.kind}
-              error={start.kind === "offline" ? start.error : null}
-              onRetry={retry}
-              onLibrary={() => router.navigate("/library")}
-            />
-          )}
-        </View>
-      )}
-
-      {start.kind === "suggest" ? (
-        <StartTonight
-          title={inProgress ? "Start something new" : "Try tonight"}
-          picks={start.picks}
-          big={!inProgress}
-          startPrimary={!inProgress && !start.offerCast}
-        />
-      ) : null}
-    </Screen>
+        {start.kind === "suggest" ? (
+          <StartTonight
+            title={inProgress ? "Start something new" : "Try tonight"}
+            picks={start.picks}
+            big={!inProgress}
+            startPrimary={!inProgress && !start.offerCast}
+          />
+        ) : null}
+      </Screen>
+      {/* Content scrolls under the status bar on a dusk band, never against the clock. */}
+      <View style={[styles.statusBand, { height: insets.top }]} pointerEvents="none" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.dusk0 },
+  statusBand: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.dusk0,
+  },
   lead: { fontFamily: fonts.display, fontSize: 28, color: colors.cream },
   sub: { color: colors.cream2, fontSize: 17, lineHeight: 24, marginTop: 6 },
   cast: { marginTop: 18 },

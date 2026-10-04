@@ -38,6 +38,9 @@ export function StartTonight({
   const [first, ...rest] = big ? picks : [null, ...picks];
   const covers = rest.filter((p): p is Pick => p !== null);
   const shape = shelfShape(covers.map((p) => p.game));
+  // Said once above the row when every cover would repeat it.
+  const sharedWhy =
+    covers.length > 1 && covers.every((p) => p.why === covers[0].why) ? covers[0].why : null;
   const openPage = (pick: Pick) =>
     router.push({ pathname: "/library/[appId]", params: { appId: pick.game.appId } });
   return (
@@ -47,6 +50,11 @@ export function StartTonight({
       </Text>
       {first ? (
         <BigPick pick={first} primary={startPrimary} onOpen={() => openPage(first)} />
+      ) : null}
+      {sharedWhy ? (
+        <Text style={[styles.sharedWhy, first ? styles.sharedWhyAfterBig : null]}>
+          {first ? `More games · ${sharedWhy}` : sharedWhy}
+        </Text>
       ) : null}
       {covers.length ? (
         <ScrollView
@@ -75,9 +83,11 @@ export function StartTonight({
               ) : (
                 <ArtTitle game={pick.game} width={220} radius={14} />
               )}
-              <Text style={styles.why} numberOfLines={1}>
-                {pick.why}
-              </Text>
+              {sharedWhy ? null : (
+                <Text style={styles.why} numberOfLines={1}>
+                  {pick.why}
+                </Text>
+              )}
             </Pressable>
           ))}
         </ScrollView>
@@ -130,6 +140,8 @@ const styles = StyleSheet.create({
   note: { color: colors.peach, fontSize: 14 },
   pressed: { opacity: 0.85 },
   startButton: { marginTop: 10 },
+  sharedWhy: { color: colors.cream3, fontSize: 14, fontWeight: "600", marginTop: -4 },
+  sharedWhyAfterBig: { marginTop: 18 },
   rowScroll: { marginHorizontal: -20, marginTop: 14 },
   row: { paddingHorizontal: 20, gap: 12 },
   coverTile: { width: 132 },

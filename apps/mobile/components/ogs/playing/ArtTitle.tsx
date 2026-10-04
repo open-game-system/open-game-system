@@ -14,16 +14,20 @@ export function ArtTitle({
   game,
   width,
   radius = 0,
+  fadeTo,
   children,
 }: {
   game: Manifest;
   width: number;
   radius?: number;
+  /** Fade the foot of the art into this colour (the card it sits on). */
+  fadeTo?: string;
   /** Overlaid at the top left (a status tag). */
   children?: ReactNode;
 }) {
   const height = Math.round((width * 9) / 16);
-  const clean = artKit(game).heroClean !== null;
+  const kit = artKit(game);
+  const clean = kit.heroClean !== null;
   return (
     <View style={{ width, height, borderRadius: radius, overflow: "hidden" }}>
       <KeyArt game={game} width={width} height={height} radius={radius} />
@@ -38,17 +42,22 @@ export function ArtTitle({
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <View
-        style={[styles.caption, clean ? styles.captionClean : styles.captionLow]}
-        pointerEvents="none"
-      >
-        <GameLogo
-          game={game}
-          width={clean ? width * 0.42 : width * 0.55}
-          height={clean ? height * 0.6 : height * 0.36}
-          nameStyle={{ fontSize: width > 300 ? 34 : 22, lineHeight: width > 300 ? 38 : 26 }}
-        />
-      </View>
+      {fadeTo ? (
+        <LinearGradient colors={["transparent", fadeTo]} style={styles.fade} pointerEvents="none" />
+      ) : null}
+      {kit.logo ? (
+        // Only a real logo goes on the art; the name is set in the card, never over baked-in text.
+        <View
+          style={[styles.caption, clean ? styles.captionClean : styles.captionLow]}
+          pointerEvents="none"
+        >
+          <GameLogo
+            game={game}
+            width={clean ? width * 0.42 : width * 0.55}
+            height={clean ? height * 0.6 : height * 0.36}
+          />
+        </View>
+      ) : null}
       {children ? <View style={styles.tag}>{children}</View> : null}
     </View>
   );
@@ -59,4 +68,5 @@ const styles = StyleSheet.create({
   captionClean: { top: 0, bottom: 0, justifyContent: "center" },
   captionLow: { bottom: 10, right: 14 },
   tag: { position: "absolute", top: 12, left: 12 },
+  fade: { position: "absolute", left: 0, right: 0, bottom: 0, height: "28%" },
 });

@@ -6,6 +6,7 @@ import {
   liveHeadline,
   sittingRow,
   sittingRows,
+  startedBy,
   whatToStart,
 } from "../playing-home";
 
@@ -102,7 +103,7 @@ describe("Playing with nothing in progress", () => {
     if (view.kind !== "suggest") throw new Error(view.kind);
     const why = Object.fromEntries(view.picks.map((p) => [p.game.appId, p.why]));
     expect(why).toEqual({
-      "rocket-crew": "Needs the TV",
+      "rocket-crew": "Casts to the TV first",
       "word-duel": "Plays on this phone",
       hearthisle: "TV or this phone",
     });
@@ -148,6 +149,16 @@ describe("Playing with nothing in progress", () => {
     expect(view.sub).toBe("The TV is ready. Pick a game to start on it.");
   });
 
+  it("while a game is live, a TV pick says it pauses that game", () => {
+    const library = [game("bake-shop"), game("word-duel", "none")];
+    const view = whatToStart({ ...base, cast: true, liveName: "Rocket Crew", library });
+    if (view.kind !== "suggest") throw new Error(view.kind);
+    expect(Object.fromEntries(view.picks.map((p) => [p.game.appId, p.why]))).toEqual({
+      "bake-shop": "Pauses Rocket Crew",
+      "word-duel": "Plays on this phone",
+    });
+  });
+
   it("at most four picks", () => {
     const library = ["a", "b", "c", "d", "e", "f"].map((id) => game(id));
     const view = whatToStart({ ...base, library });
@@ -173,7 +184,7 @@ describe("a sitting's card in Playing", () => {
       headline: "Mission 6",
       meta: "Played 5 min ago",
       playsOn: "tv",
-      where: "Needs the TV",
+      where: "Casts to the TV first",
     });
   });
 
@@ -218,11 +229,22 @@ describe("a sitting's card in Playing", () => {
 
   it("says where Rejoin will land: the TV once cast, this phone for phone games", () => {
     const where = (g: Manifest, cast: boolean) => sittingRow(inst(g.appId), g, NOW, cast).where;
-    expect(where(rc, false)).toBe("Needs the TV");
+    expect(where(rc, false)).toBe("Casts to the TV first");
     expect(where(rc, true)).toBe("On the TV");
     expect(where(game("hearthisle", "optional"), true)).toBe("On the TV");
     expect(where(game("hearthisle", "optional"), false)).toBe("On this phone");
     expect(where(game("word-duel", "none"), true)).toBe("On this phone");
+  });
+
+  it("while another game is live on the TV, a TV sitting says it pauses that game", () => {
+    const row = sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true, "Rocket Crew");
+    expect(row.where).toBe("Pauses Rocket Crew");
+    // Another sitting of the live game swaps sittings rather than games.
+    const other = sittingRow(inst("rocket-crew"), game("rocket-crew"), NOW, true, "rocket crew");
+    expect(other.where).toBe("Pauses the live sitting");
+    // A phone game doesn't touch the TV.
+    const duel = sittingRow(inst("word-duel"), game("word-duel", "none"), NOW, true, "Rocket Crew");
+    expect(duel.where).toBe("On this phone");
   });
 
   it("two sittings of one game that would read alike become Game 1 and Game 2", () => {
@@ -324,6 +346,25 @@ describe("the game live on the TV", () => {
     };
     expect(liveHeadline(live, NOW)).toMatch(/^Started \d{1,2}:\d{2} (AM|PM)$/);
     expect(liveHeadline({ ...live, label: "Mission 6" }, NOW)).toBe("Mission 6");
+  });
+});
+
+describe("who started the live game", () => {
+  const state = {
+    members: [
+      { profileId: "p-dad", name: "Jonathan", sticker: "bear" },
+      { profileId: "p-mom", name: "Mom", sticker: "owl" },
+    ],
+    devices: [
+      { deviceId: "dad-phone", kind: "phone" as const, profileId: "p-dad", online: true },
+      { deviceId: "mom-phone", kind: "phone" as const, profileId: "p-mom", online: true },
+    ],
+  };
+  it("another member by name, this phone as You, unknown as nothing", () => {
+    expect(startedBy(state, "mom-phone", "dad-phone")).toBe("Mom");
+    expect(startedBy(state, "dad-phone", "dad-phone")).toBe("You");
+    expect(startedBy(state, "kid-ipad", "dad-phone")).toBeNull();
+    expect(startedBy(state, null, "dad-phone")).toBeNull();
   });
 });
 

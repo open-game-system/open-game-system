@@ -1,4 +1,4 @@
-import type { Instance, Manifest } from "@open-game-system/ogs-protocol";
+import type { Instance, Manifest, SessionState } from "@open-game-system/ogs-protocol";
 import { sittingTitle, sittingTitles } from "../components/ogs/library/sitting-title";
 import type { AppData } from "./app-state";
 import { playedAgo, type Sitting } from "./sittings";
@@ -26,10 +26,10 @@ const MAX_PICKS = 4;
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
-function whyFor(game: Manifest, cast: boolean): string {
+function whyFor(game: Manifest, cast: boolean, liveName: string | null): string {
   if (game.tv === "none") return "Plays on this phone";
-  if (cast) return "Starts on the TV";
-  return game.tv === "required" ? "Needs the TV" : "TV or this phone";
+  if (cast) return liveName ? `Pauses ${liveName}` : "Starts on the TV";
+  return game.tv === "required" ? "Casts to the TV first" : "TV or this phone";
 }
 
 /**
@@ -47,6 +47,8 @@ export function whatToStart(input: {
   cast: boolean;
   tvName: string | null;
   now: number;
+  /** The game live on the TV now, which starting a TV game pauses. */
+  liveName?: string | null;
   /** Games already in progress, left out so the picks are something new. */
   exclude?: string[];
 }): WhatToStart {
@@ -70,7 +72,7 @@ export function whatToStart(input: {
     ...(first && last
       ? [{ game: first, why: `Played ${lowerFirst(playedAgo(last.updatedAt, now))}` }]
       : []),
-    ...ordered.map((game) => ({ game, why: whyFor(game, cast) })),
+    ...ordered.map((game) => ({ game, why: whyFor(game, cast, input.liveName ?? null) })),
   ].slice(0, MAX_PICKS);
 
   const onTv = picks.some((p) => p.game.tv !== "none");
@@ -93,7 +95,7 @@ export interface SittingRow {
   /** When it was last played ("Played 5 min ago"). */
   meta: string;
   playsOn: PlaysOn;
-  /** Where Rejoin lands: "On the TV", "On this phone", or "Needs the TV" (not cast yet). */
+  /** Where Rejoin lands: "On the TV", "On this phone", "Casts to the TV first", or "Pauses <live game>". */
   where: string;
 }
 
@@ -117,9 +119,10 @@ export function sittingRow(
   game: Manifest | undefined,
   now: number,
   cast = false,
+  liveName: string | null = null,
 ): SittingRow {
   const { headline, detail } = sittingTitle(asSitting(item), item.appId, now);
-  return row(item, game, headline, detail, cast);
+  return row(item, game, headline, detail, cast, liveName);
 }
 
 /** The live game's headline: its resume point, else when it started. */
@@ -143,12 +146,13 @@ const row = (
   headline: string,
   meta: string,
   cast: boolean,
+  liveName: string | null,
 ): SittingRow => ({
   name: game?.name ?? item.appId,
   headline,
   meta,
   playsOn: playsOn(game),
-  where: whereItPlays(playsOn(game), cast),
+  where: whereItPlays(playsOn(game), cast, liveName, game?.name ?? item.appId),
 });
 
 /** Every sitting's card, never two alike within a game ("Game 1", "Game 2"), by instance id. */
@@ -157,21 +161,39 @@ export function sittingRows(
   find: (appId: string) => Manifest | undefined,
   now: number,
   cast: boolean,
+  liveName: string | null = null,
 ): Map<string, SittingRow> {
   const rows = new Map<string, SittingRow>();
   for (const appId of new Set(items.map((i) => i.appId))) {
     const mine = items.filter((i) => i.appId === appId);
     const titles = sittingTitles(mine.map(asSitting), appId, now);
     mine.forEach((item, k) => {
-      rows.set(item.instanceId, row(item, find(appId), titles[k].headline, titles[k].detail, cast));
+      rows.set(
+        item.instanceId,
+        row(item, find(appId), titles[k].headline, titles[k].detail, cast, liveName),
+      );
     });
   }
   return rows;
 }
 
-function whereItPlays(on: PlaysOn, cast: boolean): string {
+function whereItPlays(on: PlaysOn, cast: boolean, liveName: string | null, name: string): string {
   if (on === "phone" || (on === "either" && !cast)) return "On this phone";
-  return cast ? "On the TV" : "Needs the TV";
+  if (!cast) return "Casts to the TV first";
+  if (!liveName) return "On the TV";
+  return liveName === name ? "Pauses the live sitting" : `Pauses ${liveName}`;
+}
+
+/** Who started the game live on the TV: a member's name, "You" for this phone, else null. */
+export function startedBy(
+  state: { members: SessionState["members"]; devices: SessionState["devices"] },
+  hostDeviceId: string | null,
+  myDeviceId: string,
+): string | null {
+  if (!hostDeviceId) return null;
+  if (hostDeviceId === myDeviceId) return "You";
+  const profileId = state.devices.find((d) => d.deviceId === hostDeviceId)?.profileId;
+  return state.members.find((m) => m.profileId === profileId)?.name ?? null;
 }
 
 /** "2–4 players · 10–25 min" from the game's shop facts ("" when it gives none). */

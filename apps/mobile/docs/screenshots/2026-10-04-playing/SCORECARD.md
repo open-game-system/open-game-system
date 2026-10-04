@@ -27,3 +27,9 @@ Per round: both critics' scores, then the minimum per row.
 
 | Round | Critic | Job | Primary | Cast | Sittings | Empty | Edge | Visual | A11y | Copy | Min |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| 00 | product (Claude Opus) | 5 | 4 | 3 | 5 | 4 | 2 | 5 | 6 | 4 | 2 |
+| 00 | visual (Claude Opus) | 4 | 4 | 3 | 5 | 4 | 2 | 5 | 5 | 4 | 2 |
+| 00 | **min per row** | 4 | 4 | 3 | 5 | 4 | 2 | 5 | 5 | 4 | **2** |
+| 01 | product (Codex gpt-5.6-sol, medium) | 6 | 5 | 4 | 7 | 7 | 4 | 6 | 5 | 6 | 4 |
+| 01 | visual (Claude Opus) | 7 | 7 | 6 | 6 | 6 | 4 | 5 | 6 | 5 | 4 |
+| 01 | **min per row** | 6 | 5 | 4 | 6 | 6 | 4 | 5 | 5 | 5 | **4** |

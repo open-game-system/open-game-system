@@ -4,7 +4,7 @@ import { openGame } from "../../../services/runtime";
 import type { Sitting } from "../../../services/sittings";
 import { Button } from "../Button";
 import { usePlay } from "../library/use-play";
-import { colors } from "../theme";
+import { colors, fonts } from "../theme";
 import { ArtTitle } from "./ArtTitle";
 import { StatusTag } from "./StatusTag";
 
@@ -36,10 +36,13 @@ export function HeroSitting({
   const play = usePlay(game);
   return (
     <View style={styles.card} testID={testID}>
-      <ArtTitle game={game} width={width - 40}>
+      <ArtTitle game={game} width={width - 42} fadeTo={colors.dusk1}>
         <StatusTag label={tag} live={live} />
       </ArtTitle>
       <View style={styles.body}>
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {game.name}
+        </Text>
         <Text style={styles.headline} numberOfLines={2}>
           {headline}
         </Text>
@@ -65,8 +68,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.hair,
   },
-  body: { padding: 18, paddingTop: 14, gap: 4 },
-  headline: { color: colors.cream, fontSize: 22, fontWeight: "700" },
+  body: { padding: 18, paddingTop: 6, gap: 4 },
+  eyebrow: {
+    color: colors.lamp,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  headline: { fontFamily: fonts.display, color: colors.cream, fontSize: 26, lineHeight: 30 },
   meta: { color: colors.cream3, fontSize: 15 },
   button: { marginTop: 12 },
   note: { color: colors.peach, fontSize: 14, marginTop: 6 },
