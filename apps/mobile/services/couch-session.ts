@@ -32,6 +32,45 @@ const ServerMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("error"), code: z.string().default("ERROR"), message: z.string() }),
 ]);
 
+type ServerMessage = z.infer<typeof ServerMessageSchema>;
+
+/** A server frame, or null for anything that isn't JSON or isn't a server message. */
+function readServerFrame(data: unknown): ServerMessage | null {
+  try {
+    const parsed = ServerMessageSchema.safeParse(JSON.parse(String(data)));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** What a server message changes: the snapshot, and/or a game this phone should open as host. */
+interface Effect {
+  patch?: Partial<CouchSnapshot>;
+  followHost?: { appId: string; instanceId: string };
+}
+
+function effectOf(msg: ServerMessage): Effect {
+  switch (msg.type) {
+    case "state": {
+      const state = SessionStateSchema.safeParse(msg.state);
+      return state.success ? { patch: { state: state.data } } : {};
+    }
+    case "follow":
+      return followEffect(msg.target);
+    case "remote.offer":
+      return { patch: { remoteOffer: { from: msg.from } } };
+    case "error":
+      return { patch: { error: { code: msg.code, message: msg.message } } };
+  }
+}
+
+/** Only a host follow into a game opens anything on the phone. */
+function followEffect(target: Extract<ServerMessage, { type: "follow" }>["target"]): Effect {
+  if (target.kind !== "game" || target.roleId !== "host") return {};
+  return { followHost: { appId: target.appId, instanceId: target.instanceId } };
+}
+
 export type CouchStatus = "connecting" | "open" | "reconnecting" | "closed";
 
 export interface CouchSnapshot {
@@ -88,32 +127,11 @@ export function createCouchSession(opts: CouchSessionOptions) {
   const raw = (msg: ClientMessage) => socket?.send(JSON.stringify(msg));
 
   function handle(data: unknown) {
-    let json: unknown;
-    try {
-      json = JSON.parse(String(data));
-    } catch {
-      return;
-    }
-    const parsed = ServerMessageSchema.safeParse(json);
-    if (!parsed.success) return;
-    const msg = parsed.data;
-    switch (msg.type) {
-      case "state": {
-        const state = SessionStateSchema.safeParse(msg.state);
-        if (state.success) set({ state: state.data });
-        break;
-      }
-      case "follow":
-        if (msg.target.kind === "game" && msg.target.roleId === "host")
-          opts.onFollowHost?.({ appId: msg.target.appId, instanceId: msg.target.instanceId });
-        break;
-      case "remote.offer":
-        set({ remoteOffer: { from: msg.from } });
-        break;
-      case "error":
-        set({ error: { code: msg.code, message: msg.message } });
-        break;
-    }
+    const msg = readServerFrame(data);
+    if (!msg) return;
+    const { patch, followHost } = effectOf(msg);
+    if (patch) set(patch);
+    if (followHost) opts.onFollowHost?.(followHost);
   }
 
   function connect() {

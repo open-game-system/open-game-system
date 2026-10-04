@@ -79,3 +79,30 @@ describe("Continue with Google", () => {
     await expect(googleIdToken({ ...google, clientId: "" }, d)).rejects.toThrow(/isn't set up/);
   });
 });
+
+describe("Continue with Google: more edges", () => {
+  it("a success without a redirect URL is a cancel", async () => {
+    const { d } = deps(() => ({ type: "success" }));
+    expect(await googleIdToken(google, d)).toBeNull();
+  });
+
+  it("a redirect without a code is refused", async () => {
+    const { d } = deps((u) => ({
+      type: "success",
+      url: `opengame://oauthredirect?state=${new URL(u).searchParams.get("state")}`,
+    }));
+    await expect(googleIdToken(google, d)).rejects.toThrow(/didn't return a code/);
+  });
+
+  it.each([
+    ["is not JSON", new Response("<html>", { status: 200 })],
+    [
+      "is an HTTP error with a token",
+      new Response(JSON.stringify({ id_token: "t" }), { status: 400 }),
+    ],
+  ])("a token answer that %s is refused", async (_label, response) => {
+    const { d } = deps((u) => success(u));
+    d.fetch.mockResolvedValueOnce(response);
+    await expect(googleIdToken(google, d)).rejects.toThrow(/didn't return an ID token/);
+  });
+});

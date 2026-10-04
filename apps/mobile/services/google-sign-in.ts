@@ -33,12 +33,27 @@ export async function googleIdToken(
     google.redirectUri,
   );
   if (result.type !== "success" || !result.url) return null;
-  const params = new URL(result.url).searchParams;
+  return exchangeCode(google, deps, codeFrom(result.url, state), verifier);
+}
+
+/** The authorization code in Google's redirect; throws on a forged state, an error, or no code. */
+function codeFrom(redirectUrl: string, state: string): string {
+  const params = new URL(redirectUrl).searchParams;
   if (params.get("state") !== state) throw new Error("Google's answer didn't match this sign-in.");
   const error = params.get("error");
   if (error) throw new Error(`Google sign-in failed: ${error}`);
   const code = params.get("code");
   if (!code) throw new Error("Google sign-in didn't return a code.");
+  return code;
+}
+
+/** Trades the code (with the PKCE verifier) for Google's ID token. */
+async function exchangeCode(
+  google: GoogleConfig,
+  deps: GoogleDeps,
+  code: string,
+  verifier: string,
+): Promise<string> {
   const res = await deps.fetch(google.tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -50,13 +65,7 @@ export async function googleIdToken(
       code_verifier: verifier,
     }).toString(),
   });
-  let json: unknown = null;
-  try {
-    json = await res.json();
-  } catch {
-    json = null;
-  }
-  const parsed = TokenSchema.safeParse(json);
+  const parsed = TokenSchema.safeParse(await res.json().catch(() => null));
   if (!res.ok || !parsed.success) throw new Error("Google didn't return an ID token.");
   return parsed.data.id_token;
 }

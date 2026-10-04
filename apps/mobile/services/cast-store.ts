@@ -80,65 +80,62 @@ export const CAST_INITIAL_STATE: NativeCastState = {
   viewUrl: null,
 };
 
-const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event) => {
-  switch (event.type) {
-    case "DEVICES_UPDATED":
-      draft.devices = event.devices;
-      draft.isAvailable = event.devices.length > 0;
-      break;
-
-    case "START_CASTING":
-      draft.session.status = "connecting";
-      draft.session.deviceId = event.deviceId;
-      draft.session.deviceName = null;
-      draft.session.sessionId = null;
-      draft.session.streamSessionId = null;
-      draft.error = null;
-      break;
-
-    case "SESSION_CONNECTED":
-      draft.session.status = "connected";
-      draft.session.deviceId = event.deviceId;
-      draft.session.deviceName = event.deviceName;
-      draft.session.sessionId = event.sessionId;
-      draft.session.streamSessionId = event.streamSessionId;
-      draft.error = null;
-      break;
-
-    case "SESSION_STARTING":
-      draft.session.status = "connecting";
-      draft.error = null;
-      break;
-
-    case "STOP_CASTING":
-    case "SESSION_ENDED":
-      draft.session.status = "disconnected";
-      draft.session.deviceId = null;
-      draft.session.deviceName = null;
-      draft.session.sessionId = null;
-      draft.session.streamSessionId = null;
-      draft.error = null;
-      break;
-
-    case "SET_ERROR":
-      draft.error = event.error;
-      break;
-
-    case "RESET_ERROR":
-      draft.error = null;
-      break;
-
-    case "SET_VIEW_URL":
-      draft.viewUrl = event.url;
-      break;
-
-    case "SCAN_DEVICES":
-    case "SHOW_CAST_PICKER":
-    case "SEND_STATE_UPDATE":
-      // No state changes — these are side-effect or forwarded events
-      break;
-  }
+type CastEventOf<K extends NativeCastEvents["type"]> = Extract<NativeCastEvents, { type: K }>;
+type CastHandlers = {
+  [K in NativeCastEvents["type"]]: (draft: NativeCastState, event: CastEventOf<K>) => void;
 };
+
+/** Sets the whole session (and clears the error): every lifecycle step names all of it. */
+function setSession(draft: NativeCastState, session: CastSession): void {
+  draft.session = session;
+  draft.error = null;
+}
+
+const DISCONNECTED: CastSession = CAST_INITIAL_STATE.session;
+const noStateChange = () => {
+  // Side-effect or forwarded events.
+};
+
+const CAST_HANDLERS: CastHandlers = {
+  DEVICES_UPDATED: (draft, event) => {
+    draft.devices = event.devices;
+    draft.isAvailable = event.devices.length > 0;
+  },
+  START_CASTING: (draft, event) =>
+    setSession(draft, { ...DISCONNECTED, status: "connecting", deviceId: event.deviceId }),
+  SESSION_CONNECTED: (draft, { deviceId, deviceName, sessionId, streamSessionId }) =>
+    setSession(draft, { status: "connected", deviceId, deviceName, sessionId, streamSessionId }),
+  SESSION_STARTING: (draft) => {
+    draft.session.status = "connecting";
+    draft.error = null;
+  },
+  STOP_CASTING: (draft) => setSession(draft, { ...DISCONNECTED }),
+  SESSION_ENDED: (draft) => setSession(draft, { ...DISCONNECTED }),
+  SET_ERROR: (draft, event) => {
+    draft.error = event.error;
+  },
+  RESET_ERROR: (draft) => {
+    draft.error = null;
+  },
+  SET_VIEW_URL: (draft, event) => {
+    draft.viewUrl = event.url;
+  },
+  SCAN_DEVICES: noStateChange,
+  SHOW_CAST_PICKER: noStateChange,
+  SEND_STATE_UPDATE: noStateChange,
+};
+
+function applyCastEvent<K extends NativeCastEvents["type"]>(
+  type: K,
+  draft: NativeCastState,
+  event: CastEventOf<K>,
+): void {
+  const handler: CastHandlers[K] = CAST_HANDLERS[type];
+  handler(draft, event);
+}
+
+const castProducer: Producer<NativeCastState, NativeCastEvents> = (draft, event) =>
+  applyCastEvent(event.type, draft, event);
 
 /** What the game's START_CASTING / STOP_CASTING commands do natively (see cast-sync.ts). */
 export type CastCommands = {

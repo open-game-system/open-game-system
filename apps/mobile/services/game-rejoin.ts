@@ -71,9 +71,12 @@ export function rejoinUrl(
   const { remembered, session, pill } = ctx;
   if (!remembered) return undefined;
   if (remembered.instanceId === null) return pill?.appId === appId ? remembered.url : undefined;
-  const target =
-    ctx.instanceId ??
-    (session?.current?.appId === appId ? session.current.instanceId : undefined) ??
-    session?.suspended.find((g) => g.appId === appId)?.instanceId;
+  const target = ctx.instanceId ?? couchInstance(appId, session);
   return target === remembered.instanceId ? remembered.url : undefined;
+}
+
+/** The session's sitting of the game: the live one, else its paused one. */
+function couchInstance(appId: string, session: SessionState | null): string | undefined {
+  if (session?.current?.appId === appId) return session.current.instanceId;
+  return session?.suspended.find((g) => g.appId === appId)?.instanceId;
 }

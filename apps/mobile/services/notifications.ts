@@ -32,6 +32,28 @@ export async function getOrCreateDeviceId(): Promise<string> {
   return deviceId;
 }
 
+/** Granted already, or granted when asked now. */
+async function pushPermissionGranted(): Promise<boolean> {
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  if (existing === "granted") return true;
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === "granted";
+}
+
+const easProjectId = (): string | undefined =>
+  Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+
+/** Android shows nothing without a channel. */
+async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  await Notifications.setNotificationChannelAsync("default", {
+    name: "Default",
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#FF231F7C",
+  });
+}
+
 /**
  * Requests notification permissions and returns the push token.
  * Returns null if permissions are denied or the device doesn't support push.
@@ -43,23 +65,13 @@ export async function registerForPushNotifications(): Promise<string | null> {
     return null;
   }
 
-  // Check existing permissions
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  // Request permissions if not already granted
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== "granted") {
+  if (!(await pushPermissionGranted())) {
     console.log("[Notifications] Permission denied");
     return null;
   }
 
   // Get the Expo push token
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+  const projectId = easProjectId();
   if (!projectId) {
     console.error("[Notifications] No EAS project ID found");
     return null;
@@ -68,16 +80,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
   const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
   console.log("[Notifications] Push token:", tokenData.data);
 
-  // Set up Android notification channel
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "Default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
-  }
-
+  await ensureAndroidChannel();
   return tokenData.data;
 }
 
