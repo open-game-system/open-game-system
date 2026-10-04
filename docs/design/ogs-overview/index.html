@@ -77,6 +77,7 @@ section > header { display: grid; gap: 10px; }
 .shelf .row { display: flex; gap: 18px; width: max-content; }
 figure { margin: 0; display: grid; gap: 8px; align-content: start; }
 .phone { width: 190px; }
+.kit img { width: 100%; border-radius: 14px; border: 1px solid var(--line); display: block; }
 .phone img { width: 190px; border-radius: 22px; border: 1px solid var(--line); display: block; background: var(--night-2); }
 figcaption { font-size: 0.86rem; color: var(--cream-dim); max-width: 190px; line-height: 1.4; }
 figcaption b { color: var(--cream); font-weight: 600; display: block; }
@@ -139,63 +140,85 @@ footer { color: var(--cream-dim); font-size: 0.88rem; }
 <div class="wrap">
 
 <header class="hero">
-  <p class="eyebrow">Open Game System · design so far · 4 Oct 2026</p>
+  <p class="eyebrow">Open Game System · design so far · 4 Oct 2026, evening</p>
   <h1>Cast once.<br>The TV is your console.</h1>
-  <p class="thesis">One cast at the start of the evening puts the OGS launcher on the TV. Every game after that opens inside the same stream. Phones are the remote and the controllers; nobody recasts, and nobody types their name twice.</p>
+  <p class="thesis">One cast puts the OGS launcher on the TV. Every game opens inside the same stream. Your phone is the remote and the controller, your OGS profile follows you into every game, and friends can join your TV.</p>
   <div class="facts">
     <span><b>5 tabs</b> Playing · TV · Library · Friends · Profile</span>
-    <span><b>1 cast</b> per evening, verified with a load counter</span>
-    <span><b>5 games</b> Rocket Crew, Bake Shop, Story Nook, Peekaboo Garden, Night Flight</span>
+    <span><b>1 cast</b> per evening</span>
+    <span><b>5 games</b>, each with its own art kit</span>
+    <span><b>No name forms</b> inside OGS</span>
   </div>
-  <figure class="tv"><img src="img/t-home.jpg" alt="The OGS launcher on the TV: Bake Shop hero, Continue, Tonight and Library rows, the family's stickers on a couch, and the remote holder chip"></figure>
+  <figure class="tv"><img src="img/g-home.jpg" alt="The TV launcher: a row of game icons, Bake Shop's art filling the room with its logo, and cards for the latest sitting, Surprise me and the next sitting"></figure>
 </header>
 
 <section>
   <header>
+    <p class="eyebrow">Watch it</p>
+    <h2>The whole evening in 86 seconds</h2>
+    <p class="prose muted">Phone on the left, TV on the right, recorded from the final build: cast, move the TV focus from the phone, start Rocket Crew from the TV, join as yourself with no name form, swipe back, Playing with a friend's Join card, Bake Shop, Friends, Profile, Stop casting.</p>
+  </header>
+  <video src="media/walkthrough.mp4" controls muted playsinline preload="metadata"></video>
+</section>
+
+<section>
+  <header>
     <p class="eyebrow">How it fits together</p>
-    <h2>Three surfaces, one evening</h2>
-    <p class="prose muted">The phone app drives. The TV runs one page all night, the launcher, which puts each game's own TV page inside itself. Games don't change: they already tell OGS which page belongs on the TV, and OGS sends it to the launcher instead of recasting.</p>
+    <h2>Three surfaces, one session</h2>
+    <p class="prose muted">The phone app drives. The TV runs the launcher, which frames each game's own TV page. Every device in the room is a member of one couch session; the person who cast is the host.</p>
   </header>
   <div class="surfaces">
-    <div class="surface"><h3>Phone app</h3><ul><li>Five tabs; games open full screen over them</li><li>TV tab: Cast once, then it's the remote</li><li>Swipe from the left edge leaves a game; Rejoin returns to the same room</li></ul></div>
-    <div class="surface"><h3>TV launcher</h3><ul><li>Rows: Continue · Tonight · Library</li><li>Focus ring follows the phone's d-pad</li><li>Frames the game's TV page; shrinks it back into its box on Home</li></ul></div>
-    <div class="surface"><h3>Games</h3><ul><li>Unchanged web games on their own hosts</li><li>Declare their TV page; OGS frames it</li><li>No cast buttons of their own inside OGS</li><li>Next: get your name and avatar from OGS</li></ul></div>
+    <div class="surface"><h3>Phone app</h3><ul><li>Your OGS profile and friends</li><li>TV tab: Cast once, then it's the remote</li><li>Games open full screen; swipe from the left edge to leave; Rejoin returns to the same room</li></ul></div>
+    <div class="surface"><h3>TV launcher</h3><ul><li>Icon row; the focused game's art fills the room</li><li>Cards: your latest sitting, Surprise me, the next sitting</li><li>The game grows out of its box; Home shrinks it back</li></ul></div>
+    <div class="surface"><h3>Games</h3><ul><li>Web games on their own hosts</li><li>Get your name, @id and avatar from OGS (signed for that game only)</li><li>Report a sitting label: "Mission 6", "Page 4 of 12", "Day 3"</li></ul></div>
   </div>
 <pre class="mermaid">
 flowchart LR
   P[Phone app] -- "Cast (once)" --> C[Chromecast]
   C -- "opens" --> L[TV launcher]
-  P <-- "couch session (WebSocket)" --> S[(OGS API · CouchSession)]
+  P <-- "couch session" --> S[(OGS API · CouchSession)]
   L <-- "couch session" --> S
-  P -- "opens game in WebView" --> G[Game phone page]
+  P -- "opens game + profile token" --> G[Game phone page]
   G -- "here is my TV page" --> P
   P -- "game.view" --> S
-  S -- "frame this" --> L
+  S -- "frame this + players" --> L
   L -- "frames" --> T[Game TV page]
 </pre>
 </section>
 
 <section>
   <header>
+    <p class="eyebrow">First run</p>
+    <h2>Make your OGS profile</h2>
+    <p class="prose muted">One step: your name, an @id filled in from it, a sticker. One profile per device; a grown-up types the name on a kid's iPad. Back up with Apple, Google or email, offered after onboarding, never required.</p>
+  </header>
+  <div class="shelf"><div class="row">
+    <figure class="phone"><img src="img/f-profile-make.jpg" alt="Make your OGS profile with the keyboard up and Next above it"><figcaption><b>Make your profile</b>Next stays above the keyboard.</figcaption></figure>
+    <figure class="phone"><img src="img/f-profile-done.jpg" alt="Done page: Hi Jonathan, @jonathan, Back up"><figcaption><b>Done</b>"Hi, Jonathan" with Back up your profile.</figcaption></figure>
+    <figure class="phone"><img src="img/f-profile.jpg" alt="Profile tab"><figcaption><b>Profile tab</b>Sticker, name, @id · Edit, Back up, Settings.</figcaption></figure>
+  </div></div>
+</section>
+
+<section>
+  <header>
     <p class="eyebrow">The phone app</p>
     <h2>Five tabs</h2>
-    <p class="prose muted">The app opens on Playing only when a game you were playing is live; otherwise on Library. Profile switching (Netflix-style) comes later; for now it's one profile per device.</p>
   </header>
   <div class="tabs">
-    <div class="tab"><h3>Playing</h3><p>Every sitting you're in, each with Rejoin. Empty state suggests games and Cast to TV.</p><span class="chip s-done">Built</span></div>
-    <div class="tab"><h3>TV</h3><p>A big Cast button, then the remote: what's on the TV, change TV, d-pad, Stop casting.</p><span class="chip s-done">Built</span></div>
-    <div class="tab"><h3>Library</h3><p>Your games. A tap opens the game's page: its sittings and New game.</p><span class="chip s-done">Built</span></div>
-    <div class="tab"><h3>Friends</h3><p>Friends list, requests, Add a friend by QR, code, link or @id.</p><span class="chip s-wip">Empty state built</span></div>
-    <div class="tab"><h3>Profile</h3><p>Name, @id, sticker; back up with Apple, Google or email; notification switches.</p><span class="chip s-wip">Being built</span></div>
+    <div class="tab"><h3>Playing</h3><p>One hero for what's live or most recent; every sitting with Rejoin; a friend's Join card on top.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>TV</h3><p>Pick a TV and cast, then the remote: what's on the TV, Change TV, d-pad, Stop casting.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>Library</h3><p>A hero for your last game, then All Games as covers. A game's page lists its sittings and Start game.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>Friends</h3><p>Friends with presence, requests, Add a friend by QR, code, link or @id, Join a friend's TV.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>Profile</h3><p>You, your @id, back up and sign in, settings.</p><span class="chip s-done">Built</span></div>
   </div>
   <div class="shelf"><div class="row">
-    <figure class="phone"><img src="img/p-library.jpg" alt="Library tab as a list of games"><figcaption><b>Library</b>Games only: art, name, tagline, Needs a TV.</figcaption></figure>
-    <figure class="phone"><img src="img/p-gamepage.jpg" alt="Rocket Crew game page with two in-progress sittings and New game"><figcaption><b>Game page</b>Two Rocket Crew sittings, each with Rejoin, then New game.</figcaption></figure>
-    <figure class="phone"><img src="img/p-playing.jpg" alt="Playing tab empty state"><figcaption><b>Playing, nothing on</b>Suggestions and Cast to TV (now the primary button).</figcaption></figure>
-    <figure class="phone"><img src="img/p-friends.jpg" alt="Friends tab empty state"><figcaption><b>Friends</b>Empty state with Share my profile, until the friends backend lands.</figcaption></figure>
-    <figure class="phone"><img src="img/p-profile.jpg" alt="Profile tab"><figcaption><b>Profile</b>Today's build still lists kids; the profiles work replaces that.</figcaption></figure>
-    <figure class="phone"><img src="img/p-game.jpg" alt="A game full screen in the app"><figcaption><b>In a game</b>Full screen, no OGS chrome. Swipe from the left edge to leave.</figcaption></figure>
-    <figure class="phone"><img src="img/p-rejoin.jpg" alt="Rocket Crew after Rejoin, same Captain seat"><figcaption><b>Rejoin</b>Back in the same room, same seat, no name prompt.</figcaption></figure>
+    <figure class="phone"><img src="img/f-playing.jpg" alt="Playing with Nana's Join card, the TV strip and the Rocket Crew hero"><figcaption><b>Playing</b>Nana's Join card, the TV strip, the live game first.</figcaption></figure>
+    <figure class="phone"><img src="img/f-playing-2.jpg" alt="Playing scrolled to sittings"><figcaption><b>More sittings</b>Named by the game: "Page 4 of 12", "Day 3".</figcaption></figure>
+    <figure class="phone"><img src="img/f-library.jpg" alt="Library with Rocket Crew hero and All Games covers"><figcaption><b>Library</b>Hero with one action, All Games as covers.</figcaption></figure>
+    <figure class="phone"><img src="img/f-gamepage.jpg" alt="Rocket Crew game page"><figcaption><b>Game page</b>Key art and logo, inside the Library tab.</figcaption></figure>
+    <figure class="phone"><img src="img/f-gamepage-2.jpg" alt="Bake Shop page with two sittings"><figcaption><b>Two sittings</b>Each its own card with Rejoin; Start game below.</figcaption></figure>
+    <figure class="phone"><img src="img/f-friends.jpg" alt="Friends tab with a request, Nana casting and Mom online"><figcaption><b>Friends</b>A request, Nana casting with Join, Mom online.</figcaption></figure>
+    <figure class="phone"><img src="img/f-addfriend.jpg" alt="Add a friend with QR code and short code"><figcaption><b>Add a friend</b>QR in the room, a short code, a link, or @id.</figcaption></figure>
   </div></div>
 </section>
 
@@ -203,68 +226,73 @@ flowchart LR
   <header>
     <p class="eyebrow">TV tab</p>
     <h2>The remote</h2>
-    <p class="prose muted">Redesigned after "it looks kind of janky". The card on top says what's on the TV and what OK will do, in the TV's own words. The TV chip opens a picker to move the evening to another TV; the paused game keeps its place. Stop casting replaces "End for tonight" and asks first.</p>
+    <p class="prose muted">The card on top mirrors the TV: the focused game's art and logo, its paused chip, and what OK will do. Someone who joined another person's TV sees "Leave Mom's TV" instead of Stop casting.</p>
   </header>
   <div class="shelf"><div class="row">
-    <figure class="phone"><img src="img/p-tv-notcast.jpg" alt="TV tab before casting: one big Cast button"><figcaption><b>Before casting</b>One big Cast button.</figcaption></figure>
-    <figure class="phone"><img src="img/p-remote.jpg" alt="Remote at the launcher home"><figcaption><b>Remote</b>On the TV: Home. "OK opens Rocket Crew".</figcaption></figure>
-    <figure class="phone"><img src="img/p-remote-game.jpg" alt="Remote with Rocket Crew paused and the Rejoin pill"><figcaption><b>With a game paused</b>"OK continues Rocket Crew", Rejoin pill above the tabs.</figcaption></figure>
-    <figure class="phone"><img src="img/p-picker.jpg" alt="Cast to sheet listing TVs"><figcaption><b>Change TV</b>Current TV first. Switching keeps the game's place.</figcaption></figure>
-    <figure class="phone"><img src="img/p-stop.jpg" alt="Stop casting confirm sheet"><figcaption><b>Stop casting</b>Asks first; the game keeps its place.</figcaption></figure>
+    <figure class="phone"><img src="img/f-tv-which.jpg" alt="Which TV list before casting"><figcaption><b>Which TV?</b>Pick a TV and cast.</figcaption></figure>
+    <figure class="phone"><img src="img/f-remote.jpg" alt="Remote mirroring the TV home"><figcaption><b>Remote</b>"OK opens Rocket Crew".</figcaption></figure>
+    <figure class="phone"><img src="img/f-remote-game.jpg" alt="Remote with a paused game"><figcaption><b>Game paused</b>The same chip the TV shows.</figcaption></figure>
+    <figure class="phone"><img src="img/f-picker.jpg" alt="Change TV picker"><figcaption><b>Change TV</b>The game keeps its place.</figcaption></figure>
+    <figure class="phone"><img src="img/f-stop.jpg" alt="Stop casting confirm"><figcaption><b>Stop casting</b>Asks first.</figcaption></figure>
+    <figure class="phone"><img src="img/f-stopped.jpg" alt="Stopped casting with Cast again"><figcaption><b>Stopped</b>One tap to cast again.</figcaption></figure>
   </div></div>
-  <p class="prose muted">Critic scores went from a lowest row of 1 to 4 in one round; next round: the card should show the focused game like the TV does, one pressed style for every key, controls about 60pt lower, and the picker shown with several TVs.</p>
 </section>
 
 <section>
   <header>
     <p class="eyebrow">The TV launcher</p>
-    <h2>A living room, not a console clone</h2>
-    <p class="prose muted">Picked from four launcher concepts: warm room, status-first rows. The text stays inside the TV's title-safe area, nothing smaller than 24px, and nothing covers the middle of a game.</p>
+    <h2>The focused game fills the room</h2>
+    <p class="prose muted">PS5-style: a row of game icons across the top, the focused game's art behind everything with its logo in the left third, and cards below. Text stays in the title-safe area; nothing covers the middle of a game.</p>
   </header>
   <div class="shelf"><div class="row">
-    <figure class="tvshot"><img src="img/t-gamepage.jpg" alt="Launcher game page for a paused game with Continue and New game"><figcaption><b>Game page</b>Continue at its resume point, or New game; who's here.</figcaption></figure>
-    <figure class="tvshot"><img src="img/t-starting.jpg" alt="Getting ready card while the host phone opens the game"><figcaption><b>Getting ready</b>While the host's phone opens the game.</figcaption></figure>
-    <figure class="tvshot"><img src="img/t-realgame.jpg" alt="Real Rocket Crew TV page framed inside the launcher"><figcaption><b>The real game, framed</b>Rocket Crew's own TV page inside the launcher. No recast.</figcaption></figure>
-    <figure class="tvshot"><img src="img/t-continue.jpg" alt="Home with the paused game in Continue"><figcaption><b>After swipe back</b>The game shrinks into its box in Continue.</figcaption></figure>
-    <figure class="tvshot"><img src="img/t-failed.jpg" alt="A game that did not open on the TV"><figcaption><b>Game didn't open</b>Calm card, names the phone to pick another.</figcaption></figure>
-    <figure class="tvshot"><img src="img/t-reconnect.jpg" alt="Reconnecting chip"><figcaption><b>Reconnecting</b>A corner chip, never a black screen.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-connecting.jpg" alt="Connecting: the room assembles"><figcaption><b>Connecting</b>The room assembles; never a black screen.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-focus.jpg" alt="A card focused from the phone"><figcaption><b>Focus from the phone</b>The focused card grows under the same ring as the icons.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-gamepage.jpg" alt="Game page with Continue and Start game"><figcaption><b>Game page</b>Continue Day 4 or Start game; who's here.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-starting.jpg" alt="Getting ready"><figcaption><b>Getting ready</b>While the host's phone opens the game.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-rc-framed.jpg" alt="Rocket Crew framed with Jonathan as Captain"><figcaption><b>Rocket Crew, joined as Jonathan</b>The real game, framed; no recast.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-after.jpg" alt="Home after a game with the paused sitting"><figcaption><b>After Home</b>"Paused just now · Mission 6" leads the cards.</figcaption></figure>
+    <figure class="tvshot"><img src="img/g-surprise.jpg" alt="Surprise me picked a game"><figcaption><b>Surprise me</b>Spins through the kids' games and lands on one.</figcaption></figure>
   </div></div>
 </section>
 
 <section>
   <header>
-    <p class="eyebrow">Flows</p>
-    <h2>What happens, step by step</h2>
+    <p class="eyebrow">Art</p>
+    <h2>Every game has its own kit</h2>
+    <p class="prose muted">Icon, cover with the title, transparent logo, and a clean hero with room for the logo. Made with Codex in each game's own look. No faces on objects.</p>
   </header>
-  <div class="flows">
-    <div class="flow"><h3>Cast once</h3><ol><li>TV tab → Cast</li><li>The launcher opens on the TV with your games</li><li>The tab turns into the remote</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Chromecast loads +1, once.</p></div>
-    <div class="flow"><h3>Start a game</h3><ol><li>Library → game page → New game (or OK on the TV)</li><li>TV: "Getting ready"; your phone opens the game</li><li>The game declares its TV page; the launcher frames it</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>With the real Rocket Crew.</p></div>
-    <div class="flow"><h3>Leave a game</h3><ol><li>Swipe from the left edge</li><li>TV goes Home with the game in Continue</li><li>Rejoin pill on every tab; Playing shows "In progress"</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Through the first-visit hint too.</p></div>
-    <div class="flow"><h3>Rejoin</h3><ol><li>Tap Rejoin (pill, Playing, or the game page)</li><li>Same room code, same seat, no name prompt</li><li>TV frames the same room</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Twice in a row, no recast.</p></div>
-    <div class="flow"><h3>Switch games</h3><ol><li>Start Bake Shop while Rocket Crew is paused</li><li>Bake Shop frames in the same stream</li><li>Rocket Crew keeps its place</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Casts stays 1.</p></div>
-    <div class="flow"><h3>Two of the same game</h3><ol><li>Start a second Rocket Crew from its page</li><li>Both show as separate sittings</li><li>Each Rejoin opens its own room</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Labels look alike until games report one.</p></div>
-    <div class="flow"><h3>Friend is casting</h3><ol><li>Your friend casts; a Join card shows on top of your Playing tab</li><li>Tap Join to be on that couch</li><li>Anyone else joins with the code on the TV</li></ol><p class="proof"><span class="chip s-plan">Designed</span><br>Slice 2.</p></div>
+  <figure class="kit"><img src="img/k-artkit.jpg" alt="Art kit sheet: icon, cover, logo and hero for each of the five games"></figure>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Games inside OGS</p>
+    <h2>Games know who you are</h2>
+    <p class="prose muted">When you open a game, OGS hands it a token signed for that game only, with your profile. Rocket Crew skips "Who's playing here?" and seats you by name. Casting is OGS's job, so games show no cast buttons of their own.</p>
+  </header>
+  <div class="shelf"><div class="row">
+    <figure class="phone"><img src="img/f-rc-joined.jpg" alt="Rocket Crew on the phone: Jonathan, you are the Captain"><figcaption><b>No name form</b>"Jonathan, you are the Captain".</figcaption></figure>
+  </div></div>
+  <div class="split">
+    <div class="box yes"><h3>A game sees</h3><ul><li>Profile id and <span class="id">@jonathan</span></li><li>Display name and sticker</li><li>On the TV: who's on the couch</li></ul></div>
+    <div class="box no"><h3>A game never sees</h3><ul><li>Your friends list</li><li>Your other games</li><li>Device ids or push tokens</li><li>Your age</li></ul></div>
   </div>
-  <figure>
-    <video src="media/phone-and-tv.mp4" controls muted playsinline preload="metadata"></video>
-    <figcaption style="max-width:none">Phone and TV side by side (from the overnight build, before Rejoin and the list Library): cast, launch Rocket Crew, the real game framed, swipe back, switch to Bake Shop.</figcaption>
-  </figure>
 </section>
 
 <section>
   <header>
     <p class="eyebrow">Words</p>
-    <h2>Vocabulary we settled on</h2>
+    <h2>Vocabulary</h2>
   </header>
   <div class="tablewrap"><table class="words">
     <thead><tr><th>Where</th><th>Say</th><th>Not</th></tr></thead>
     <tbody>
-      <tr><td>Going back to a game</td><td><b>Rejoin</b></td><td><s>Back in</s></td></tr>
-      <tr><td>A game you stepped out of (phone)</td><td><b>In progress</b> · Mission 6</td><td><s>Paused</s></td></tr>
-      <tr><td>The in-flight tab</td><td><b>Playing</b></td><td><s>Activity</s>, <s>Now Playing</s></td></tr>
-      <tr><td>Ending the cast</td><td><b>Stop casting</b> (asks first)</td><td><s>End for tonight</s></td></tr>
-      <tr><td>Who you play with</td><td><b>Friends</b>; Family later, for plans</td><td><s>Our family</s></td></tr>
-      <tr><td>Empty Playing button</td><td><b>Cast to TV</b></td><td><s>Cast to the TV</s></td></tr>
+      <tr><td>Going back to a game</td><td><b>Rejoin</b> (yours) · <b>Join</b> (someone else's)</td><td><s>Back in</s></td></tr>
+      <tr><td>A game you stepped out of</td><td><b>In progress</b>, or the game's own label</td><td><s>Paused</s> (phone)</td></tr>
+      <tr><td>Beginning a fresh sitting</td><td><b>Start game</b></td><td><s>New game</s></td></tr>
+      <tr><td>The Library</td><td><b>All Games</b></td><td><s>Your Games</s></td></tr>
+      <tr><td>Ending the cast</td><td><b>Stop casting</b> (host) · <b>Leave Mom's TV</b> (guest)</td><td><s>End for tonight</s></td></tr>
+      <tr><td>Who you play with</td><td><b>Friends</b>; Family later</td><td><s>Our family</s></td></tr>
       <tr><td>TV room title</td><td><b>Living room TV · Jonathan's games</b></td><td><s>Our family's living room</s></td></tr>
     </tbody>
   </table></div>
@@ -272,53 +300,19 @@ flowchart LR
 
 <section>
   <header>
-    <p class="eyebrow">Profiles and friends</p>
-    <h2>You have an OGS profile. Games know your name.</h2>
-    <p class="prose muted">First priority: casting, profile setup and friends. Onboarding makes your profile once: name, @id, sticker. Every game you open gets a token with it, so Rocket Crew stops asking "Who's playing here?". Full spec: <code>docs/product-specs/ogs-profiles.html</code>.</p>
-  </header>
-  <div class="tablewrap"><table class="words">
-    <thead><tr><th>Decision</th><th>Chosen</th></tr></thead>
-    <tbody>
-      <tr><td>Profile id</td><td>A unique <span class="id">@id</span>, pre-filled from your name, editable</td></tr>
-      <tr><td>Kids</td><td>Full profiles for everyone, like Roblox, Minecraft and Steam. A grown-up types the name on a kid's iPad. Family (parental controls, plans) comes later.</td></tr>
-      <tr><td>Profiles per device</td><td>One for now; switching later</td></tr>
-      <tr><td>Joining a cast</td><td>No automatic joining. Friends tap Join; others use the TV code. Later: a push when a friend starts a new game, with a switch.</td></tr>
-      <tr><td>What a game sees</td><td>Your profile id, @id, name and avatar</td></tr>
-      <tr><td>Age</td><td>Not shared with games</td></tr>
-      <tr><td>Losing a phone</td><td>Back up with Apple, Google or email, offered after onboarding. Tested end to end with local emulators.</td></tr>
-    </tbody>
-  </table></div>
-  <div class="split">
-    <div class="box yes"><h3>A game sees</h3><ul><li>Profile id and <span class="id">@jonathan.m</span></li><li>Display name and sticker</li><li>On the TV: who's playing this game now</li></ul></div>
-    <div class="box no"><h3>A game never sees</h3><ul><li>Your friends list</li><li>Device ids or push tokens</li><li>The app's own OGS token</li><li>Your age</li></ul></div>
-  </div>
-  <p class="prose muted">Each game's token works only for that game and expires within the hour, so one game can't replay it to another.</p>
-</section>
-
-<section>
-  <header>
-    <p class="eyebrow">Games inside OGS</p>
-    <h2>Casting is OGS's job now</h2>
-    <p class="prose muted">Each game's "TV screen / Stop casting" box is gone inside the app (all five games, committed, not yet deployed). Games still tell OGS their TV page, so nothing else changes for them. Next, games read your profile and report a label for each sitting (room code or "Mission 6"), so two sittings look different.</p>
-  </header>
-</section>
-
-<section>
-  <header>
     <p class="eyebrow">Where it stands</p>
     <h2>Status</h2>
+    <p class="prose muted">Everything below is committed on <code>design/ogs-app-hillclimb</code> and verified locally (simulator, a fake Chromecast and a local API). Nothing is deployed or tested on a real device yet.</p>
   </header>
   <div class="tablewrap"><table class="board"><tbody>
-    <tr><td>Couch session, launcher, cast once, swap, swipe back</td><td>Unit, seam and e2e tests on simulator + fake Chromecast</td><td><span class="chip s-done">Verified</span></td></tr>
-    <tr><td>Rejoin to the same room; sittings per game</td><td>iOS e2e, two sittings of Rocket Crew</td><td><span class="chip s-done">Verified</span></td></tr>
-    <tr><td>Library list + game page; Playing per sitting</td><td>Simulator</td><td><span class="chip s-done">Built</span></td></tr>
-    <tr><td>Remote redesign, TV picker, Stop casting</td><td>Round 1 of 3</td><td><span class="chip s-wip">Iterating</span></td></tr>
-    <tr><td>Five tabs; tab labels above the home indicator</td><td>Fix in progress</td><td><span class="chip s-wip">In progress</span></td></tr>
-    <tr><td>Profiles + sign-in (slice 1)</td><td>API, onboarding, Profile tab, emulator tests</td><td><span class="chip s-wip">In progress</span></td></tr>
-    <tr><td>Friends (slice 2)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
-    <tr><td>Games get your profile; sitting labels (slice 3)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
-    <tr><td>Pushes ("a friend started a new game")</td><td>After casting, profiles and friends</td><td><span class="chip s-plan">Later</span></td></tr>
-    <tr><td>Real Chromecast + your phone, iPad, TV</td><td>Needs deploy</td><td><span class="chip s-you">Needs you</span></td></tr>
+    <tr><td>Casting, launcher, Rejoin, sittings, swipe back</td><td>e2e on simulator + fake Chromecast</td><td><span class="chip s-done">Verified</span></td></tr>
+    <tr><td>Profiles, back up / sign in (email via Cloudflare)</td><td>Detox, API integration, emulated sign-in</td><td><span class="chip s-done">Verified</span></td></tr>
+    <tr><td>Friends, presence, Join a friend's TV</td><td>Detox, API e2e with real profiles</td><td><span class="chip s-done">Verified</span></td></tr>
+    <tr><td>Games know you; sitting labels</td><td>iOS e2e with Rocket Crew running locally</td><td><span class="chip s-done">Verified</span></td></tr>
+    <tr><td>Design: launcher, Playing, Library, remote</td><td>Critic floors 4→7, 2→5, 2→5, 3→7/8</td><td><span class="chip s-done">Hill-climbed</span></td></tr>
+    <tr><td>Code quality</td><td>CRAP &lt; 8 in logic; mutation 96–99% (API 82%)</td><td><span class="chip s-done">Measured</span></td></tr>
+    <tr><td>Deploy; real phone, iPads, Chromecast</td><td>Needs you</td><td><span class="chip s-you">Needs you</span></td></tr>
+    <tr><td>Web + browser TVs; Fire TV; Apple TV (WebRTC stream)</td><td>Roadmap</td><td><span class="chip s-plan">Next / later</span></td></tr>
   </tbody></table></div>
 </section>
 
@@ -328,37 +322,26 @@ flowchart LR
     <h2>Open decisions</h2>
   </header>
   <div class="asks">
-    <div class="ask"><b>Deploy the four games without in-game cast UI, and commit Bake Shop for the first time?</b><span class="muted">Rocket Crew, Story Nook, Peekaboo Garden, Night Flight are committed; Bake Shop has never been committed.</span></div>
-    <div class="ask"><b>Push the branch and deploy previews?</b><span class="muted">Needed for the real Chromecast (it renders through the cloud stream) and an HTTPS link + QR for your phone and the iPad.</span></div>
-    <div class="ask"><b>Cast to play on a game's page: start new or continue?</b><span class="muted">It starts a new game today; Rejoin continues a sitting.</span></div>
-    <div class="ask"><b>Drop "(simulated)" from the fake TV's name?</b><span class="muted">It shows in four places on the remote during testing.</span></div>
+    <div class="ask"><b>Rejoin pill on every tab?</b><span class="muted">The spec says yes; critics call it a third copy of Rejoin on Library and Playing. Recommendation: show it on TV, Friends and Profile only.</span></div>
+    <div class="ask"><b>Regenerate the iOS project for Sign in with Apple</b><span class="muted">An agent's prebuild was blocked by the permission check; commands are in the briefing.</span></div>
+    <div class="ask"><b>Deploy</b><span class="muted">API (signing key, D1 reset), launcher, app build, then the games; Bake Shop's first commit; Cloudflare Email Sending on opengame.org.</span></div>
   </div>
 </section>
 
 <section>
   <header>
-    <p class="eyebrow">How we got here</p>
-    <h2>Design rounds</h2>
-    <p class="prose muted">Each round: screens and flows recorded, two fresh critics scored them, a fix pass, re-scored. The lowest row is the number that matters.</p>
+    <p class="eyebrow">Beyond Chromecast</p>
+    <h2>Platforms</h2>
+    <p class="prose muted">The launcher runs directly where a device can run web (browsers, Fire TV, Google TV, Samsung, LG), and streams from the cloud over WebRTC where it can't (Chromecast today, Apple TV next). No phone rendering, no HLS, so Roku waits until it supports WebRTC. Detail: <code>docs/adrs/2026-10-04-tv-platforms.md</code> and <code>docs/roadmap.md</code>.</p>
   </header>
-  <div class="history">
-    <div class="round"><span class="n">ROUND 00</span><span class="score">4</span><p>Five concepts: console, kitchen, channel, spine, people.</p></div>
-    <div class="round"><span class="n">ROUND 01</span><span class="score">3.75</span><p>Console + layers. Session model was the gap, not polish.</p></div>
-    <div class="round"><span class="n">ROUND 02</span><span class="score">6.25</span><p>Session model, failures, first run, identity tokens. Mean 7.25.</p></div>
-    <div class="round"><span class="n">VARIANTS</span><span class="score">15</span><p>Wide variants of key moments, reviewed as sheets and video.</p></div>
-    <div class="round"><span class="n">ROUND 03</span><span class="score">5.75</span><p>The pivot to cast-first: four TV launchers; the warm room won.</p></div>
-  </div>
-  <figure>
-    <img src="img/d-round03.jpg" alt="Round 03 comparison of four cast-first launcher concepts" style="width:100%;border-radius:14px;border:1px solid var(--line)">
-    <figcaption style="max-width:none">Round 03: four launcher concepts side by side.</figcaption>
-  </figure>
 </section>
 
 <footer class="links">
-  <span>Specs in the repo (branch <code>design/ogs-app-hillclimb</code>):</span>
+  <span>Specs and evidence (branch <code>design/ogs-app-hillclimb</code>):</span>
   <span><code>docs/product-specs/ogs-app-v3.html</code></span>
   <span><code>docs/product-specs/ogs-profiles.html</code></span>
-  <span><code>docs/acceptance/2026-10-03-cast-first-app.feature</code></span>
+  <span><code>docs/roadmap.md</code></span>
+  <span><code>docs/exec-plans/active/evidence/2026-10-04-final/</code></span>
 </footer>
 
 </div>
