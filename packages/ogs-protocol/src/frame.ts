@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GamePlayerSchema } from "./game-token";
 import { InstanceReportSchema } from "./instance";
 import { RosterEntrySchema } from "./session";
 
@@ -12,7 +13,10 @@ export const LauncherToGameSchema = z.discriminatedUnion("type", [
     instanceId: z.string(),
     mode: z.enum(["continue", "new"]),
     roster: z.array(RosterEntrySchema),
+    /** A game token for this game and session (aud = appId, players + sid); "" when there is none. */
     token: z.string(),
+    /** Who's on the couch: profile id, @id, name, avatar. */
+    players: z.array(GamePlayerSchema).optional(),
   }),
   z.object({ type: z.literal("ogs:suspend") }),
   z.object({ type: z.literal("ogs:resume") }),

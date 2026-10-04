@@ -77,3 +77,24 @@ describe("app-bridge events from a game page", () => {
     expect(OgsBridgeEventSchema.safeParse({ type: "", report }).success).toBe(false);
   });
 });
+
+describe("ogs:start carries the session game token and the players", () => {
+  const players = [
+    {
+      id: "p_jonathan",
+      handle: "jonathan.m",
+      name: "Jonathan",
+      avatar: "https://tv.opengame.org/art/story-nook/char-bear.webp",
+    },
+  ];
+
+  it("players on the couch are accepted", () => {
+    const msg = { ...start, players };
+    expect(LauncherToGameSchema.parse(msg)).toEqual(msg);
+  });
+
+  it("a player without an avatar URL is rejected", () => {
+    const msg = { ...start, players: [{ ...players[0], avatar: "bear" }] };
+    expect(LauncherToGameSchema.safeParse(msg).success).toBe(false);
+  });
+});
