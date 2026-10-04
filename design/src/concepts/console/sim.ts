@@ -37,14 +37,15 @@ export const waitingOnHome = (s: S): boolean => s.fault?.kind === "home-drops" &
 /**
  * The other homes' side of a game night, played by the prototype: invited homes answer a beat after
  * the invite goes out, and while a night is live the other homes take their rolls until it's ours.
- * No roll passes while the night is paused (for the night, or the console menu has the TV paused) or
+ * Their rolls don't depend on which screen this phone shows. No roll passes while the night is paused (for the night, or the console menu has the TV paused) or
  * while it waits on a home that dropped; a home that's away by the host's choice is skipped.
  */
 export function useNightClock(s: S, store: Store<S>, shot: boolean) {
   const n = s.nights.list.find((x) => x.id === s.nights.open);
   const answering = !!n && n.status === "setup" && n.homes.some((h) => h.reply === "invited");
   const live = !!n && n.status === "live" && !s.menu && !waitingOnHome(s);
-  const rolling = s.phone === "night" && live && !!n && n.turnOf !== US ? `${n.id}:${n.turn}` : null;
+  // The other homes roll whatever Dad's phone is showing (Home, a duel): the TV and the lane follow.
+  const rolling = live && !!n && n.turnOf !== US ? `${n.id}:${n.turn}` : null;
   useEffect(() => {
     if (shot || !answering) return;
     const t = setTimeout(() => store.update((x) => ({ ...x, nights: answerInvites(x.nights) })), 2600);

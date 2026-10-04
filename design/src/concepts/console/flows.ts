@@ -8,7 +8,7 @@ export const flows: Flow[] = [
     start: "home.02-tv-console-home",
     steps: [
       { device: "phone", bot: "act-bake-shop", mark: "Tap Bake Shop on the phone: the TV home turns to it", wait: 1800 },
-      { device: "phone", bot: "play-on-tv", mark: "Play on TV: day 4 opens, Juneau's iPad drops into his seat", wait: 2400 },
+      { device: "phone", bot: "play-on-tv", mark: "Play on TV: day 4 opens, Juneau's iPad drops into his seat", wait: 500 },
     ],
   },
   {
@@ -18,7 +18,7 @@ export const flows: Flow[] = [
     start: "swap.01-mid-rocket-crew",
     steps: [
       { device: "phone", bot: "console-home", mark: "Dad presses the console button: Rocket Crew pauses on the TV, the next games come up", wait: 1800 },
-      { device: "phone", bot: "next-bake-shop", mark: "Picks Bake Shop: mission 6 saves, the TV cuts over, Juneau's iPad follows on its own", wait: 5600 },
+      { device: "phone", bot: "next-bake-shop", mark: "Picks Bake Shop: mission 6 saves, the TV cuts over, Juneau's iPad follows on its own", wait: 4800 },
     ],
   },
   {
@@ -55,8 +55,8 @@ export const flows: Flow[] = [
       { device: "phone", bot: "preview-close", mark: "Both homes say yes while we look", wait: 1400 },
       { device: "phone", bot: "night-seats", mark: "Seats: a seat is a person or a whole home. Jonathan + Juneau share blue", wait: 1800 },
       { device: "phone", bot: "seats-next", mark: "Where each home plays: our TV, their TV, Nana & Pop on phones", wait: 1800 },
-      { device: "phone", bot: "night-start", mark: "Start: turn 1 on our TV; the Okafors roll first, ours comes next", wait: 5200 },
-      { device: "phone", bot: "night-back", mark: "Home: two game nights, one live, one paused", wait: 1600 },
+      { device: "phone", bot: "night-start", mark: "Start: turn 1 on our TV; the Okafors roll first, ours comes next", wait: 1600 },
+      { device: "phone", bot: "night-back", mark: "Home: two game nights, one live (the rolls go on: Nana & Pop, then us), one paused", wait: 900 },
     ],
   },
   {
@@ -67,7 +67,7 @@ export const flows: Flow[] = [
     steps: [
       { device: "phone", bot: "night-resume", mark: "Every home is back: resume turn 14 on the TV. Nana & Pop roll", wait: 4200 },
       { device: "phone", bot: "night-pause", mark: "Our roll came round; bedtime. Pause: it resumes when everyone's back", wait: 1800 },
-      { device: "phone", bot: "night-back", mark: "Home: the night waits for next Friday", wait: 1400 },
+      { device: "phone", bot: "night-back", mark: "Home: the night waits for next Friday", wait: 1000 },
     ],
   },
   {
@@ -83,7 +83,7 @@ export const flows: Flow[] = [
       { device: "phone", bot: "rack-N", wait: 1000 },
       { device: "phone", bot: "play", mark: "CRANE for 27. Next waiting on you, whatever the game", wait: 1800 },
       { device: "phone", bot: "duel-next", mark: "Next: Mom's game", wait: 1600 },
-      { device: "phone", bot: "duel-back", mark: "Back to the list", wait: 1200 },
+      { device: "phone", bot: "duel-back", mark: "Back to the list", wait: 600 },
     ],
   },
   {
@@ -94,7 +94,7 @@ export const flows: Flow[] = [
     steps: [
       { device: "phone", bot: "couch-who", mark: "Who's on the couch tonight? Mom's out; Juneau and Ava are in", wait: 1600 },
       { device: "phone", bot: "who-done", mark: "Three on the couch", wait: 1000 },
-      { device: "phone", bot: "play-on-tv", mark: "Play on TV: the living room TV connects, the iPads join by name", wait: 4600 },
+      { device: "phone", bot: "play-on-tv", mark: "Play on TV: the living room TV connects, the iPads join by name", wait: 3000 },
     ],
   },
   {
@@ -138,8 +138,8 @@ export const flows: Flow[] = [
     label: "A move arrives while Home is open",
     start: "home.09-move-incoming",
     steps: [
-      { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His whale hops down the path onto his board; Your turn counts 3", wait: 1800 },
-      { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 1400 },
+      { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His whale hops down the path onto his board; Your turn counts 3", wait: 1100 },
+      { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 300 },
     ],
   },
 ];

@@ -25,7 +25,7 @@ export const edgeFlows: Flow[] = [
       { device: "ipad", seat: "juneau", bot: "cell-star", mark: "Jonathan's phone goes dark. Juneau keeps fixing the rocket: the game never stopped", wait: 900 },
       { device: "ipad", seat: "ava", bot: "helper-star", mark: "Ava keeps helping", wait: 900 },
       { device: "phone", bot: "edge-push-remote", mark: "Mom's phone: a push. Rocket Crew is still going at mission 6", wait: 1600 },
-      { device: "phone", bot: "edge-take-remote", mark: "Take the remote: her phone becomes the remote and the captain seat", wait: 2600 },
+      { device: "phone", bot: "edge-take-remote", mark: "Take the remote: her phone becomes the remote and the captain seat", wait: 1800 },
     ],
   },
   {
@@ -44,6 +44,6 @@ export const edgeFlows: Flow[] = [
     flow: "failure",
     label: "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
     start: "failure.40-okafors-drop",
-    steps: [{ device: "phone", bot: "edge-night-wait", mark: "We're hosting, so we decide: hold the board. Every home sees it waiting", wait: 5200 }],
+    steps: [{ device: "phone", bot: "edge-night-wait", mark: "We're hosting, so we decide: hold the board. Every home sees it waiting", wait: 2300 }],
   },
 ];
