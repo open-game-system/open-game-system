@@ -41,3 +41,7 @@ Judges: Codex `gpt-5.6-sol` (reasoning medium) and a fresh Claude Opus critic su
 | r13 vs r12 | Claude | 8 | 7 | 7 | 8 | 8 | 7 | 8 | 7 | 7 | 7 | prefers r13 (no orphan, Join visible); split vote, reverted as a whole, uncontested parts carried into r14 |
 | r14 vs r12 | Codex | 8 | 8 | 8 | 9 | 8 | 8 | 8 | 8 | 8 | 8 | A (r14) better; every row at 8+; kept |
 | r14 vs r12 | Claude | 7 | 7 | 7 | 7 | 7 | 7 | 8 | 7 | 7 | 7 | A (r14) better (Join visible, no orphan, rows with glyph + check); kept |
+| r15 pivot vs r14 | Codex | 9 | 8 | 9 | 9 | 7 | 9 | 9 | 9 | 8 | 7 | prefers r15 (holder + TV as one header) but flags the member footer truncating "You have the…" |
+| r15 pivot vs r14 | Claude | 7.5 | 7 | 7 | 7 | 6.5 | 6.5 | 8 | 7 | 6.5 | 6.5 | prefers r14 narrowly (r15 leaves a ~60pt band above the pad, truncates in 13); split vote, reverted. Plateau after the pivot: stop. |
+
+Final kept state: r14 (commit e630879d). Codex min 8 (every row at 8 or more); Claude min 7.
