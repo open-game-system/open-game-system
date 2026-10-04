@@ -1,0 +1,290 @@
+<title>OGS Cast First</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single spec column (max 1080px) of visual sections; each section = a headline, one line, a picture. */
+:root {
+  --bg: #f3f2ee; --paper: #ffffff; --ink: #17161a; --ink-2: #57545e; --line: #d9d6cf; --ember: #d9482b; --ember-soft: #fbe3dc; --dusk: #2c2742; --ok: #2f7d4f;
+  --wire: #8d8a93; --wire-fill: #f1efea;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --wire: #8a8696; --wire-fill: #26242d; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --wire: #8a8696; --wire-fill: #26242d; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--display); padding-inline: 20px; padding-block: 32px 64px }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px }
+h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.02; margin: 0; letter-spacing: -0.02em; font-weight: 800; text-wrap: balance }
+h2 { font-size: 26px; margin: 0; letter-spacing: -0.01em; font-weight: 800; text-wrap: balance }
+.kicker { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ember) }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 }
+section { display: flex; flex-direction: column; gap: 16px }
+.sub { color: var(--ink-2); margin: 0; max-width: 70ch }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0 }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
+.mono { font-family: var(--mono); font-size: 13px }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+/* wireframe primitives */
+.tv { aspect-ratio: 16/9; border: 2px solid var(--wire); border-radius: 6px; background: var(--paper); position: relative; overflow: hidden; padding: 8px; max-width: 100% }
+.ph { width: 64px; height: 124px; border: 2px solid var(--wire); border-radius: 12px; background: var(--paper); padding: 5px; display: flex; flex-direction: column; gap: 4px; flex: none }
+.ip { width: 104px; height: 72px; border: 2px solid var(--wire); border-radius: 8px; background: var(--paper); padding: 5px; display: flex; align-items: center; justify-content: center; gap: 6px; flex: none }
+.bar { height: 5px; border-radius: 3px; background: var(--line) }
+.tile { border: 1.5px solid var(--wire); border-radius: 3px; background: var(--wire-fill) }
+.focus { outline: 3px solid var(--ember); outline-offset: 2px }
+.w { font: 600 11px/1.15 var(--display); color: var(--ink) }
+.wbtn { border: 1.5px solid var(--ink); border-radius: 5px; font: 600 10px/1 var(--display); text-align: center; padding: 3px 0; color: var(--ink) }
+.wbtn.hot { background: var(--ember); border-color: var(--ember); color: #fff }
+.dot { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--wire); background: var(--wire-fill); display: inline-block }
+.row { display: flex; gap: 4px } .ctr { display: flex; align-items: center; justify-content: center }
+.devs { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap }
+.steps { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) }
+.step { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.step .n { font: 600 11px var(--mono); color: var(--ember) }
+.cap { font-size: 13px; line-height: 1.4; color: var(--ink-2) }
+/* before/after */
+.lane { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.chip { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; padding: 6px 12px; font-size: 14px; white-space: nowrap }
+.chip.bad { border-color: var(--ember); color: var(--ember); background: var(--ember-soft) }
+.chip.good { border-color: var(--ok); color: var(--ok) }
+.arrow { color: var(--ink-2) }
+/* tables */
+.tbl { overflow-x: auto } table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--wire-fill); padding: 1px 5px; border-radius: 4px }
+pre.code { font: 12.5px/1.5 var(--mono); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0 }
+.mermaid { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0 }
+.ms { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) }
+.ms .panel { display: flex; flex-direction: column; gap: 6px }
+.ms b { font-size: 16px }
+.q { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+.q .panel b { display: block; margin-bottom: 4px }
+a { color: var(--ember) }
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="kicker">OGS app rework · product spec · Oct 2026</span>
+  <h1>Cast first. One stream all evening. The phone is the controller.</h1>
+  <p class="lede">Open OGS, cast to the TV, and the TV becomes a game console. Games launch inside that one stream, so switching never recasts.</p>
+</header>
+
+<section>
+  <span class="kicker">Why</span>
+  <h2>Today every game owns its own cast</h2>
+  <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+    <span class="tag">Today: switching games</span>
+    <div class="lane">
+      <span class="chip">Open Rocket Crew</span><span class="arrow">→</span><span class="chip">Cast</span><span class="arrow">→</span><span class="chip">Play</span><span class="arrow">→</span><span class="chip">Back out</span><span class="arrow">→</span><span class="chip">Open Bake Shop</span><span class="arrow">→</span><span class="chip bad">Cast again: stream unloads and reloads</span><span class="arrow">→</span><span class="chip bad">New QR, kids rejoin</span>
+    </div>
+    <span class="tag">New: switching games</span>
+    <div class="lane">
+      <span class="chip">Open OGS</span><span class="arrow">→</span><span class="chip good">Cast once</span><span class="arrow">→</span><span class="chip">Launcher on TV</span><span class="arrow">→</span><span class="chip">Rocket Crew</span><span class="arrow">→</span><span class="chip">Swipe back</span><span class="arrow">→</span><span class="chip">Bake Shop</span><span class="arrow">→</span><span class="chip good">Same stream · iPads follow</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">The pieces</span>
+  <h2>Three surfaces</h2>
+  <div class="grid">
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <span class="tag">TV · OGS launcher (cloud stream)</span>
+      <div class="tv">
+        <div class="w" style="font-size:15px">Rocket Crew</div><div class="bar" style="width:38%;margin:5px 0 16px"></div>
+        <div class="w">Continue</div>
+        <div class="row" style="margin:4px 0 8px"><div class="tile focus" style="flex:1;height:30px"></div><div class="tile" style="flex:1;height:30px"></div><div class="tile" style="flex:1;height:30px"></div><div class="tile" style="flex:1;height:30px"></div></div>
+        <div class="w">Your turn</div>
+        <div class="row" style="margin-top:4px"><div class="tile" style="flex:1;height:18px"></div><div class="tile" style="flex:1;height:18px"></div><div class="tile" style="flex:2;height:18px"></div></div>
+      </div>
+      <span class="cap">Rows of games with their resume points. A focus ring readable from the couch. Hosts each game's TV page.</span>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <span class="tag">Phone · controller (two modes)</span>
+      <div class="devs">
+        <div class="ph"><div class="w">Browse</div><div class="tile" style="height:14px"></div><div class="tile focus" style="height:14px"></div><div class="tile" style="height:14px"></div><div class="tile" style="height:14px"></div></div>
+        <div class="ph"><div class="w">Remote</div><div class="ctr" style="flex:1"><div style="width:40px;height:40px;border-radius:50%;border:2px solid var(--ink)" class="ctr"><div style="width:12px;height:12px;border-radius:50%;background:var(--ink)"></div></div></div><div class="row"><div class="wbtn" style="flex:1">Back</div><div class="wbtn" style="flex:1">Home</div></div></div>
+        <div class="ph" style="position:relative;border-left:4px solid var(--ember)"><div class="w">In game</div><div class="tile" style="flex:1"></div><div class="w" style="color:var(--ember)">&larr; swipe</div></div>
+      </div>
+      <span class="cap">Browse: tap a game on the phone and the TV jumps to it. Remote: swipe or d-pad moves the ring. In a game: the game's own controller, full screen. Swipe from the left edge to go back, as today.</span>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <span class="tag">Kid iPads · paired once, follow by name</span>
+      <div class="devs">
+        <div class="ip"><span class="dot" style="width:30px;height:30px"></span></div>
+        <div class="ip"><div class="tile" style="width:30px;height:30px"></div><div class="tile" style="width:30px;height:30px"></div></div>
+      </div>
+      <span class="cap">On the launcher: the child's own character, wordless. When a game starts with them in it: their controls appear. No QR, no role pick.</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Phone navigation</span>
+  <h2>Keep today's swipe back. Add a tab bar under it once you cast</h2>
+  <p class="sub">The game screen slides in from the right and swipes away from the left edge, as today. What sits underneath changes once the TV is cast: a controller with three tabs.</p>
+  <div class="steps">
+    <div class="step"><span class="n">Not cast</span><div class="devs"><div class="ph"><div class="w">Library</div><div class="tile" style="height:13px"></div><div class="tile" style="height:13px"></div><div class="tile" style="height:13px"></div><div style="flex:1"></div><div class="wbtn hot">Cast to TV</div></div></div><span class="cap">Today's directory, with Cast as the first action. No tab bar yet.</span></div>
+    <div class="step"><span class="n">Cast: controller</span><div class="devs"><div class="ph"><div class="w" style="color:var(--ok)">Living room TV</div><div class="ctr" style="flex:1"><div class="ctr" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--ink)"><div style="width:10px;height:10px;border-radius:50%;background:var(--ink)"></div></div></div><div class="row" style="border-top:1.5px solid var(--wire);padding-top:3px"><div class="w" style="flex:1;text-align:center;color:var(--ember)">Remote</div><div class="w" style="flex:1;text-align:center">Games</div><div class="w" style="flex:1;text-align:center">Turns</div></div></div></div><span class="cap">Tabs: Remote (drives the TV), Games (browse; tap = focus on TV), Turns (Word Duel, game nights). A TV pill on top ends the evening.</span></div>
+    <div class="step"><span class="n">In a game</span><div class="devs"><div class="ph" style="border-left:4px solid var(--ember)"><div class="w">Captain</div><div class="tile" style="flex:1"></div><div class="w" style="color:var(--ember)">&larr; swipe</div></div></div><span class="cap">Pushed on top, full screen, no tab bar. Starting a game from the TV pushes this screen automatically.</span></div>
+    <div class="step"><span class="n">Swiped back</span><div class="devs"><div class="ph"><div class="w">Saved · Mission 6</div><div class="ctr" style="flex:1"><div class="ctr" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--ink)"><div style="width:10px;height:10px;border-radius:50%;background:var(--ink)"></div></div></div><div class="row" style="border-top:1.5px solid var(--wire);padding-top:3px"><div class="w" style="flex:1;text-align:center;color:var(--ember)">Remote</div><div class="w" style="flex:1;text-align:center">Games</div><div class="w" style="flex:1;text-align:center">Turns</div></div></div></div><span class="cap">Back on the tab you came from; the TV shows the launcher with the game paused as a card. A swipe that lands = <code>home</code>; a cancelled swipe sends nothing.</span></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Flows</span>
+  <h2>Six moments, storyboarded</h2>
+  <p class="sub">TV on top, phone and kid iPad below. The orange ring is the TV's focus.</p>
+  <div id="flows" style="display:flex;flex-direction:column;gap:28px"></div>
+</section>
+
+<section>
+  <span class="kicker">Architecture</span>
+  <h2>One long-lived cloud browser runs the launcher; games live inside it</h2>
+  <pre class="mermaid">
+flowchart LR
+  P["Grown-up phone<br/>OGS app: browse / remote / game controller"] -- "focus · select · home · start(game, roster)" --> S["Couch session<br/>Durable Object in services/api<br/>roster · focus · current game · resume points"]
+  K["Kid iPads<br/>paired, OGS app"] -- "subscribe" --> S
+  S -- "state (WebSocket)" --> L["OGS launcher page<br/>opengame.org/tv?session=…<br/>rendered once per evening"]
+  L -- "frames the game's tvUrl + token" --> G["Game TV page<br/>(its own origin)"]
+  L -. "stream: tab capture → SFU → WebRTC" .-> C["Chromecast<br/>receiver loads the launcher URL once"]
+  S -- "follow(game, role, joinUrl)" --> K
+  </pre>
+  <div class="grid">
+    <div class="panel"><span class="tag">Cast</span><p style="margin:6px 0 0">The app sends <code>LOAD_VIEW</code> with the launcher URL, not a game URL. The receiver never changes page again until the evening ends.</p></div>
+    <div class="panel"><span class="tag">Switch</span><p style="margin:6px 0 0">The launcher swaps the framed game. The old game gets <code>ogs:suspend</code>, reports its resume point, and is unloaded. No new stream.</p></div>
+    <div class="panel"><span class="tag">Kids</span><p style="margin:6px 0 0">The session tells each paired iPad which game and role, with a signed join URL. The iPad's WebView navigates; the child does nothing.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Session states</span>
+  <h2>What the couch session can be in</h2>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> NotCast
+  NotCast --> Connecting: Cast to TV
+  Connecting --> Launcher: stream up
+  Connecting --> NotCast: no TV found
+  Launcher --> WhosPlaying: select a couch game
+  WhosPlaying --> InGame: Start / Continue / New
+  InGame --> Launcher: swipe back (game suspended, resume point saved)
+  Launcher --> InGame: Continue a suspended game
+  InGame --> Reconnecting: cast drops
+  Launcher --> Reconnecting: cast drops
+  Reconnecting --> Launcher: re-cast (game resumes at its resume point)
+  Launcher --> [*]: End for tonight
+  </pre>
+</section>
+
+<section>
+  <span class="kicker">Messages</span>
+  <h2>The whole protocol fits on one table</h2>
+  <div class="tbl panel" style="padding:0">
+    <table>
+      <thead><tr><th>From → to</th><th>Message</th><th>Payload</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td>Phone → session</td><td><code>focus.move</code> · <code>focus.set</code></td><td>direction · item id</td><td>Remote swipe / browse tap</td></tr>
+        <tr><td>Phone → session</td><td><code>select</code> · <code>back</code> · <code>home</code></td><td>none</td><td>OK and Back on the remote; <code>home</code> when the game screen is swiped away</td></tr>
+        <tr><td>Phone → session</td><td><code>game.start</code></td><td>gameId, mode (continue | new), roster [person → role]</td><td>Start on the game page</td></tr>
+        <tr><td>Session → launcher</td><td><code>state</code></td><td>screen, focus, roster, current game, suspended games</td><td>Every change</td></tr>
+        <tr><td>Launcher → game frame</td><td><code>ogs:start</code> · <code>ogs:suspend</code> · <code>ogs:resume</code></td><td>resume point, roster</td><td>Launch, swipe back, Continue</td></tr>
+        <tr><td>Game frame → launcher</td><td><code>ogs:ready</code> · <code>ogs:resume-point</code></td><td>label ("Mission 6"), save version</td><td>Loaded; on suspend</td></tr>
+        <tr><td>Session → kid iPad</td><td><code>follow</code></td><td>gameId, role, signed joinUrl, or "launcher"</td><td>Start, switch, swipe back</td></tr>
+        <tr><td>Session → phone</td><td><code>remote.offer</code></td><td>from device</td><td>The remote phone went dark</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">For game authors</span>
+  <h2>Still config, not code</h2>
+  <p class="sub">Games stop owning casting. A game's TV page only has to be frameable and answer three optional messages.</p>
+  <pre class="code">{
+  "appId": "rocket-crew",
+  "name": "Rocket Crew",
+  "shape": "couch",
+  "tvUrl":   "https://rocket-crew.example/tv",        // framed by the launcher; allow frame-ancestors opengame.org, autoplay
+  "joinUrl": "https://rocket-crew.example/join",      // kid and grown-up devices land here with a signed token
+  "roles": [{ "id": "captain", "audience": "grownup" }, { "id": "fixer", "audience": "kid" }],
+  "art": { "tv": "/key.jpg", "safe": { "scale": 1.17, "ox": 50, "oy": 100 } },
+  "suspend": true                                     // optional: answers ogs:suspend with a resume point
+}</pre>
+</section>
+
+<section>
+  <span class="kicker">Rework plan</span>
+  <h2>What changes in this repo</h2>
+  <div class="tbl panel" style="padding:0">
+    <table>
+      <thead><tr><th>Area</th><th>Today</th><th>After</th></tr></thead>
+      <tbody>
+        <tr><td><code>apps/mobile/services/cast-store.ts</code></td><td>The game sets the <code>viewUrl</code> over app-bridge; the cast lives inside <code>app/game.tsx</code></td><td>App-level cast session, started from the home screen; <code>viewUrl</code> is always the launcher</td></tr>
+        <tr><td><code>apps/mobile/app/</code></td><td>Stack: directory → game WebView (left-edge swipe back) → Cast button in game</td><td>Before casting: library with Cast. After: a controller with a bottom tab bar (Remote · Games · Turns). Games push on top full screen; the existing left-edge swipe back pops to the controller and sends <code>home</code></td></tr>
+        <tr><td><code>apps/web/public/receiver.html</code></td><td>Loads whatever <code>LOAD_VIEW</code> sends, per game</td><td>Unchanged contract; receives the launcher URL once per evening</td></tr>
+        <tr><td>New <code>apps/tv</code></td><td>None</td><td>The launcher web app: rows, game page, who's playing, frames games, speaks to the session</td></tr>
+        <tr><td><code>services/api</code></td><td>Cast sessions per game; stream routes</td><td>A <code>CouchSession</code> Durable Object: roster, focus, current and suspended games, device follow</td></tr>
+        <tr><td><code>packages/cast-kit-*</code></td><td>Games call <code>useCastViewUrl</code></td><td>Games call nothing; cast-kit becomes the launcher↔game message helper</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="ms">
+    <div class="panel"><span class="tag">M1</span><b>Cast first</b><span class="cap">Home has Cast; the TV shows a static launcher page. Done when: cast happens before any game.</span></div>
+    <div class="panel"><span class="tag">M2</span><b>Phone drives the TV</b><span class="cap">CouchSession DO, browse and remote modes, focus ring. Done when: a swipe on the phone moves the ring within 100 ms.</span></div>
+    <div class="panel"><span class="tag">M3</span><b>Games inside the stream</b><span class="cap">The launcher frames Rocket Crew; swiping back suspends it. Done when: two games swap with zero recasts.</span></div>
+    <div class="panel"><span class="tag">M4</span><b>Kids follow</b><span class="cap">Pairing once; follow by name. Done when: a swap needs 0 kid taps.</span></div>
+    <div class="panel"><span class="tag">M5</span><b>Recover</b><span class="cap">Remote handoff, re-cast to the resume point. Done when: killing the stream mid-mission resumes at the mission.</span></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Decide</span>
+  <h2>Open questions</h2>
+  <div class="q">
+    <div class="panel"><b>Default tab</b><span class="cap">After casting, does the controller open on Remote or Games? Both stay one tap apart.</span></div>
+    <div class="panel"><b>Who's playing, every time?</b><span class="cap">Or only when the roster changed since last time (one tap fewer on a normal night).</span></div>
+    <div class="panel"><b>Frame or navigate?</b><span class="cap">Framing keeps the launcher alive and swaps instantly; it needs each game's TV page to allow framing and autoplay. Navigating the top page is simpler but reloads.</span></div>
+    <div class="panel"><b>Who sends pushes</b><span class="cap">OGS from Tier 2 instance reports, or each game via notification-kit?</span></div>
+    <div class="panel"><b>Save keys</b><span class="cap">Saves keyed by the player's token are callable from the browser: needs a security review.</span></div>
+  </div>
+</section>
+
+<footer class="cap">Design prototype and evidence: <code>design/</code> on branch <code>design/ogs-app-hillclimb</code>. Related spec: <a href="tv-casting.md">tv-casting.md</a>.</footer>
+</div>
+
+<script>
+const b=w=>`<div class="bar" style="width:${w}%"></div>`;
+const tiles=(n,f=-1,h=18)=>`<div class="row">${Array.from({length:n},(_,i)=>`<div class="tile ${i===f?'focus':''}" style="flex:1;height:${h}px"></div>`).join('')}</div>`;
+const w=s=>`<div class="w">${s}</div>`, btn=(s,h)=>`<div class="wbtn ${h?'hot':''}">${s}</div>`;
+const tv=h=>`<div class="tv">${h}</div>`, ph=h=>`<div class="ph">${h}</div>`, ip=h=>`<div class="ip">${h}</div>`;
+const dots=n=>Array.from({length:n},()=>'<span class="dot"></span>').join(' ');
+const pad=`<div class="ctr" style="flex:1"><div class="ctr" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--ink)"><div style="width:10px;height:10px;border-radius:50%;background:var(--ink)"></div></div></div><div class="row"><div class="wbtn" style="flex:1">Back</div><div class="wbtn" style="flex:1">Home</div></div>`;
+const launcher=(f,hero)=>`${w(hero)}<div style="margin:4px 0 12px">${b(40)}</div>${w('Continue')}${tiles(5,f)}<div style="height:5px"></div>${w('Your turn')}${tiles(3,-1,11)}`;
+const off=s=>tv(`<div class="ctr" style="height:100%">${w(s)}</div>`);
+const F=[
+['1 · Cast first',[
+['Open OGS. One thing to do: cast.',off('TV off'),ph(`${w('OGS')}<div style="flex:1"></div>${btn('Cast to TV',1)}`)],
+['Pick a TV. No game chosen yet.',off('TV off'),ph(`${w('Cast to')}<div class="tile focus" style="height:16px"></div><div class="tile" style="height:16px"></div>`)],
+['Connecting once for the evening.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:6px"><span class="dot"></span>${w('OGS · connecting')}</div>`),ph(`<div class="ctr" style="flex:1">${w('Connecting')}</div>`)],
+['Launcher on the TV; the phone is the controller.',tv(launcher(0,'Rocket Crew')),ph(`${w('Remote · Browse')}${pad}`)]]],
+['2 · Driving the launcher',[
+['Browse: tap a game on the phone; the TV focus jumps to it.',tv(launcher(2,'Bake Shop')),ph(`${w('Browse')}<div class="tile" style="height:13px"></div><div class="tile" style="height:13px"></div><div class="tile focus" style="height:13px"></div><div class="tile" style="height:13px"></div>`)],
+['Remote: swipe or d-pad moves the ring on the TV.',tv(launcher(3,'Story Nook')),ph(`${w('Remote')}${pad}`)],
+['OK opens the game page: resume point, who played, Continue or New.',tv(`<div class="row" style="height:100%;gap:8px"><div class="tile" style="flex:1"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Rocket Crew')}${w('Mission 6')}<div>${dots(3)}</div>${btn('Continue',1)}${btn('New')}</div></div>`),ph(`${w('Remote')}${pad}`)]]],
+['3 · Who’s playing',[
+['The TV asks who’s playing; last night’s roles are preset.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:7px">${w('Who’s playing?')}<div>${dots(4)}</div>${w('Captain · Fixer · Helper')}</div>`),ph(`${w('People')}<div>${dots(4)}</div><div style="flex:1"></div>${btn('Start',1)}`)],
+['Each kid iPad lights up as its child is picked.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:7px">${w('Juneau joining')}<div>${dots(4)}</div></div>`),'',ip(`<span class="dot" style="width:28px;height:28px"></span>`)]]],
+['4 · Launch, Home, swap: same stream',[
+['Rocket Crew runs inside the launcher. The phone is the Captain, full screen.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Captain')}<div class="tile" style="flex:1"></div>${w('\u2190 swipe back')}`),ip(`<div class="tile" style="width:26px;height:26px"></div><div class="tile" style="width:26px;height:26px"></div>`)],
+['Swipe back from the left edge: the game pauses into a card on the TV; saved at Mission 6.',tv(`<div class="row" style="gap:8px;height:100%"><div class="tile" style="flex:1.2"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Saved · Mission 6')}${w('Up next')}${tiles(3,1,16)}</div></div>`),ph(`${w('Remote')}${pad}`),ip(`<span class="dot" style="width:22px;height:22px"></span>`)],
+['Pick Bake Shop; Continue at day 4.',tv(`<div class="row" style="height:100%;gap:8px"><div class="tile" style="flex:1"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Bake Shop')}${w('Day 4')}${btn('Continue',1)}</div></div>`),ph(`${w('Remote')}${pad}`)],
+['Bake Shop starts in the same stream; iPads follow by name.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Reader')}<div class="tile" style="flex:1"></div>${w('\u2190 swipe back')}`),ip(`<div class="tile" style="width:26px;height:26px"></div><div class="tile" style="width:26px;height:26px"></div>`)]]],
+['5 · Your turn from the TV',[
+['Your-turn row: Nana played QUILT.',tv(`${w('Your turn')}${tiles(3,0,24)}<div style="height:5px"></div>${w('Nana · QUILT')}`),ph(`${w('Remote')}${pad}`)],
+['Select hands off to the phone; the TV never shows your tiles.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:5px">${w('Word Duel with Nana')}${w('on Jonathan’s phone')}</div>`),ph(`${w('Word Duel')}<div class="tile" style="flex:1"></div><div class="row">${'<div class="tile" style="flex:1;height:9px"></div>'.repeat(5)}</div>`)]]],
+['6 · When something drops',[
+['Remote phone dies: Mom’s phone offers the remote. Nothing restarts.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Take the remote?')}<div style="flex:1"></div>${btn('Take it',1)}`)],
+['Cast drops: one Reconnect. The launcher comes back; the game resumes at Mission 6.',off('TV off'),ph(`${w('TV lost')}<div style="flex:1"></div>${btn('Reconnect',1)}`)]]]];
+document.getElementById('flows').innerHTML=F.map(([t,steps])=>`<div style="display:flex;flex-direction:column;gap:10px"><span class="tag">${t}</span><div class="steps">${steps.map(([c,t2,p,i],n)=>`<div class="step"><span class="n">${String(n+1).padStart(2,'0')}</span>${t2}<div class="devs">${p||''}${i||''}</div><span class="cap">${c}</span></div>`).join('')}</div></div>`).join('');
+</script>

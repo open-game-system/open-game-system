@@ -10,6 +10,7 @@ Acceptance tests in `docs/acceptance/` are the testable distillation of these sp
 |-----------|--------|
 | [push-notifications.md](push-notifications.md) | Device registration, JWT tokens, send notifications, providers |
 | [tv-casting.md](tv-casting.md) | Cast device discovery, session lifecycle, stream-kit rendering, receiver |
+| [cast-first.html](cast-first.html) | App rework: cast first, TV launcher, phone as controller (tab bar + swipe back), games inside one stream, build plan |
 
 ## Domains to Document
 
