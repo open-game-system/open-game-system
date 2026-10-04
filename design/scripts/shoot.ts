@@ -57,6 +57,13 @@ async function probe(page: Page): Promise<Probe> {
       if (!top || top === el || el.contains(top) || top.contains(el)) return false;
       // Covered by another run of text is a collision (keep it, so the overlap check sees it);
       // covered by a surface without text (scrim, sheet, image) means it's hidden: skip it.
+      // Under a large overlay layer (a sheet, a dialog, a full-screen panel) the text is hidden by
+      // design, even where the overlay's own text sits over it: covered, not colliding.
+      for (let p: Element | null = top; p && p !== root; p = p.parentElement) {
+        if (p.contains(el)) break;
+        const pr = p.getBoundingClientRect();
+        if (pr.width * pr.height > 0.5 * rb.width * rb.height) return true;
+      }
       const topHasText = [...top.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? "").trim());
       return !topHasText;
     };
