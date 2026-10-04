@@ -1,6 +1,7 @@
 import {
   type ClientMessage,
   type CurrentGame,
+  type GamePlayer,
   type GameToLauncher,
   GameToLauncherSchema,
   type LauncherToGame,
@@ -120,16 +121,34 @@ export function toSessionMessages(msg: GameToLauncher, appId: string): ClientMes
   return [];
 }
 
+/** What the session hands a framed game: a game token for it (aud = appId, sid) and the couch. */
+export interface StartGrant {
+  token: string;
+  players: GamePlayer[];
+}
+
 /**
- * Sent to the frame on load. The launcher's own token authenticates the couch socket and must not
- * reach a game's origin, so `token` stays empty until the session hands out a game-scoped one.
+ * Sent to the frame on load (and again when it says ogs:ready). The launcher's own token
+ * authenticates the couch socket and never reaches a game's origin: the game gets a game-scoped
+ * token from POST /sessions/:sid/game-token. `null` = no grant (OGS couldn't sign one): the game
+ * starts with no token and nobody named; no second argument keeps the bare start.
  */
-export function startMessage(current: CurrentGame): LauncherToGame {
-  return {
+export function startMessage(current: CurrentGame, grant?: StartGrant | null): LauncherToGame {
+  const start: LauncherToGame = {
     type: "ogs:start",
     instanceId: current.instanceId,
     mode: current.mode,
     roster: current.roster,
-    token: "",
+    token: grant?.token ?? "",
   };
+  return grant === undefined ? start : { ...start, players: grant?.players ?? [] };
+}
+
+/** A frame said ogs:ready (it started listening late): re-send its start if it is the current sitting. */
+export function restartFor(
+  msg: GameToLauncher,
+  slot: FrameSlot,
+  current: CurrentGame | null,
+): boolean {
+  return msg.type === "ogs:ready" && current?.instanceId === slot.instanceId;
 }

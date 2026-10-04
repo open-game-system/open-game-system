@@ -46,6 +46,7 @@ function Launcher({ boot }: { boot: Boot }) {
       connection={snap.connection}
       data={data}
       frameTimeoutMs={boot.frameTimeoutMs}
+      grants={boot.grants}
     />
   );
 }
@@ -63,6 +64,7 @@ function Living(props: {
   connection: Connection;
   data: LauncherData;
   frameTimeoutMs: number;
+  grants: Boot["grants"];
 }) {
   const { client, data } = props;
   const { state, connection } = props;
@@ -158,7 +160,7 @@ function Living(props: {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  const frames = useFrames(client, state.current, props.frameTimeoutMs);
+  const frames = useFrames(client, state.current, props.frameTimeoutMs, props.grants);
   const lastGame = useRef<Manifest | null>(null);
   const currentGame = state.current ? (games.get(state.current.appId) ?? null) : null;
   if (currentGame) lastGame.current = currentGame;

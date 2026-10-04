@@ -4,6 +4,7 @@ import {
   EMPTY_FRAMES,
   nextFrames,
   readFrameMessage,
+  restartFor,
   startMessage,
   toSessionMessages,
 } from "./frames";
@@ -130,5 +131,46 @@ describe("messages from the frame", () => {
       roster,
       token: "",
     });
+  });
+});
+
+describe("ogs:start carries the session's game token and the couch (slice 3)", () => {
+  const players = [
+    {
+      id: "p_jonathan",
+      handle: "jonathan.m",
+      name: "Jonathan",
+      avatar: "https://tv.test/art/story-nook/char-bear.webp",
+    },
+  ];
+
+  it("puts the game token and the players in ogs:start", () => {
+    expect(startMessage(cur(), { token: "game.jwt", players })).toEqual({
+      type: "ogs:start",
+      instanceId: "rc-1",
+      mode: "new",
+      roster: [],
+      token: "game.jwt",
+      players,
+    });
+  });
+
+  it("without a grant (no token from OGS) the game still starts, with nobody named", () => {
+    expect(startMessage(cur(), null)).toEqual({
+      type: "ogs:start",
+      instanceId: "rc-1",
+      mode: "new",
+      roster: [],
+      token: "",
+      players: [],
+    });
+  });
+
+  it("answers a frame's ogs:ready with the start again (only for the current sitting)", () => {
+    const slot = { appId: "rocket-crew", instanceId: "rc-1", url: RC };
+    expect(restartFor({ type: "ogs:ready" }, slot, cur())).toBe(true);
+    expect(restartFor({ type: "ogs:ready" }, { ...slot, instanceId: "old" }, cur())).toBe(false);
+    expect(restartFor({ type: "ogs:ready" }, slot, null)).toBe(false);
+    expect(restartFor({ type: "ogs:resume-point", label: "x" }, slot, cur())).toBe(false);
   });
 });

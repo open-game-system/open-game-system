@@ -7,6 +7,8 @@ import {
   type Frames,
   nextFrames,
   readFrameMessage,
+  restartFor,
+  type StartGrant,
   startMessage,
   toSessionMessages,
 } from "../launcher/frames";
@@ -17,9 +19,16 @@ const originOf = (url: string) => new URL(url).origin;
 
 /**
  * The framed game pages: follows the session's current game, posts ogs:start / suspend / resume,
- * forwards resume points from the frames, and gives up calmly when a frame never loads.
+ * forwards resume points from the frames, and gives up calmly when a frame never loads. ogs:start
+ * carries the session's game token for that game and the couch (`grantFor`), and is sent again
+ * when a frame says ogs:ready.
  */
-export function useFrames(client: SessionClient, current: CurrentGame | null, timeoutMs: number) {
+export function useFrames(
+  client: SessionClient,
+  current: CurrentGame | null,
+  timeoutMs: number,
+  grantFor: (appId: string) => Promise<StartGrant | null>,
+) {
   const [frames, setFrames] = useState<Frames>(EMPTY_FRAMES);
   const framesRef = useRef<Frames>(EMPTY_FRAMES);
   const els = useRef(new Map<string, HTMLIFrameElement>());
@@ -42,10 +51,19 @@ export function useFrames(client: SessionClient, current: CurrentGame | null, ti
     for (const p of posts) post(p);
   });
 
+  const currentRef = useRef(current);
+  currentRef.current = current;
+  const sendStart = (slot: FrameSlot) => {
+    void grantFor(slot.appId).then((grant) => {
+      const now = currentRef.current;
+      if (now?.instanceId === slot.instanceId)
+        post({ instanceId: slot.instanceId, msg: startMessage(now, grant) });
+    });
+  };
+
   const onLoad = useEffectEvent((slot: FrameSlot) => {
     setLoaded((s) => new Set(s).add(keyOf(slot)));
-    if (current?.instanceId === slot.instanceId)
-      post({ instanceId: slot.instanceId, msg: startMessage(current) });
+    if (current?.instanceId === slot.instanceId) sendStart(slot);
   });
 
   const onMessage = useEffectEvent((ev: MessageEvent) => {
@@ -55,7 +73,9 @@ export function useFrames(client: SessionClient, current: CurrentGame | null, ti
     );
     if (!slot) return;
     const msg = readFrameMessage(ev, slot.url);
-    if (msg) for (const m of toSessionMessages(msg, slot.appId)) client.send(m);
+    if (!msg) return;
+    if (restartFor(msg, slot, current)) sendStart(slot);
+    for (const m of toSessionMessages(msg, slot.appId)) client.send(m);
   });
   useEffect(() => {
     const handler = (ev: MessageEvent) => onMessage(ev);

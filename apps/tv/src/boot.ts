@@ -1,4 +1,6 @@
 import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol";
+import type { StartGrant } from "./launcher/frames";
+import { createGameGrants } from "./launcher/game-grants";
 import { frameTimeoutMs, type LauncherParams, wsUrl } from "./params";
 import type { SessionClient } from "./session/client";
 import { fetchLauncherData, type LauncherData, libraryGames } from "./session/data";
@@ -30,6 +32,8 @@ export interface Boot {
   client: SessionClient;
   data: Promise<LauncherData>;
   frameTimeoutMs: number;
+  /** The session's game token for a framed game (and who's on the couch), for its ogs:start. */
+  grants: (appId: string) => Promise<StartGrant | null>;
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -62,7 +66,7 @@ export function boot(params: LauncherParams, search: string): Boot {
       instances: params.fresh ? [] : fixtureInstances(Date.now()),
       session: FIXTURE_SESSION,
     });
-    return { client: fake, data, frameTimeoutMs: timeout };
+    return { client: fake, data, frameTimeoutMs: timeout, grants: async () => null };
   }
   return {
     client: createWsClient({ url: wsUrl(params.api, params.token) }),
@@ -70,5 +74,6 @@ export function boot(params: LauncherParams, search: string): Boot {
       fetchLauncherData({ api: params.api, token: params.token, sessionId: params.sessionId }),
     ),
     frameTimeoutMs: timeout,
+    grants: createGameGrants(params),
   };
 }
