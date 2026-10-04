@@ -121,11 +121,5 @@ Feature: OGS profiles
   @later
   Scenario: "A friend starts a new game" push respects its switch (push deferred, owner 2026-10-04)
 
-  @later
-  Scenario: A game gets the name, no form
-
-  @later
-  Scenario: Same person, a different id in every game
-
-  @later
-  Scenario: Game A's token is rejected by game B
+  # Games know who you are (slice 3) moved to 2026-10-04-games-know-you.feature. Owner Q4: a game
+  # gets the profile id (not a different id per game), @id, name and avatar.
