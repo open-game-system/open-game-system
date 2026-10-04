@@ -1,4 +1,4 @@
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import { Button } from "../../components/ogs/Button";
@@ -47,7 +47,6 @@ export default function InviteScreen() {
 
   return (
     <Screen title="Add a friend" testID="inviteScreen">
-      <Stack.Screen options={{ presentation: "modal" }} />
       {state.kind === "working" ? <Text style={styles.text}>Adding…</Text> : null}
       {state.kind === "done" ? (
         <Text style={styles.good} testID="inviteDone">

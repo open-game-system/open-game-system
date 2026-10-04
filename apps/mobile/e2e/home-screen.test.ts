@@ -53,17 +53,21 @@ describe("Tabs", () => {
       .withTimeout(3000);
   });
 
-  it("Friends is honestly empty, with Share my profile", async () => {
+  // Friends slice 2 (docs/acceptance/2026-10-04-ogs-friends.feature) replaced the pre-backend
+  // "Share my profile" empty state with Add a friend.
+  it("Friends with no friends yet offers Add a friend", async () => {
     await element(by.id("tabFriends")).tap();
     await waitFor(element(by.id("friendsScreen")))
       .toExist()
       .withTimeout(3000);
     // The empty state is a transparent container (Detox's pixel visibility can't see it): check
     // that it exists and that its heading and button show.
-    await expect(element(by.id("friendsEmpty"))).toExist();
+    await waitFor(element(by.id("friendsEmpty")))
+      .toExist()
+      .withTimeout(5000);
     await expect(element(by.text("Play with friends"))).toBeVisible();
-    await expect(element(by.id("shareProfile"))).toBeVisible();
-    await expect(element(by.text("Add a friend"))).not.toExist();
+    await expect(element(by.id("addFriend"))).toBeVisible();
+    await expect(element(by.id("shareProfile"))).not.toExist();
   });
 
   it("Profile shows you, and opens settings", async () => {

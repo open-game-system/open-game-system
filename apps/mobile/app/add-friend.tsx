@@ -3,9 +3,9 @@ import {
   formatInviteCode,
   inviteTokenFromUrl,
 } from "@open-game-system/ogs-protocol";
-import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "../components/ogs/Button";
 import { ErrorLine } from "../components/ogs/ErrorLine";
 import { inviteMessage } from "../components/ogs/friends/invite";
@@ -73,8 +73,20 @@ export default function AddFriendScreen() {
   };
 
   return (
-    <Screen title="Add a friend" testID="addFriendScreen">
-      <Stack.Screen options={{ presentation: "modal" }} />
+    <Screen
+      title="Add a friend"
+      testID="addFriendScreen"
+      right={
+        <Pressable
+          testID="addFriendClose"
+          accessibilityRole="button"
+          onPress={() => router.back()}
+          style={styles.close}
+        >
+          <Text style={styles.closeText}>Done</Text>
+        </Pressable>
+      }
+    >
       <View style={styles.qrBox}>
         <Text style={styles.lead}>In the room: they scan this.</Text>
         {qrToken && !expired ? (
@@ -169,13 +181,6 @@ export default function AddFriendScreen() {
       ) : (
         <ErrorLine text={line?.text ?? null} action={line?.action} testID="addFriendError" />
       )}
-      <Button
-        label="Done"
-        kind="ghost"
-        testID="addFriendClose"
-        onPress={() => router.back()}
-        style={styles.done}
-      />
     </Screen>
   );
 }
@@ -207,5 +212,6 @@ const styles = StyleSheet.create({
   },
   codeInput: { letterSpacing: 4, fontSize: 20 },
   good: { color: colors.mint, fontSize: 16, textAlign: "center", marginTop: 16 },
-  done: { marginTop: 20 },
+  close: { minHeight: TARGET, justifyContent: "center", paddingHorizontal: 8 },
+  closeText: { color: colors.peach, fontSize: 17, fontWeight: "700" },
 });
