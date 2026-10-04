@@ -7,7 +7,7 @@ import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
 import { createAppState } from "./app-state";
 import type { CastBackend } from "./cast-backend";
-import { castToTv, createGameCastStore, endForTonight } from "./cast-flow";
+import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-flow";
 import { createCastStore } from "./cast-store";
 import { castCommands, startCastSync } from "./cast-sync";
 import { OGS_STREAM_SERVER_URL } from "./cast-view";
@@ -31,8 +31,8 @@ import { sittingToOpen } from "./sittings";
 
 /**
  * The app's singletons, wired once for its lifetime: config, cast backend (real or fake) and the
- * cast store kept in step with it, the OGS API, the app data store, and the couch session (started
- * once this phone has a household). Screens read them through the hooks at the bottom.
+ * cast store kept in step with it, the OGS API, the app data store, and the couch session (open
+ * while this device hosts or joined a cast). Screens read them through the hooks at the bottom.
  */
 
 export const config = appConfig;
@@ -55,7 +55,7 @@ castBackend.subscribeDevices((devices) => castStore.dispatch({ type: "DEVICES_UP
 
 const auth = () => {
   const id = appState.getSnapshot().identity;
-  return id ? { householdId: id.householdId, token: id.token } : null;
+  return id ? { token: id.deviceToken } : null;
 };
 
 export const api = createOgsApi({ baseUrl: config.apiBase, fetch: fetchImpl, auth });
@@ -63,7 +63,10 @@ export const api = createOgsApi({ baseUrl: config.apiBase, fetch: fetchImpl, aut
 export const appState = createAppState({
   api,
   storage: SecureStore,
-  deviceName: Device.deviceName ?? "Phone",
+  device: {
+    kind: Device.deviceType === Device.DeviceType.TABLET ? "tablet" : "phone",
+    name: Device.deviceName ?? "Phone",
+  },
   newDeviceId: () => Crypto.randomUUID(),
 });
 
@@ -111,12 +114,24 @@ export const couchHub = {
   dismissRemoteOffer: () => couch?.dismissRemoteOffer(),
 };
 
-function startCouch() {
-  const id = appState.getSnapshot().identity;
-  if (!id || couch) return;
+let couchKey: string | null = null;
+
+/** One couch socket per (profile token, session): opened on cast or join, closed on leave. */
+function syncCouch() {
+  const { identity: id, session } = appState.getSnapshot();
+  const key = id && session ? `${id.deviceToken} ${session.sessionId}` : null;
+  if (key === couchKey) return;
+  couchKey = key;
+  couch?.stop();
+  couch = null;
+  if (id && session) startCouch(id.deviceToken, id.deviceId, session.sessionId);
+  notifyCouch();
+}
+
+function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
   couch = createCouchSession({
-    url: couchSocketUrl(config.apiBase, id.token),
-    deviceId: id.deviceId,
+    url: couchSocketUrl(config.apiBase, token, sessionId),
+    deviceId: deviceIdOfMine,
     createSocket: webSocket,
     // A game started from the TV with the remote: this phone hosts it, so open its start page.
     onFollowHost: ({ appId, instanceId }) => {
@@ -130,9 +145,8 @@ function startCouch() {
   });
   couch.subscribe(notifyCouch);
   couch.start();
-  notifyCouch();
 }
-appState.subscribe(startCouch);
+appState.subscribe(syncCouch);
 
 // --- Derived state + actions ----------------------------------------------------------------
 
@@ -215,13 +229,25 @@ export function openPill(pill: ReturnPill) {
   else router.push({ pathname: "/game", params: { url: pill.url, name: pill.name } });
 }
 
-export async function castNow(deviceIdToUse: string) {
-  return castToTv({ api, config, castStore, backend: castBackend, deviceId: deviceIdToUse });
+/** Cast: a new couch session hosted by this profile, named for the TV. */
+export async function castNow(tv: { id: string; name: string }) {
+  const launcher = { launcherToken: () => appState.startSession(tv.name) };
+  return castToTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
+}
+
+/** Remote → TV picker: the same session (its launcher token) moves to another TV. */
+export async function moveToTv(tv: { id: string; name: string }) {
+  const launcher = {
+    launcherToken: async () =>
+      appState.getSnapshot().session?.launcherToken ?? appState.startSession(tv.name),
+  };
+  return switchTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
 }
 
 export async function endTonight() {
   await endForTonight({ send: couchHub.send, sessionManager: castBackend.sessionManager });
   appState.setPill(null);
+  await appState.leaveSession();
 }
 
 /** The cast store a game page sees (game.view to the session while cast through OGS). */

@@ -32,7 +32,8 @@ export function readSignInConfig(env: Env): { google: GoogleConfig } {
     google: {
       clientId,
       authorizeUrl: `${issuer}/o/oauth2/v2/auth`,
-      tokenUrl: issuer === GOOGLE ? "https://oauth2.googleapis.com/token" : `${issuer}/oauth2/token`,
+      tokenUrl:
+        issuer === GOOGLE ? "https://oauth2.googleapis.com/token" : `${issuer}/oauth2/token`,
       redirectUri: env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI || defaultRedirect(clientId),
     },
   };

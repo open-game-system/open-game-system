@@ -50,7 +50,7 @@ export default function GamePage() {
     setBusy(true);
     setNote(null);
     try {
-      const result = await castNow(tv.id);
+      const result = await castNow(tv);
       if (result === "started" && (await waitForOgsCast(8000))) play();
       else setNote("The TV didn't answer. Try again from the TV tab.");
     } catch (err) {

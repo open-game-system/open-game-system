@@ -15,22 +15,29 @@ import {
   View,
   type ViewToken,
 } from "react-native";
-import { FamilyStep, familyDraft } from "../components/ogs/FamilyStep";
+import { DoneStep } from "../components/ogs/onboarding/DoneStep";
+import { ProfileStep } from "../components/ogs/onboarding/ProfileStep";
 import { Sticker } from "../components/ogs/Sticker";
 import { markOnboardingComplete } from "../services/onboarding";
-import { appState } from "../services/runtime";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+type PageProps = {
+  onNext: () => void;
+  onDone: () => void;
+  onSignIn: () => void;
+  onBackUp: () => void;
+};
 
 type OnboardingPage = {
   key: string;
   index: number;
-  component: React.ComponentType<{ onNext: () => void }>;
+  component: React.ComponentType<PageProps>;
 };
 
 // --- Page 1: What is OGS ---
 
-function Page1(_props: { onNext: () => void }) {
+function Page1({ onSignIn }: PageProps) {
   return (
     <View style={styles.page}>
       <View style={styles.heroArea}>
@@ -58,13 +65,21 @@ function Page1(_props: { onNext: () => void }) {
           experience.
         </Text>
       </View>
+      <TouchableOpacity
+        testID="onboardingSignInButton"
+        accessibilityRole="button"
+        style={styles.secondaryButton}
+        onPress={onSignIn}
+      >
+        <Text style={styles.secondaryButtonText}>I already have a profile — sign in</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 // --- Page 2: Notifications ---
 
-function Page2({ onNext }: { onNext: () => void }) {
+function Page2({ onNext }: PageProps) {
   const handleEnableNotifications = useCallback(async () => {
     await Notifications.requestPermissionsAsync();
     onNext();
@@ -120,36 +135,6 @@ function BenefitRow({ text }: { text: string }) {
   );
 }
 
-// --- Page 3: Ready ---
-
-function Page3({ onNext }: { onNext: () => void }) {
-  return (
-    <View style={styles.page}>
-      <View style={styles.heroArea}>
-        <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>OGS</Text>
-        </View>
-      </View>
-      <View style={styles.textArea}>
-        <Text style={styles.heading}>You're all set</Text>
-        <Text style={styles.body}>
-          Your games are in Library. Cast once from the TV tab and the TV becomes your console for
-          the evening. Swipe from the left edge of a game to come back.
-        </Text>
-      </View>
-      <View style={styles.actionArea}>
-        <TouchableOpacity
-          testID="onboardingLetsGoButton"
-          style={styles.primaryButton}
-          onPress={onNext}
-        >
-          <Text style={styles.primaryButtonText}>Let's Go</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
 // --- Page Dots ---
 
 function PageDots({ currentPage }: { currentPage: number }) {
@@ -171,9 +156,11 @@ function PageDots({ currentPage }: { currentPage: number }) {
 const PAGES: OnboardingPage[] = [
   { key: "page1", index: 0, component: Page1 },
   { key: "page2", index: 1, component: Page2 },
-  { key: "family", index: 2, component: FamilyStep },
-  { key: "page3", index: 3, component: Page3 },
+  { key: "profile", index: 2, component: ProfileStep },
+  { key: "done", index: 3, component: DoneStep },
 ];
+
+const PROFILE_PAGE = 2;
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -190,14 +177,6 @@ export default function OnboardingScreen() {
 
   const handleComplete = useCallback(async () => {
     await markOnboardingComplete();
-    // Create the household (kept as a draft and retried later if OGS can't be reached).
-    const people = familyDraft.people
-      .map((p) => ({ ...p, name: p.name.trim() }))
-      .filter((p) => p.name);
-    await appState.ensureHousehold(
-      familyDraft.name.trim() || "Our family",
-      people.length ? people : [{ name: "Me", band: "grownup", sticker: "bear" }],
-    );
     router.replace("/");
   }, [router]);
 
@@ -220,9 +199,16 @@ export default function OnboardingScreen() {
     goToPage(currentPage + 1);
   }, [currentPage, goToPage]);
 
+  // Skip the intro, never the profile: every device needs one.
   const handleSkip = useCallback(() => {
-    handleComplete();
-  }, [handleComplete]);
+    flatListRef.current?.scrollToIndex({ index: PROFILE_PAGE, animated: true });
+  }, []);
+  const handleSignIn = useCallback(() => {
+    router.push({ pathname: "/sign-in", params: { mode: "signin" } });
+  }, [router]);
+  const handleBackUp = useCallback(() => {
+    router.push({ pathname: "/sign-in", params: { mode: "backup" } });
+  }, [router]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
@@ -240,11 +226,16 @@ export default function OnboardingScreen() {
       const pageNext = () => goToPage(item.index + 1);
       return (
         <View style={{ width: SCREEN_WIDTH }}>
-          <PageComponent onNext={pageNext} />
+          <PageComponent
+            onNext={pageNext}
+            onDone={() => void handleComplete()}
+            onSignIn={handleSignIn}
+            onBackUp={handleBackUp}
+          />
         </View>
       );
     },
-    [goToPage],
+    [goToPage, handleComplete, handleSignIn, handleBackUp],
   );
 
   // Page 2 has its own action buttons, page 3 has its own
@@ -255,11 +246,15 @@ export default function OnboardingScreen() {
     <View style={styles.container} testID="onboardingScreen">
       <StatusBar style="light" />
 
-      {/* Skip button */}
+      {/* Skip: past the intro to the profile step (hidden from there on) */}
       <View style={styles.skipContainer}>
-        <TouchableOpacity testID="onboardingSkipButton" onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
-        </TouchableOpacity>
+        {currentPage < PROFILE_PAGE ? (
+          <TouchableOpacity testID="onboardingSkipButton" onPress={handleSkip}>
+            <Text style={styles.skipText}>Skip</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.skipText}> </Text>
+        )}
       </View>
 
       {/* Pages */}
@@ -270,7 +265,8 @@ export default function OnboardingScreen() {
         keyExtractor={(item) => item.key}
         horizontal
         pagingEnabled
-        scrollEnabled={true}
+        // Buttons move between pages: no swiping past the profile step without a profile.
+        scrollEnabled={false}
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}

@@ -71,6 +71,8 @@ export default function RootLayout() {
       <Stack.Screen name="game-page" />
       <Stack.Screen name="game-detail" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="sign-in" options={{ presentation: "modal" }} />
+      <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
       <Stack.Screen name="dev-tools" />
       <Stack.Screen name="[...unmatched]" />
     </Stack>

@@ -19,7 +19,10 @@ export interface GoogleDeps {
 
 const TokenSchema = z.object({ id_token: z.string().min(1) });
 
-export async function googleIdToken(google: GoogleConfig, deps: GoogleDeps): Promise<string | null> {
+export async function googleIdToken(
+  google: GoogleConfig,
+  deps: GoogleDeps,
+): Promise<string | null> {
   if (!google.clientId) throw new Error("Google sign-in isn't set up in this build yet.");
   const verifier = deps.random();
   const state = deps.random();

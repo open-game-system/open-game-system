@@ -16,6 +16,7 @@ export interface SignInState {
   error: string | null;
 }
 
+/** app-state's answers: `message` is already the human copy (services/user-message). */
 type Result = { ok: true } | { ok: false; reason: string; message: string };
 
 export interface SignInDeps {
@@ -31,13 +32,8 @@ export interface SignInDeps {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const COPY: Record<string, string> = {
-  invalid_code: "That code didn't work. Check the email, or send a new one.",
-  login_in_use: "That login already backs up another OGS profile.",
-  invalid_id_token: "That sign-in didn't go through. Try again.",
-};
-
-const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
+/** A provider sheet that failed (not cancelled): its own error is logged, not shown. */
+const PROVIDER_FAILED = "That sign-in didn't go through. Try again.";
 
 export function createSignInFlow(deps: SignInDeps) {
   let state: SignInState = { step: "choose", email: "", busy: false, error: null };
@@ -55,7 +51,7 @@ export function createSignInFlow(deps: SignInDeps) {
     if (result.ok) set({ step: "done", busy: false, error: null });
     else if (result.reason === "login_not_found")
       set({ step: "not_found", busy: false, error: null });
-    else set({ step: from, busy: false, error: COPY[result.reason] ?? result.message });
+    else set({ step: from, busy: false, error: result.message });
   }
 
   return {
@@ -72,7 +68,8 @@ export function createSignInFlow(deps: SignInDeps) {
       try {
         idToken = await deps.providers[provider]();
       } catch (err) {
-        set({ busy: false, error: messageOf(err) });
+        console.warn(`[ogs] ${provider} sign-in failed: ${String(err)}`);
+        set({ busy: false, error: PROVIDER_FAILED });
         return;
       }
       if (!idToken) {

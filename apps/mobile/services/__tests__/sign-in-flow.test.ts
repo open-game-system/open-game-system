@@ -3,7 +3,10 @@ import { createSignInFlow, type SignInMode } from "../sign-in-flow";
 
 type R = { ok: true } | { ok: false; reason: string; message: string };
 
-function setup(mode: SignInMode, over: Partial<Record<"backUp" | "signIn", (c: Credential) => Promise<R>>> = {}) {
+function setup(
+  mode: SignInMode,
+  over: Partial<Record<"backUp" | "signIn", (c: Credential) => Promise<R>>> = {},
+) {
   const app = {
     startEmail: jest.fn(async (_e: string): Promise<R> => ({ ok: true })),
     backUp: jest.fn(over.backUp ?? (async (_c: Credential): Promise<R> => ({ ok: true }))),
@@ -40,11 +43,15 @@ describe("Back up your profile", () => {
     expect(flow.getSnapshot()).toMatchObject({ step: "choose", error: null, busy: false });
   });
 
-  it("a provider that fails says why", async () => {
+  it("a provider that fails says so in plain words (its error is only logged)", async () => {
     const { flow, providers } = setup("backup");
-    providers.google.mockRejectedValueOnce(new Error("Google said no"));
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    providers.google.mockRejectedValueOnce(new Error("com.apple.AuthenticationServices 1000"));
     await flow.continueWith("google");
-    expect(flow.getSnapshot()).toMatchObject({ step: "choose", error: "Google said no" });
+    expect(flow.getSnapshot()).toMatchObject({
+      step: "choose",
+      error: "That sign-in didn't go through. Try again.",
+    });
   });
 
   it("email: enter the address, get a code, enter the 6 digits", async () => {
@@ -67,7 +74,10 @@ describe("Back up your profile", () => {
     const { flow, app } = setup("backup");
     flow.chooseEmail();
     await flow.sendCode("jonathan");
-    expect(flow.getSnapshot()).toMatchObject({ step: "email", error: "That isn't an email address." });
+    expect(flow.getSnapshot()).toMatchObject({
+      step: "email",
+      error: "That isn't an email address.",
+    });
     await flow.sendCode("j@example.com");
     await flow.verify("123");
     expect(flow.getSnapshot().error).toBe("The code is 6 digits.");
@@ -77,25 +87,33 @@ describe("Back up your profile", () => {
 
   it("a wrong code is refused and the code can be typed again", async () => {
     const { flow } = setup("backup", {
-      backUp: async () => ({ ok: false, reason: "invalid_code", message: "bad" }),
+      backUp: async () => ({
+        ok: false,
+        reason: "invalid_code",
+        message: "That code didn't work. Check it or send a new one.",
+      }),
     });
     flow.chooseEmail();
     await flow.sendCode("j@example.com");
     await flow.verify("000000");
     expect(flow.getSnapshot()).toMatchObject({
       step: "code",
-      error: "That code didn't work. Check the email, or send a new one.",
+      error: "That code didn't work. Check it or send a new one.",
     });
   });
 
   it("a login that backs up another profile is refused (login_in_use)", async () => {
     const { flow } = setup("backup", {
-      backUp: async () => ({ ok: false, reason: "login_in_use", message: "in use" }),
+      backUp: async () => ({
+        ok: false,
+        reason: "login_in_use",
+        message: "That account already backs up another profile.",
+      }),
     });
     await flow.continueWith("google");
     expect(flow.getSnapshot()).toMatchObject({
       step: "choose",
-      error: "That login already backs up another OGS profile.",
+      error: "That account already backs up another profile.",
     });
   });
 

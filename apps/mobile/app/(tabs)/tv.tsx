@@ -2,30 +2,31 @@ import { useRouter } from "expo-router";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ogs/Button";
+import { ErrorLine } from "../../components/ogs/ErrorLine";
 import { RemotePad } from "../../components/ogs/RemotePad";
+import { JoinTv } from "../../components/ogs/remote/JoinTv";
 import { HolderLine, NowOnTv } from "../../components/ogs/remote/NowOnTv";
 import { type OnTv, pickerDevices, remoteView } from "../../components/ogs/remote/remote-view";
 import { StopCasting } from "../../components/ogs/remote/StopCasting";
 import { TvPicker } from "../../components/ogs/remote/TvPicker";
 import { Screen } from "../../components/ogs/Screen";
 import { colors, fonts, TARGET } from "../../components/ogs/theme";
-import { switchTv } from "../../services/cast-flow";
 import type { CastDevice } from "../../services/cast-store";
 import { remotePress } from "../../services/remote";
 import {
-  api,
+  appState,
   castBackend,
   castNow,
-  castStore,
-  config,
   couchHub,
   deviceId,
   endTonight,
+  moveToTv,
   useApp,
   useCast,
   useCouch,
   useOgsCast,
 } from "../../services/runtime";
+import { type UserMessage, userMessage } from "../../services/user-message";
 
 const SEARCH_MS = 4000;
 
@@ -58,15 +59,16 @@ function Remote({ tvName }: { tvName: string }) {
   const view = remoteView({
     state: couch.state,
     library: app.library,
-    people: app.identity?.people ?? [],
     myDeviceId: deviceId(),
   });
   const currentId = castState.session.deviceId;
   const devices = pickerDevices(found, currentId ? { id: currentId, name: tvName } : null);
 
+  const member = app.session?.role === "member";
   const press = (button: Parameters<typeof remotePress>[0]) => {
     const { messages, stopCast } = remotePress(button, deviceId());
-    if (stopCast) void endTonight();
+    // A device that joined leaves the couch; only the caster stops the cast.
+    if (stopCast) void (member ? appState.leaveSession() : endTonight());
     else for (const m of messages) couchHub.send(m);
   };
   const openPicker = () => {
@@ -78,17 +80,11 @@ function Remote({ tvName }: { tvName: string }) {
     setSwitchingId(tv.id);
     setPickError(null);
     try {
-      const result = await switchTv({
-        api,
-        config,
-        castStore,
-        backend: castBackend,
-        deviceId: tv.id,
-      });
+      const result = await moveToTv(tv);
       if (result === "no-tv") setPickError(`Couldn't reach ${tv.name}. Is it on?`);
       else setPicking(false);
     } catch (err) {
-      setPickError(err instanceof Error ? err.message : String(err));
+      setPickError(userMessage(err, "cast").text);
     } finally {
       setSwitchingId(null);
     }
@@ -131,7 +127,8 @@ function NotCast({ connecting }: { connecting: boolean }) {
   const devices = useDevices();
   const [phase, setPhase] = useState<"idle" | "searching" | "no-tv">("idle");
   const [picked, setPicked] = useState<CastDevice | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserMessage | null>(null);
+  const session = useApp().session;
 
   useEffect(() => {
     castBackend.startDiscovery();
@@ -158,10 +155,10 @@ function NotCast({ connecting }: { connecting: boolean }) {
       return;
     }
     try {
-      const result = await castNow(tv.id);
+      const result = await castNow(tv);
       if (result === "no-tv") setPhase("no-tv");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(userMessage(err, "cast"));
     }
   };
 
@@ -234,7 +231,12 @@ function NotCast({ connecting }: { connecting: boolean }) {
               ? "Looking for TVs…"
               : (tv?.name ?? "Looking for TVs…")}
         </Text>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <ErrorLine
+          text={error?.text ?? null}
+          action={error?.action}
+          onRetry={() => void onCast()}
+          testID="castError"
+        />
       </View>
       {devices.length > 1 ? (
         <View style={styles.choices}>
@@ -252,6 +254,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
           ))}
         </View>
       ) : null}
+      <JoinTv joined={session} />
     </Screen>
   );
 }
@@ -275,7 +278,6 @@ const styles = StyleSheet.create({
   },
   castText: { fontFamily: fonts.display, fontSize: 40, color: colors.ink },
   tvName: { color: colors.cream, fontSize: 18, fontWeight: "700" },
-  error: { color: colors.peach, fontSize: 15, textAlign: "center" },
   padArea: { alignItems: "center", marginTop: 18, marginBottom: 10, gap: 6 },
   cause: { backgroundColor: colors.dusk1, borderRadius: 16, padding: 14, marginTop: 10 },
   causeTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },

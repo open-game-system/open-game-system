@@ -1,5 +1,9 @@
 import type { Instance, Manifest } from "@open-game-system/ogs-protocol";
 import { createAppState } from "../app-state";
+
+beforeEach(() => jest.spyOn(console, "warn").mockImplementation(() => {}));
+afterEach(() => jest.restoreAllMocks());
+
 import { type Me, OgsApiError } from "../ogs-api";
 
 const manifest = (appId: string): Manifest => ({
@@ -55,7 +59,9 @@ function fakeApi() {
     createSession: jest.fn(async () => ({ ...session, token: "launch" })),
     joinSession: jest.fn(async () => session),
     startEmail: jest.fn(async () => {}),
-    backUp: jest.fn(async () => me({ logins: [{ provider: "google" as const, email: "j@x.org" }] })),
+    backUp: jest.fn(async () =>
+      me({ logins: [{ provider: "google" as const, email: "j@x.org" }] }),
+    ),
     signIn: jest.fn(async () => ({
       me: me({ logins: [{ provider: "email" as const, email: "j@x.org" }] }),
       token: "jwt-2",
@@ -115,7 +121,8 @@ describe("app state: making a profile", () => {
     expect(await app.createProfile(newProfile)).toEqual({
       ok: false,
       reason: "error",
-      message: "no network",
+      message: "Can't reach OGS. Check your Wi-Fi and try again.",
+      action: "retry",
     });
   });
 
@@ -133,6 +140,18 @@ describe("app state: making a profile", () => {
     await second.app.init();
     expect(second.app.getSnapshot().identity?.profile.handle).toBe("jonathan.m");
     expect(second.api.createProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe("app state: signed out", () => {
+  it("forgets the profile and the session on this device", async () => {
+    const { app, storage } = setup();
+    await app.createProfile(newProfile);
+    await app.startSession("Living room TV");
+    await app.signOut();
+    expect(app.getSnapshot()).toMatchObject({ identity: null, session: null, logins: [] });
+    expect(storage.data.has("ogs.identity")).toBe(false);
+    expect(storage.data.has("ogs.session")).toBe(false);
   });
 });
 
@@ -175,7 +194,8 @@ describe("app state: back up and sign in", () => {
     expect(await app.backUp({ provider: "google", idToken: "gid" })).toEqual({
       ok: false,
       reason: "login_in_use",
-      message: "in use",
+      message: "That account already backs up another profile.",
+      action: null,
     });
   });
 
@@ -203,7 +223,8 @@ describe("app state: back up and sign in", () => {
     expect(await app.signIn({ provider: "google", idToken: "gid" })).toEqual({
       ok: false,
       reason: "login_not_found",
-      message: "none",
+      message: "No OGS profile has that login yet.",
+      action: "make-profile",
     });
     expect(app.getSnapshot().identity).toBeNull();
   });
@@ -211,9 +232,9 @@ describe("app state: back up and sign in", () => {
   it("a wrong email code is an error to show", async () => {
     const { app, api } = setup();
     api.signIn.mockRejectedValueOnce(new OgsApiError("invalid_code", "Wrong code", 401));
-    expect(
-      await app.signIn({ provider: "email", email: "j@x.org", code: "000000" }),
-    ).toMatchObject({ ok: false, reason: "invalid_code" });
+    expect(await app.signIn({ provider: "email", email: "j@x.org", code: "000000" })).toMatchObject(
+      { ok: false, reason: "invalid_code" },
+    );
   });
 
   it("sends an email code", async () => {
@@ -229,7 +250,11 @@ describe("app state: the couch session", () => {
     await app.createProfile(newProfile);
     expect(await app.startSession("Living room TV")).toBe("launch");
     expect(api.createSession).toHaveBeenCalledWith("Living room TV");
-    expect(app.getSnapshot().session).toEqual({ ...session, launcherToken: "launch", role: "host" });
+    expect(app.getSnapshot().session).toEqual({
+      ...session,
+      launcherToken: "launch",
+      role: "host",
+    });
     expect(storage.data.get("ogs.session")).toContain("s1");
   });
 
@@ -248,7 +273,8 @@ describe("app state: the couch session", () => {
     expect(await app.joinSession("NOPE00")).toEqual({
       ok: false,
       reason: "session_not_found",
-      message: "No such TV",
+      message: "No TV has that code.",
+      action: null,
     });
     expect(app.getSnapshot().session).toBeNull();
   });
@@ -301,6 +327,7 @@ describe("app state: library, catalogue, instances", () => {
     api.library.mockRejectedValueOnce(new OgsApiError("OFFLINE", "no", 0));
     await app.refresh();
     expect(app.getSnapshot().status).toBe("offline");
+    expect(app.getSnapshot().error).toBe("Can't reach OGS. Check your Wi-Fi and try again.");
     expect(app.getSnapshot().library).toHaveLength(1);
   });
 

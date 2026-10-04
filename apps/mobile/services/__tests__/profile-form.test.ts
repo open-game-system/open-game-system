@@ -71,7 +71,7 @@ describe("Make your OGS profile: the form", () => {
     await settle();
     expect(form.getSnapshot()).toMatchObject({ status: "taken", suggestion: "taken2" });
     expect(form.canSubmit()).toBe(false);
-    form.useSuggestion();
+    form.acceptSuggestion();
     expect(form.getSnapshot()).toMatchObject({ handle: "taken2", status: "free" });
     expect(form.canSubmit()).toBe(true);
   });

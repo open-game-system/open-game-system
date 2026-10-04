@@ -30,3 +30,8 @@ export function backupView(logins: Login[]): { backedUp: boolean; label: string 
     names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
   return { backedUp: true, label: `Backed up with ${list}` };
 }
+
+/** "Hi, Jonathan": the done page greets by first name. */
+export function greeting(name: string): string {
+  return `Hi, ${name.trim().split(/\s+/)[0] ?? name}`;
+}

@@ -1,5 +1,5 @@
 import type { Identity } from "../../../../services/identity";
-import { backupView, profileView } from "../profile-view";
+import { backupView, greeting, profileView } from "../profile-view";
 
 const identity: Identity = {
   profile: { id: "pr1", handle: "jonathan.m", name: "Jonathan", sticker: "bear" },
@@ -45,5 +45,12 @@ describe("backupView", () => {
         { provider: "email", email: "j@x.org" },
       ]).label,
     ).toBe("Backed up with Apple and email");
+  });
+});
+
+describe("greeting (onboarding's done page)", () => {
+  it("greets by first name", () => {
+    expect(greeting("Jonathan Mumm")).toBe("Hi, Jonathan");
+    expect(greeting("  Juneau ")).toBe("Hi, Juneau");
   });
 });

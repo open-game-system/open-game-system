@@ -1,19 +1,23 @@
 import { useRouter } from "expo-router";
-import { KidsList } from "../../components/ogs/profile/KidsList";
+import { BackupRow } from "../../components/ogs/profile/BackupRow";
 import { ProfileCard } from "../../components/ogs/profile/ProfileCard";
-import { profileView } from "../../components/ogs/profile/profile-view";
+import { backupView, profileView } from "../../components/ogs/profile/profile-view";
 import { SettingsLink } from "../../components/ogs/profile/SettingsLink";
 import { Screen } from "../../components/ogs/Screen";
 import { useApp } from "../../services/runtime";
 
-/** Profile tab: you, the kids you manage, and Settings (the household button's old job). */
+/** Profile tab: you (sticker, name, @id · Edit), back-up status, and Settings. */
 export default function ProfileScreen() {
   const router = useRouter();
-  const { me, kids } = profileView(useApp().identity);
+  const app = useApp();
+  const backup = backupView(app.logins);
   return (
     <Screen title="Profile" testID="profileScreen">
-      <ProfileCard me={me} />
-      <KidsList kids={kids} />
+      <ProfileCard me={profileView(app.identity)} onEdit={() => router.push("/edit-profile")} />
+      <BackupRow
+        {...backup}
+        onBackUp={() => router.push({ pathname: "/sign-in", params: { mode: "backup" } })}
+      />
       <SettingsLink onPress={() => router.push("/settings")} />
     </Screen>
   );

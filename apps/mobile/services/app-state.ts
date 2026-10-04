@@ -1,6 +1,12 @@
 import type { Instance, InstanceReport, Manifest } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
-import { type Identity, loadIdentity, type SecureStorage, saveIdentity } from "./identity";
+import {
+  clearIdentity,
+  type Identity,
+  loadIdentity,
+  type SecureStorage,
+  saveIdentity,
+} from "./identity";
 import type { ReturnPill } from "./leave-game";
 import {
   type Credential,
@@ -13,6 +19,7 @@ import {
   type ProfilePatch,
   SessionInfoSchema,
 } from "./ogs-api";
+import { type ErrorAction, type ErrorContext, userMessage } from "./user-message";
 
 /**
  * The app's shared data: this device's profile, its games and instances, the couch session it is
@@ -60,7 +67,13 @@ type Api = Pick<
   | "fetchManifest"
 >;
 
-export type Failure<R extends string> = { ok: false; reason: R | "error"; message: string };
+/** A refusal the screen handles (`reason`), with the words to show and the one action to offer. */
+export type Failure<R extends string> = {
+  ok: false;
+  reason: R | "error";
+  message: string;
+  action: ErrorAction;
+};
 export type Done = { ok: true };
 export type HandleResult =
   | Done
@@ -69,13 +82,15 @@ export type HandleResult =
 
 const SESSION_KEY = "ogs.session";
 
-const messageOf = (err: unknown) => (err instanceof Error ? err.message : String(err));
-
 /** An API error with one of the codes the caller handles, else a plain error to show. */
-function failure<R extends string>(err: unknown, codes: readonly R[]): Failure<R> {
-  const message = messageOf(err);
+function failure<R extends string>(
+  err: unknown,
+  codes: readonly R[],
+  context: ErrorContext,
+): Failure<R> {
+  const { text: message, action } = userMessage(err, context);
   const code = err instanceof OgsApiError ? codes.find((c) => c === err.code) : undefined;
-  return code ? { ok: false, reason: code, message } : { ok: false, reason: "error", message };
+  return { ok: false, reason: code ?? "error", message, action };
 }
 
 const isTaken = (err: unknown) => err instanceof OgsApiError && err.code === "handle_taken";
@@ -137,12 +152,12 @@ export function createAppState(opts: {
   }
 
   /** A taken @id: ask OGS for a free one to offer instead. */
-  async function takenAnswer(handle: string, err: unknown): Promise<HandleResult> {
+  async function takenAnswer(handle: string): Promise<HandleResult> {
     try {
       const { suggestion } = await opts.api.checkHandle({ handle });
       return { ok: false, reason: "handle_taken", suggestion };
-    } catch {
-      return failure(err, []);
+    } catch (checkErr) {
+      return failure(checkErr, [], "profile");
     }
   }
 
@@ -172,8 +187,8 @@ export function createAppState(opts: {
         await keepIdentity({ profile, deviceId: device.deviceId, deviceToken: token }, []);
         return { ok: true };
       } catch (err) {
-        if (isTaken(err) && input.handle) return takenAnswer(input.handle, err);
-        return failure(err, []);
+        if (isTaken(err) && input.handle) return takenAnswer(input.handle);
+        return failure(err, [], "profile");
       }
     },
     async updateProfile(patch: ProfilePatch): Promise<HandleResult> {
@@ -181,8 +196,8 @@ export function createAppState(opts: {
         await keepMe(await opts.api.updateMe(patch));
         return { ok: true };
       } catch (err) {
-        if (isTaken(err) && patch.handle) return takenAnswer(patch.handle, err);
-        return failure(err, []);
+        if (isTaken(err) && patch.handle) return takenAnswer(patch.handle);
+        return failure(err, [], "edit");
       }
     },
     async startEmail(email: string): Promise<Done | Failure<never>> {
@@ -190,7 +205,7 @@ export function createAppState(opts: {
         await opts.api.startEmail(email);
         return { ok: true };
       } catch (err) {
-        return failure(err, []);
+        return failure(err, [], "sign-in");
       }
     },
     /** Back up: link a login to this device's profile. */
@@ -199,7 +214,7 @@ export function createAppState(opts: {
         await keepMe(await opts.api.backUp(credential));
         return { ok: true };
       } catch (err) {
-        return failure(err, ["login_in_use", "invalid_code"] as const);
+        return failure(err, ["login_in_use", "invalid_code"] as const, "back-up");
       }
     },
     /** Sign in: this device takes the profile that has this login, with its own new token. */
@@ -215,7 +230,7 @@ export function createAppState(opts: {
         );
         return { ok: true };
       } catch (err) {
-        return failure(err, ["login_not_found", "invalid_code"] as const);
+        return failure(err, ["login_not_found", "invalid_code"] as const, "sign-in");
       }
     },
     /** Cast: a new couch session hosted by this profile. Returns the launcher's token. */
@@ -231,11 +246,17 @@ export function createAppState(opts: {
         await keepSession({ ...info, role: "member" });
         return { ok: true };
       } catch (err) {
-        return failure(err, ["session_not_found"] as const);
+        return failure(err, ["session_not_found"] as const, "join");
       }
     },
     async leaveSession() {
       await keepSession(null);
+    },
+    /** OGS no longer takes this device's token: forget the profile here (sign in or make one). */
+    async signOut() {
+      await keepSession(null);
+      await clearIdentity(opts.storage);
+      set({ identity: null, logins: [] });
     },
     /** Library = the profile's appIds, as catalogue manifests, in its order. */
     async refresh() {
@@ -252,7 +273,7 @@ export function createAppState(opts: {
         if (me) await keepMe(me);
         set({ catalogue, library: libraryOf(catalogue), instances, status: "ready", error: null });
       } catch (err) {
-        set({ status: "offline", error: messageOf(err) });
+        set({ status: "offline", error: userMessage(err, "load").text });
       }
     },
     async addGame(appId: string) {

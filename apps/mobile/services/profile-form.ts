@@ -70,7 +70,11 @@ export function createProfileForm(opts: {
         (r) => {
           if (mine !== seq) return;
           if ("name" in q)
-            set({ handle: r.available ? r.handle : r.suggestion, status: "free", suggestion: null });
+            set({
+              handle: r.available ? r.handle : r.suggestion,
+              status: "free",
+              suggestion: null,
+            });
           else if (r.available) set({ status: "free", suggestion: null });
           else set({ status: "taken", suggestion: r.suggestion });
         },
@@ -113,7 +117,7 @@ export function createProfileForm(opts: {
       else if (handle) schedule({ handle });
       else cancel("idle");
     },
-    useSuggestion() {
+    acceptSuggestion() {
       if (!state.suggestion) return;
       handleEdited = true;
       set({ handle: state.suggestion });

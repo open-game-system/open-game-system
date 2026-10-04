@@ -2,16 +2,15 @@ import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "../components/ogs/theme";
-import { DEFAULT_FAMILY } from "../services/identity";
-import { isOnboardingComplete } from "../services/onboarding";
 import { decideOpeningTab, type TabName } from "../services/opening-tab";
 import { appState, couchHub, deviceId } from "../services/runtime";
 
 const SESSION_WAIT_MS = 1500;
 
 /**
- * Cold start (spec v3, App structure): first run → onboarding; otherwise open Playing only when a
- * game this phone was playing is still live, else Library. Coming back from the background never
+ * Cold start (spec v3, App structure): no profile on this device → onboarding (it makes or signs
+ * in to one); otherwise open Playing only when a game this device was playing is still live, else
+ * Library. Coming back from the background never
  * lands here, so the place is kept.
  */
 export default function Index() {
@@ -20,21 +19,13 @@ export default function Index() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      if (!(await isOnboardingComplete())) {
+      await appState.init();
+      if (!appState.getSnapshot().identity) {
         if (!cancelled) setTarget("onboarding");
         return;
       }
-      await appState.init();
-      // Onboarded before households existed (or never reached OGS): set one up with defaults.
-      if (!appState.getSnapshot().identity)
-        await appState.ensureHousehold(
-          "Our family",
-          DEFAULT_FAMILY.map((p) => ({ ...p })),
-        );
       void appState.refresh();
-      const tab = appState.getSnapshot().identity
-        ? await decideOpeningTab(couchHub, deviceId(), SESSION_WAIT_MS)
-        : "library";
+      const tab = await decideOpeningTab(couchHub, deviceId(), SESSION_WAIT_MS);
       if (!cancelled) setTarget(tab);
     })();
     return () => {

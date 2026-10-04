@@ -145,7 +145,9 @@ describe("ogs-api: profiles", () => {
   });
 
   it("edits the profile with PATCH /me", async () => {
-    const { client, calls } = api(() => ({ body: { profile: { ...profile, name: "Jon" }, logins: [] } }));
+    const { client, calls } = api(() => ({
+      body: { profile: { ...profile, name: "Jon" }, logins: [] },
+    }));
     expect((await client.updateMe({ name: "Jon" })).profile.name).toBe("Jon");
     expect(calls[0]).toMatchObject({
       url: `${BASE}/api/v1/me`,
@@ -225,7 +227,10 @@ describe("ogs-api: back up and sign in", () => {
 
   it("signs in without a token, sending this device, and returns the profile and a new token", async () => {
     const { client, calls } = api(() => ({ body: { ...me, token: "new-jwt" } }));
-    const out = await client.signIn({ provider: "email", email: "j@example.com", code: "123456" }, device);
+    const out = await client.signIn(
+      { provider: "email", email: "j@example.com", code: "123456" },
+      device,
+    );
     expect(out).toEqual({ me, token: "new-jwt" });
     expect(calls[0]).toMatchObject({
       url: `${BASE}/api/v1/auth/email/verify`,
