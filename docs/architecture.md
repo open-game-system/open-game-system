@@ -46,7 +46,7 @@ The Open Game System (OGS) is a platform that lets web games use native mobile c
 
 | Module | Directory | Responsibility | Depends On |
 |--------|-----------|---------------|------------|
-| API | `services/api/` | Auth, device registration, push dispatch | Hono, D1 |
+| API | `services/api/` | Auth, device registration, push dispatch, households, catalogue, instances, couch session DO | Hono, D1, Durable Objects, ogs-protocol |
 | Mobile App | `apps/mobile/` | WebView host, push tokens, casting, deep links | app-bridge-react-native, Expo |
 | App Bridge Types | `packages/app-bridge-types/` | Core type definitions for bridge protocol | (none) |
 | App Bridge Web | `packages/app-bridge-web/` | Web-side bridge (runs in WebView) | app-bridge-types |
@@ -118,6 +118,43 @@ Auth middleware (services/api/src/middleware/auth.ts)
       └── Sets gameId + gameName on Hono context → route handlers
 ```
 
+### Household tokens (OGS app v3)
+
+The app, kid iPads and the TV launcher use household JWTs instead of API keys: HS256 signed with
+`OGS_JWT_SECRET`, claims = `ogs-protocol` `ClaimsSchema` (`hid`, `did`, `pid?`, `kind`
+phone|tablet|launcher, `exp`). Phone/tablet tokens last 365 days, launcher tokens 12 h.
+`middleware/household-auth.ts` guards every `/api/v1/households/:hid/*` route: missing header →
+401 `missing_auth`, non-Bearer → 401 `invalid_auth`, bad signature/expired/not claims → 401
+`invalid_token`, another household → 403 `forbidden_household`, unknown household → 404
+`household_not_found`. Managing the household (pairing, launcher tokens, library edits) needs a
+phone token → else 403 `phone_required`.
+
+| Method | Path | Auth | Body → Response |
+|---|---|---|---|
+| POST | `/api/v1/households` | none | `{ name, people: [{ name, band, sticker }], device: { deviceId, kind: "phone", name, personIndex? } }` → 201 `{ householdId, people (with ids), token }` |
+| GET | `/api/v1/households/:hid` | any household token | → `{ id, name, people, devices: [{ deviceId, kind, personId, name }] }` |
+| POST | `/api/v1/households/:hid/devices` | phone | `{ deviceId, kind: phone\|tablet, personId?, name }` → 201 `{ token }` |
+| POST | `/api/v1/households/:hid/launcher-token` | phone | → 201 `{ token }` (`kind: launcher`, `did: launcher-<uuid>`, 12 h) |
+| GET | `/api/v1/catalogue` | none | → `Manifest[]` (the five deployed games, `services/api/src/catalogue.ts`) |
+| GET | `/api/v1/households/:hid/library` | any household token | → `{ appIds }` (whole catalogue until changed) |
+| PUT | `/api/v1/households/:hid/library` | phone | `{ appIds }` (catalogue ids, de-duplicated, ordered) → `{ appIds }` |
+| POST | `/api/v1/households/:hid/instances` | any household token | `InstanceReport & { source: bridge\|visit }` → `Instance` (upsert by instanceId, `updatedAt` = now) |
+| GET | `/api/v1/households/:hid/instances` | any household token | → `Instance[]` newest first (clients run `playingView`) |
+| GET (WS) | `/api/v1/couch/ws?token=<household token>` | token in query | WebSocket to the household's `CouchSession` DO |
+
+### Couch session WebSocket
+
+`CouchSession` (`services/api/src/couch-session.ts`, binding `COUCH_SESSION`, one per household
+via `idFromName(hid)`, WebSocket hibernation, state persisted in DO storage). On connect the DO
+applies `hello` from the token's claims; when a device's last socket closes, `bye`. Client frames
+are JSON `ClientMessage`s (except `hello`/`bye`, which are refused); `select` and `remote.take`
+always act as the sending device. Each is applied with `reduceSession` and the `Outbound`s routed:
+`all` → every socket, `launcher` → launcher sockets, `{ deviceId }` → that device's sockets. Server
+frames: `{ type: "state", state }`, `{ type: "focus.move", dir }` (launcher),
+`{ type: "follow", target }`, `{ type: "remote.offer", from }`, and
+`{ type: "error", code: invalid_json|invalid_message|identity_from_token, message }`. Connect errors
+are HTTP: 401 `missing_auth`/`invalid_token`, 426 `upgrade_required`.
+
 ## Error Contract
 
 All API errors use this shape (no exceptions):
@@ -126,7 +163,7 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`, `invalid_token`, `forbidden_household`, `household_not_found`, `phone_required`, `unknown_person`, `unknown_app`, `upgrade_required`
 
 ## Database Schema (D1/SQLite)
 
@@ -135,6 +172,10 @@ Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `in
 | `devices` | `ogs_device_id` | platform, push_token, created_at, updated_at | Upsert on register |
 | `api_keys` | `key` | game_id, game_name, created_at | Manual inserts for now |
 | `cast_sessions` | `session_id` | game_id, device_id, view_url, stream_session_id, stream_url, status, created_at, updated_at | Status: pending/active/ended |
+| `households` | `id` | name, library (JSON app ids, NULL = whole catalogue), created_at | OGS app v3 identity |
+| `household_people` | `id` | household_id, name, band (grownup/kid/little), sticker, created_at | |
+| `household_devices` | `device_id` | household_id, kind (phone/tablet/launcher), person_id, name, created_at | Upsert on pair |
+| `instances` | `(household_id, instance_id)` | app_id, status, title, detail, your_turn, starts_at, resume_url, source, updated_at (ms) | ogs-protocol `InstanceSchema` |
 
 Canonical schema: `services/api/schema.sql`
 
