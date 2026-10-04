@@ -47,8 +47,9 @@ function fakeApi() {
       people: [{ personId: "p1", name: "Me", band: "grownup" as const, sticker: "bear" }],
     })),
     catalogue: jest.fn(async () => [manifest("rocket-crew"), manifest("night-flight")]),
-    library: jest.fn(async () => [manifest("rocket-crew")]),
-    addToLibrary: jest.fn(async () => [manifest("rocket-crew"), manifest("night-flight")]),
+    library: jest.fn(async () => ["rocket-crew"]),
+    setLibrary: jest.fn(async (ids: string[]) => ids),
+    fetchManifest: jest.fn(async (_url: string) => manifest("night-flight")),
     instances: jest.fn(async () => [instance("i1")]),
     reportInstance: jest.fn(async () => instance("i2", { title: "Day 4" })),
   };
@@ -59,7 +60,7 @@ const family = [{ name: "Me", band: "grownup" as const, sticker: "bear" }];
 function setup() {
   const api = fakeApi();
   const storage = memory();
-  const app = createAppState({ api, storage, deviceName: "iPhone", platform: "ios" });
+  const app = createAppState({ api, storage, deviceName: "iPhone", newDeviceId: () => "d1" });
   return { api, storage, app };
 }
 
@@ -88,7 +89,12 @@ describe("app state: household", () => {
     const first = setup();
     await first.app.ensureHousehold("The Mumms", family);
     const api = fakeApi();
-    const app = createAppState({ api, storage: first.storage, deviceName: "x", platform: "ios" });
+    const app = createAppState({
+      api,
+      storage: first.storage,
+      deviceName: "x",
+      newDeviceId: () => "d2",
+    });
     await app.init();
     expect(app.getSnapshot().identity?.householdId).toBe("h1");
     expect(api.createHousehold).not.toHaveBeenCalled();
@@ -124,12 +130,40 @@ describe("app state: library, catalogue, instances", () => {
     expect(app.getSnapshot().library).toHaveLength(1);
   });
 
-  it("adding a game updates the library", async () => {
+  it("adding a game appends it to the household's library", async () => {
     const { app, api } = setup();
     await app.ensureHousehold("H", family);
-    await app.addGame({ appId: "night-flight" });
-    expect(api.addToLibrary).toHaveBeenCalledWith({ appId: "night-flight" });
+    await app.refresh();
+    await app.addGame("night-flight");
+    expect(api.setLibrary).toHaveBeenCalledWith(["rocket-crew", "night-flight"]);
     expect(app.getSnapshot().library.map((g) => g.appId)).toEqual(["rocket-crew", "night-flight"]);
+  });
+
+  it("Add by link adds a catalogue game from its manifest URL", async () => {
+    const { app, api } = setup();
+    await app.ensureHousehold("H", family);
+    await app.refresh();
+    await app.addByLink("https://nf.example/ogs.json");
+    expect(api.fetchManifest).toHaveBeenCalledWith("https://nf.example/ogs.json");
+    expect(app.getSnapshot().library.map((g) => g.appId)).toContain("night-flight");
+  });
+
+  it("Add by link refuses a game OGS doesn't know yet", async () => {
+    const { app, api } = setup();
+    await app.ensureHousehold("H", family);
+    await app.refresh();
+    api.fetchManifest.mockResolvedValueOnce(manifest("my-own-game"));
+    await expect(app.addByLink("https://me.example/ogs.json")).rejects.toMatchObject({
+      code: "NOT_IN_CATALOGUE",
+    });
+  });
+
+  it("sends this phone's minted device id when creating the household", async () => {
+    const { app, api } = setup();
+    await app.ensureHousehold("H", family);
+    expect(api.createHousehold).toHaveBeenCalledWith(
+      expect.objectContaining({ device: expect.objectContaining({ deviceId: "d1" }) }),
+    );
   });
 
   it("a report replaces the instance with the same id", async () => {

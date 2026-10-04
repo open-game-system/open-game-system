@@ -36,28 +36,38 @@ export type Person = z.infer<typeof PersonSchema>;
 
 const HouseholdCreatedSchema = z.object({
   householdId: z.string().min(1),
-  deviceId: z.string().min(1),
   token: z.string().min(1),
-  people: z.array(PersonSchema),
+  people: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      band: BandSchema,
+      sticker: z.string(),
+    }),
+  ),
 });
-export type HouseholdCreated = z.infer<typeof HouseholdCreatedSchema>;
+export interface HouseholdCreated {
+  householdId: string;
+  deviceId: string;
+  token: string;
+  people: Person[];
+}
 
 export interface NewHousehold {
   name: string;
   people: { name: string; band: Band; sticker: string }[];
-  device: { name: string; platform: string };
+  /** This phone: its id is minted on the phone and becomes the token's device claim. */
+  device: { deviceId: string; name: string; personIndex?: number };
 }
 
 const ErrorBodySchema = z.object({
   error: z.object({ code: z.string(), message: z.string(), status: z.number() }),
 });
 const TokenSchema = z.object({ token: z.string().min(1) });
-const GamesSchema = z.object({ games: z.array(z.unknown()) });
-const InstancesSchema = z.object({ instances: z.array(z.unknown()) });
-const InstanceEnvelopeSchema = z.object({ instance: z.unknown() });
+const ListSchema = z.array(z.unknown());
+const LibrarySchema = z.object({ appIds: z.array(z.string()) });
 
-export type AddToLibrary = { appId: string } | { manifestUrl: string };
-export type InstanceSource = Instance["source"];
+export type InstanceSource = Exclude<Instance["source"], "server">;
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -138,8 +148,17 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
 
   return {
     async createHousehold(input: NewHousehold): Promise<HouseholdCreated> {
-      const data = await request("/api/v1/households", { method: "POST", body: input });
-      return parse(HouseholdCreatedSchema, data);
+      const data = await request("/api/v1/households", {
+        method: "POST",
+        body: { ...input, device: { ...input.device, kind: "phone" } },
+      });
+      const created = parse(HouseholdCreatedSchema, data);
+      return {
+        householdId: created.householdId,
+        deviceId: input.device.deviceId,
+        token: created.token,
+        people: created.people.map(({ id, ...p }) => ({ personId: id, ...p })),
+      };
     },
     /** A short-lived token the TV launcher uses to join this household's couch session. */
     async launcherToken(): Promise<string> {
@@ -147,32 +166,55 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
       return parse(TokenSchema, data).token;
     },
     async catalogue(): Promise<Manifest[]> {
-      return manifests(parse(GamesSchema, await request("/api/v1/catalogue")).games);
+      return manifests(parse(ListSchema, await request("/api/v1/catalogue")));
     },
-    async library(): Promise<Manifest[]> {
+    /** The household's games, as catalogue appIds in the household's order. */
+    async library(): Promise<string[]> {
       const data = await request(`${household()}/library`, { authed: true });
-      return manifests(parse(GamesSchema, data).games);
+      return parse(LibrarySchema, data).appIds;
     },
-    async addToLibrary(add: AddToLibrary): Promise<Manifest[]> {
+    /** Replace the household's games (catalogue ids only); returns the saved list. */
+    async setLibrary(appIds: string[]): Promise<string[]> {
       const data = await request(`${household()}/library`, {
-        method: "POST",
-        body: add,
+        method: "PUT",
+        body: { appIds },
         authed: true,
       });
-      return manifests(parse(GamesSchema, data).games);
+      return parse(LibrarySchema, data).appIds;
     },
     async instances(): Promise<Instance[]> {
       const data = await request(`${household()}/instances`, { authed: true });
-      return instances(parse(InstancesSchema, data).instances);
+      return instances(parse(ListSchema, data));
     },
     async reportInstance(report: InstanceReport, source: InstanceSource): Promise<Instance> {
       const data = await request(`${household()}/instances`, {
         method: "POST",
-        body: { report, source },
+        body: { ...report, source },
         authed: true,
       });
-      const r = InstanceSchema.safeParse(parse(InstanceEnvelopeSchema, data).instance);
+      const r = InstanceSchema.safeParse(data);
       if (!r.success) throw new OgsApiError("BAD_RESPONSE", r.error.message, 0);
+      return r.data;
+    },
+    /** Add by link: fetch any OGS game's manifest (parsed with the protocol's ManifestSchema). */
+    async fetchManifest(url: string): Promise<Manifest> {
+      let res: Response;
+      try {
+        res = await fetch(url, { headers: { Accept: "application/json" } });
+      } catch (err) {
+        throw new OgsApiError("OFFLINE", `Can't reach ${url}: ${String(err)}`, 0);
+      }
+      if (!res.ok)
+        throw new OgsApiError(`HTTP_${res.status}`, `${url} answered ${res.status}`, res.status);
+      let json: unknown = null;
+      try {
+        json = await res.json();
+      } catch {
+        json = null;
+      }
+      const r = ManifestSchema.safeParse(json);
+      if (!r.success)
+        throw new OgsApiError("BAD_MANIFEST", "That link isn't an OGS game manifest", 0);
       return r.data;
     },
   };

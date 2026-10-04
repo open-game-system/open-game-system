@@ -3,7 +3,7 @@ import { z } from "zod";
 
 /**
  * The phone's live link to the household's couch session (services/api CouchSession, one per
- * household): a WebSocket that says hello, mirrors the session's state, follows the host role
+ * household): a WebSocket (identity comes from its token; the session says hello for us), mirrors the session's state, follows the host role
  * (a game started from the TV with the remote opens here) and offers the remote when its holder
  * goes dark. Reconnects with backoff. Everything incoming is parsed before it is believed.
  */
@@ -95,7 +95,6 @@ export interface SocketLike {
 export interface CouchSessionOptions {
   url: string;
   deviceId: string;
-  personId?: string;
   createSocket: (url: string) => SocketLike;
   /** The session made this phone the host of a game (e.g. OK pressed on the TV): open it. */
   onFollowHost?: (game: { appId: string; instanceId: string }) => void;
@@ -162,7 +161,6 @@ export function createCouchSession(opts: CouchSessionOptions) {
       if (socket !== ws) return;
       attempt = 0;
       set({ status: "open", error: null });
-      raw({ type: "hello", deviceId: opts.deviceId, kind: "phone", personId: opts.personId });
       for (const msg of queue.splice(0)) raw(msg);
     };
     ws.onmessage = (ev) => {

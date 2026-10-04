@@ -73,10 +73,10 @@ describe("couch session socket URL", () => {
 });
 
 describe("couch session client", () => {
-  it("says hello as this phone once the socket opens", () => {
+  it("sends nothing on open: the session knows the phone from its token", () => {
     setup();
     last().open();
-    expect(last().sent).toEqual([{ type: "hello", deviceId: "phone-1", kind: "phone" }]);
+    expect(last().sent).toEqual([]);
   });
 
   it("exposes the session's state from parsed state messages", () => {
@@ -136,7 +136,7 @@ describe("couch session client", () => {
     last().receive({ type: "remote.offer", from: "phone-2" });
     session.dismissRemoteOffer();
     expect(session.getSnapshot().remoteOffer).toBeNull();
-    expect(last().sent).toHaveLength(1);
+    expect(last().sent).toHaveLength(0);
   });
 
   it("keeps the last server error for the UI", () => {
@@ -156,14 +156,11 @@ describe("couch session client", () => {
     expect(last().sent).toContainEqual({ type: "focus.move", dir: "right" });
   });
 
-  it("holds messages sent before the socket opens and delivers them after hello", () => {
+  it("holds messages sent before the socket opens and delivers them on open", () => {
     const { session } = setup();
     session.send({ type: "game.start", appId: "rocket-crew", mode: "continue" });
     last().open();
-    expect(last().sent).toEqual([
-      { type: "hello", deviceId: "phone-1", kind: "phone" },
-      { type: "game.start", appId: "rocket-crew", mode: "continue" },
-    ]);
+    expect(last().sent).toEqual([{ type: "game.start", appId: "rocket-crew", mode: "continue" }]);
   });
 
   it("reconnects with growing backoff after a drop, and resets it once connected", () => {
