@@ -1,5 +1,6 @@
 import type { ClientMessage, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import { router } from "expo-router";
@@ -60,6 +61,9 @@ const auth = () => {
 
 export const api = createOgsApi({ baseUrl: config.apiBase, fetch: fetchImpl, auth });
 
+/** App storage (wiped with the app), unlike the Keychain behind SecureStore. */
+const INSTALLED_KEY = "@ogs/installed";
+
 export const appState = createAppState({
   api,
   storage: SecureStore,
@@ -68,6 +72,10 @@ export const appState = createAppState({
     name: Device.deviceName ?? "Phone",
   },
   newDeviceId: () => Crypto.randomUUID(),
+  install: {
+    isFirstLaunch: async () => (await AsyncStorage.getItem(INSTALLED_KEY)) !== "true",
+    markLaunched: () => AsyncStorage.setItem(INSTALLED_KEY, "true"),
+  },
 });
 
 // --- Couch session -------------------------------------------------------------------------

@@ -115,11 +115,8 @@ Feature: OGS profiles
 
   # --- @later: slice 2 (friends) and slice 3 (games know who you are) ---
 
-  @later
-  Scenario: Add a friend by QR, code, link or @id
-
-  @later
-  Scenario: Friend sees Join while you cast
+  # Friends (slice 2) moved to 2026-10-04-ogs-friends.feature: add a friend by QR, code, link or @id;
+  # friend sees Join while you cast.
 
   @later
   Scenario: "A friend starts a new game" push respects its switch (push deferred, owner 2026-10-04)
