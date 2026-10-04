@@ -5,7 +5,9 @@ const START = "https://rocket-crew.example/";
 const ROOM = "https://rocket-crew.example/join/PQWS?t=seat-1&tv=tv-1";
 
 const session = (over: Partial<SessionState> = {}): SessionState => ({
-  householdId: "h",
+  sessionId: "s",
+  hostProfileId: "pr",
+  members: [],
   cast: true,
   screen: "home",
   focus: null,

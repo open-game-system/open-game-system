@@ -1,61 +1,21 @@
-import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol";
+import {
+  type ClientMessage,
+  type SessionState,
+  SessionStateSchema,
+} from "@open-game-system/ogs-protocol";
 import { z } from "zod";
 
 /**
- * The phone's live link to the household's couch session (services/api CouchSession, one per
- * household): a WebSocket (identity comes from its token; the session says hello for us), mirrors the session's state, follows the host role
+ * This device's live link to the couch session it hosts or joined (services/api CouchSession, one
+ * per cast): a WebSocket (identity comes from its token; the session says hello for us), mirrors
+ * the session's state, follows the host role
  * (a game started from the TV with the remote opens here) and offers the remote when its holder
  * goes dark. Reconnects with backoff. Everything incoming is parsed before it is believed.
  */
 
-const RosterEntry = z.object({
-  personId: z.string(),
-  roleId: z.string(),
-  deviceId: z.string().optional(),
-});
-
-// Mirrors SessionState in @open-game-system/ogs-protocol (which exports the type, not a schema).
-const SessionStateSchema = z.object({
-  householdId: z.string(),
-  cast: z.boolean(),
-  screen: z.enum(["home", "game-page", "game"]),
-  focus: z.string().nullable(),
-  page: z.string().nullable(),
-  current: z
-    .object({
-      appId: z.string(),
-      instanceId: z.string(),
-      mode: z.enum(["continue", "new"]),
-      roster: z.array(RosterEntry),
-      label: z.string(),
-      startedAt: z.number(),
-      viewUrl: z.string().nullable(),
-      hostDeviceId: z.string().nullable(),
-    })
-    .nullable(),
-  suspended: z.array(
-    z.object({ appId: z.string(), instanceId: z.string(), label: z.string(), at: z.number() }),
-  ),
-  remote: z.string().nullable(),
-  devices: z.array(
-    z.object({
-      deviceId: z.string(),
-      kind: z.enum(["phone", "tablet", "launcher"]),
-      personId: z.string().optional(),
-      online: z.boolean(),
-    }),
-  ),
-  rosters: z.record(z.string(), z.array(RosterEntry)),
-  casts: z.number(),
-});
-
-// Compile-time guard: the schema must keep producing the protocol's SessionState.
-type ParsedState = z.infer<typeof SessionStateSchema>;
-const _stateMatchesProtocol: ParsedState extends SessionState ? true : never = true;
-void _stateMatchesProtocol;
-
 const ServerMessageSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("state"), state: SessionStateSchema }),
+  // The state is parsed with the protocol's own schema (ogs-protocol is on zod 3, this app on 4).
+  z.object({ type: z.literal("state"), state: z.unknown() }),
   z.object({
     type: z.literal("follow"),
     target: z.discriminatedUnion("kind", [
@@ -105,9 +65,10 @@ const BASE_DELAY = 500;
 const MAX_DELAY = 8000;
 const MAX_QUEUE = 20;
 
-export function couchSocketUrl(apiBase: string, deviceToken: string): string {
+export function couchSocketUrl(apiBase: string, deviceToken: string, sessionId: string): string {
   const ws = apiBase.replace(/^http/, "ws");
-  return `${ws}/api/v1/couch/ws?token=${encodeURIComponent(deviceToken)}`;
+  const token = encodeURIComponent(deviceToken);
+  return `${ws}/api/v1/couch/ws?token=${token}&session=${encodeURIComponent(sessionId)}`;
 }
 
 export function createCouchSession(opts: CouchSessionOptions) {
@@ -137,9 +98,11 @@ export function createCouchSession(opts: CouchSessionOptions) {
     if (!parsed.success) return;
     const msg = parsed.data;
     switch (msg.type) {
-      case "state":
-        set({ state: msg.state });
+      case "state": {
+        const state = SessionStateSchema.safeParse(msg.state);
+        if (state.success) set({ state: state.data });
         break;
+      }
       case "follow":
         if (msg.target.kind === "game" && msg.target.roleId === "host")
           opts.onFollowHost?.({ appId: msg.target.appId, instanceId: msg.target.instanceId });

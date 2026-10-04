@@ -19,7 +19,7 @@ export interface Sitting {
 const finished = (i: Instance) => i.status === "completed" || i.status === "expired";
 
 /**
- * Every in-progress sitting of `game`: the household's open instances of it (Playing's rules: not
+ * Every in-progress sitting of `game`: the profile's open instances of it (Playing's rules: not
  * finished or expired, touched within the game's TTL) plus the couch session's live and paused
  * sittings of it, merged by instance id. Live first, then most recently played.
  */

@@ -1,5 +1,4 @@
 import { initialSession, type Manifest, type SessionState } from "@open-game-system/ogs-protocol";
-import type { Person } from "../../../../services/ogs-api";
 import { nowLine, pickerDevices, remoteView } from "../remote-view";
 
 const game = (appId: string, name: string): Manifest => ({
@@ -17,17 +16,17 @@ const game = (appId: string, name: string): Manifest => ({
 });
 
 const library = [game("rocket-crew", "Rocket Crew"), game("bake-shop", "Bake Shop")];
-const people: Person[] = [
-  { personId: "p-dad", name: "Dad", band: "grownup", sticker: "owl" },
-  { personId: "p-mom", name: "Mom", band: "grownup", sticker: "whale" },
-];
 
 const session = (patch: Partial<SessionState> = {}): SessionState => ({
-  ...initialSession("h1"),
+  ...initialSession("s1", "p-dad"),
   cast: true,
+  members: [
+    { profileId: "p-dad", name: "Dad", sticker: "owl" },
+    { profileId: "p-mom", name: "Mom", sticker: "whale" },
+  ],
   devices: [
-    { deviceId: "phone-dad", kind: "phone", personId: "p-dad", online: true },
-    { deviceId: "phone-mom", kind: "phone", personId: "p-mom", online: true },
+    { deviceId: "phone-dad", kind: "phone", profileId: "p-dad", online: true },
+    { deviceId: "phone-mom", kind: "phone", profileId: "p-mom", online: true },
     { deviceId: "phone-guest", kind: "phone", online: true },
   ],
   ...patch,
@@ -45,7 +44,7 @@ const playing = (appId: string, label = ""): SessionState["current"] => ({
 });
 
 const view = (state: SessionState | null, me = "phone-dad") =>
-  remoteView({ state, library, people, myDeviceId: me });
+  remoteView({ state, library, myDeviceId: me });
 
 describe("remoteView: what's on the TV", () => {
   it("no session yet: the TV shows Home", () => {

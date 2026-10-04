@@ -1,6 +1,5 @@
 import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
 import type { CastDevice } from "../../../services/cast-store";
-import type { Person } from "../../../services/ogs-api";
 
 export type OnTv =
   | { kind: "home"; focus: string | null; paused: string | null }
@@ -17,12 +16,11 @@ export type Holder =
 export function remoteView(input: {
   state: SessionState | null;
   library: Manifest[];
-  people: Person[];
   myDeviceId: string;
 }): { onTv: OnTv; holder: Holder } {
-  const { state, library, people, myDeviceId } = input;
+  const { state, library, myDeviceId } = input;
   const find = (appId: string) => library.find((g) => g.appId === appId) ?? null;
-  return { onTv: onTvOf(state, find), holder: holderOf(state, people, myDeviceId) };
+  return { onTv: onTvOf(state, find), holder: holderOf(state, myDeviceId) };
 }
 
 function onTvOf(state: SessionState | null, find: (appId: string) => Manifest | null): OnTv {
@@ -52,11 +50,12 @@ function onTvOf(state: SessionState | null, find: (appId: string) => Manifest | 
   };
 }
 
-function holderOf(state: SessionState | null, people: Person[], me: string): Holder {
+/** Who holds the remote: the profile on that device, from the couch's members. */
+function holderOf(state: SessionState | null, me: string): Holder {
   const remote = state?.remote;
   if (!remote) return { kind: "nobody" };
-  const personId = state.devices.find((d) => d.deviceId === remote)?.personId;
-  const person = people.find((p) => p.personId === personId);
+  const profileId = state.devices.find((d) => d.deviceId === remote)?.profileId;
+  const person = state.members.find((m) => m.profileId === profileId);
   if (remote === me) return { kind: "me", sticker: person?.sticker ?? null };
   return person
     ? { kind: "person", name: person.name, sticker: person.sticker }

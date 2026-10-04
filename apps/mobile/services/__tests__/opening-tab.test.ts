@@ -2,7 +2,7 @@ import { initialSession, type SessionState } from "@open-game-system/ogs-protoco
 import { decideOpeningTab, openingTab } from "../opening-tab";
 
 const live = (patch: Partial<NonNullable<SessionState["current"]>> = {}): SessionState => ({
-  ...initialSession("h1"),
+  ...initialSession("s1", "pr1"),
   cast: true,
   screen: "game",
   current: {
@@ -26,7 +26,7 @@ describe("opening tab on a cold start", () => {
   it("opens Playing when this phone is in the live game's roster", () => {
     const s = live({
       hostDeviceId: "phone-2",
-      roster: [{ personId: "p", roleId: "fixer", deviceId: "phone-1" }],
+      roster: [{ profileId: "p", roleId: "fixer", deviceId: "phone-1" }],
     });
     expect(openingTab(s, "phone-1")).toBe("playing");
   });
@@ -36,7 +36,7 @@ describe("opening tab on a cold start", () => {
   });
 
   it("opens Library when nothing is live, or with no session at all", () => {
-    expect(openingTab(initialSession("h1"), "phone-1")).toBe("library");
+    expect(openingTab(initialSession("s1", "pr1"), "phone-1")).toBe("library");
     expect(openingTab(null, "phone-1")).toBe("library");
   });
 });

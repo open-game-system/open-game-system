@@ -44,7 +44,7 @@ function setup() {
   FakeSocket.all = [];
   const onFollowHost = jest.fn();
   const session = createCouchSession({
-    url: "ws://api.test/api/v1/couch/ws?token=t",
+    url: "ws://api.test/api/v1/couch/ws?token=t&session=s1",
     deviceId: "phone-1",
     createSocket: (url) => new FakeSocket(url),
     onFollowHost,
@@ -54,7 +54,7 @@ function setup() {
 }
 
 const state = (patch: Partial<SessionState> = {}): SessionState => ({
-  ...initialSession("h1"),
+  ...initialSession("s1", "pr1"),
   ...patch,
 });
 
@@ -62,12 +62,12 @@ beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
 describe("couch session socket URL", () => {
-  it("turns the API base into the household's couch socket with the device token", () => {
-    expect(couchSocketUrl("http://localhost:8787", "a b")).toBe(
-      "ws://localhost:8787/api/v1/couch/ws?token=a%20b",
+  it("turns the API base into the session's couch socket with the device token", () => {
+    expect(couchSocketUrl("http://localhost:8787", "a b", "s 1")).toBe(
+      "ws://localhost:8787/api/v1/couch/ws?token=a%20b&session=s%201",
     );
-    expect(couchSocketUrl("https://api.opengame.org", "t")).toBe(
-      "wss://api.opengame.org/api/v1/couch/ws?token=t",
+    expect(couchSocketUrl("https://api.opengame.org", "t", "s1")).toBe(
+      "wss://api.opengame.org/api/v1/couch/ws?token=t&session=s1",
     );
   });
 });
@@ -142,10 +142,10 @@ describe("couch session client", () => {
   it("keeps the last server error for the UI", () => {
     const { session } = setup();
     last().open();
-    last().receive({ type: "error", code: "FORBIDDEN", message: "Not your household" });
+    last().receive({ type: "error", code: "not_a_member", message: "Not on this couch" });
     expect(session.getSnapshot().error).toEqual({
-      code: "FORBIDDEN",
-      message: "Not your household",
+      code: "not_a_member",
+      message: "Not on this couch",
     });
   });
 

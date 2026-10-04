@@ -3,7 +3,7 @@ import type { Instance, Manifest, SessionState } from "@open-game-system/ogs-pro
 const isOpen = (i: Instance, now: number, ttl: number) =>
   i.status !== "completed" && i.status !== "expired" && now - i.updatedAt <= ttl;
 
-/** The one line under a Library tile: where this game is for the household right now. */
+/** The one line under a Library tile: where this game is for this profile right now. */
 export function gameStatusLine(
   game: Manifest,
   instances: Instance[],

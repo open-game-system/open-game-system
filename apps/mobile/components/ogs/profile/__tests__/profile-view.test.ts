@@ -1,53 +1,49 @@
 import type { Identity } from "../../../../services/identity";
-import { profileView } from "../profile-view";
+import { backupView, profileView } from "../profile-view";
 
-const identity = (people: Identity["people"]): Identity => ({
-  householdId: "h1",
+const identity: Identity = {
+  profile: { id: "pr1", handle: "jonathan.m", name: "Jonathan", sticker: "bear" },
   deviceId: "d1",
-  token: "t",
-  householdName: "Our family",
-  people,
+  deviceToken: "t",
+};
+
+describe("profileView (the Profile tab's card)", () => {
+  it("is empty before this device has a profile", () => {
+    expect(profileView(null)).toBeNull();
+  });
+
+  it("shows the sticker, the name and the @id", () => {
+    expect(profileView(identity)).toEqual({
+      id: "pr1",
+      name: "Jonathan",
+      handle: "@jonathan.m",
+      sticker: "bear",
+    });
+  });
 });
 
-describe("profileView (today's household as your profile)", () => {
-  it("is empty before this phone has an identity", () => {
-    expect(profileView(null)).toEqual({ me: null, kids: [] });
+describe("backupView", () => {
+  it("not backed up: says so and offers Back up", () => {
+    expect(backupView([])).toEqual({ backedUp: false, label: "Not backed up" });
   });
 
-  it("is the phone's own person (the first one, the device's person) with their sticker", () => {
-    const view = profileView(
-      identity([
-        { personId: "p1", name: "Jonathan", band: "grownup", sticker: "bear" },
-        { personId: "p2", name: "Mom", band: "grownup", sticker: "owl" },
-      ]),
+  it("backed up with one login names its provider", () => {
+    expect(backupView([{ provider: "google", email: "j@x.org" }])).toEqual({
+      backedUp: true,
+      label: "Backed up with Google",
+    });
+    expect(backupView([{ provider: "apple", email: null }]).label).toBe("Backed up with Apple");
+    expect(backupView([{ provider: "email", email: "j@x.org" }]).label).toBe(
+      "Backed up with email",
     );
-    expect(view.me).toEqual({ personId: "p1", name: "Jonathan", sticker: "bear" });
   });
 
-  it("lists kids and littles under you, never other grown-ups", () => {
-    const view = profileView(
-      identity([
-        { personId: "p1", name: "Jonathan", band: "grownup", sticker: "bear" },
-        { personId: "p2", name: "Mom", band: "grownup", sticker: "owl" },
-        { personId: "p3", name: "Juneau", band: "kid", sticker: "dragon" },
-        { personId: "p4", name: "Ava", band: "little", sticker: "dinosaur" },
-      ]),
-    );
-    expect(view.kids).toEqual([
-      { personId: "p3", name: "Juneau", sticker: "dragon", band: "kid", bandLabel: "Kid" },
-      { personId: "p4", name: "Ava", sticker: "dinosaur", band: "little", bandLabel: "Little" },
-    ]);
-  });
-
-  it("never lists you as your own kid", () => {
-    const view = profileView(
-      identity([{ personId: "p1", name: "Juneau", band: "kid", sticker: "dragon" }]),
-    );
-    expect(view.me?.name).toBe("Juneau");
-    expect(view.kids).toEqual([]);
-  });
-
-  it("has no profile when the household has nobody in it", () => {
-    expect(profileView(identity([]))).toEqual({ me: null, kids: [] });
+  it("several logins are all named", () => {
+    expect(
+      backupView([
+        { provider: "apple", email: null },
+        { provider: "email", email: "j@x.org" },
+      ]).label,
+    ).toBe("Backed up with Apple and email");
   });
 });

@@ -28,7 +28,7 @@ const game = (appId = "catan"): Manifest => ({
 const inst = (instanceId: string, patch: Partial<Instance> = {}): Instance => ({
   instanceId,
   appId: "catan",
-  householdId: "h1",
+  profileId: "pr1",
   status: "suspended",
   title: "",
   detail: "",
@@ -38,7 +38,7 @@ const inst = (instanceId: string, patch: Partial<Instance> = {}): Instance => ({
 });
 
 const session = (patch: Partial<SessionState>): SessionState => ({
-  ...initialSession("h1"),
+  ...initialSession("s1", "pr1"),
   ...patch,
 });
 

@@ -1,13 +1,14 @@
 import { z } from "zod";
-import { type Band, PersonSchema } from "./ogs-api";
+import { ProfileSchema } from "./ogs-api";
 
-/** This phone's place in a household: who it belongs to and the token that proves it. */
+/**
+ * This device's one active profile and the token that proves it (one profile per device for now;
+ * switching profiles later swaps this whole value).
+ */
 export const IdentitySchema = z.object({
-  householdId: z.string().min(1),
+  profile: ProfileSchema,
   deviceId: z.string().min(1),
-  token: z.string().min(1),
-  householdName: z.string(),
-  people: z.array(PersonSchema),
+  deviceToken: z.string().min(1),
 });
 export type Identity = z.infer<typeof IdentitySchema>;
 
@@ -52,10 +53,3 @@ export const STICKERS = [
   { id: "cloud", label: "Cloud" },
 ] as const;
 export type StickerId = (typeof STICKERS)[number]["id"];
-
-/** Sensible defaults for "who's in your family", edited in one short onboarding step. */
-export const DEFAULT_FAMILY: { name: string; band: Band; sticker: StickerId }[] = [
-  { name: "Me", band: "grownup", sticker: "bear" },
-  { name: "Big kid", band: "kid", sticker: "dragon" },
-  { name: "Little one", band: "little", sticker: "dinosaur" },
-];

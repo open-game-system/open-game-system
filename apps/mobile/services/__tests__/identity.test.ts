@@ -1,4 +1,4 @@
-import { DEFAULT_FAMILY, loadIdentity, STICKERS, saveIdentity } from "../identity";
+import { clearIdentity, loadIdentity, STICKERS, saveIdentity } from "../identity";
 
 function memory() {
   const data = new Map<string, string>();
@@ -11,15 +11,13 @@ function memory() {
 }
 
 const identity = {
-  householdId: "h1",
+  profile: { id: "pr1", handle: "jonathan.m", name: "Jonathan", sticker: "bear" },
   deviceId: "d1",
-  token: "jwt",
-  householdName: "The Mumms",
-  people: [{ personId: "p1", name: "Jonathan", band: "grownup" as const, sticker: "bear" }],
+  deviceToken: "jwt",
 };
 
-describe("household identity on this phone", () => {
-  it("is null before onboarding created a household", async () => {
+describe("this device's profile identity", () => {
+  it("is null before this device has a profile", async () => {
     expect(await loadIdentity(memory())).toBeNull();
   });
 
@@ -29,18 +27,30 @@ describe("household identity on this phone", () => {
     expect(await loadIdentity(store)).toEqual(identity);
   });
 
-  it("treats a corrupt stored value as no identity", async () => {
+  it("can be cleared", async () => {
+    const store = memory();
+    await saveIdentity(store, identity);
+    await clearIdentity(store);
+    expect(await loadIdentity(store)).toBeNull();
+  });
+
+  it("treats a corrupt or household-era stored value as no identity", async () => {
     const store = memory();
     store.data.set("ogs.identity", "{not json");
     expect(await loadIdentity(store)).toBeNull();
-    store.data.set("ogs.identity", JSON.stringify({ householdId: "h1" }));
+    store.data.set(
+      "ogs.identity",
+      JSON.stringify({ householdId: "h1", deviceId: "d1", token: "t", people: [] }),
+    );
     expect(await loadIdentity(store)).toBeNull();
   });
 });
 
-describe("the family step's defaults", () => {
-  it("offers a grown-up, a kid and a little one, each with a Story Nook sticker", () => {
-    expect(DEFAULT_FAMILY.map((p) => p.band)).toEqual(["grownup", "kid", "little"]);
-    for (const p of DEFAULT_FAMILY) expect(STICKERS.map((s) => s.id)).toContain(p.sticker);
+describe("stickers", () => {
+  it("offers the Story Nook characters, bear first (the pre-picked one)", () => {
+    expect(STICKERS[0]?.id).toBe("bear");
+    expect(STICKERS.map((s) => s.id)).toEqual(
+      expect.arrayContaining(["bear", "owl", "dragon", "dinosaur", "whale", "firefly"]),
+    );
   });
 });

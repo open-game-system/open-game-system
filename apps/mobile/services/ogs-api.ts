@@ -8,8 +8,9 @@ import {
 import { z } from "zod";
 
 /**
- * The OGS API client (services/api). Every response is parsed here, at the boundary; screens only
- * ever see typed manifests, instances and identities. `fetch` is injected so tests need no server.
+ * The OGS API client (services/api, profiles slice 1 contract). Every response is parsed here, at
+ * the boundary; screens only ever see typed profiles, manifests, instances and sessions. `fetch`
+ * is injected so tests need no server.
  */
 
 export class OgsApiError extends Error {
@@ -23,47 +24,70 @@ export class OgsApiError extends Error {
   }
 }
 
-export const BandSchema = z.enum(["grownup", "kid", "little"]);
-export type Band = z.infer<typeof BandSchema>;
-
-export const PersonSchema = z.object({
-  personId: z.string().min(1),
+/** A profile: what games and friends see. `handle` is the @id without the "@". */
+export const ProfileSchema = z.object({
+  id: z.string().min(1),
+  handle: z.string().min(1),
   name: z.string().min(1),
-  band: BandSchema,
   sticker: z.string().min(1),
 });
-export type Person = z.infer<typeof PersonSchema>;
+export type Profile = z.infer<typeof ProfileSchema>;
 
-const HouseholdCreatedSchema = z.object({
-  householdId: z.string().min(1),
-  token: z.string().min(1),
-  people: z.array(
-    z.object({
-      id: z.string().min(1),
-      name: z.string().min(1),
-      band: BandSchema,
-      sticker: z.string(),
-    }),
-  ),
+export const LoginSchema = z.object({
+  provider: z.enum(["apple", "google", "email"]),
+  email: z.string().nullable(),
 });
-export interface HouseholdCreated {
-  householdId: string;
+export type Login = z.infer<typeof LoginSchema>;
+export type Provider = Login["provider"];
+
+export const MeSchema = z.object({ profile: ProfileSchema, logins: z.array(LoginSchema) });
+export type Me = z.infer<typeof MeSchema>;
+
+const HandleCheckSchema = z.object({
+  handle: z.string(),
+  available: z.boolean(),
+  suggestion: z.string(),
+});
+export type HandleCheck = z.infer<typeof HandleCheckSchema>;
+
+const ProfileCreatedSchema = z.object({ profile: ProfileSchema, token: z.string().min(1) });
+const SignedInSchema = MeSchema.extend({ token: z.string().min(1) });
+
+export const SessionInfoSchema = z.object({
+  sessionId: z.string().min(1),
+  code: z.string().min(1),
+  tvName: z.string(),
+  host: ProfileSchema,
+});
+export type SessionInfo = z.infer<typeof SessionInfoSchema>;
+const SessionCreatedSchema = SessionInfoSchema.extend({ token: z.string().min(1) });
+export type SessionCreated = z.infer<typeof SessionCreatedSchema>;
+
+/** This device, as the API registers it (its id is minted here and becomes the token's `did`). */
+export interface DeviceInfo {
   deviceId: string;
-  token: string;
-  people: Person[];
+  kind: "phone" | "tablet";
+  name: string;
 }
 
-export interface NewHousehold {
+/** What proves a login: a provider's ID token, or an email and the 6-digit code sent to it. */
+export type Credential =
+  | { provider: "apple"; idToken: string }
+  | { provider: "google"; idToken: string }
+  | { provider: "email"; email: string; code: string };
+
+export interface NewProfile {
   name: string;
-  people: { name: string; band: Band; sticker: string }[];
-  /** This phone: its id is minted on the phone and becomes the token's device claim. */
-  device: { deviceId: string; name: string; personIndex?: number };
+  handle?: string;
+  sticker: string;
+  device: DeviceInfo;
 }
+
+export type ProfilePatch = Partial<Pick<Profile, "name" | "handle" | "sticker">>;
 
 const ErrorBodySchema = z.object({
   error: z.object({ code: z.string(), message: z.string(), status: z.number() }),
 });
-const TokenSchema = z.object({ token: z.string().min(1) });
 const ListSchema = z.array(z.unknown());
 const LibrarySchema = z.object({ appIds: z.array(z.string()) });
 
@@ -74,8 +98,8 @@ type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 export interface OgsApiOptions {
   baseUrl: string;
   fetch: FetchLike;
-  /** The stored household identity, or null before onboarding created one. */
-  auth: () => { householdId: string; token: string } | null;
+  /** This device's token for its profile, or null before it has one. */
+  auth: () => { token: string } | null;
 }
 
 /** Drop what doesn't parse (one bad manifest must not empty the Library), keep the rest. */
@@ -94,6 +118,16 @@ const manifests = (items: unknown[]): Manifest[] =>
 const instances = (items: unknown[]): Instance[] =>
   parseEach(items, (x) => InstanceSchema.safeParse(x));
 
+function credentialRequest(c: Credential): { path: string; body: Record<string, string> } {
+  switch (c.provider) {
+    case "apple":
+    case "google":
+      return { path: `/api/v1/auth/${c.provider}`, body: { idToken: c.idToken } };
+    case "email":
+      return { path: "/api/v1/auth/email/verify", body: { email: c.email, code: c.code } };
+  }
+}
+
 export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
   async function request(
     path: string,
@@ -103,7 +137,7 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
     if (init.body !== undefined) headers["Content-Type"] = "application/json";
     if (init.authed) {
       const id = auth();
-      if (!id) throw new OgsApiError("NO_HOUSEHOLD", "This phone has no household yet", 0);
+      if (!id) throw new OgsApiError("NO_PROFILE", "This device has no OGS profile yet", 0);
       headers.Authorization = `Bearer ${id.token}`;
     }
     let res: Response;
@@ -140,42 +174,73 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
     return r.data;
   }
 
-  const household = () => {
-    const id = auth();
-    if (!id) throw new OgsApiError("NO_HOUSEHOLD", "This phone has no household yet", 0);
-    return `/api/v1/households/${encodeURIComponent(id.householdId)}`;
-  };
-
   return {
-    async createHousehold(input: NewHousehold): Promise<HouseholdCreated> {
-      const data = await request("/api/v1/households", {
-        method: "POST",
-        body: { ...input, device: { ...input.device, kind: "phone" } },
-      });
-      const created = parse(HouseholdCreatedSchema, data);
-      return {
-        householdId: created.householdId,
-        deviceId: input.device.deviceId,
-        token: created.token,
-        people: created.people.map(({ id, ...p }) => ({ personId: id, ...p })),
-      };
+    /** The @id a name would get, or whether a typed @id is free (with a free suggestion). */
+    async checkHandle(q: { name: string } | { handle: string }): Promise<HandleCheck> {
+      const query =
+        "name" in q
+          ? `name=${encodeURIComponent(q.name)}`
+          : `handle=${encodeURIComponent(q.handle)}`;
+      return parse(HandleCheckSchema, await request(`/api/v1/handles?${query}`));
     },
-    /** A short-lived token the TV launcher uses to join this household's couch session. */
-    async launcherToken(): Promise<string> {
-      const data = await request(`${household()}/launcher-token`, { method: "POST", authed: true });
-      return parse(TokenSchema, data).token;
+    /** Make a profile and this device's token for it (409 handle_taken when the @id is taken). */
+    async createProfile(input: NewProfile): Promise<{ profile: Profile; token: string }> {
+      const data = await request("/api/v1/profiles", { method: "POST", body: input });
+      return parse(ProfileCreatedSchema, data);
+    },
+    async me(): Promise<Me> {
+      return parse(MeSchema, await request("/api/v1/me", { authed: true }));
+    },
+    async updateMe(patch: ProfilePatch): Promise<Me> {
+      const data = await request("/api/v1/me", { method: "PATCH", body: patch, authed: true });
+      return parse(MeSchema, data);
+    },
+    /** Cast: a couch session hosted by this profile, its TV code and the launcher's token. */
+    async createSession(tvName: string): Promise<SessionCreated> {
+      const data = await request("/api/v1/sessions", {
+        method: "POST",
+        body: { tvName },
+        authed: true,
+      });
+      return parse(SessionCreatedSchema, data);
+    },
+    /** Join a cast with the code the TV shows (404 session_not_found for a wrong code). */
+    async joinSession(code: string): Promise<SessionInfo> {
+      const data = await request("/api/v1/sessions/join", {
+        method: "POST",
+        body: { code },
+        authed: true,
+      });
+      return parse(SessionInfoSchema, data);
+    },
+    /** Send a 6-digit sign-in code to an email address. */
+    async startEmail(email: string): Promise<void> {
+      await request("/api/v1/auth/email/start", { method: "POST", body: { email } });
+    },
+    /** Back up: link a login to this device's profile (409 login_in_use if another has it). */
+    async backUp(credential: Credential): Promise<Me> {
+      const { path, body } = credentialRequest(credential);
+      return parse(MeSchema, await request(path, { method: "POST", body, authed: true }));
+    },
+    /** Sign in on this device with a login (404 login_not_found when no profile has it). */
+    async signIn(credential: Credential, device: DeviceInfo): Promise<{ me: Me; token: string }> {
+      const { path, body } = credentialRequest(credential);
+      const data = parse(
+        SignedInSchema,
+        await request(path, { method: "POST", body: { ...body, device } }),
+      );
+      return { me: { profile: data.profile, logins: data.logins }, token: data.token };
     },
     async catalogue(): Promise<Manifest[]> {
       return manifests(parse(ListSchema, await request("/api/v1/catalogue")));
     },
-    /** The household's games, as catalogue appIds in the household's order. */
+    /** The profile's games, as catalogue appIds in its order. */
     async library(): Promise<string[]> {
-      const data = await request(`${household()}/library`, { authed: true });
-      return parse(LibrarySchema, data).appIds;
+      return parse(LibrarySchema, await request("/api/v1/me/library", { authed: true })).appIds;
     },
-    /** Replace the household's games (catalogue ids only); returns the saved list. */
+    /** Replace the profile's games (catalogue ids only); returns the saved list. */
     async setLibrary(appIds: string[]): Promise<string[]> {
-      const data = await request(`${household()}/library`, {
+      const data = await request("/api/v1/me/library", {
         method: "PUT",
         body: { appIds },
         authed: true,
@@ -183,15 +248,16 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
       return parse(LibrarySchema, data).appIds;
     },
     async instances(): Promise<Instance[]> {
-      const data = await request(`${household()}/instances`, { authed: true });
+      const data = await request("/api/v1/me/instances", { authed: true });
       return instances(parse(ListSchema, data));
     },
     async reportInstance(report: InstanceReport, source: InstanceSource): Promise<Instance> {
-      const data = await request(`${household()}/instances`, {
+      const data = await request("/api/v1/me/instances", {
         method: "POST",
         body: { ...report, source },
         authed: true,
       });
+      // InstanceSchema has defaults (input ≠ output type), so it is parsed directly.
       const r = InstanceSchema.safeParse(data);
       if (!r.success) throw new OgsApiError("BAD_RESPONSE", r.error.message, 0);
       return r.data;
