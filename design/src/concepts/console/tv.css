@@ -161,3 +161,11 @@
 .ct-chip__seat { width: 26px; height: 26px; border-radius: 50%; box-shadow: 0 0 0 4px rgba(255, 255, 255, .25); }
 .ct-chip__sep { width: 2px; height: 32px; background: rgba(244, 242, 238, .25); margin: 0 4px; }
 .ct-chip > span.ct-chip__turn { color: var(--ct-ink); font-weight: 700; }
+
+/* Cast off / connecting (main-loop integration, pass 1). */
+.ct-off { position: absolute; inset: 0; background: #050506; }
+.ct-connecting { position: absolute; inset: 0; background: #0b0b0d; color: #f4efe6; display: grid; place-content: center; justify-items: center; gap: 18px; }
+.ct-connecting__mark { animation: ct-connect-pulse 1.6s ease-in-out infinite both; }
+.ct-connecting__line { margin: 24px 0 0; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; }
+.ct-connecting__sub { margin: 0; font-size: 30px; opacity: 0.72; }
+@keyframes ct-connect-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.8; } }

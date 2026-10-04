@@ -37,7 +37,7 @@ export function TvPlaying({ s, gameId }: { s: S; gameId: string }) {
  * shots freeze at its end, the settled frame). Without a switch only the chip shows. */
 function NowOverlay({ s, gameId }: { s: S; gameId: string }) {
   const game = gameById(gameId);
-  if (game.shape === "live") return <NightChip />;
+  if (game.shape === "live") return <NightChip s={s} />;
   const seats = seatViews(game, s.asleep, () => true);
   const left = s.left;
   return (

@@ -1,9 +1,9 @@
 // The TV when no game is running: the family's console home. The focused couch game's art fills the
 // room; the console adds the household, a big clock, tonight's game night as one ambient line, and
 // the couch shelf. Nobody touches it: the phone moves the focus.
-import { HOME, gameById } from "../../../world";
-import { activities, type Activity } from "../activities";
-import { PRESENT, type S } from "../state";
+import { HOME, gameById, type Person } from "../../../world";
+import { couchShelf, type Activity } from "../activities";
+import { hereTonight, type S } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
 import { PhoneIcon, TabletIcon } from "../ui/Icons";
 import { GameNightLine } from "./GameNight";
@@ -11,7 +11,7 @@ import { Clock, FollowPath } from "./Motif";
 import { TvArt } from "./TvArt";
 
 export function TvHome({ s }: { s: S }) {
-  const all = activities(s);
+  const all = couchShelf(s);
   const couch = all.filter((a) => gameById(a.gameId).shape === "couch" && gameById(a.gameId).art.tv);
   const focus = all.find((a) => a.gameId === s.tvFocus && gameById(a.gameId).art.tv) ?? couch[0];
   if (!focus) return null;
@@ -32,8 +32,8 @@ export function TvHome({ s }: { s: S }) {
         </span>
         <Clock />
       </header>
-      {focusIsCouch && <GameNightLine />}
-      <Focus focus={focus} />
+      {focusIsCouch && <GameNightLine s={s} />}
+      <Focus focus={focus} here={hereTonight(s)} />
       <Shelf shelf={shelf} focus={focus} />
       <footer className="ct-home__hint">
         <PhoneIcon size={32} />
@@ -44,7 +44,7 @@ export function TvHome({ s }: { s: S }) {
   );
 }
 
-function Focus({ focus }: { focus: Activity }) {
+function Focus({ focus, here }: { focus: Activity; here: Person[] }) {
   return (
     <section className="ct-home__focus" key={focus.gameId}>
       <span className="ct-kicker">{focus.badge || "Jump back in"}</span>
@@ -52,7 +52,7 @@ function Focus({ focus }: { focus: Activity }) {
       <p className="ct-home__title">{focus.title}</p>
       <p className="ct-home__detail">{focus.detail}</p>
       <div className="ct-home__here">
-        {PRESENT.map((p) => (
+        {here.map((p) => (
           <span key={p.id} className="ct-here">
             <Portrait person={p} size={56} />
             <span>{p.name}</span>
