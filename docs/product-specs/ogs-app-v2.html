@@ -1,0 +1,288 @@
+<title>OGS App v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one spec column (max 1080px); each section = kicker, headline, one line, a picture. */
+:root {
+  --bg: #f3f2ee; --paper: #ffffff; --ink: #17161a; --ink-2: #57545e; --line: #d9d6cf; --ember: #d9482b; --ember-soft: #fbe3dc; --dusk: #2c2742; --ok: #2f7d4f;
+  --wire: #8d8a93; --wire-fill: #f1efea;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --wire: #8a8696; --wire-fill: #26242d; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --wire: #8a8696; --wire-fill: #26242d; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--display); padding-inline: 20px; padding-block: 32px 64px }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px }
+h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.02; margin: 0; letter-spacing: -0.02em; font-weight: 800; text-wrap: balance }
+h2 { font-size: 26px; margin: 0; letter-spacing: -0.01em; font-weight: 800; text-wrap: balance }
+.kicker { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ember) }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 }
+section { display: flex; flex-direction: column; gap: 16px }
+.sub { color: var(--ink-2); margin: 0; max-width: 70ch }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0 }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
+.mono { font-family: var(--mono); font-size: 13px }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+/* wireframe primitives */
+.tv { aspect-ratio: 16/9; border: 2px solid var(--wire); border-radius: 6px; background: var(--paper); position: relative; overflow: hidden; padding: 8px; max-width: 100% }
+.ph { width: 64px; height: 124px; border: 2px solid var(--wire); border-radius: 12px; background: var(--paper); padding: 5px; display: flex; flex-direction: column; gap: 4px; flex: none }
+.ip { width: 104px; height: 72px; border: 2px solid var(--wire); border-radius: 8px; background: var(--paper); padding: 5px; display: flex; align-items: center; justify-content: center; gap: 6px; flex: none }
+.bar { height: 5px; border-radius: 3px; background: var(--line) }
+.tile { border: 1.5px solid var(--wire); border-radius: 3px; background: var(--wire-fill) }
+.focus { outline: 3px solid var(--ember); outline-offset: 2px }
+.w { font: 600 11px/1.15 var(--display); color: var(--ink) }
+.wbtn { border: 1.5px solid var(--ink); border-radius: 5px; font: 600 10px/1 var(--display); text-align: center; padding: 3px 0; color: var(--ink) }
+.wbtn.hot { background: var(--ember); border-color: var(--ember); color: #fff }
+.dot { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--wire); background: var(--wire-fill); display: inline-block }
+.row { display: flex; gap: 4px } .ctr { display: flex; align-items: center; justify-content: center }
+.devs { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap }
+.steps { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) }
+.step { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.step .n { font: 600 11px var(--mono); color: var(--ember) }
+.cap { font-size: 13px; line-height: 1.4; color: var(--ink-2) }
+/* before/after */
+.lane { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.chip { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; padding: 6px 12px; font-size: 14px; white-space: nowrap }
+.chip.bad { border-color: var(--ember); color: var(--ember); background: var(--ember-soft) }
+.chip.good { border-color: var(--ok); color: var(--ok) }
+.arrow { color: var(--ink-2) }
+/* tables */
+.tbl { overflow-x: auto } table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 640px }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--wire-fill); padding: 1px 5px; border-radius: 4px }
+pre.code { font: 12.5px/1.5 var(--mono); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0 }
+.mermaid { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0 }
+.ms { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) }
+.ms .panel { display: flex; flex-direction: column; gap: 6px }
+.ms b { font-size: 16px }
+.q { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+.q .panel b { display: block; margin-bottom: 4px }
+a { color: var(--ember) }
+.tabs { display: flex; border-top: 1.5px solid var(--wire); padding-top: 3px; margin-top: auto }
+.tabs span { flex: 1; text-align: center; font: 600 10px/1.1 var(--display); color: var(--ink-2) }
+.tabs span.on { color: var(--ember) }
+.obar { border: 1.5px solid var(--wire); border-radius: 6px; padding: 3px 4px; font: 600 9.5px/1.1 var(--display); color: var(--ink); display: flex; justify-content: space-between; gap: 2px }
+.obar.live { border-color: var(--ok); color: var(--ok) }
+.li { border: 1.5px solid var(--wire); border-radius: 3px; background: var(--wire-fill); font: 600 9.5px/1 var(--display); color: var(--ink); padding: 3px 4px; white-space: nowrap; overflow: hidden }
+.ph.lg { width: 92px; height: 176px; padding: 6px }
+.where { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) }
+.where .panel { display: flex; flex-direction: column; gap: 8px }
+.pill { align-self: flex-start; font: 600 11px/1 var(--mono); padding: 4px 8px; border-radius: 999px; background: var(--ember-soft); color: var(--ember) }
+</style>
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="kicker">OGS app rework · product spec v2 · Oct 2026</span>
+  <h1>Your games on any screen. Cast when you want the TV.</h1>
+  <p class="lede">OGS opens on your library. Play on the phone, or cast once and the TV becomes a game console for the evening: every game launches inside that one stream.</p>
+</header>
+
+<section>
+  <span class="kicker">Why</span>
+  <h2>Today every game owns its own cast</h2>
+  <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+    <span class="tag">Today: switching games</span>
+    <div class="lane">
+      <span class="chip">Open Rocket Crew</span><span class="arrow">→</span><span class="chip">Cast</span><span class="arrow">→</span><span class="chip">Play</span><span class="arrow">→</span><span class="chip">Back out</span><span class="arrow">→</span><span class="chip">Open Bake Shop</span><span class="arrow">→</span><span class="chip bad">Cast again: stream reloads</span><span class="arrow">→</span><span class="chip bad">New QR, kids rejoin</span>
+    </div>
+    <span class="tag">New: switching games</span>
+    <div class="lane">
+      <span class="chip">Open OGS: your library</span><span class="arrow">→</span><span class="chip good">Cast once (optional)</span><span class="arrow">→</span><span class="chip">Rocket Crew <span style="color:var(--ink-2)">(tap on phone or pick on TV)</span></span><span class="arrow">→</span><span class="chip">Swipe back</span><span class="arrow">→</span><span class="chip">Bake Shop</span><span class="arrow">→</span><span class="chip good">Same stream · iPads follow</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">App structure</span>
+  <h2>Three tabs: TV · Library · Shop</h2>
+  <p class="sub">The TV tab is a big Cast button until you cast, then it becomes the remote. Library and Shop work with or without a TV. The game screen slides over everything and swipes away from the left edge, as today.</p>
+  <div class="steps">
+    <div class="step"><span class="n">TV tab · not cast</span><div class="devs"><div class="ph lg"><div class="ctr" style="flex:1;flex-direction:column;gap:6px"><div class="ctr" style="width:52px;height:52px;border-radius:50%;background:var(--ember);color:#fff;font:800 11px var(--display)">Cast</div><div class="w">Living room TV</div></div><div class="tabs" style="margin-top:auto"><span class="on">TV</span><span class="">Library</span><span class="">Shop</span></div></div></div><span class="cap">One big Cast button (and which TV). Nothing else on the tab.</span></div>
+    <div class="step"><span class="n">TV tab · cast</span><div class="devs"><div class="ph lg"><div class="w" style="color:var(--ok)">On Living room TV</div><div class="ctr" style="flex:1"><div class="ctr" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--ink)"><div style="width:12px;height:12px;border-radius:50%;background:var(--ink)"></div></div></div><div class="row"><div class="wbtn" style="flex:1">Back</div><div class="wbtn" style="flex:1">Home</div></div><div class="tabs" style="margin-top:auto"><span class="on">TV ●</span><span class="">Library</span><span class="">Shop</span></div></div></div><span class="cap">The same tab is now the remote: swipe or d-pad moves the TV's focus ring. End for tonight lives here too.</span></div>
+    <div class="step"><span class="n">Library</span><div class="devs"><div class="ph lg"><div class="w">Your games</div><div class="li">Hearthisle</div><div class="li">Rocket Crew</div><div class="li">Bake Shop</div><div class="li">Word Duel · turn</div><div class="tabs" style="margin-top:auto"><span class="">TV ●</span><span class="on">Library</span><span class="">Shop</span></div></div></div><span class="cap">Not cast: games that need no TV play here. Cast: tapping a game sends it to the TV. The dot on TV says it's live.</span></div>
+    <div class="step"><span class="n">In a game</span><div class="devs"><div class="ph lg" style="border-left:4px solid var(--ember)"><div class="w">Captain</div><div class="tile" style="flex:1"></div><div class="w" style="color:var(--ember)">← swipe back</div></div></div><span class="cap">Full screen, no tabs. Swiping back pauses the game on the TV and returns to the library.</span></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Where a game plays</span>
+  <h2>OGS works without a TV. Each game says what it needs</h2>
+  <div class="where">
+    <div class="panel"><span class="pill">tv: none</span><b>Word Duel</b><div class="devs"><div class="ph"><div class="w">Word Duel</div><div class="tile" style="flex:1"></div><div class="row"><div class="tile" style="flex:1;height:8px"></div><div class="tile" style="flex:1;height:8px"></div><div class="tile" style="flex:1;height:8px"></div></div></div></div><span class="cap">Always on the phone. Opening it while cast leaves the TV alone.</span></div>
+    <div class="panel"><span class="pill">tv: optional</span><b>Hearthisle</b><div class="devs"><div class="ph"><div class="w">Hearthisle</div><div class="tile" style="flex:1"></div><div class="wbtn hot">Play here</div><div class="wbtn">Cast</div></div></div><span class="cap">Plays on phones without a TV (Nana &amp; Pop always do). Cast it and the board goes to the TV.</span></div>
+    <div class="panel"><span class="pill">tv: required</span><b>Rocket Crew, Bake Shop</b><div class="devs"><div class="ph"><div class="w">Rocket Crew</div><div class="tile" style="height:32px"></div><div class="w">Mission 6</div><div style="flex:1"></div><div class="wbtn hot">Cast to play</div></div></div><span class="cap">Not cast: the game page offers one-tap Cast. Cast: it goes straight to the TV.</span></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Flows</span>
+  <h2>The evening, storyboarded</h2>
+  <p class="sub">Phone (and kid iPad) below each TV. The orange ring is the TV's focus.</p>
+  <div id="flows" style="display:flex;flex-direction:column;gap:28px"></div>
+</section>
+
+<section>
+  <span class="kicker">Architecture</span>
+  <h2>One long-lived cloud browser runs the launcher; games live inside it</h2>
+  <pre class="mermaid">
+flowchart LR
+  P["Grown-up phone<br/>OGS app: TV · Library · Shop tabs · game"] -- "game.start · focus · select · home" --> S["Couch session<br/>Durable Object in services/api<br/>library · roster · focus · current and paused games"]
+  K["Kid iPads<br/>paired, OGS app"] -- "subscribe" --> S
+  S -- "state (WebSocket)" --> L["OGS launcher page<br/>opengame.org/tv?session=…<br/>loaded once per evening"]
+  L -- "frames the game's tvUrl + token" --> G["Game TV page<br/>(its own origin)"]
+  L -. "tab capture → SFU → WebRTC" .-> C["Chromecast<br/>receiver loads the launcher URL once"]
+  S -- "follow(game, role, joinUrl)" --> K
+  </pre>
+  <div class="grid">
+    <div class="panel"><span class="tag">Cast</span><p style="margin:6px 0 0">The app sends <code>LOAD_VIEW</code> with the launcher URL, never a game URL. The receiver keeps that page all evening.</p></div>
+    <div class="panel"><span class="tag">Launch</span><p style="margin:6px 0 0">A tap in the library and a select on the TV both send <code>game.start</code>. The session is the one source of truth.</p></div>
+    <div class="panel"><span class="tag">Switch</span><p style="margin:6px 0 0">The launcher swaps the framed game. The old one gets <code>ogs:suspend</code> and reports its resume point. No new stream.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Session states</span>
+  <h2>Not cast is a whole app, not an error</h2>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Library
+  Library --> OnPhone: play a tv none / optional game here
+  OnPhone --> Library: swipe back
+  Library --> Connecting: Cast to TV
+  Connecting --> Launcher: stream up
+  Connecting --> Library: no TV found
+  Launcher --> WhosPlaying: game.start (phone or TV)
+  WhosPlaying --> OnTV: Start / Continue / New
+  OnTV --> Launcher: swipe back (game paused, resume point saved)
+  OnTV --> Reconnecting: cast drops
+  Launcher --> Reconnecting: cast drops
+  Reconnecting --> Launcher: re-cast (game resumes at its resume point)
+  Launcher --> Library: End for tonight
+  </pre>
+</section>
+
+<section>
+  <span class="kicker">Messages</span>
+  <h2>The protocol on one table</h2>
+  <div class="tbl panel" style="padding:0">
+    <table>
+      <thead><tr><th>From → to</th><th>Message</th><th>Payload</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td>Phone → session</td><td><code>game.start</code></td><td>gameId, mode (continue | new), roster [person → role]</td><td>Tap in the library, or select on the TV. Same message either way</td></tr>
+        <tr><td>Phone → session</td><td><code>focus.move</code> · <code>select</code> · <code>back</code></td><td>direction</td><td>The remote (TV tab, once cast)</td></tr>
+        <tr><td>Phone → session</td><td><code>home</code></td><td>none</td><td>The game screen is swiped away (a cancelled swipe sends nothing)</td></tr>
+        <tr><td>Session → launcher</td><td><code>state</code></td><td>screen, focus, library, roster, current and paused games</td><td>Every change</td></tr>
+        <tr><td>Launcher → game frame</td><td><code>ogs:start</code> · <code>ogs:suspend</code> · <code>ogs:resume</code></td><td>resume point, roster</td><td>Launch, swipe back, Continue</td></tr>
+        <tr><td>Game frame → launcher</td><td><code>ogs:ready</code> · <code>ogs:resume-point</code></td><td>label ("Mission 6"), save version</td><td>Loaded; on suspend</td></tr>
+        <tr><td>Session → kid iPad</td><td><code>follow</code></td><td>gameId, role, signed joinUrl, or "launcher"</td><td>Start, switch, swipe back</td></tr>
+        <tr><td>App → OGS API</td><td><code>library.add</code> · <code>library.remove</code></td><td>appId or manifest URL</td><td>Shop "Add", Add by link</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">For game authors</span>
+  <h2>Still config, not code</h2>
+  <p class="sub">Games stop owning casting. A manifest gets a game into the Shop and onto the TV; three optional messages make it pause cleanly.</p>
+  <pre class="code">{
+  "appId": "rocket-crew",
+  "name": "Rocket Crew",
+  "shape": "couch",                                     // couch | live | async
+  "tv": "required",                                     // none | optional | required
+  "tvUrl":   "https://rocket-crew.example/tv",          // framed by the launcher: allow frame-ancestors opengame.org + autoplay
+  "joinUrl": "https://rocket-crew.example/join",        // phones and kid iPads land here with a signed token
+  "roles": [{ "id": "captain", "audience": "grownup" }, { "id": "fixer", "audience": "kid" }],
+  "art": { "tv": "/key.jpg", "safe": { "scale": 1.17, "ox": 50, "oy": 100 } },
+  "shop": { "ages": "4+", "minutes": [8, 12], "players": "1 grown-up + 1–2 kids" },
+  "suspend": true                                       // optional: answers ogs:suspend with a resume point
+}</pre>
+</section>
+
+<section>
+  <span class="kicker">Rework plan</span>
+  <h2>What changes in this repo</h2>
+  <div class="tbl panel" style="padding:0">
+    <table>
+      <thead><tr><th>Area</th><th>Today</th><th>After</th></tr></thead>
+      <tbody>
+        <tr><td><code>apps/mobile/app/</code></td><td>Stack: directory → game WebView (left-edge swipe back)</td><td>Tabs: TV (big Cast button, then the remote) · Library · Shop; games pushed on top; the swipe back stays and sends <code>home</code> when cast</td></tr>
+        <tr><td><code>apps/mobile/services/game-directory.ts</code></td><td>Static list compiled into the app</td><td>The family's library (synced) plus the Shop catalogue, both from manifests</td></tr>
+        <tr><td><code>apps/mobile/services/cast-store.ts</code></td><td>The game sets <code>viewUrl</code> over app-bridge; the cast lives in <code>app/game.tsx</code></td><td>App-level cast from the TV tab; <code>viewUrl</code> is always the launcher</td></tr>
+        <tr><td><code>apps/web/public/receiver.html</code></td><td>Loads whatever <code>LOAD_VIEW</code> sends, per game</td><td>Same contract; gets the launcher URL once per evening</td></tr>
+        <tr><td>New <code>apps/tv</code></td><td>None</td><td>The launcher: the library as rows, game page, who's playing, frames games</td></tr>
+        <tr><td><code>services/api</code></td><td>Cast sessions per game; stream routes</td><td><code>CouchSession</code> Durable Object; library and Shop endpoints</td></tr>
+        <tr><td><code>packages/cast-kit-*</code></td><td>Games call <code>useCastViewUrl</code></td><td>Games call nothing; becomes the launcher↔game message helper</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="ms">
+    <div class="panel"><span class="tag">M1</span><b>Library and Shop</b><span class="cap">Tabs, Add to library, Add by link, play tv none / optional games on the phone. Done when: Hearthisle plays without casting.</span></div>
+    <div class="panel"><span class="tag">M2</span><b>Cast from the TV tab</b><span class="cap">The launcher on the TV shows the library. Done when: casting happens from the TV tab, before any game.</span></div>
+    <div class="panel"><span class="tag">M3</span><b>Games inside the stream</b><span class="cap">CouchSession, <code>game.start</code> from phone or TV, swipe back = home. Done when: two games swap with zero recasts.</span></div>
+    <div class="panel"><span class="tag">M4</span><b>Remote and kids</b><span class="cap">The TV tab becomes the remote; iPads follow by name. Done when: a swap needs 0 kid taps.</span></div>
+    <div class="panel"><span class="tag">M5</span><b>Recover</b><span class="cap">Remote handoff, re-cast to the resume point. Done when: killing the stream mid-mission resumes at the mission.</span></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Decide</span>
+  <h2>Open questions</h2>
+  <div class="q">
+    <div class="panel"><b>Shop: curated or open?</b><span class="cap">Only reviewed games, or anyone's manifest by link (your own vibe-coded games)? Probably both, with a "from a link" label.</span></div>
+    <div class="panel"><b>Who's playing, every time?</b><span class="cap">Or only when the roster changed since last time.</span></div>
+    <div class="panel"><b>Frame or navigate?</b><span class="cap">Framing swaps instantly but needs each TV page to allow framing and autoplay.</span></div>
+    <div class="panel"><b>Who sends pushes</b><span class="cap">OGS from instance reports, or each game via notification-kit?</span></div>
+    <div class="panel"><b>Save keys</b><span class="cap">Saves keyed by the player's token are callable from the browser: needs a security review.</span></div>
+  </div>
+</section>
+
+<footer class="cap">Supersedes v1 (<a href="cast-first.html">cast-first.html</a>). Design prototype and evidence: <code>design/</code> on branch <code>design/ogs-app-hillclimb</code>.</footer>
+</div>
+
+<script>
+const b=w=>`<div class="bar" style="width:${w}%"></div>`;
+const tiles=(n,f=-1,h=18)=>`<div class="row">${Array.from({length:n},(_,i)=>`<div class="tile ${i===f?'focus':''}" style="flex:1;height:${h}px"></div>`).join('')}</div>`;
+const w=s=>`<div class="w">${s}</div>`, btn=(s,h)=>`<div class="wbtn ${h?'hot':''}">${s}</div>`;
+const tv=h=>`<div class="tv">${h}</div>`, ph=h=>`<div class="ph">${h}</div>`, ip=h=>`<div class="ip">${h}</div>`;
+const dots=n=>Array.from({length:n},()=>'<span class="dot"></span>').join(' ');
+const li=s=>`<div class="li">${s}</div>`;
+const tabs=(on,live)=>`<div class="tabs" style="margin-top:auto"><span class="${on==='t'?'on':''}">${live?'TV \u25cf':'TV'}</span><span class="${on==='l'?'on':''}">Library</span><span class="${on==='s'?'on':''}">Shop</span></div>`;
+const pad=`<div class="ctr" style="flex:1"><div class="ctr" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--ink)"><div style="width:10px;height:10px;border-radius:50%;background:var(--ink)"></div></div></div><div class="row"><div class="wbtn" style="flex:1">Back</div><div class="wbtn" style="flex:1">Home</div></div>`;
+const launcher=(f,hero)=>`${w(hero)}<div style="margin:4px 0 12px">${b(40)}</div>${w('Your games')}${tiles(5,f)}<div style="height:5px"></div>${w('Your turn')}${tiles(3,-1,11)}`;
+const off=s=>tv(`<div class="ctr" style="height:100%">${w(s)}</div>`);
+const lib=(live)=>ph(`${w('Your games')}${li('Hearthisle')}${li('Rocket Crew')}${li('Bake Shop')}${tabs('l',live)}`);
+const castTab=()=>ph(`<div class="ctr" style="flex:1;flex-direction:column;gap:5px"><div class="ctr" style="width:40px;height:40px;border-radius:50%;background:var(--ember);color:#fff;font:800 10px var(--display)">Cast</div></div>${tabs('t')}`);
+const remote=()=>ph(`${w('On TV')}${pad}${tabs('t',true)}`);
+const F=[
+['1 · Open OGS and just play (no TV)',[
+['Open OGS: your library. The TV is off and that’s fine.',off('TV off'),lib(false)],
+['Hearthisle works without a TV: Play here.',off('TV off'),ph(`${w('Hearthisle')}<div class="tile" style="height:34px"></div>${w('Turn 14')}<div style="flex:1"></div>${btn('Play here',1)}${btn('Cast')}`)],
+['The board on the phone; swipe back to the library.',off('TV off'),ph(`${w('Hearthisle')}<div class="tile" style="flex:1"></div>${w('← swipe back')}`)]]],
+['2 · Shop: add a game',[
+['Shop tab: browse games; badges say if a TV is needed.',off('TV off'),ph(`${w('Shop')}${li('Night Flight · TV')}${li('Peekaboo · TV')}${li('Juneau’s Adv.')}${li('Add by link')}<div style="flex:1"></div>${tabs('s')}`)],
+['Game page: what it needs, who plays, how long. Add to library.',off('TV off'),ph(`${w('Night Flight')}<div class="tile" style="height:30px"></div>${w('Needs a TV')}${w('10 min')}<div style="flex:1"></div>${btn('Add',1)}`)],
+['It’s in your library (and on the TV launcher next time you cast).',off('TV off'),ph(`${w('Your games')}${li('Night Flight · new')}${li('Hearthisle')}${li('Rocket Crew')}${tabs('l')}`)]]],
+['3 · Cast when you want the TV',[
+['TV tab: one big Cast button.',off('TV off'),castTab()],
+['Pick the living room TV.',off('TV off'),ph(`${w('Cast to')}<div class="tile focus" style="height:16px"></div><div class="tile" style="height:16px"></div><div style="flex:1"></div>`)],
+['Connecting once for the evening.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:6px"><span class="dot"></span>${w('OGS · connecting')}</div>`),ph(`<div class="ctr" style="flex:1">${w('Connecting')}</div>`)],
+['The TV shows your library as a console home; the TV tab is now the remote.',tv(launcher(0,'Rocket Crew')),remote()]]],
+['4 · Launch a game: from the phone or the TV',[
+['From the phone: tap Rocket Crew in the library.',tv(launcher(1,'Rocket Crew')),lib(true)],
+['Or from the TV: on the TV tab (the remote), move the ring to it and press OK.',tv(launcher(1,'Rocket Crew')),remote()],
+['Either way the same game page: Continue mission 6 or New.',tv(`<div class="row" style="height:100%;gap:8px"><div class="tile" style="flex:1"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Rocket Crew')}${w('Mission 6')}${btn('Continue',1)}${btn('New')}</div></div>`),ph(`${w('Rocket Crew')}<div class="tile" style="height:30px"></div>${w('Mission 6')}<div style="flex:1"></div>${btn('Continue',1)}`)],
+['Who’s playing, preset from last time. Each kid iPad lights up as its child is picked.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:7px">${w('Who’s playing?')}<div>${dots(4)}</div></div>`),ph(`${w('People')}<div>${dots(4)}</div><div style="flex:1"></div>${btn('Start',1)}`),ip(`<span class="dot" style="width:28px;height:28px"></span>`)]]],
+['5 · Switch games: swipe back, pick, same stream',[
+['Rocket Crew on the TV. The phone is the Captain, full screen.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Captain')}<div class="tile" style="flex:1"></div>${w('← swipe back')}`),ip(`<div class="tile" style="width:26px;height:26px"></div><div class="tile" style="width:26px;height:26px"></div>`)],
+['Swipe back: the TV pauses the game into a card, saved at Mission 6.',tv(`<div class="row" style="gap:8px;height:100%"><div class="tile" style="flex:1.2"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Saved · Mission 6')}${w('Your games')}${tiles(3,1,16)}</div></div>`),lib(true),ip(`<span class="dot" style="width:22px;height:22px"></span>`)],
+['Tap Bake Shop; Continue day 4. Same stream; the iPads follow by name.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Reader')}<div class="tile" style="flex:1"></div>${w('← swipe back')}`),ip(`<div class="tile" style="width:26px;height:26px"></div><div class="tile" style="width:26px;height:26px"></div>`)]]],
+['6 · A phone-only game while the TV is on',[
+['Word Duel: Nana played QUILT. Tap it in the library.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Your games')}${li('Word Duel · turn')}${li('Bake Shop · on TV')}${tabs('l',true)}`)],
+['It opens on the phone; the TV keeps playing Bake Shop.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Word Duel')}<div class="tile" style="flex:1"></div><div class="row">${'<div class="tile" style="flex:1;height:9px"></div>'.repeat(5)}</div>`)]]],
+['7 · When something drops',[
+['Remote phone dies: Mom’s phone offers to take the TV. Nothing restarts.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Take the TV?')}<div style="flex:1"></div>${btn('Take it',1)}`)],
+['Cast drops: the TV tab is the big button again, now Reconnect; the game resumes at Mission 6.',off('TV off'),ph(`<div class="ctr" style="flex:1;flex-direction:column;gap:5px"><div class="ctr" style="width:46px;height:46px;border-radius:50%;background:var(--ember);color:#fff;font:800 9px var(--display)">Reconnect</div>${w('TV lost')}</div>${tabs('t')}`)]]]];
+document.getElementById('flows').innerHTML=F.map(([t,steps])=>`<div style="display:flex;flex-direction:column;gap:10px"><span class="tag">${t}</span><div class="steps">${steps.map(([c,t2,p,i],n)=>`<div class="step"><span class="n">${String(n+1).padStart(2,'0')}</span>${t2}<div class="devs">${p||''}${i||''}</div><span class="cap">${c}</span></div>`).join('')}</div></div>`).join('');
+</script>
