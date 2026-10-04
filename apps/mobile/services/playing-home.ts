@@ -97,8 +97,8 @@ export interface SittingRow {
   playsOn: PlaysOn;
   /** Where Rejoin lands: "On the TV", "On this phone", "Casts to the TV first", or "Pauses <live game>". */
   where: string;
-  /** Rejoin, or Switch TV when it pauses the game live on the TV for everyone (asks first). */
-  action: "Rejoin" | "Switch TV";
+  /** Rejoin asks first: it would pause the game live on the TV for everyone. */
+  asks: boolean;
   /** The headline is the game's own name for the sitting, not the time it started. */
   named: boolean;
 }
@@ -160,7 +160,7 @@ const row = (
     meta,
     playsOn: playsOn(game),
     where,
-    action: where.startsWith("Pauses") ? "Switch TV" : "Rejoin",
+    asks: where.startsWith("Pauses"),
     named,
   };
 };
@@ -170,11 +170,11 @@ export function sharedLine(lines: string[]): string | null {
   return lines.length > 1 && lines.every((l) => l === lines[0]) ? lines[0] : null;
 }
 
-/** A group's shared line as a note under its title: what Switch TV does, said once. */
+/** A group's shared line as a note under its title: what starting one does to the TV, said once. */
 export function groupNote(shared: string | null): string | null {
   if (!shared) return null;
   return shared.startsWith("Pauses ")
-    ? `Switching the TV pauses ${shared.slice("Pauses ".length)} for everyone`
+    ? `Starting one pauses ${shared.slice("Pauses ".length)} for everyone`
     : shared;
 }
 

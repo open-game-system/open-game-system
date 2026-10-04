@@ -1,11 +1,12 @@
-import type { Instance, SectionKind } from "@open-game-system/ogs-protocol";
+import type { SectionKind } from "@open-game-system/ogs-protocol";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../components/ogs/Button";
 import { ErrorLine } from "../../components/ogs/ErrorLine";
 import { FriendCastingCards } from "../../components/ogs/friends/FriendCastingCard";
+import { joinCards } from "../../components/ogs/friends/friends-view";
 import { CastStrip } from "../../components/ogs/playing/CastStrip";
 import { HeroSitting } from "../../components/ogs/playing/HeroSitting";
 import { PlayingNotice } from "../../components/ogs/playing/PlayingNotice";
@@ -13,14 +14,13 @@ import { SittingCard } from "../../components/ogs/playing/SittingCard";
 import { StartTonight } from "../../components/ogs/playing/StartTonight";
 import { Screen, SectionTitle } from "../../components/ogs/Screen";
 import { colors, fonts } from "../../components/ogs/theme";
+import { friendsStore } from "../../services/friends-runtime";
 import {
   asSitting,
-  groupNote,
   heroSitting,
   liveHeadline,
   liveMeta,
   liveVerb,
-  sharedLine,
   sittingRows,
   startedBy,
   whatToStart,
@@ -75,8 +75,14 @@ export default function PlayingScreen() {
   const liveName = live && liveGame ? liveGame.name : null;
   const rows = sittingRows(items, find, now, cast, liveName);
   const offline = app.status === "offline";
-  const sectionWhere = (group: Instance[]) =>
-    groupNote(sharedLine(group.flatMap((i) => rows.get(i.instanceId)?.where ?? [])));
+  // The Join cards' own data (FriendCastingCards polls it); read here only to rank Cast to TV.
+  const friends = useSyncExternalStore(
+    friendsStore.subscribe,
+    friendsStore.getSnapshot,
+    friendsStore.getSnapshot,
+  );
+  const friendCasting =
+    !offline && joinCards(friends.casting, app.session?.sessionId ?? null).length > 0;
   const heroRow = hero ? rows.get(hero.instanceId) : undefined;
   const inProgress = live || items.some((i) => i.status !== "completed");
 
@@ -159,9 +165,7 @@ export default function PlayingScreen() {
               <SectionTitle count={section.kind === "yourTurn" ? rest.length : undefined}>
                 {TITLES[section.kind]}
               </SectionTitle>
-              {sectionWhere(rest) ? (
-                <Text style={styles.sectionWhere}>{sectionWhere(rest)}</Text>
-              ) : null}
+
               {rest.map((item) => {
                 const game = find(item.appId);
                 const row = rows.get(item.instanceId);
@@ -174,7 +178,6 @@ export default function PlayingScreen() {
                     row={row}
                     game={game}
                     sitting={asSitting(item)}
-                    showWhere={!sectionWhere(rest)}
                     live={liveName ? { name: liveName, tvName: tvName ?? "the TV" } : null}
                   />
                 );
@@ -193,6 +196,8 @@ export default function PlayingScreen() {
                   <Button
                     testID="playingCast"
                     label="Cast to TV"
+                    // A friend's Join card above is the lead; casting your own TV is the other way.
+                    kind={friendCasting ? "ghost" : "primary"}
                     style={styles.cast}
                     onPress={toTv}
                   />

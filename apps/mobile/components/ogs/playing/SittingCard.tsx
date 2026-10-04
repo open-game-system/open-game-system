@@ -32,13 +32,13 @@ export function SittingCard({
   const rejoin = () => play.rejoin(sitting);
   // Taking the TV from the live game pauses it for everyone, so it asks first.
   const onPress = () =>
-    row.action === "Switch TV" && live
+    row.asks && live
       ? Alert.alert(
-          `Switch the TV to ${row.name}?`,
+          `Rejoin ${row.name} on ${live.tvName}?`,
           `${live.name} pauses for everyone on ${live.tvName}. It stays in progress, so anyone can Rejoin it.`,
           [
             { text: "Cancel", style: "cancel" },
-            { text: "Switch TV", onPress: rejoin },
+            { text: "Rejoin", onPress: rejoin },
           ],
         )
       : rejoin();
@@ -47,7 +47,7 @@ export function SittingCard({
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={[row.name, row.headline, row.meta, row.where, row.action]
+      accessibilityLabel={[row.name, row.headline, row.meta, row.where, "Rejoin"]
         .filter(Boolean)
         .join(", ")}
       disabled={play.busy}
@@ -63,7 +63,12 @@ export function SittingCard({
         <Text style={styles.eyebrow} numberOfLines={1}>
           {row.name}
         </Text>
-        <Text style={styles.headline} numberOfLines={2}>
+        <Text
+          style={styles.headline}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
           {row.headline}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -76,7 +81,7 @@ export function SittingCard({
         ) : null}
       </View>
       <View style={styles.rejoin}>
-        <Text style={styles.rejoinText}>{play.busy ? "Casting…" : row.action}</Text>
+        <Text style={styles.rejoinText}>{play.busy ? "Casting…" : "Rejoin"}</Text>
       </View>
     </Pressable>
   );

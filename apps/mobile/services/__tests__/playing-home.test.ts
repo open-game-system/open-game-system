@@ -189,7 +189,7 @@ describe("a sitting's card in Playing", () => {
       meta: "Played 5 min ago",
       playsOn: "tv",
       where: "Casts to the TV first",
-      action: "Rejoin",
+      asks: false,
       named: true,
     });
   });
@@ -224,7 +224,7 @@ describe("a sitting's card in Playing", () => {
       meta: "Played 5 min ago",
       playsOn: "phone",
       where: "On this phone",
-      action: "Rejoin",
+      asks: false,
       named: true,
     });
   });
@@ -258,13 +258,13 @@ describe("a sitting's card in Playing", () => {
     expect(duel.where).toBe("On this phone");
   });
 
-  it("Rejoin, unless it takes the TV from the live game: then Switch TV", () => {
-    expect(sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true).action).toBe("Rejoin");
-    expect(sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true, "Rocket Crew").action).toBe(
-      "Switch TV",
+  it("Rejoin always; it asks first only when it would pause the live game for everyone", () => {
+    expect(sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true).asks).toBe(false);
+    expect(sittingRow(inst("bake-shop"), game("bake-shop"), NOW, true, "Rocket Crew").asks).toBe(
+      true,
     );
     const duel = game("word-duel", "none");
-    expect(sittingRow(inst("word-duel"), duel, NOW, true, "Rocket Crew").action).toBe("Rejoin");
+    expect(sittingRow(inst("word-duel"), duel, NOW, true, "Rocket Crew").asks).toBe(false);
   });
 
   it("two sittings of one game that would read alike become Game 1 and Game 2", () => {
@@ -383,10 +383,8 @@ describe("a line every card in a group would repeat", () => {
 });
 
 describe("a group's note about the TV", () => {
-  it("says once what Switch TV does", () => {
-    expect(groupNote("Pauses Rocket Crew")).toBe(
-      "Switching the TV pauses Rocket Crew for everyone",
-    );
+  it("says once what starting one does to the live game", () => {
+    expect(groupNote("Pauses Rocket Crew")).toBe("Starting one pauses Rocket Crew for everyone");
   });
   it("other shared lines read as they are; none, nothing", () => {
     expect(groupNote("Casts to the TV first")).toBe("Casts to the TV first");
