@@ -2,6 +2,7 @@ import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "../components/ogs/theme";
+import { DEFAULT_FAMILY } from "../services/identity";
 import { isOnboardingComplete } from "../services/onboarding";
 import { decideOpeningTab, type TabName } from "../services/opening-tab";
 import { appState, couchHub, deviceId } from "../services/runtime";
@@ -24,6 +25,12 @@ export default function Index() {
         return;
       }
       await appState.init();
+      // Onboarded before households existed (or never reached OGS): set one up with defaults.
+      if (!appState.getSnapshot().identity)
+        await appState.ensureHousehold(
+          "Our family",
+          DEFAULT_FAMILY.map((p) => ({ ...p })),
+        );
       void appState.refresh();
       const tab = appState.getSnapshot().identity
         ? await decideOpeningTab(couchHub, deviceId(), SESSION_WAIT_MS)
