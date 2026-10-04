@@ -1,0 +1,20 @@
+{
+  "name": "ogs-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Cross-surface e2e for the cast-first OGS app: the e2e framework (web + iOS targets), the fake Chromecast, couch-session flows",
+  "scripts": {
+    "fake-chromecast": "node fake-chromecast.mjs",
+    "couch": "node couch-flow.mjs",
+    "e2e": "e2e run"
+  },
+  "dependencies": {
+    "@e2e-dev/mobile": "0.9.1",
+    "@e2e-dev/web": "0.11.2",
+    "ai": "^7.0.0",
+    "e2e": "0.16.0",
+    "playwright": "^1.56.0",
+    "ws": "^8.18.0",
+    "zod": "^3.25.76"
+  }
+}
