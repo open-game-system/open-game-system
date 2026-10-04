@@ -95,7 +95,8 @@
 .kd-travel__pause { background: #fff6e0; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
 .kd-travel__check { background: #ffd23f; box-shadow: 0 6px 0 #c99a00; transform: scale(0); opacity: 0; }
 .kd-travel--saving .kd-travel__pause, .kd-travel--cutover .kd-travel__pause, .kd-travel--following .kd-travel__pause { transform: scale(0); opacity: 0; }
-.kd-travel--saving .kd-travel__check, .kd-travel--cutover .kd-travel__check, .kd-travel--following .kd-travel__check { transform: scale(1); opacity: 1; }
+/* the gold check lands at cutover, after the phone's ✓ (sim.ts order: phone saves, then the TV card, then the seats) */
+.kd-travel--cutover .kd-travel__check, .kd-travel--following .kd-travel__check { transform: scale(1); opacity: 1; }
 .kd-travel__walker { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 10; offset-rotate: 0deg; offset-anchor: 0 0; offset-distance: var(--to); animation-timing-function: linear; animation-fill-mode: both; }
 @keyframes kd-leg-paused { from { offset-distance: var(--from); } to { offset-distance: var(--to); } }
 @keyframes kd-leg-saving { from { offset-distance: var(--from); } to { offset-distance: var(--to); } }
@@ -291,3 +292,9 @@ html.shot .kd-tag { animation: none !important; }
 .kd-game--late .gk-me.gk-me .kd-char__pad { background: radial-gradient(closest-side, #ffd23f, #ffd23f88 55%, transparent); height: 30%; }
 .kd-game--late .gk-me::before { content: ""; position: absolute; left: -10%; right: -10%; top: -6%; bottom: -4%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 210, 63, 0.45), transparent); z-index: -1; }
 .kd-burst--puff .kd-burst__p { opacity: 0.9; box-shadow: inset 0 0 0 4px #ffffff, 0 0 16px rgba(233, 221, 255, .8); }
+/* saving: the badge waits as a spinning gold arc (no check yet: the phone shows ✓ first) */
+.kd-travel--saving .kd-travel__check { transform: scale(0.8); opacity: 1; background: #fff6e0; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+.kd-travel--saving .kd-travel__check svg { opacity: 0; }
+.kd-travel--saving .kd-travel__check::after { content: ""; position: absolute; inset: 12px; border-radius: 50%; border: 9px solid rgba(201, 154, 0, 0.25); border-top-color: #e0a800; animation: dc-kid-spin 0.7s linear infinite; }
+@keyframes dc-kid-spin { to { transform: rotate(360deg); } }
+.kd-travel__check svg { transition: opacity 0.2s; }

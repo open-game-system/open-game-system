@@ -1,6 +1,7 @@
 // The follow path every kid iPad draws between the game being left and the next one, and the
 // arithmetic to place things along it by distance (CSS offset-distance is by arc length, so the
 // footsteps that light behind the walking character are placed by arc length too).
+import { SWITCH_MS } from "../sim";
 
 /** One cubic, top-left card → swoop through the bottom (between the thumbs) → top-right card. */
 export const TRAVEL = { x0: 240, y0: 280, x1: 300, y1: 760, x2: 880, y2: 760, x3: 940, y3: 280 };
@@ -54,14 +55,14 @@ export function along(pct: number): { x: number; y: number; nx: number; ny: numb
 
 /**
  * Where the walking character is in each phase (percent of the path), and how long the phase
- * lasts on the session clock (sim.ts: saving 1.3 s, cutover 1.5 s, following until the game opens).
+ * lasts on the session clock (sim.ts SWITCH_MS; it arrives early in `following`, before the game opens).
  * The character never stops between phases: each phase starts where the previous one ended.
  */
 export type Leg = { from: number; to: number; ms: number };
 export type LegPhase = "paused" | "saving" | "cutover" | "following";
 export const LEG: Record<LegPhase, Leg> = {
   paused: { from: 16, to: 16, ms: 0 },
-  saving: { from: 16, to: 36, ms: 1300 },
-  cutover: { from: 36, to: 80, ms: 1500 },
-  following: { from: 80, to: 100, ms: 900 },
+  saving: { from: 16, to: 36, ms: SWITCH_MS.saving },
+  cutover: { from: 36, to: 80, ms: SWITCH_MS.cutover },
+  following: { from: 80, to: 100, ms: Math.round(SWITCH_MS.following * 0.7) },
 };
