@@ -29,6 +29,7 @@ import crypto from "node:crypto";
 import http from "node:http";
 import url from "node:url";
 import { createStreamLifetime, isIdle } from "./stream-lifetime";
+import { streamVariant } from "./stream-variant";
 import type { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer";
 import {
@@ -53,6 +54,7 @@ declare global {
     };
     INITIALIZE_PUBLISHER?: (params: {
       iceServers?: IceServerConfig[];
+      maxKbps?: number;
     }) => Promise<{
       sessionDescription: { type: string; sdp: string };
       tracks: Array<{ location: string; trackName: string }>;
@@ -223,6 +225,7 @@ async function handleGpuInfo(measureUrl: string | null): Promise<Response> {
  */
 const [VIEW_W, VIEW_H] = (process.env.STREAM_VIEWPORT ?? "1280x720").split("x").map(Number);
 const STREAM_VIEWPORT = { width: VIEW_W || 1280, height: VIEW_H || 720 };
+
 
 /** Build Puppeteer launch options */
 function buildLaunchOptions() {
@@ -702,8 +705,9 @@ async function handlePublisherPrepare(
     });
 
     // Render at the stream's resolution: capture then needs no downscale and copies half the pixels.
-    await page.setViewport(STREAM_VIEWPORT);
-    logTrace(traceId, "page_viewport_set", STREAM_VIEWPORT);
+    const variant = streamVariant(targetUrl);
+    await page.setViewport({ ...STREAM_VIEWPORT, deviceScaleFactor: variant.scale });
+    logTrace(traceId, "page_viewport_set", { ...STREAM_VIEWPORT, ...variant });
 
     // Get extension streaming page and initialize streaming
     logTrace(traceId, "extension_page_wait_start");
@@ -778,6 +782,7 @@ async function handlePublisherPrepare(
 
     const publisherParams = {
       iceServers: Array.isArray(iceServers) ? iceServers : [],
+      maxKbps: variant.maxKbps,
     };
 
     // Initialize publisher in extension page — creates RTCPeerConnection, captures tab, returns local SDP offer
@@ -789,7 +794,7 @@ async function handlePublisherPrepare(
     let publisherResult: PublisherPrepareResponse;
     try {
       const result = await Promise.race([
-        streamingPage.evaluate(async (p: { iceServers: IceServerConfig[] }) => {
+        streamingPage.evaluate(async (p: { iceServers: IceServerConfig[]; maxKbps: number }) => {
           console.log("[PUPPETEER] INITIALIZE_PUBLISHER call starting with params:", p);
           const initFn = window.INITIALIZE_PUBLISHER;
           if (!initFn) throw new Error("INITIALIZE_PUBLISHER not found on window");
