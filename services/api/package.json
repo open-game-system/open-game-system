@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@cloudflare/containers": "^0.1.1",
+    "@open-game-system/ogs-protocol": "workspace:*",
     "hono": "^4.12.8",
     "zod": "^4.3.6"
   },
