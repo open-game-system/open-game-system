@@ -41,9 +41,5 @@ export const ManifestSchema = z
       .number()
       .positive()
       .default(7 * 24 * 60 * 60 * 1000),
-  })
-  .refine((m) => m.tv === "none" || !!m.tvUrl, {
-    message: "tvUrl is required when tv is optional or required",
-    path: ["tvUrl"],
   });
 export type Manifest = z.infer<typeof ManifestSchema>;

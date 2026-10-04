@@ -3,12 +3,8 @@ import { type Manifest, ManifestSchema } from "@open-game-system/ogs-protocol";
 /**
  * The OGS catalogue: the five deployed family games. All are room-based, so none has a static
  * `tvUrl`; the phone page sends the room's TV URL at runtime (`game.view`).
- *
- * ManifestSchema's refine demands a tvUrl whenever tv is "optional"/"required", which contradicts
- * its own doc ("Room-based games omit it"). Until the protocol relaxes that refine, the catalogue
- * is parsed with the schema's object shape (every field rule, minus that one refine).
  */
-const RoomGameManifestSchema = ManifestSchema.innerType();
+const RoomGameManifestSchema = ManifestSchema;
 
 /** Seed input: defaults (tagline, shop, instanceTtlMs) filled in by the parse. */
 type ManifestInput = (typeof RoomGameManifestSchema)["_input"];
