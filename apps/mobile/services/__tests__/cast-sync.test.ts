@@ -281,6 +281,24 @@ describe("cast sync: ordering", () => {
     expect(store.getSnapshot().session.deviceName).toBe("Kitchen TV");
   });
 
+  it("a session lookup that answers after teardown changes nothing", async () => {
+    let answer: (s: FakeSession | null) => void = () => {};
+    const sm = fakeSessionManager();
+    sm.getCurrentCastSession.mockImplementation(
+      () =>
+        new Promise<FakeSession | null>((r) => {
+          answer = r;
+        }),
+    );
+    const commands = castCommands();
+    const store = createCastStore(commands);
+    const stop = startCastSync(store, sm, commands, "https://stream.example");
+    stop();
+    answer(fakeSession());
+    await flush();
+    expect(store.getSnapshot().session.status).toBe("disconnected");
+  });
+
   it("names the TV from discovery when the session can't say which device it is", async () => {
     const { sm, store } = setup();
     store.dispatch({ type: "DEVICES_UPDATED", devices: [TV_ONLY] });

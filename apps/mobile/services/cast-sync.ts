@@ -60,8 +60,11 @@ export function startCastSync(
   commands.bind(sm);
   let channel: { send(): Promise<void> } | null = null;
   let generation = 0;
+  let stopped = false;
 
   const connected = (session: Session) => {
+    // A lookup still in flight at teardown (the initial getCurrentCastSession) must change nothing.
+    if (stopped) return;
     const mine = ++generation;
     channel = null;
     void connectViewChannel(session, () => store.getSnapshot().viewUrl, streamServerUrl).then(
@@ -113,6 +116,7 @@ export function startCastSync(
     .catch(() => {});
 
   return () => {
+    stopped = true;
     generation++;
     subs.forEach((s) => s.remove());
     unsubscribe();
