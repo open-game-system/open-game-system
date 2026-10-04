@@ -34,38 +34,34 @@ const GAME_PATH_PREFIXES = ["/games/", "/spectate/"];
 export function extractGameUrl(incomingUrl: string): string | null {
   try {
     const parsed = Linking.parse(incomingUrl);
-
-    // Check for direct game domain links (e.g., triviajam.tv/games/abc123)
-    if (parsed.hostname && GAME_DOMAINS.includes(parsed.hostname)) {
-      const path = parsed.path?.startsWith("/") ? parsed.path : `/${parsed.path}`;
-      if (GAME_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
-        return incomingUrl;
-      }
-      return null;
-    }
-
-    // Check if this is an /open path with a url parameter
-    if (parsed.path === "open" || parsed.path === "/open") {
-      const gameUrl = parsed.queryParams?.url;
-      if (typeof gameUrl === "string" && gameUrl.length > 0) {
-        return gameUrl;
-      }
-    }
-
-    // Handle custom scheme with game path (e.g., myapp://games/abc123)
-    // This happens when iOS converts a universal link to the app's custom scheme
-    if (parsed.path) {
-      const path = parsed.path.startsWith("/") ? parsed.path : `/${parsed.path}`;
-      if (GAME_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
-        return `https://${DEFAULT_GAME_DOMAIN}${path}`;
-      }
-    }
-
-    return null;
+    // Direct game domain links (e.g., triviajam.tv/games/abc123)
+    if (parsed.hostname && GAME_DOMAINS.includes(parsed.hostname))
+      return isGamePath(withSlash(parsed.path ?? "")) ? incomingUrl : null;
+    return openParam(parsed) ?? schemeGameUrl(parsed.path);
   } catch (error) {
     console.error("[DeepLinks] Failed to parse URL:", error);
     return null;
   }
+}
+
+const withSlash = (path: string) => (path.startsWith("/") ? path : `/${path}`);
+const isGamePath = (path: string) => GAME_PATH_PREFIXES.some((prefix) => path.startsWith(prefix));
+
+/** The url parameter of an /open link, when it has one. */
+function openParam(parsed: Linking.ParsedURL): string | null {
+  if (parsed.path !== "open" && parsed.path !== "/open") return null;
+  const gameUrl = parsed.queryParams?.url;
+  return typeof gameUrl === "string" && gameUrl.length > 0 ? gameUrl : null;
+}
+
+/**
+ * A custom-scheme game path (e.g., myapp://games/abc123) on the default game domain — iOS converts
+ * a universal link to the app's custom scheme.
+ */
+function schemeGameUrl(path: string | null): string | null {
+  if (!path) return null;
+  const gamePath = withSlash(path);
+  return isGamePath(gamePath) ? `https://${DEFAULT_GAME_DOMAIN}${gamePath}` : null;
 }
 
 /**
