@@ -58,6 +58,7 @@ function fakeApi() {
     updateMe: jest.fn(async () => me({ profile: { ...profile, name: "Jon" } })),
     createSession: jest.fn(async () => ({ ...session, token: "launch" })),
     joinSession: jest.fn(async () => session),
+    joinFriendSession: jest.fn(async (_sid: string) => session),
     startEmail: jest.fn(async () => {}),
     backUp: jest.fn(async () =>
       me({ logins: [{ provider: "google" as const, email: "j@x.org" }] }),
@@ -314,6 +315,28 @@ describe("app state: the couch session", () => {
       reason: "session_not_found",
       message: "No TV has that code.",
       action: null,
+    });
+    expect(app.getSnapshot().session).toBeNull();
+  });
+
+  it("joining a friend's cast (Join card) puts this device on that session", async () => {
+    const { app, api } = setup();
+    await app.createProfile(newProfile);
+    expect(await app.joinFriendSession(session.sessionId)).toEqual({ ok: true });
+    expect(api.joinFriendSession).toHaveBeenCalledWith(session.sessionId);
+    expect(app.getSnapshot().session).toEqual({ ...session, role: "member" });
+  });
+
+  it("a friend's cast that is gone or not a friend's is refused, and the session stays", async () => {
+    const { app, api } = setup();
+    await app.createProfile(newProfile);
+    api.joinFriendSession.mockRejectedValueOnce(new OgsApiError("not_a_friend", "No", 403));
+    const result = await app.joinFriendSession("s9");
+    expect(result).toMatchObject({ ok: false, reason: "not_a_friend" });
+    api.joinFriendSession.mockRejectedValueOnce(new OgsApiError("session_not_found", "No", 404));
+    expect(await app.joinFriendSession("s9")).toMatchObject({
+      ok: false,
+      reason: "session_not_found",
     });
     expect(app.getSnapshot().session).toBeNull();
   });

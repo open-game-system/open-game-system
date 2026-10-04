@@ -5,7 +5,15 @@ import { OgsApiError } from "./ogs-api";
  * internal codes are logged, never shown.
  */
 
-export type ErrorContext = "cast" | "join" | "profile" | "edit" | "sign-in" | "back-up" | "load";
+export type ErrorContext =
+  | "cast"
+  | "join"
+  | "profile"
+  | "edit"
+  | "sign-in"
+  | "back-up"
+  | "load"
+  | "friends";
 export type ErrorAction = "retry" | "sign-in" | "update" | "make-profile" | "use-suggestion" | null;
 export interface UserMessage {
   text: string;
@@ -44,6 +52,22 @@ const BY_CODE: Record<string, UserMessage> = {
   login_in_use: { text: "That account already backs up another profile.", action: null },
   session_not_found: { text: "No TV has that code.", action: null },
   invalid_id_token: { text: "That sign-in didn't go through. Try again.", action: "retry" },
+  // Friends (slice 2)
+  invite_not_found: {
+    text: "That code didn't match anyone. Check it and try again.",
+    action: null,
+  },
+  invite_used: { text: "That invite was already used. Ask for a new one.", action: null },
+  invite_expired: { text: "That invite expired. Ask for a new one.", action: null },
+  cannot_friend_self: { text: "That's you.", action: null },
+  handle_not_found: { text: "Nobody has that @id.", action: null },
+  already_friends: { text: "You're already friends.", action: null },
+  request_not_found: { text: "That request is gone.", action: null },
+  friend_not_found: { text: "You're not friends anymore.", action: null },
+  not_a_friend: {
+    text: "Only their friends can join from here. Use the code on the TV.",
+    action: null,
+  },
 };
 
 const isNetwork = (err: unknown) => err instanceof TypeError && /network|fetch/i.test(err.message);

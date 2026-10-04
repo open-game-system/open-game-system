@@ -20,23 +20,15 @@ function Gathering() {
   );
 }
 
-/**
- * Friends, honestly empty: there is no friends backend yet, so no list and no "Add a friend"
- * (it would be a dead end). Sharing your profile link is the one thing that works today.
- */
-export function FriendsEmpty({ onShare }: { onShare: (() => void) | null }) {
+/** No friends yet: what friends do, and Add a friend (QR, code, link or @id). */
+export function FriendsEmpty({ onAdd }: { onAdd: (() => void) | null }) {
   return (
     <View style={styles.root} testID="friendsEmpty">
       <Gathering />
       <Text style={styles.heading}>Play with friends</Text>
       <Text style={styles.body}>Friends can join each other's TV and see what you're playing.</Text>
-      {onShare ? (
-        <Button
-          label="Share my profile"
-          testID="shareProfile"
-          onPress={onShare}
-          style={styles.share}
-        />
+      {onAdd ? (
+        <Button label="Add a friend" testID="addFriend" onPress={onAdd} style={styles.share} />
       ) : (
         <Text style={styles.wait}>Your profile is being set up. Check back in a moment.</Text>
       )}

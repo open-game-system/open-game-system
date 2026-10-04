@@ -195,6 +195,29 @@ describe("ogs-api: couch sessions", () => {
   });
 });
 
+describe("ogs-api: join a friend's cast", () => {
+  it("joins the session by id (the Join card), no code", async () => {
+    const info = {
+      sessionId: "s1",
+      code: "KITE42",
+      tvName: "Living room TV",
+      host: profile,
+    };
+    const { client, calls } = api(() => ({ body: info }));
+    expect(await client.joinFriendSession("s1")).toEqual(info);
+    expect(calls[0]).toMatchObject({
+      url: `${BASE}/api/v1/sessions/s1/join`,
+      method: "POST",
+      headers: { authorization: "Bearer tok" },
+    });
+  });
+
+  it("a host who is not a friend answers not_a_friend", async () => {
+    const { client } = api(() => errorBody("not_a_friend", 403));
+    await expect(client.joinFriendSession("s1")).rejects.toMatchObject({ code: "not_a_friend" });
+  });
+});
+
 describe("ogs-api: back up and sign in", () => {
   it("backs up with Google: links the login to this profile with the device token", async () => {
     const { client, calls } = api(() => ({

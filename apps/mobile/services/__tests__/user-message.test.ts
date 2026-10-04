@@ -7,6 +7,22 @@ const api = (code: string, status: number) =>
 beforeEach(() => jest.spyOn(console, "warn").mockImplementation(() => {}));
 afterEach(() => jest.restoreAllMocks());
 
+describe("userMessage: friends", () => {
+  it.each([
+    ["invite_not_found", 404, "That code didn't match anyone. Check it and try again."],
+    ["invite_used", 410, "That invite was already used. Ask for a new one."],
+    ["invite_expired", 410, "That invite expired. Ask for a new one."],
+    ["cannot_friend_self", 409, "That's you."],
+    ["handle_not_found", 404, "Nobody has that @id."],
+    ["already_friends", 409, "You're already friends."],
+    ["request_not_found", 404, "That request is gone."],
+    ["friend_not_found", 404, "You're not friends anymore."],
+    ["not_a_friend", 403, "Only their friends can join from here. Use the code on the TV."],
+  ])("%s says so in words, with no action", (code, status, text) => {
+    expect(userMessage(api(code, status), "friends")).toEqual({ text, action: null });
+  });
+});
+
 describe("userMessage: what people read when something fails", () => {
   it("unreachable OGS: check the Wi-Fi, Try again", () => {
     expect(userMessage(api("OFFLINE", 0), "cast")).toEqual({

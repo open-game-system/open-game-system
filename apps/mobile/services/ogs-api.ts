@@ -128,7 +128,12 @@ function credentialRequest(c: Credential): { path: string; body: Record<string, 
   }
 }
 
-export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
+/**
+ * The API's request and parse: JSON in and out, the profile token when `authed`, and every failure
+ * as an OgsApiError (OFFLINE, the API's error code, or BAD_RESPONSE). Shared by every client
+ * (this one, services/friends-api.ts).
+ */
+export function createApiRequest({ baseUrl, fetch, auth }: OgsApiOptions) {
   async function request(
     path: string,
     init: { method?: string; body?: unknown; authed?: boolean } = {},
@@ -174,6 +179,12 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
     return r.data;
   }
 
+  return { request, parse };
+}
+
+export function createOgsApi(opts: OgsApiOptions) {
+  const { request, parse } = createApiRequest(opts);
+  const { fetch } = opts;
   return {
     /** The @id a name would get, or whether a typed @id is free (with a free suggestion). */
     async checkHandle(q: { name: string } | { handle: string }): Promise<HandleCheck> {
@@ -209,6 +220,14 @@ export function createOgsApi({ baseUrl, fetch, auth }: OgsApiOptions) {
       const data = await request("/api/v1/sessions/join", {
         method: "POST",
         body: { code },
+        authed: true,
+      });
+      return parse(SessionInfoSchema, data);
+    },
+    /** Join a friend's cast from its Join card, without the code (403 not_a_friend). */
+    async joinFriendSession(sessionId: string): Promise<SessionInfo> {
+      const data = await request(`/api/v1/sessions/${encodeURIComponent(sessionId)}/join`, {
+        method: "POST",
         authed: true,
       });
       return parse(SessionInfoSchema, data);

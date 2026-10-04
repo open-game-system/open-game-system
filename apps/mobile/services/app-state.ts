@@ -57,6 +57,7 @@ type Api = Pick<
   | "updateMe"
   | "createSession"
   | "joinSession"
+  | "joinFriendSession"
   | "startEmail"
   | "backUp"
   | "signIn"
@@ -258,6 +259,18 @@ export function createAppState(opts: {
         return { ok: true };
       } catch (err) {
         return failure(err, ["session_not_found"] as const, "join");
+      }
+    },
+    /** Join a friend's cast from its Join card (only the host's friends may). */
+    async joinFriendSession(
+      sessionId: string,
+    ): Promise<Done | Failure<"session_not_found" | "not_a_friend">> {
+      try {
+        const info = await opts.api.joinFriendSession(sessionId);
+        await keepSession({ ...info, role: "member" });
+        return { ok: true };
+      } catch (err) {
+        return failure(err, ["session_not_found", "not_a_friend"] as const, "join");
       }
     },
     async leaveSession() {
