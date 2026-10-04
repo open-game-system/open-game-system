@@ -1,22 +1,31 @@
-import type { Instance, Manifest, SectionKind } from "@open-game-system/ogs-protocol";
+import type { SectionKind } from "@open-game-system/ogs-protocol";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ogs/Button";
-import { GameArt } from "../../components/ogs/GameArt";
-import { GameTile } from "../../components/ogs/GameTile";
+import { ErrorLine } from "../../components/ogs/ErrorLine";
+import { CastStrip } from "../../components/ogs/playing/CastStrip";
+import { HeroSitting } from "../../components/ogs/playing/HeroSitting";
+import { PlayingNotice } from "../../components/ogs/playing/PlayingNotice";
+import { SittingCard } from "../../components/ogs/playing/SittingCard";
+import { StartTonight } from "../../components/ogs/playing/StartTonight";
 import { Screen, SectionTitle } from "../../components/ogs/Screen";
-import { colors, fonts, TARGET } from "../../components/ogs/theme";
-import { gameStatusLine, playingSuggestions } from "../../services/library-view";
+import { colors, fonts } from "../../components/ogs/theme";
+import {
+  asSitting,
+  heroSitting,
+  liveHeadline,
+  sittingRows,
+  whatToStart,
+} from "../../services/playing-home";
 import {
   appState,
-  openGame,
   useApp,
+  useCast,
   useCouch,
   useOgsCast,
   usePlaying,
 } from "../../services/runtime";
-import { playedAgo } from "../../services/sittings";
 
 const TITLES: Record<SectionKind, string> = {
   yourTurn: "Your turn",
@@ -26,10 +35,15 @@ const TITLES: Record<SectionKind, string> = {
   finished: "Finished",
 };
 
-/** Spec v3: everything in flight, the live game pinned on top, then what needs you. */
+/**
+ * Spec v3: everything in flight. One hero leads (the game live on the TV, else your turn or the
+ * sitting you played last), the other sittings follow as cards, then what to start.
+ */
 export default function PlayingScreen() {
+  const router = useRouter();
   const app = useApp();
   const { state } = useCouch();
+  const castState = useCast();
   const cast = useOgsCast();
   const view = usePlaying();
   useFocusEffect(
@@ -37,174 +51,149 @@ export default function PlayingScreen() {
       void appState.refresh();
     }, []),
   );
+  const now = Date.now();
   const games = [...app.library, ...app.catalogue];
   const find = (appId: string) => games.find((g) => g.appId === appId);
+  const tvName = cast ? (castState.session?.deviceName ?? null) : null;
+
   const current = state?.current;
   const liveGame = current ? find(current.appId) : undefined;
-  const empty = !current && view.sections.length === 0;
+  const live = !!(current && liveGame);
+  const items = view.sections.flatMap((s) => s.items);
+  const hero = heroSitting(items, live);
+  const heroGame = hero ? find(hero.appId) : undefined;
+  const rows = sittingRows(items, find, now, cast);
+  const heroRow = hero ? rows.get(hero.instanceId) : undefined;
+  const inProgress = live || items.some((i) => i.status !== "completed");
+
+  const start = whatToStart({
+    status: app.status,
+    error: app.error,
+    library: app.library,
+    catalogue: app.catalogue,
+    instances: app.instances,
+    cast,
+    tvName,
+    now,
+    exclude: inProgress
+      ? [...items.map((i) => i.appId), ...(current ? [current.appId] : [])]
+      : undefined,
+  });
+  const toTv = () => router.navigate("/tv");
+  const retry = () => void appState.init().then(appState.refresh);
 
   return (
     <Screen title="Playing" testID="playingScreen">
-      {current && liveGame ? (
-        <View style={styles.live} testID="nowPlaying">
-          <GameArt game={liveGame} style={styles.liveArt} />
-          <View style={styles.liveBody}>
-            <View style={styles.liveTag}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTagText}>Now playing · on the TV</Text>
-            </View>
-            <Text style={styles.liveName}>{liveGame.name}</Text>
-            {current.label ? <Text style={styles.liveLabel}>{current.label}</Text> : null}
-            <Button
-              testID="nowPlayingBackIn"
-              label="Rejoin"
-              onPress={() => openGame(liveGame)}
-              style={styles.liveButton}
-            />
-          </View>
-        </View>
+      {app.status === "offline" && start.kind !== "offline" ? (
+        // Showing what loaded last; say it may be out of date, with its one action.
+        <ErrorLine
+          text={app.error?.text ?? null}
+          action={app.error?.action}
+          onRetry={retry}
+          testID="playingStale"
+        />
+      ) : null}
+      {cast ? (
+        <CastStrip tvName={tvName ?? "the TV"} onTv={toTv} />
+      ) : inProgress ? (
+        <CastStrip tvName={null} onTv={toTv} />
       ) : null}
 
-      {view.sections.map((section) => (
-        <View key={section.kind} testID={`playingSection-${section.kind}`}>
-          <SectionTitle count={section.kind === "yourTurn" ? section.items.length : undefined}>
-            {TITLES[section.kind]}
-          </SectionTitle>
-          {section.items.map((item) => (
-            <InstanceRow key={item.instanceId} item={item} game={find(item.appId)} />
-          ))}
-        </View>
-      ))}
+      {current && liveGame ? (
+        <HeroSitting
+          testID="nowPlaying"
+          buttonTestID="nowPlayingBackIn"
+          game={liveGame}
+          tag={tvName ? `Live on ${tvName}` : "Live on the TV"}
+          live
+          sitting={null}
+          headline={liveHeadline(current, now)}
+          meta={null}
+        />
+      ) : hero && heroGame ? (
+        <HeroSitting
+          testID="playingHero"
+          buttonTestID={`playingItem-${hero.instanceId}`}
+          game={heroGame}
+          tag={heroRow?.where ?? ""}
+          live={false}
+          headline={heroRow?.headline ?? ""}
+          meta={
+            [hero.status === "waiting" ? "Your turn" : "", heroRow?.meta ?? ""]
+              .filter(Boolean)
+              .join(" · ") || null
+          }
+          sitting={asSitting(hero)}
+        />
+      ) : null}
 
-      {empty ? <EmptyPlaying library={app.library} instances={app.instances} cast={cast} /> : null}
+      {view.sections.map((section) => {
+        const rest = section.items.filter((i) => i !== hero);
+        if (!rest.length) return null;
+        return (
+          <View key={section.kind} testID={`playingSection-${section.kind}`}>
+            <SectionTitle count={section.kind === "yourTurn" ? rest.length : undefined}>
+              {TITLES[section.kind]}
+            </SectionTitle>
+            {rest.map((item) => {
+              const game = find(item.appId);
+              const row = rows.get(item.instanceId);
+              // A game the catalogue no longer has can't be opened, so it isn't offered.
+              if (!game || !row) return null;
+              return (
+                <SittingCard
+                  key={item.instanceId}
+                  testID={`playingItem-${item.instanceId}`}
+                  row={row}
+                  game={game}
+                  sitting={asSitting(item)}
+                />
+              );
+            })}
+          </View>
+        );
+      })}
+
+      {inProgress ? null : (
+        <View testID="playingEmpty">
+          {start.kind === "suggest" ? (
+            <>
+              <Text style={styles.lead}>{start.lead}</Text>
+              <Text style={styles.sub}>{start.sub}</Text>
+              {start.offerCast ? (
+                <Button
+                  testID="playingCast"
+                  label="Cast to TV"
+                  style={styles.cast}
+                  onPress={toTv}
+                />
+              ) : null}
+            </>
+          ) : (
+            <PlayingNotice
+              kind={start.kind}
+              error={start.kind === "offline" ? start.error : null}
+              onRetry={retry}
+              onLibrary={() => router.navigate("/library")}
+            />
+          )}
+        </View>
+      )}
+
+      {start.kind === "suggest" ? (
+        <StartTonight
+          title={inProgress ? "Start something new" : "Try tonight"}
+          picks={start.picks}
+          big={!inProgress}
+          startPrimary={!inProgress && !start.offerCast}
+        />
+      ) : null}
     </Screen>
   );
 }
 
-function InstanceRow({ item, game }: { item: Instance; game: Manifest | undefined }) {
-  // Two sittings of one game read apart by their detail, else by when they were last played.
-  const label = [game?.name ?? item.appId, item.detail || playedAgo(item.updatedAt, Date.now())]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <Pressable
-      testID={`playingItem-${item.instanceId}`}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.title || game?.name || item.appId}, ${label}, Rejoin`}
-      disabled={!game}
-      onPress={() =>
-        game &&
-        openGame(game, {
-          mode: "continue",
-          resumeUrl: item.resumeUrl ?? undefined,
-          instanceId: item.instanceId,
-        })
-      }
-      style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
-    >
-      {game ? <GameArt game={game} style={styles.rowArt} /> : <View style={styles.rowArt} />}
-      <View style={styles.rowText}>
-        <Text style={styles.rowTitle} numberOfLines={1}>
-          {item.title || game?.name || item.appId}
-        </Text>
-        <Text style={styles.rowSub} numberOfLines={1}>
-          {label}
-        </Text>
-      </View>
-      <View style={styles.rejoin}>
-        <Text style={styles.rejoinText}>Rejoin</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function EmptyPlaying({
-  library,
-  instances,
-  cast,
-}: {
-  library: Manifest[];
-  instances: Instance[];
-  cast: boolean;
-}) {
-  const router = useRouter();
-  const picks = playingSuggestions(library, instances, cast);
-  const rows: Manifest[][] = [];
-  for (let i = 0; i < picks.length; i += 2) rows.push(picks.slice(i, i + 2));
-  return (
-    <View testID="playingEmpty">
-      <Text style={styles.emptyLead}>
-        {cast
-          ? "On the TV · your games. Pick one to start."
-          : "Nothing in flight. Start something tonight:"}
-      </Text>
-      <View style={styles.picks}>
-        {rows.map((row) => (
-          <View key={row.map((g) => g.appId).join()} style={styles.pickRow}>
-            {row.map((game) => (
-              <GameTile
-                key={game.appId}
-                testID={`playingSuggestion-${game.appId}`}
-                game={game}
-                status={gameStatusLine(game, instances, null, Date.now())}
-                onPress={() => openGame(game)}
-              />
-            ))}
-            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
-          </View>
-        ))}
-      </View>
-      {cast ? null : (
-        <Button
-          testID="playingCast"
-          label="Cast to TV"
-          style={{ marginTop: 24 }}
-          onPress={() => router.navigate("/tv")}
-        />
-      )}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  live: {
-    borderRadius: 22,
-    overflow: "hidden",
-    backgroundColor: colors.dusk1,
-    borderWidth: 1,
-    borderColor: colors.hair,
-  },
-  liveArt: { width: "100%", aspectRatio: 16 / 9, borderRadius: 0 },
-  liveBody: { padding: 16, gap: 6 },
-  liveTag: { flexDirection: "row", alignItems: "center", gap: 8 },
-  liveDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.ember },
-  liveTagText: { color: colors.cream2, fontSize: 14, fontWeight: "700" },
-  liveName: { fontFamily: fonts.display, fontSize: 30, color: colors.cream },
-  liveLabel: { color: colors.cream2, fontSize: 16 },
-  liveButton: { marginTop: 8, alignSelf: "flex-start" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    minHeight: TARGET + 20,
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.hair,
-  },
-  rowArt: { width: 72, height: 48, borderRadius: 10, backgroundColor: colors.dusk2 },
-  rowText: { flex: 1 },
-  rowTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },
-  rowSub: { color: colors.cream3, fontSize: 14, marginTop: 2 },
-  rejoin: {
-    minHeight: 36,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    backgroundColor: colors.lamp,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  rejoinText: { color: colors.ink, fontSize: 15, fontWeight: "800" },
-  emptyLead: { color: colors.cream2, fontSize: 17, marginBottom: 16, lineHeight: 24 },
-  picks: { gap: 22 },
-  pickRow: { flexDirection: "row", gap: 14 },
+  lead: { fontFamily: fonts.display, fontSize: 28, color: colors.cream },
+  sub: { color: colors.cream2, fontSize: 17, lineHeight: 24, marginTop: 6 },
+  cast: { marginTop: 18 },
 });
