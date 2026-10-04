@@ -31,3 +31,15 @@ export function routeGameCastEvent(
       return { to: "store" };
   }
 }
+
+/**
+ * Is the TV cast through OGS (the launcher is the receiver's view)? Either the couch session says
+ * a launcher is connected, or this phone's own cast session is showing the launcher URL.
+ */
+export function isOgsCast(input: {
+  sessionCast: boolean | undefined;
+  castConnected: boolean;
+  viewIsLauncher: boolean;
+}): boolean {
+  return input.sessionCast === true || (input.castConnected && input.viewIsLauncher);
+}
