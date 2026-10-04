@@ -23,6 +23,7 @@ import {
 import { createFakeCastBackend } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
 import { createGamePresence } from "./game-presence";
+import { createGameProfile, createGameTokenClient } from "./game-profile";
 import { createGameUrls, rejoinUrl, rememberGame } from "./game-rejoin";
 import { createGoogleCastBackend } from "./google-cast-backend";
 import { launchPlan } from "./launch-plan";
@@ -60,6 +61,11 @@ const auth = () => {
 };
 
 export const api = createOgsApi({ baseUrl: config.apiBase, fetch: fetchImpl, auth });
+
+/** The game WebView's `profile` store: a token for the open game only (slice 3). */
+export const gameProfile = createGameProfile({
+  fetchToken: createGameTokenClient({ baseUrl: config.apiBase, fetch: fetchImpl, auth }),
+});
 
 /** App storage (wiped with the app), unlike the Keychain behind SecureStore. */
 const INSTALLED_KEY = "@ogs/installed";

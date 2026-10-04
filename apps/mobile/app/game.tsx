@@ -14,6 +14,7 @@ import { colors, fonts } from "../components/ogs/theme";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import type { CastStores } from "../services/cast-store";
 import { exitGame } from "../services/game-exit";
+import type { ProfileStores } from "../services/game-profile";
 import { latestGameUrl, sittingId } from "../services/game-rejoin";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
@@ -22,6 +23,7 @@ import {
   couchHub,
   gameCastStoreFor,
   gamePresence,
+  gameProfile,
   ogsCastNow,
   rememberGameUrl,
   useApp,
@@ -32,7 +34,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
 const EDGE_WIDTH = 30;
 
-type Stores = CastStores & OgsStores;
+type Stores = CastStores & OgsStores & ProfileStores;
 
 // One bridge for the app's lifetime. The game sees the app-level cast through a store that routes
 // its TV page to the couch session while cast through OGS (game.view, never a recast), and reports
@@ -45,6 +47,8 @@ bridge.setStore(
 );
 const ogsStore = createOgsBridgeStore((report, source) => appState.report(report, source));
 bridge.setStore("ogs", ogsStore);
+// Who is playing: a token for the open game only (never the app's own token).
+bridge.setStore("profile", gameProfile.store);
 const BridgeContext = createNativeBridgeContext<Stores>();
 const CastContext = BridgeContext.createNativeStoreContext("cast");
 
@@ -102,6 +106,12 @@ export default function GameScreen() {
   useEffect(() => {
     ogsStore.reset();
   }, []);
+
+  // The open game gets its own token (refreshed before it expires); leaving drops it.
+  useEffect(() => {
+    gameProfile.open(appId);
+    return () => gameProfile.close();
+  }, [appId]);
 
   // While this screen is up the phone has the game open (a host follow for it opens nothing).
   useEffect(() => {
