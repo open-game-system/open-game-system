@@ -143,6 +143,45 @@ describe("app state: making a profile", () => {
   });
 });
 
+describe("app state: a fresh install", () => {
+  it("forgets a profile the Keychain kept from a deleted install (iOS keeps it)", async () => {
+    const first = setup();
+    await first.app.createProfile(newProfile);
+    const api = fakeApi();
+    let installed = false;
+    const app = createAppState({
+      api,
+      storage: first.storage,
+      device: { kind: "phone", name: "iPhone" },
+      newDeviceId: () => "d9",
+      install: {
+        isFirstLaunch: async () => !installed,
+        markLaunched: async () => {
+          installed = true;
+        },
+      },
+    });
+    await app.init();
+    expect(app.getSnapshot().identity).toBeNull();
+    expect(first.storage.data.has("ogs.identity")).toBe(false);
+    expect(installed).toBe(true);
+  });
+
+  it("keeps the profile on every later launch", async () => {
+    const first = setup();
+    await first.app.createProfile(newProfile);
+    const app = createAppState({
+      api: fakeApi(),
+      storage: first.storage,
+      device: { kind: "phone", name: "iPhone" },
+      newDeviceId: () => "d9",
+      install: { isFirstLaunch: async () => false, markLaunched: async () => {} },
+    });
+    await app.init();
+    expect(app.getSnapshot().identity?.profile.handle).toBe("jonathan.m");
+  });
+});
+
 describe("app state: signed out", () => {
   it("forgets the profile and the session on this device", async () => {
     const { app, storage } = setup();

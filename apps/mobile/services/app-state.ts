@@ -102,6 +102,11 @@ export function createAppState(opts: {
   /** This device as the API registers it (minus its id, minted per profile token). */
   device: Omit<DeviceInfo, "deviceId">;
   newDeviceId: () => string;
+  /**
+   * Whether this is the install's first launch (a marker in app storage, which deleting the app
+   * wipes). The Keychain is not wiped on iOS, so a deleted app's profile must be forgotten here.
+   */
+  install?: { isFirstLaunch(): Promise<boolean>; markLaunched(): Promise<void> };
 }) {
   let appIds: string[] = [];
   const libraryOf = (catalogue: Manifest[]) =>
@@ -172,6 +177,11 @@ export function createAppState(opts: {
     },
     /** Load this device's stored profile and the session it was on. */
     async init() {
+      if (opts.install && (await opts.install.isFirstLaunch())) {
+        await opts.storage.deleteItemAsync(SESSION_KEY);
+        await clearIdentity(opts.storage);
+        await opts.install.markLaunched();
+      }
       const [identity, session] = await Promise.all([loadIdentity(opts.storage), readSession()]);
       set({ identity, session: identity ? session : null });
     },
