@@ -22,12 +22,13 @@
 | `packages/stream-kit-testing` | `@open-game-system/stream-kit-testing` | Test utilities for stream-kit | `stream-kit-types`, `stream-kit-web` |
 | `packages/cast-kit-core` | `@open-game-system/cast-kit-core` | Cast store types, Zod schemas, app-bridge helpers | `app-bridge-web` |
 | `packages/cast-kit-react` | `@open-game-system/cast-kit-react` | React hooks for cast state and dispatch | `app-bridge-react`, `cast-kit-core` |
+| `packages/ogs-protocol` | `@open-game-system/ogs-protocol` | The OGS app v3 contract: game manifest, identity claims, instances + `playingView`, couch-session reducer, launcher↔game frame messages (zod) | None |
 
 ### Services (`services/`)
 
 | Path | npm Name | Purpose | Internal Dependencies |
 |------|----------|---------|----------------------|
-| `services/api` | `opengame-api` | OGS API: push notifications, cast session management (Cloudflare Worker + D1) | None |
+| `services/api` | `opengame-api` | OGS API: push notifications, households + device tokens, catalogue, library, instances, `CouchSession` DO over WebSocket (Cloudflare Worker + D1 + DO) | `ogs-protocol` |
 
 ### Apps (`apps/`)
 
@@ -111,3 +112,16 @@ Run all tests: `pnpm test` (delegates to `turbo run test`).
 | `vitest.config.ts` | Per-package (where present) | Test configuration |
 | `wrangler.toml` | `services/api` | Cloudflare Worker config |
 | `app.json` | `apps/mobile` | Expo app configuration |
+
+## Cross-surface e2e (`e2e/`)
+
+Standalone (not a workspace member; `pnpm install --ignore-workspace`). Needs the local API (8788),
+launcher (5180), and for the couch flow the fake Chromecast (5181) and fixture game (5190).
+
+| File | What |
+|------|------|
+| `e2e.config.ts`, `tests/*.e2e.ts` | tester.army `e2e`: launcher (web target) and API tests against the live local session; deterministic, no model |
+| `couch-flow.mjs` | Phone, Mom, two iPads as WebSocket clients + the launcher in the fake Chromecast: cast once, follow, frame, swipe back, swap with 0 recasts, remote handoff |
+| `fake-chromecast.mjs` | `/load` opens a view URL in a 1920×1080 recorded browser and counts loads (the app's `EXPO_PUBLIC_FAKE_CAST` target) |
+| `fixture-game/server.mjs` | A stand-in game TV page that answers `ogs:start` with a resume point |
+

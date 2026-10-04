@@ -38,6 +38,11 @@ Persistent project knowledge. Review at the start of each task.
 - **Stryker mutation testing**: Track surviving mutants. Log-string mutants are acceptable survivors.
 - **Vitest workspace**: When adding a new package with tests, add its vitest config to the workspace if using a shared vitest workspace file.
 
+- **A hook that derives state from props must return the same object when nothing changed**: the launcher's `nextFrames` returned a fresh `{active:null, parked}` every render while a game waited for its TV view, the effect saw "new frames" and looped ("Maximum update depth exceeded"). Pure reducers feeding `useEffect`/`setState` need an identity test.
+- **The e2e framework pins its own Playwright**: `@e2e-dev/web` uses playwright-core 1.63 (Chromium build 1243), separate from the repo's Playwright. If `playwright install` times out, download the Chrome for Testing zip it names and unzip into `~/Library/Caches/ms-playwright/chromium-<build>/` with `INSTALLATION_COMPLETE` + `DEPENDENCIES_VALIDATED` markers.
+- **Screenshot after the cut-over, not after the DOM**: the launcher's box↔fullscreen transition runs after the state change; wait for `[data-testid=player][data-phase=hidden]` before capturing home.
+- **Game art for the launcher: crop out the HUD**: game screenshots carry HUD rows and faced UI props (smiling planets/stars). Manifest `art.safe` (scale + origin) crops them; check every hero/tile by eye.
+
 ## Process
 
 - **Monorepo consolidation (2026-03-13)**: Merged 5 repos. Key issues were import path changes (`app-bridge` → `app-bridge-web`/`app-bridge-react`), vitest version mismatches (v4 needs vite v6+), and React types version conflicts across packages.
