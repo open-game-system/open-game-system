@@ -1,6 +1,12 @@
 import type { Scenario } from "../../harness/types";
 import { answerInvites, baseNights, beginNewNight, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
-import { base, playDuel, type Push, type S } from "./state";
+import { base, baseSetup, playDuel, type Push, type S, type Setup } from "./state";
+
+/** First run at a given point: the household partly set up. */
+const setupAt = (patch: Partial<Setup>, extra: Partial<S> = {}) => (): S => ({ ...base(), firstRun: true, onTv: null, cast: "off", ...extra, setup: { ...baseSetup(), ...patch } });
+const ALL = ["dad", "mom", "juneau", "ava"];
+/** Continue or New for Bake Shop: the TV is on the console home with Bake Shop in focus. */
+const bakeFocus: Partial<S> = { onTv: null, tvFocus: "bake-shop" };
 
 const at = (patch: Partial<S>) => (): S => ({ ...base(), ...patch });
 const switching = (phase: "saving" | "cutover" | "following", extra: Partial<S> = {}) =>
@@ -37,6 +43,25 @@ export const scenarios: Scenario<S>[] = [
   { id: "home.07-our-roll", label: "Our roll in Hearthisle: it joins Your turn beside the duels", flow: "home", state: "partial", devices: ["phone"], build: at({ nights: nightsWith((n) => passTurn(resumeNight(n, "hi-1"), "hi-1")), onTv: null }) },
   { id: "home.08-all-caught-up", label: "Nobody waiting on you; nights still listed", flow: "home", state: "empty", devices: ["phone"], build: at({ duels: [] }) },
   { id: "home.05-first-run", label: "First run: library ready, living room not set up", flow: "home", state: "empty", devices: ["phone"], build: at({ firstRun: true, onTv: null }) },
+
+  // First run (flow 1): the TV, who plays here (each picks a sticker), the kids' iPads
+  { id: "first-run.01-welcome", label: "First run: the library is full; set up the living room", flow: "first-run", state: "empty", devices: ["phone"], build: setupAt({}) },
+  { id: "first-run.02-tv-searching", label: "Looking for the TV on this Wi-Fi", flow: "first-run", state: "loading", devices: ["phone"], build: setupAt({ step: "tv", tv: "searching" }) },
+  { id: "first-run.03-tv-found", label: "Found: Living room TV (Chromecast); Bedroom TV is off", flow: "first-run", state: "partial", devices: ["phone"], build: setupAt({ step: "tv", tv: "found" }) },
+  { id: "first-run.04-tv-connected", label: "Living room TV connected", flow: "first-run", state: "success", devices: ["phone"], build: setupAt({ step: "tv", tv: "connected" }) },
+  { id: "first-run.05-tv-missing", label: "No TV found: help (flow 9) or play on phones for now", flow: "first-run", state: "error", devices: ["phone"], build: setupAt({ step: "tv", tv: "missing" }) },
+  { id: "first-run.06-people", label: "Who plays here: Jonathan and Juneau added, Mom and Ava suggested", flow: "first-run", state: "partial", devices: ["phone"], build: setupAt({ step: "people", tv: "connected", people: ["dad", "juneau"] }) },
+  { id: "first-run.07-pick-sticker", label: "Mom picks her sticker; Juneau's dragon is taken", flow: "first-run", state: "default", devices: ["phone"], build: setupAt({ step: "people", tv: "connected", people: ALL, picking: "mom" }) },
+  { id: "first-run.08-ipads", label: "Pair the iPads: Juneau's paired, Ava's waiting for her iPad", flow: "first-run", state: "partial", devices: ["phone"], build: setupAt({ step: "ipads", tv: "connected", people: ALL, ipads: { juneau: "paired", ava: "waiting" } }) },
+  { id: "first-run.09-unpair", label: "Unpair Juneau's iPad? Saves and sticker stay with the household", flow: "first-run", state: "undone", devices: ["phone"], build: setupAt({ step: "ipads", tv: "connected", people: ALL, ipads: { juneau: "paired", ava: "paired" }, unpair: "juneau" }) },
+  { id: "first-run.10-ready", label: "The living room is ready: TV, four people, two iPads", flow: "first-run", state: "success", devices: ["phone"], build: setupAt({ step: "ready", tv: "connected", people: ALL, ipads: { juneau: "paired", ava: "paired" } }) },
+
+  // Continue or New (flow 4): Bake Shop has a save at day 4
+  { id: "continue.01-start", label: "Bake Shop on the TV home: Continue day 4, or New", flow: "continue", state: "default", devices: ["phone", "tv"], build: at(bakeFocus) },
+  { id: "continue.02-new-keeps", label: "New: day 4 is kept as a second save (shown before anything starts)", flow: "continue", state: "partial", devices: ["phone"], build: at({ ...bakeFocus, start: { gameId: "bake-shop", fate: "keep" } }) },
+  { id: "continue.03-new-replaces", label: "New, replacing day 4: said plainly, can't be undone", flow: "continue", state: "error", devices: ["phone"], build: at({ ...bakeFocus, start: { gameId: "bake-shop", fate: "replace" } }) },
+  { id: "continue.04-new-started", label: "New bakery on the TV; day 4 kept", flow: "continue", state: "success", devices: ["phone", "tv"], build: at({ phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop", fresh: { "bake-shop": "keep" } }) },
+  { id: "continue.05-continued", label: "Continue: day 4 picks up on the TV", flow: "continue", state: "success", devices: ["phone", "tv"], build: at({ phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop" }) },
 
   // Swap: Rocket Crew mission 6 → Bake Shop day 4, all devices
   { id: "swap.01-mid-rocket-crew", label: "Mid Rocket Crew: Dad captains, Juneau fixes", flow: "swap", state: "default", devices: ["phone", "ipad", "tv"], build: at({ phone: "controller" }) },

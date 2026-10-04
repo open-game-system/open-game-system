@@ -1,7 +1,7 @@
 // Console strips: one line between the OGS bar and the game. Never inside the game's view.
 import type { Store } from "../../../harness/store";
 import { HOME, gameById } from "../../../world";
-import { resumePoint, seatPlan, undoSwitch, type S } from "../state";
+import { resumePoint, saveOf, seatPlan, undoSwitch, type S } from "../state";
 import { Portrait } from "../ui/Brand";
 import { Battery, Bell, Check, Undo } from "../ui/Icons";
 
@@ -54,6 +54,19 @@ export function Strips({ s, store }: { s: S; store: Store<S> }) {
         </div>
       );
     }
+  }
+  const fresh = s.fresh[onTv];
+  if (fresh && !s.left) {
+    const save = saveOf(onTv);
+    return (
+      <div className="cx-strip" role="status">
+        <span className="cx-strip__text">
+          <b>New {game.name} started</b>
+          <span>{fresh === "keep" ? `${save?.point ?? "The old save"} is kept as a second save. Continue lists both.` : `${save?.point ?? "The old save"} was replaced.`}</span>
+        </span>
+        <Check size={22} />
+      </div>
+    );
   }
   if (s.left && !s.left.undone) {
     const left = gameById(s.left.gameId);

@@ -5,7 +5,8 @@ import { useCastClock, useNightClock, useSwitchClock } from "../sim";
 import { StatusBar } from "../ui/Brand";
 import { DuelGameView } from "../wordduel/DuelGame";
 import { DuelList } from "../wordduel/DuelList";
-import { FirstRun } from "./FirstRun";
+import { FirstRun } from "./firstrun/FirstRun";
+import { StartNewSheet } from "./StartNew";
 import { Inbox } from "./Inbox";
 import { WhoSheet } from "./WhoSheet";
 import { LockScreen } from "./LockScreen";
@@ -26,12 +27,21 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
   if (s.phone === "controller" && (s.onTv || s.switching)) return <InGame s={s} store={store} />;
   if (s.phone === "duels") return <DuelList s={s} store={store} />;
   if (s.phone === "duel") return <DuelGameView s={s} store={store} />;
+  if (s.firstRun) {
+    return (
+      <div className="cx-phone cx-phone--setup">
+        <StatusBar dark />
+        <FirstRun s={s} store={store} shot={shot} />
+      </div>
+    );
+  }
   return (
     <div className="cx-phone">
-      <StatusBar />
-      {s.firstRun ? <FirstRun /> : s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
-      {!s.firstRun && !s.who && <TabBar s={s} store={store} />}
+      <StatusBar dark />
+      {s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
+      {!s.who && !s.start && <TabBar s={s} store={store} />}
       {s.who && <WhoSheet s={s} store={store} />}
+      {s.start && <StartNewSheet s={s} store={store} />}
     </div>
   );
 }

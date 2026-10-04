@@ -860,3 +860,236 @@
 .cx-row__art--duel { overflow: visible !important; background: none !important; }
 .cx-homes__row { grid-template-columns: 44px 1fr auto !important; }
 .cx-homes > li + li::before { left: 70px; }
+
+/* ============ Pass 2 · the grown-up shell speaks the kid language ============
+   Dusk ground with a warm horizon at the foot, Fraunces titles, paper stickers for people, crests
+   for homes, the dotted path between things, art-led tiles on hairlines (at most two filled cards
+   a screen), peach primary buttons instead of white pills. */
+.cx--phone { background: var(--ogs-dusk-0); }
+.cx-phone {
+  --bone: var(--ogs-dusk-0);
+  --paper: var(--ogs-dusk-1);
+  --ink: var(--ogs-cream);
+  --ink2: var(--ogs-cream-2);
+  --ink3: var(--ogs-cream-3);
+  --line: var(--ogs-hair);
+  --night2: var(--ogs-dusk-2);
+  background: var(--ogs-glow), var(--ogs-dusk-0);
+  color: var(--ogs-cream);
+}
+.cx-status--dark, .cx-phone .cx-status { color: var(--ogs-cream); }
+
+/* Display type */
+.cx-title, .cx-h1, .cx-lane__head h2, .cx-now__game, .cx-night__heroText h1, .cx-switch__title, .cx-who__h, .cx-sheet__now b, .wd-title, .wd-played h1, .cx-nightcard__title b, .cx-household__name {
+  font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); letter-spacing: -0.012em;
+}
+.cx-title { font-size: 33px; line-height: 1.05; padding: 6px 16px 8px; }
+.cx-phone .cx-h1 { font-size: 36px; letter-spacing: -0.015em; }
+.cx-lede { color: var(--ogs-cream-2); }
+.cx-subh { color: var(--ogs-cream-3); letter-spacing: 0.12em; }
+.cx-wordmark span { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: 800; letter-spacing: 0; }
+
+/* Buttons: peach primary, hairline secondary; soft corners, not white pills. */
+.cx-phone .cx-btn, .cx-ingame .cx-btn, .cx-sheet .cx-btn { border-radius: 16px; }
+.cx .cx-btn--light { background: var(--ogs-peach) !important; color: #2a1630 !important; }
+.cx .cx-btn--light:disabled { background: var(--ogs-dusk-2) !important; color: var(--ogs-cream-3) !important; }
+.cx .cx-btn--line { background: transparent !important; color: var(--ogs-cream) !important; box-shadow: inset 0 0 0 1.5px rgba(251, 242, 228, 0.32); }
+.cx-phone .cx-btn--ghost, .cx-ingame .cx-sheet__foot .cx-btn--ghost { box-shadow: inset 0 0 0 1.5px rgba(251, 242, 228, 0.32); }
+
+/* Header: the wordmark and our crest */
+.cx-phone .cx-head { padding: 2px 8px 0 16px; min-height: 56px; }
+.cx-phone .cx-household { background: none; box-shadow: none; gap: 10px; padding: 0 8px; min-height: 56px; border-radius: 16px; }
+.cx-household__name { font-size: 18px; }
+
+/* Lanes: a Fraunces title, then the dotted path runs to the lane's action. */
+.cx-lane { padding-top: 22px; }
+.cx-lane--tv { padding-top: 0; }
+.cx-lane__head { gap: 10px; padding: 0 8px 6px 16px; }
+.cx-lane__head h2 { flex: 1; min-width: 0; font-size: 24px; gap: 10px; white-space: nowrap; }
+.cx-lane__head h2::after { content: ""; flex: 1; min-width: 12px; height: 6px; margin-left: 4px; background: var(--ogs-dots) 0 50% / 12px 6px repeat-x; opacity: 0.6; }
+.cx-lane__count { background: var(--ogs-lamp); color: #231705; font-family: var(--ogs-text); }
+.cx-lane__more { color: var(--ogs-cream-2); }
+
+/* Lane 1: the TV hero, art-led; tonight's people are stickers along its foot. */
+.cx-phone .cx-now { height: 228px; border-radius: 24px; background: var(--ogs-dusk-2); box-shadow: none; overflow: visible; }
+.cx-phone .cx-now__art { border-radius: 24px; overflow: hidden; }
+.cx-phone .cx-now__art::after { background: linear-gradient(180deg, rgba(18, 15, 34, 0) 0%, rgba(27, 23, 51, 0.5) 40%, rgba(22, 18, 40, 0.96) 88%); }
+.cx-phone .cx-now__body { padding: 0 14px 12px 16px; }
+.cx-phone .cx-now__where > span:last-child { background: rgba(18, 15, 34, 0.82); height: 26px; border-radius: 13px; color: var(--ogs-cream); }
+.cx-phone .cx-now__game { font-size: 32px; margin-top: 6px; line-height: 1.02; }
+.cx-phone .cx-now__point { color: var(--ogs-cream-2); }
+.cx-now__foot { margin-top: 8px; gap: 8px; }
+.cx-phone .cx-now__who { display: inline-flex; align-items: center; gap: 6px; color: var(--ogs-cream-2); font-weight: 700; padding: 0 6px 0 0; }
+.cx-now__stickers { display: inline-flex; }
+.cx-now__stickers .ogs-sticker + .ogs-sticker { margin-left: -8px; }
+.cx-now__ctas { display: flex; gap: 8px; }
+.cx-now__cta { padding: 0 16px; }
+.cx-now__new { padding: 0 14px; }
+
+/* Couch rail: art tiles, the status under the name. */
+.cx-rail { gap: 12px; padding-top: 12px; }
+.cx-rail__tile { width: 150px; gap: 5px; }
+.cx-rail__art { height: 84px; border-radius: 16px; }
+.cx-rail__tile b { font-size: 15px; }
+.cx .cx-rail__tile .cx-chip { position: static; height: 24px; font-size: 12px; }
+
+/* Rows on hairlines */
+.cx-row__art { border-radius: 14px; }
+.cx-rows li + li::before { background: var(--ogs-hair); }
+
+/* Lane 3: game nights as art tiles with their homes on the dotted path (no grey card). */
+.cx-nightcard { background: none; box-shadow: none; border-radius: 0; overflow: visible; }
+.cx-nightcard__art { height: 116px; border-radius: 20px; overflow: hidden; }
+.cx-nightcard__top { left: 12px; top: 12px; }
+.cx-nightcard__body { padding: 12px 0 0; gap: 10px; }
+.cx-nightcard__title b { font-size: 20px; }
+
+/* Homes on the dotted path: crests, the one whose move it is on a lamp-lit disc. */
+.cx-path::before { left: 16%; right: 16%; top: 24px; height: 6px; border: 0; background: var(--ogs-dots) 0 50% / 12px 6px repeat-x; }
+.cx-path__token { width: 56px; height: 52px; border-radius: 0; box-shadow: none !important; background: none; margin-bottom: 2px; position: relative; }
+.cx-path__home.is-turn .cx-path__token::before { content: ""; position: absolute; left: 50%; top: 52%; width: 62px; height: 62px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, rgba(255, 200, 97, 0.5), rgba(255, 200, 97, 0) 70%); }
+.cx-path__home.is-turn .cx-path__token .ogs-crest { z-index: 1; }
+.cx-path__home.is-out .cx-path__token { filter: none; }
+.cx-path__home.is-turn > span:last-child { color: var(--ogs-lamp); font-weight: 800; }
+.cx-path__home.is-turn > span:last-child::before { content: "\25B2 "; font-size: 9px; vertical-align: 2px; }
+
+/* Lists of homes and people: hairlines, no fill. */
+.cx-homes { background: none; border-radius: 0; margin: 0 16px; box-shadow: inset 0 1px 0 var(--ogs-hair), inset 0 -1px 0 var(--ogs-hair); }
+.cx-homes__row { padding: 9px 2px !important; }
+.cx-homes > li + li::before { left: 58px; }
+.cx-sheet .cx-who { background: none; }
+.cx-nextbox { background: var(--ogs-dusk-1); border-radius: 22px; }
+.cx-switchrow--card { background: var(--ogs-dusk-1); }
+.cx-trust { border-color: rgba(251, 242, 228, 0.3); }
+.cx-trust__seen { background: var(--ogs-dusk-2); }
+.cx-switchrow input:checked::before { background: var(--ogs-ember); }
+.cx-dock { background: var(--ogs-dusk-0); }
+
+/* Game night hero */
+.cx-night__hero { border-radius: 24px; }
+.cx-night__heroText h1 { font-size: 34px; }
+
+/* Tab bar: dusk glass; Household is our crest. */
+.cx-phone .cx-tabs { background: rgba(18, 15, 34, 0.94); box-shadow: 0 -1px 0 var(--ogs-hair); backdrop-filter: blur(16px); }
+.cx-phone .cx-tabs button { color: var(--ogs-cream-3); }
+.cx-phone .cx-tabs button.is-on { color: var(--ogs-lamp); }
+
+/* Sheets and the in-game frame on dusk */
+.cx-sheet--dark, .cx-ingame .cx-sheet { background: var(--ogs-dusk-1); }
+.cx-ingame { background: var(--ogs-dusk-0); }
+.cx-bar__home { background: var(--ogs-dusk-2); }
+.cx-bar__who { gap: 0; }
+.cx-bar__who .ogs-sticker { margin-left: -6px; }
+.cx-ingame .cx-switch { background: var(--ogs-dusk-1); }
+.cx-ingame .cx-seats .ogs-sticker { box-shadow: none !important; }
+.cx-ingame .cx-seats li.is-ready .ogs-sticker img { filter: var(--ogs-sticker-lift) drop-shadow(0 0 6px rgba(255, 200, 97, 0.55)); }
+.cx-ingame .cx-seats::before { border-left: 0; width: 6px; left: 31px; background: var(--ogs-dots-v) 50% 0 / 6px 12px repeat-y; }
+.cx-strip { background: var(--ogs-dusk-2); }
+.cx-lock { background: var(--ogs-horizon); }
+
+/* Word Duel rows: the opponent's sticker on a tiny board of that game */
+.wd-row__main { grid-template-columns: 52px 1fr auto !important; }
+.wd-people li { grid-template-columns: 44px 1fr auto !important; }
+
+/* ---- First run ---- */
+.cx-phone--setup { background: var(--ogs-glow), var(--ogs-dusk-0); }
+.fr { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.fr-scroll { padding-bottom: 16px; }
+.fr .cx-dock, .fr-dock { position: static; flex: none; margin: 0; padding: 12px 16px 26px; box-shadow: 0 -1px 0 var(--ogs-hair); background: var(--ogs-dusk-0); }
+.fr-dock .cx-wide { width: 100%; margin: 0; }
+.fr-dock__two { display: grid; gap: 8px; }
+.fr-dock__two .cx-wide { width: 100%; margin: 0; }
+.fr-note { padding: 14px 16px 0; font-size: 14px; color: var(--ogs-cream-3); }
+
+.fr-path { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 2px 16px 14px; }
+.fr-path::before { content: ""; position: absolute; left: 16%; right: 16%; top: 19px; height: 6px; background: var(--ogs-dots) 0 50% / 12px 6px repeat-x; }
+.fr-path li { position: relative; display: grid; justify-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ogs-cream-3); }
+.fr-path__stop { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--ogs-dusk-2); color: var(--ogs-cream-2); box-shadow: 0 0 0 4px var(--ogs-dusk-0); }
+.fr-path li.is-done .fr-path__stop { background: var(--ogs-mint); color: #10281c; }
+.fr-path li.is-now .fr-path__stop { background: var(--ogs-peach); color: #2a1630; box-shadow: 0 0 0 4px var(--ogs-dusk-0), 0 0 0 6.5px var(--ogs-peach); }
+.fr-path li.is-now { color: var(--ogs-cream); }
+
+.fr-hero { position: relative; margin: 6px 16px 26px; }
+.fr-hero__art { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 6px; height: 132px; border-radius: 22px; overflow: hidden; }
+.fr-hero__cast { position: absolute; left: 0; right: 0; bottom: -24px; display: flex; justify-content: center; gap: 4px; }
+.fr-stops { position: relative; display: grid; gap: 18px; margin: 18px 16px 0; }
+.fr-stops::before { content: ""; position: absolute; left: 19px; top: 30px; bottom: 30px; width: 6px; background: var(--ogs-dots-v) 50% 0 / 6px 12px repeat-y; }
+.fr-stops li { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: center; }
+.fr-stops__icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--ogs-dusk-2); color: var(--ogs-peach); }
+.fr-stops li > span:last-child { display: grid; gap: 2px; }
+.fr-stops b { font-size: 16px; }
+.fr-stops li > span:last-child > span { font-size: 14px; color: var(--ogs-cream-3); }
+
+.fr-search { display: grid; justify-items: center; gap: 14px; margin: 26px 16px 0; padding: 26px 16px; }
+.fr-search__pulse { width: 92px; height: 92px; border-radius: 50%; display: grid; place-items: center; background: var(--ogs-dusk-2); color: var(--ogs-peach); animation: fr-pulse 1.4s ease-in-out infinite alternate; }
+@keyframes fr-pulse { from { box-shadow: 0 0 0 0 rgba(247, 198, 163, 0.45); } to { box-shadow: 0 0 0 22px rgba(247, 198, 163, 0); } }
+.fr-search__dots { width: 120px; }
+.fr-search__text { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--ogs-cream-2); }
+.fr-row { grid-template-columns: 44px 1fr auto !important; }
+.fr-row__icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--ogs-dusk-2); color: var(--ogs-cream); }
+.fr-row__state { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 800; color: var(--ogs-cream-2); }
+.fr-row__state--ok { color: var(--ogs-mint); }
+
+.fr-people { margin: 0 16px; box-shadow: inset 0 1px 0 var(--ogs-hair), inset 0 -1px 0 var(--ogs-hair); }
+.fr-people li { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; min-height: 72px; padding: 6px 0; }
+.fr-people li + li { box-shadow: inset 0 1px 0 var(--ogs-hair); }
+.fr-people__text { display: grid; gap: 2px; min-width: 0; }
+.fr-people__text b { font-size: 17px; }
+.fr-people__text > span { font-size: 14px; color: var(--ogs-cream-3); line-height: 1.3; }
+.fr-suggest { display: grid; gap: 8px; margin: 0 16px; }
+.fr-suggest__row { display: grid !important; grid-template-columns: 24px 1fr; gap: 12px; align-items: center; width: 100%; min-height: 56px; padding: 8px 14px !important; border-radius: 16px; outline: 1.5px dashed rgba(251, 242, 228, 0.35); outline-offset: -1.5px; color: var(--ogs-peach); box-sizing: border-box; }
+.fr-suggest__row > span { display: grid; gap: 1px; }
+.fr-suggest__row b { font-size: 16px; color: var(--ogs-cream); }
+.fr-suggest__row > span > span { font-size: 14px; color: var(--ogs-cream-3); }
+
+.fr-stickers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+.fr-stickers__pick { display: grid !important; justify-items: center; gap: 2px; width: 100%; padding: 8px 0 6px !important; border-radius: 18px; }
+.fr-stickers__pick.is-on { background: radial-gradient(circle at 50% 45%, rgba(255, 200, 97, 0.32), transparent 66%) !important; box-shadow: inset 0 0 0 2px var(--ogs-lamp); }
+.fr-stickers__pick > span:last-child { min-height: 18px; font-size: 13px; font-weight: 700; color: var(--ogs-cream-3); }
+.fr-stickers__pick.is-on > span:last-child { color: var(--ogs-lamp); }
+
+.fr-ipads { display: grid; gap: 12px; margin: 0 16px; }
+.fr-ipad { padding: 10px 0 12px; box-shadow: inset 0 -1px 0 var(--ogs-hair); }
+.fr-ipad__top { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; }
+.fr-ipad__dev { position: relative; width: 56px; height: 56px; display: grid; place-items: center; color: var(--ogs-cream-2); }
+.fr .fr-ipad__who { position: absolute; right: -2px; bottom: -2px; }
+.fr-ipad--paired .fr-people__text > span { color: var(--ogs-mint); }
+.fr-ipad__how { margin-top: 12px; padding: 14px; border-radius: 18px; background: var(--ogs-dusk-1); }
+.fr-ipad__how p { font-size: 15px; line-height: 1.4; color: var(--ogs-cream-2); margin-bottom: 12px; }
+.fr-ipad__how b { color: var(--ogs-cream); }
+.fr-ipad__how .cx-wide { width: 100%; margin: 0; }
+.fr-unpair { display: grid; justify-items: center; text-align: center; gap: 6px; padding: 4px 6px 16px; }
+
+.fr-room { position: relative; margin: 8px 16px 0; display: grid; justify-items: center; }
+.fr-room__tv { display: grid; justify-items: center; gap: 6px; padding: 18px 26px; border-radius: 20px; background: var(--ogs-dusk-2); color: var(--ogs-cream); font-size: 15px; font-weight: 700; }
+.fr-room__line { height: 34px; }
+.fr-room__people { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; padding-top: 4px; }
+.fr-room__people li { display: grid; justify-items: center; gap: 4px; text-align: center; }
+.fr-room__people b { font-size: 15px; }
+.fr-room__people li > span { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ogs-cream-3); }
+
+/* ---- Continue or New ---- */
+.cn-save { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; margin-bottom: 14px; }
+.cn-save__art { width: 76px; height: 54px; border-radius: 12px; overflow: hidden; }
+.cn-save > span:last-child { display: grid; gap: 2px; }
+.cn-save b { font-size: 15px; }
+.cn-save > span:last-child > span { font-size: 14px; color: var(--ogs-cream-3); }
+.cn-options { display: grid; gap: 8px; }
+.cx .cn-option { grid-template-columns: 24px 1fr; align-items: start; column-gap: 12px; box-shadow: inset 0 0 0 1.5px var(--ogs-hair); }
+.cx .cn-option.is-on { box-shadow: inset 0 0 0 2px var(--ogs-peach); }
+.cx .cn-option--warn.is-on { box-shadow: inset 0 0 0 2px var(--ogs-ember); }
+.cn-option > span:last-child { display: grid; gap: 2px; }
+.cn-option__dot { width: 22px; height: 22px; margin-top: 1px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--ogs-cream-3); }
+.cn-option.is-on .cn-option__dot { box-shadow: inset 0 0 0 2px var(--ogs-peach), inset 0 0 0 6px var(--ogs-dusk-1); background: var(--ogs-peach); }
+.cn-option--warn.is-on .cn-option__dot { box-shadow: inset 0 0 0 2px var(--ogs-ember), inset 0 0 0 6px var(--ogs-dusk-1); background: var(--ogs-ember); }
+.cn-go { width: 100%; margin: 16px 0 0; }
+/* A sheet owns the bottom of the screen: the dock and tab bar under it step out of the way. */
+.cx-phone:has(.cx-sheetwrap) .cx-dock, .cx-phone:has(.cx-sheetwrap) .cx-tabs { visibility: hidden; }
+.cx-now__count { white-space: nowrap; }
+.cx-now--save .cx-now__count { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.cx-now--save .cx-now__stickers .ogs-sticker { width: 34px !important; height: 34px !important; }
+.cx-now--save .cx-now__cta { padding: 0 12px; }
+.fr-path__stop .ogs-crest, .fr-stops__icon .ogs-crest { pointer-events: none; }
+.fr-search--none { padding-top: 6px; }
+.fr-search--none .fr-search__pulse { animation: none; opacity: 0.55; }
+.fr-search--none .fr-search__dots { opacity: 0.35; }

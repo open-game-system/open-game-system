@@ -3,7 +3,8 @@
 import type { Store } from "../../../harness/store";
 import { HOME } from "../../../world";
 import type { S } from "../state";
-import { Portrait, Wordmark } from "../ui/Brand";
+import { Wordmark } from "../ui/Brand";
+import { Crest } from "../ui/Sticker";
 import { Lane } from "../ui/Lane";
 import { NightsLane } from "./NightsLane";
 import { CouchRail, NowPlaying } from "./NowPlaying";
@@ -15,13 +16,9 @@ export function HomeHeader() {
   return (
     <header className="cx-head">
       <Wordmark size={22} />
-      <button className="cx-household" aria-label="The Mumms household">
-        <span className="cx-household__faces">
-          {HOME.people.map((p) => (
-            <Portrait key={p.id} person={p} size={24} ring={false} />
-          ))}
-        </span>
-        The Mumms
+      <button className="cx-household" aria-label="The Mumms household" data-bot="household">
+        <Crest household={HOME} size={46} />
+        <span className="cx-household__name">The Mumms</span>
       </button>
     </header>
   );

@@ -5,6 +5,8 @@ import type { S } from "../state";
 import { StatusBar } from "../ui/Brand";
 import { Chevron, Plus } from "../ui/Icons";
 import { ago } from "../ui/time";
+import { Sticker } from "../ui/Sticker";
+import { DuelFace } from "./Opponent";
 
 function Row({ d, store }: { d: DuelGame; store: Store<S> }) {
   const lead = d.you - d.them;
@@ -13,15 +15,14 @@ function Row({ d, store }: { d: DuelGame; store: Store<S> }) {
   return (
     <li className={`wd-row wd-row--${d.status}`}>
       <button className="wd-row__main" data-bot={`duel-${d.id}`} onClick={open} disabled={!live}>
-        <span className="wd-row__bar" style={{ background: d.color }} />
+        <DuelFace d={d} size={48} />
         <span className="wd-row__text">
           <b>
             {d.opponent} <em>{d.opponentHome}</em>
           </b>
           <span>{d.lastMove}</span>
           <span className="wd-row__meta">
-            {d.status === "expired" ? "Closed" : ago(d.updatedAt)} · You {d.you} · {d.opponent} {d.them}
-            {live && lead !== 0 && <i className={lead > 0 ? "up" : "down"}>{lead > 0 ? ` · up ${lead}` : ` · down ${-lead}`}</i>}
+            {`${d.status === "expired" ? "Closed" : ago(d.updatedAt)} · You ${d.you} · ${d.opponent} ${d.them}${live && lead !== 0 ? (lead > 0 ? ` · up ${lead}` : ` · down ${-lead}`) : ""}`}
           </span>
         </span>
         {d.status === "yourTurn" && (
@@ -91,7 +92,7 @@ function DuelEmpty() {
       <ul className="wd-people">
         {people.map(({ p, city }) => (
           <li key={p.id}>
-            <span className="wd-row__bar" style={{ background: p.color }} />
+            <Sticker person={p} size={40} />
             <span className="wd-people__name">
               <b>{p.name}</b>
               <span>{city}</span>

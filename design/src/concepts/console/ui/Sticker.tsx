@@ -34,14 +34,20 @@ const SPOTS: Record<number, [number, number, number][]> = {
     [0.7, 0.38, 0.58],
     [0.72, 0.78, 0.46],
   ],
+  4: [
+    [0.3, 0.4, 0.6],
+    [0.7, 0.36, 0.56],
+    [0.36, 0.8, 0.44],
+    [0.72, 0.8, 0.44],
+  ],
 };
 
 /**
- * A household's crest: its people's stickers in a little cluster (up to three; grown-ups first).
+ * A household's crest: its people's stickers in a little cluster (up to four; grown-ups first).
  * `shared` is the crest other homes see: the grown-ups' stickers only. Kids' characters stay home.
  */
 export function Crest({ household, size = 48, dim = false, shared = false, className = "" }: { household: Household; size?: number; dim?: boolean; shared?: boolean; className?: string }) {
-  const people = household.people.filter((p) => !shared || p.band === "grownup").sort((a, b) => rank(a) - rank(b)).slice(0, 3);
+  const people = household.people.filter((p) => !shared || p.band === "grownup").sort((a, b) => rank(a) - rank(b)).slice(0, 4);
   const spots = SPOTS[people.length] ?? SPOTS[1] ?? [];
   return (
     <span className={`ogs-crest ${dim ? "is-dim" : ""} ${className}`} style={{ width: size, height: size }} aria-hidden>
@@ -51,7 +57,7 @@ export function Crest({ household, size = 48, dim = false, shared = false, class
         const [x, y, k] = spot;
         const s = size * k;
         return (
-          <span key={p.id} className="ogs-crest__spot" style={{ left: x * size - s / 2, top: y * size - s / 2, zIndex: 3 - i }}>
+          <span key={p.id} className="ogs-crest__spot" style={{ left: x * size - s / 2, top: y * size - s / 2, zIndex: 4 - i }}>
             <Sticker person={p} size={s} />
           </span>
         );

@@ -3,7 +3,7 @@
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
 import { GamePhoneView } from "../games/registry";
-import { hereTonight, openMenu, resumePoint, seatPlan, type S } from "../state";
+import { hereTonight, openMenu, pointIn, seatPlan, type S } from "../state";
 import { Mark, Portrait, StatusBar } from "../ui/Brand";
 import { ConsoleMenu } from "./ConsoleMenu";
 import { Strips } from "./Strips";
@@ -26,7 +26,7 @@ export function InGame({ s, store }: { s: S; store: Store<S> }) {
         <div className="cx-bar__what">
           <b>{s.cast === "connecting" ? "Starting tonight" : sw ? "Switching games" : g.name}</b>
           <span>
-            <span className="cx-live-dot" /> Living room TV{sw ? "" : ` · ${resumePoint(g.id)}`}
+            <span className="cx-live-dot" /> Living room TV{sw ? "" : ` · ${pointIn(s, g.id)}`}
           </span>
         </div>
         <div className="cx-bar__who">

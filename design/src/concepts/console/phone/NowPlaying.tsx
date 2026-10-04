@@ -1,33 +1,55 @@
-// Lane 1, "On the TV tonight": the couch session. The hero is what the TV shows; the rail under it
-// is this household's couch games, each with its status. On the phone the TV is always the
-// subject: "Play on TV" starts the focused game on the TV; "Controller" opens this phone's seat in
-// the game already on the TV. Neither ever means anything else.
+// Lane 1, "On the TV tonight": the couch session. The hero is what the TV shows, with tonight's
+// people stuck along its foot as stickers; the rail under it is this household's couch games, each
+// with its status. "Continue" starts the focused game where its save stopped; "New" asks what
+// happens to that save first (StartNew.tsx); "Controller" opens this phone's seat in the game on
+// the TV. None of them ever means anything else.
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
 import { activities, couchShelf } from "../activities";
-import { castAndPlay, hereTonight, pickActivity, resumePoint, type S } from "../state";
+import { castAndPlay, hereTonight, openStartNew, pickActivity, pointIn, saveOf, type S } from "../state";
 import { nightLine } from "../nights";
 import { LIVE, READY } from "../status";
-import { Portrait } from "../ui/Brand";
 import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
 import { Gamepad, TvIcon } from "../ui/Icons";
+import { Sticker } from "../ui/Sticker";
+
+function Cta({ s, store }: { s: S; store: Store<S> }) {
+  const playing = s.onTv;
+  const focusId = playing ?? s.tvFocus;
+  const canPlay = gameById(focusId).shape === "couch";
+  const save = !playing && !s.fresh[focusId] ? saveOf(focusId) : null;
+  const go = () =>
+    store.update((x) => (x.onTv ? { ...x, phone: "controller" } : !canPlay ? x : x.cast === "off" ? castAndPlay(x, x.tvFocus) : { ...x, onTv: x.tvFocus, phone: "controller" }));
+  if (!playing && !canPlay) return null;
+  return (
+    <div className="cx-now__ctas">
+      <button className="cx-btn cx-btn--light cx-now__cta" data-bot={playing ? "open-controller" : "play-on-tv"} aria-label={save ? `Continue ${save.point.toLowerCase()} on the TV` : undefined} onClick={go}>
+        {playing ? <Gamepad size={20} /> : <TvIcon size={20} />}
+        <span>{playing ? "Controller" : save ? "Continue" : "Play on TV"}</span>
+      </button>
+      {save && (
+        <button className="cx-btn cx-btn--line cx-now__new" data-bot="start-new" onClick={() => store.update((x) => openStartNew(x, focusId))}>
+          <span>New</span>
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
   const playing = s.onTv;
   const focusId = playing ?? s.tvFocus;
   const game = gameById(focusId);
   const focusAct = activities(s).find((a) => a.gameId === focusId);
-  const canPlay = game.shape === "couch";
-  const act = () =>
-    store.update((x) => (x.onTv ? { ...x, phone: "controller" } : !canPlay ? x : x.cast === "off" ? castAndPlay(x, x.tvFocus) : { ...x, onTv: x.tvFocus, phone: "controller" }));
   const off = s.cast === "off";
   const here = hereTonight(s);
   const liveNight = s.nights.list.find((n) => n.status === "live" && n.gameId === playing);
-  const point = liveNight ? nightLine(liveNight) : resumePoint(focusId);
+  const point = liveNight ? nightLine(liveNight) : pointIn(s, focusId);
   const status = playing ? LIVE : (focusAct?.status ?? READY);
+  const twoCtas = !playing && !s.fresh[focusId] && !!saveOf(focusId);
   return (
-    <section className={`cx-now ${playing ? "" : "cx-now--idle"}`}>
+    <section className={`cx-now ${playing ? "" : "cx-now--idle"} ${twoCtas ? "cx-now--save" : ""}`}>
       <div className="cx-now__art" key={focusId}>
         <GameArt gameId={focusId} />
       </div>
@@ -35,24 +57,21 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
         <div className="cx-now__where">
           <Chip status={status} />
           <span>
-            <TvIcon size={15} /> {playing ? "Living room TV" : off ? "Living room TV · off" : "Showing on the TV"}
+            <TvIcon size={15} /> {playing ? "Living room TV" : off ? "TV off" : "Showing on the TV"}
           </span>
         </div>
         <div className="cx-now__game">{game.name}</div>
         <div className="cx-now__point">{playing ? point : (focusAct?.detail ?? game.tagline)}</div>
         <div className="cx-now__foot">
           <button className="cx-now__who" data-bot="couch-who" aria-label={`${here.length} here tonight. Change who's here`} onClick={() => store.update((x) => ({ ...x, who: true }))}>
-            {here.map((p) => (
-              <Portrait key={p.id} person={p} size={28} />
-            ))}
-            <span>{here.length} here</span>
+            <span className="cx-now__stickers">
+              {here.map((p) => (
+                <Sticker key={p.id} person={p} size={40} />
+              ))}
+            </span>
+            <span className="cx-now__count">{here.length} here</span>
           </button>
-          {(playing || canPlay) && (
-            <button className="cx-btn cx-btn--light cx-now__cta" data-bot={playing ? "open-controller" : "play-on-tv"} onClick={act}>
-              {playing ? <Gamepad size={20} /> : <TvIcon size={20} />}
-              <span>{playing ? "Controller" : "Play on TV"}</span>
-            </button>
-          )}
+          <Cta s={s} store={store} />
         </div>
       </div>
     </section>

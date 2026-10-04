@@ -61,7 +61,78 @@ export interface S {
   who: boolean;
   /** The push showing on the lock screen (grown-up phones only), when phone = "lock". */
   push: Push | null;
+  /** First run: setting up the living room (TV, people and their stickers, kid iPads). */
+  setup: Setup;
+  /** Continue or New for a couch game with a save: the "start new" sheet, open for one game. */
+  start: StartNew | null;
+  /** Couch games started new tonight, and what happened to the old save. */
+  fresh: Record<string, SaveFate>;
 }
+
+// ---- First run ----
+
+export type SetupStep = "welcome" | "tv" | "people" | "ipads" | "ready";
+export type TvFind = "searching" | "found" | "connecting" | "connected" | "missing";
+export type Pairing = "unpaired" | "waiting" | "paired";
+
+export interface Setup {
+  step: SetupStep;
+  tv: TvFind;
+  /** People added so far (household person ids, in order). */
+  people: string[];
+  /** The person choosing their sticker, if the sticker sheet is open. */
+  picking: string | null;
+  /** Sticker each person picked (person id → sticker art). */
+  stickers: Record<string, string>;
+  /** Each kid's iPad, by person id. */
+  ipads: Record<string, Pairing>;
+  /** The iPad whose unpair is being confirmed (person id). */
+  unpair: string | null;
+}
+
+export const baseSetup = (): Setup => ({ step: "welcome", tv: "searching", people: [], picking: null, stickers: {}, ipads: { juneau: "unpaired", ava: "unpaired" }, unpair: null });
+
+/** Everyone in the household, as set up (their picked sticker wins over the default). */
+export const setupPeople = (st: Setup): Person[] =>
+  st.people.map((id) => HOME.people.find((p) => p.id === id)).filter((p): p is Person => !!p).map((p) => ({ ...p, sticker: st.stickers[p.id] ?? p.sticker }));
+
+export const setupTo = (s: S, step: SetupStep): S => ({ ...s, setup: { ...s.setup, step } });
+export const setupPatch = (s: S, patch: Partial<Setup>): S => ({ ...s, setup: { ...s.setup, ...patch } });
+export const pairIpad = (s: S, id: string, to: Pairing): S => setupPatch(s, { ipads: { ...s.setup.ipads, [id]: to }, unpair: null });
+/** Setup done: the household exists; tonight starts with the TV off and nobody on the couch yet. */
+export const finishSetup = (s: S): S => ({ ...s, firstRun: false, phone: "home", tab: "home", cast: "off", onTv: null });
+
+// ---- Continue or New ----
+
+/** keep: the old save stays as a second save · replace: the old save is gone for good. */
+export type SaveFate = "keep" | "replace";
+
+export interface StartNew {
+  gameId: string;
+  fate: SaveFate;
+}
+
+/** A couch game's save the console knows about (Tier 1 saves), for Continue. */
+export function saveOf(gameId: string): { point: string; when: string; summary: string } | null {
+  const inst = COUCH.find((i) => i.gameId === gameId);
+  if (!inst?.save || (inst.status !== "suspended" && inst.status !== "active")) return null;
+  return { point: resumePoint(gameId), when: inst.status === "active" ? "tonight" : "Tuesday", summary: inst.title };
+}
+
+export const openStartNew = (s: S, gameId: string): S => ({ ...s, start: { gameId, fate: "keep" } });
+export const setFate = (s: S, fate: SaveFate): S => (s.start ? { ...s, start: { ...s.start, fate } } : s);
+export const closeStartNew = (s: S): S => ({ ...s, start: null });
+
+/** Start the game new on the TV; the old save is kept or replaced as chosen. */
+export function startNew(s: S): S {
+  const st = s.start;
+  if (!st) return s;
+  const next = { ...s, start: null, fresh: { ...s.fresh, [st.gameId]: st.fate } };
+  return next.cast === "off" ? castAndPlay(next, st.gameId) : { ...next, onTv: st.gameId, tvFocus: st.gameId, phone: "controller" };
+}
+
+/** Where a game is, as this session knows it: a game started new tonight is at its start. */
+export const pointIn = (s: S, gameId: string): string => (s.fresh[gameId] ? "New game" : resumePoint(gameId));
 
 export interface Push {
   gameId: string;
@@ -98,6 +169,9 @@ export function base(): S {
     cast: "on",
     here: PRESENT.map((p) => p.id),
     who: false,
+    setup: baseSetup(),
+    start: null,
+    fresh: {},
   };
 }
 

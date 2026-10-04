@@ -1,7 +1,9 @@
 import type { Store } from "../../../harness/store";
 import type { S } from "../state";
 import { Mark } from "../ui/Brand";
-import { Library, People } from "../ui/Icons";
+import { HOME } from "../../../world";
+import { Library } from "../ui/Icons";
+import { Crest } from "../ui/Sticker";
 
 export function TabBar({ s, store }: { s: S; store: Store<S> }) {
   const go = (tab: S["tab"]) => store.update((x) => ({ ...x, tab, phone: "home" }));
@@ -17,7 +19,7 @@ export function TabBar({ s, store }: { s: S; store: Store<S> }) {
         Library
       </button>
       <button data-bot="tab-household">
-        <People size={24} />
+        <Crest household={HOME} size={30} />
         Household
       </button>
     </nav>
