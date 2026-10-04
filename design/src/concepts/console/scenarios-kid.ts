@@ -1,4 +1,5 @@
 import type { Scenario } from "../../harness/types";
+import { mashing } from "./ipad/mash";
 import { base, type S } from "./state";
 
 const at = (patch: Partial<S>) => (): S => ({ ...base(), ...patch });
@@ -17,4 +18,5 @@ export const kidScenarios: Scenario<S>[] = [
   { id: "kid.07-undo-follow", label: "Undo: Juneau's dragon walks back to Rocket Crew", flow: "swap", state: "undone", devices: ["ipad"], build: at({ phone: "controller", onTv: "bake-shop", switching: { from: "bake-shop", to: "rocket-crew", phase: "cutover", undo: true } }) },
   { id: "kid.08-ava-asleep-switching", label: "Ava's iPad asleep at 9% while everyone moves: she stays asleep, seat kept", flow: "swap", state: "interrupted", devices: ["ipad"], build: cut("following", { ...ava, asleep: ["dev-ava-ipad"] }) },
   { id: "kid.09-juneau-bake-switch-following", label: "Juneau's iPad: Bake Shop opens wide around the dragon", flow: "swap", state: "partial", devices: ["ipad"], build: cut("following") },
+  { id: "kid.10-ava-mash-cutover", label: "Ava mashes her iPad during the cut: every tap sparkles, her dinosaur giggles, nothing changes", flow: "swap", state: "loading", devices: ["ipad"], build: () => { const s = cut("cutover", ava)(); mashing.add(s); return s; } },
 ];
