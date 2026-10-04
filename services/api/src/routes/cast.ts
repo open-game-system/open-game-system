@@ -6,6 +6,12 @@ type CastEnv = { Bindings: Env; Variables: { gameId: string; gameName: string } 
 
 const cast = new Hono<CastEnv>();
 
+/** The game's own cast session, when it can take state (active, or idle and about to wake). */
+const takesState = (session: CastSessionRow | null, gameId: string): session is CastSessionRow =>
+  session !== null &&
+  session.game_id === gameId &&
+  (session.status === "active" || session.status === "idle");
+
 /**
  * POST /api/v1/cast/sessions
  * Creates a cast session: provisions a stream-kit container via DO and returns stream details.
@@ -137,11 +143,7 @@ cast.post("/sessions/:id/state", async (c) => {
     .bind(sessionId)
     .first<CastSessionRow>();
 
-  if (
-    !session ||
-    session.game_id !== gameId ||
-    (session.status !== "active" && session.status !== "idle")
-  ) {
+  if (!takesState(session, gameId)) {
     return c.json(
       {
         error: { code: "session_not_found", message: "Active cast session not found", status: 404 },
