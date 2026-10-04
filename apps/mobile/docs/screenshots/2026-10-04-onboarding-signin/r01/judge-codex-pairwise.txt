@@ -1,0 +1,15 @@
+| Row | Better | Evidence |
+|---|---|---|
+| A First impression | **B** | Real game art + “Cast from your phone” explains the TV-console concept immediately. |
+| B Identity | **B** | OGS wordmark and game showcase feel more ownable than A’s generic TV graphic. |
+| C Path hierarchy | **Same** | Both clearly prioritize profile creation while keeping sign-in visible. |
+| D Craft | **B** | Better composition and visual energy; A’s oversized abstract TV feels unfinished. |
+| E Phone-size fit | **B** | Holds its hierarchy on Pro and SE without crowding or losing key content. |
+| F Copy | **B** | “Then everyone plays together” is shorter and warmer than “family and friends.” |
+| G Consistency | **A** | A’s animal-led illustration connects better to later screens; B abruptly shifts from Rocket Crew art to stickers. |
+
+**OVERALL: B**
+
+Scores for B: **A 9 · B 8 · C 8 · D 8 · E 8 · F 8 · G 6**
+
+**LARGEST GAP:** Cross-page visual continuity. Replace the standalone Rocket Crew promo with an OGS-owned TV/game scene that retains the clear casting badge while integrating the selectable animal characters.

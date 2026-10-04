@@ -1,2 +1,3 @@
 round	change	judgeA(codex)	judgeB(claude)	min	kept
 00	baseline: dusk welcome (OGS-in-TV badge, stickers), two paths, Back, restyled notifications	A6 B7 C9 D7 E7 F7 G8	A6 B6 C8 D6 E6 F7 G7	6	baseline
+01	welcome hero: real game art on a TV (bundled, cycles; still under reduce motion), Cast-from-your-phone chip, stickers on a couch, OGS wordmark top-left; shorter copy (no orphan). Rig: unique name + retry (shared API race)	pairwise B(r01) 6/7 rows; G prefers r00; abs A9 B8 C8 D8 E8 F8 G6	pairwise A(r01) 5 rows, 2 same; abs A8 B7 C7 D6 E7 F7 G7	6	kept (both judges prefer after; codex G 8->6 noted, target next)

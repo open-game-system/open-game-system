@@ -20,7 +20,7 @@ import { DoneStep } from "../components/ogs/onboarding/DoneStep";
 import { NotificationsStep } from "../components/ogs/onboarding/NotificationsStep";
 import { ProfileStep } from "../components/ogs/onboarding/ProfileStep";
 import { WelcomeStep } from "../components/ogs/onboarding/WelcomeStep";
-import { colors, TARGET } from "../components/ogs/theme";
+import { colors, fonts, TARGET } from "../components/ogs/theme";
 import { markOnboardingComplete } from "../services/onboarding";
 import {
   backFrom,
@@ -153,6 +153,10 @@ export default function OnboardingScreen() {
             <SymbolView name="chevron.left" size={17} weight="semibold" tintColor={colors.cream} />
             <Text style={styles.backText}>Back</Text>
           </Pressable>
+        ) : currentPage === 0 ? (
+          <Text style={styles.wordmark} accessibilityLabel="OGS">
+            OGS
+          </Text>
         ) : (
           <View style={styles.topButton} />
         )}
@@ -215,6 +219,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   pressed: { opacity: 0.6 },
+  wordmark: {
+    fontFamily: fonts.display,
+    fontSize: 24,
+    color: colors.lamp,
+    letterSpacing: 1.5,
+    paddingHorizontal: 12,
+  },
   backText: { color: colors.cream, fontSize: 17, fontWeight: "600" },
   skip: { justifyContent: "flex-end" },
   skipText: { color: colors.cream3, fontSize: 17, fontWeight: "600" },
