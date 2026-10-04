@@ -1,0 +1,24 @@
+{
+  "clip": "critic/rounds/01/console/flows/swap.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "10.6–12.8s"
+    }
+  ],
+  "detections": {
+    "duration": 12.8,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 10.6,
+        "end": 12.8
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

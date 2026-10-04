@@ -1,0 +1,64 @@
+{
+  "clip": "critic/rounds/01/console/flows/word-duel.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "2.8–4.2s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.2–7.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "7.0–8.3s"
+    },
+    {
+      "code": "frozen",
+      "at": "8.3–9.6s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.3–11.8s"
+    },
+    {
+      "code": "frozen",
+      "at": "12.6–15.4s"
+    }
+  ],
+  "detections": {
+    "duration": 15.88,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 2.76,
+        "end": 4.2
+      },
+      {
+        "start": 5.16,
+        "end": 7.04
+      },
+      {
+        "start": 7.04,
+        "end": 8.32
+      },
+      {
+        "start": 8.32,
+        "end": 9.56
+      },
+      {
+        "start": 10.28,
+        "end": 11.84
+      },
+      {
+        "start": 12.56,
+        "end": 15.36
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

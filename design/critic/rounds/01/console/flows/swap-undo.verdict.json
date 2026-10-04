@@ -1,0 +1,24 @@
+{
+  "clip": "critic/rounds/01/console/flows/swap-undo.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "8.4–10.0s"
+    }
+  ],
+  "detections": {
+    "duration": 10.52,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 8.36,
+        "end": 10
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

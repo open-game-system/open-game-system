@@ -1,0 +1,40 @@
+{
+  "clip": "critic/rounds/01/console/flows/tonight.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "3.4–4.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "7.4–9.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.3–13.1s"
+    }
+  ],
+  "detections": {
+    "duration": 13.12,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 3.36,
+        "end": 4.4
+      },
+      {
+        "start": 7.4,
+        "end": 9
+      },
+      {
+        "start": 10.32,
+        "end": 13.12
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

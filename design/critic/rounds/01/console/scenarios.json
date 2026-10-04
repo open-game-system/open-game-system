@@ -1,0 +1,729 @@
+[
+  {
+    "id": "home.01-phone-friday",
+    "label": "Phone home: now playing, your turn, jump back in",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.02-tv-console-home",
+    "label": "TV console home (cast, between games)",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.06-phone-is-remote",
+    "label": "Phone is the remote: focus Bake Shop, the TV follows",
+    "flow": "home",
+    "state": "partial",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.03-kid-paired-idle",
+    "label": "Juneau's iPad: paired, following tonight",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.04-library",
+    "label": "Library: couch shelf, game night, duels",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.07-our-roll",
+    "label": "Our roll in Hearthisle: it joins Your turn beside the duels",
+    "flow": "home",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.08-all-caught-up",
+    "label": "Nobody waiting on you; nights still listed",
+    "flow": "home",
+    "state": "empty",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "home.05-first-run",
+    "label": "First run: library ready, living room not set up",
+    "flow": "home",
+    "state": "empty",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.01-mid-rocket-crew",
+    "label": "Mid Rocket Crew: Dad captains, Juneau fixes",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "ipad",
+      "tv"
+    ]
+  },
+  {
+    "id": "swap.02-console-menu",
+    "label": "Console button: pick the next game",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "swap.03-saving",
+    "label": "Saving Rocket Crew at mission 6",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.04-tv-cutover",
+    "label": "TV cuts over to Bake Shop",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.05-kids-follow",
+    "label": "Kid iPads follow by name",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "ipad",
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.06-everyone-in",
+    "label": "Bake Shop day 4, everyone in their seat",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.07-ava-helper",
+    "label": "Ava's iPad: littlest helper",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.08-ava-asleep-switching",
+    "label": "Ava's iPad asleep (9%) while everyone moves",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.09-ava-asleep",
+    "label": "Ava's iPad didn't follow: seat saved",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.10-ava-wakes",
+    "label": "Ava's iPad wakes and drops into her seat",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.11-undo-back",
+    "label": "Undo: back to Rocket Crew mission 6",
+    "flow": "swap",
+    "state": "undone",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "word-duel.01-list",
+    "label": "Word Duel: open games by whose turn",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.02-nana-board",
+    "label": "Nana's game: board and rack",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.03-placing",
+    "label": "Placing tiles",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.04-ready",
+    "label": "CRANE ready to play",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.05-played",
+    "label": "Played: next game waiting on you",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.06-list-after",
+    "label": "List after: Nana's game moved to their turn",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.07-not-a-word",
+    "label": "Not a word: nothing played",
+    "flow": "word-duel",
+    "state": "error",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.08-empty",
+    "label": "No duels yet",
+    "flow": "word-duel",
+    "state": "empty",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.01-open-app",
+    "label": "7:00 pm: TV not on yet; Rocket Crew picks up at mission 6",
+    "flow": "tonight",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.02-whos-here",
+    "label": "Who's on the couch: Jonathan, Juneau, Ava (Mom's out)",
+    "flow": "tonight",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.03-mom-joins",
+    "label": "Mom sits down: four on the couch",
+    "flow": "tonight",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.04-casting",
+    "label": "TV connects; iPads join their seats by name",
+    "flow": "tonight",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "tonight.05-playing",
+    "label": "Mission 6 on the TV, everyone in",
+    "flow": "tonight",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "world-clock.01-push-duel",
+    "label": "Lock screen: Nana played QUILT (Jonathan's phone only, never a kid's iPad)",
+    "flow": "world-clock",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "world-clock.02-push-our-roll",
+    "label": "Lock screen: your roll in Hearthisle, two homes waiting",
+    "flow": "world-clock",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "world-clock.03-inbox",
+    "label": "Every game: your turn, waiting on them, finished",
+    "flow": "world-clock",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "world-clock.04-inbox-our-roll",
+    "label": "Every game: Hearthisle roll sits beside two duels",
+    "flow": "world-clock",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "world-clock.05-next-is-a-roll",
+    "label": "Played CRANE; next up is your Hearthisle roll",
+    "flow": "world-clock",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "world-clock.06-caught-up",
+    "label": "Every game: nothing waiting on you",
+    "flow": "world-clock",
+    "state": "empty",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.01-lane",
+    "label": "Home: Game nights lane, Hearthisle paused at turn 14",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.02-paused-night",
+    "label": "Hearthisle night: paused at turn 14, tonight 8:00, Nana & Pop not back",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.03-new-while-paused",
+    "label": "New game night: pick homes; turn 14 keeps its place",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.04-kid-names-on",
+    "label": "Trust: show Juneau's name to the other homes (off by default)",
+    "flow": "game-night",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.05-invites-out",
+    "label": "Invites sent: Okafors and Nana & Pop deciding",
+    "flow": "game-night",
+    "state": "loading",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.06-what-they-see",
+    "label": "What Nana & Pop see: the invite, accept or decline",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.07-everyone-in",
+    "label": "Both homes said yes",
+    "flow": "game-night",
+    "state": "success",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.08-seats",
+    "label": "Seats: Jonathan + Juneau share blue; a seat is a person or a home",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.09-seats-split",
+    "label": "Seats: Juneau gets his own (green)",
+    "flow": "game-night",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.10-where",
+    "label": "Where each home plays: our TV, their TV, Nana & Pop on phones",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.11-started",
+    "label": "Started: turn 1, Okafors rolling, ours next",
+    "flow": "game-night",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "game-night.12-two-nights",
+    "label": "Home: two game nights, one paused, one live",
+    "flow": "game-night",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.13-declined",
+    "label": "Nana & Pop declined: their seat leaves, the night still works",
+    "flow": "game-night",
+    "state": "error",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.14-everyone-back",
+    "label": "Friday 8:00: every home is back, resume turn 14",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.15-resumed",
+    "label": "Resumed: turn 14, Nana & Pop rolling, ours next",
+    "flow": "game-night",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "game-night.16-our-roll",
+    "label": "Our roll across homes: Controller or pause",
+    "flow": "game-night",
+    "state": "partial",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "game-night.17-paused-again",
+    "label": "Paused at turn 15: resumes when everyone's back, next Friday",
+    "flow": "game-night",
+    "state": "interrupted",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.06b-tv-settled",
+    "label": "TV 4 s after the cut: the game owns the screen, a corner chip remains",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "swap.09b-tv-asleep-settled",
+    "label": "TV after the cut with Ava's iPad asleep: her seat waits, dimmed in the chip",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "game-night.40-tv-our-board",
+    "label": "Game night on the living room TV: the shared board, our seat and whose turn",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "kid.01-ava-idle",
+    "label": "Ava's iPad: paired, nothing on TV for her, a toy",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.02-menu-paused",
+    "label": "Console menu open: TV paused, Juneau's dragon steps onto the path",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.03-ava-menu-paused",
+    "label": "Console menu open on Ava's iPad",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.04-ava-saving",
+    "label": "Ava's iPad while Rocket Crew saves",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.05-ava-cutover",
+    "label": "Ava's dinosaur walking the path during the cut",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.06-ava-rocket-helper",
+    "label": "Ava in Rocket Crew: two giant always-right buttons",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.07-undo-follow",
+    "label": "Undo: Juneau's dragon walks back to Rocket Crew",
+    "flow": "swap",
+    "state": "undone",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.08-ava-asleep-switching",
+    "label": "Ava's iPad asleep at 9% while everyone moves: she stays asleep, seat kept",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "kid.09-juneau-bake-switch-following",
+    "label": "Juneau's iPad: Bake Shop opens wide around the dragon",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "add-game.01-docs-overview",
+    "label": "Docs: bring your game to OGS (the tier ladder)",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.02-docs-manifest",
+    "label": "Docs: Tier 0, a manifest for Peekaboo Garden",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.03-docs-identity",
+    "label": "Docs: Tier 1, identity token + saves",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.04-docs-instances",
+    "label": "Docs: Tier 2, the instance POST (Rocket Crew paused for Bake Shop)",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.05-docs-tv",
+    "label": "Docs: the TV page contract",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.06-docs-kids",
+    "label": "Docs: kid devices (roles with audience, no words)",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.07-tiers-in-library",
+    "label": "Bake Shop at Tier 0 / 1 / 2 on the family's Home, Library, iPads and lock screen",
+    "flow": "add-game",
+    "state": "default",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.08-console-empty",
+    "label": "Console: no games yet (paste a manifest or read it from your domain)",
+    "flow": "add-game",
+    "state": "empty",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.09-console-invalid",
+    "label": "Console: live validation — TV URL not https, a role without an audience",
+    "flow": "add-game",
+    "state": "error",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.10-console-preview",
+    "label": "Console: valid — library tile, TV cast, seats; testing on the living room TV",
+    "flow": "add-game",
+    "state": "partial",
+    "devices": [
+      "desktop"
+    ]
+  },
+  {
+    "id": "add-game.11-console-live",
+    "label": "Console: published — every game's tier signals (token verified, last POST 2 min ago)",
+    "flow": "add-game",
+    "state": "success",
+    "devices": [
+      "desktop"
+    ]
+  }
+]
