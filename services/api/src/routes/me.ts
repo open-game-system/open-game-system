@@ -1,9 +1,15 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { apiError, invalidBody, parseBody } from "../lib/http";
-import { getMe, isHandleFree, isUniqueViolation } from "../lib/profiles";
+import { invalidBody, parseBody } from "../lib/http";
+import { getMe, isHandleFree } from "../lib/profiles";
 import { deviceOnly, type ProfileEnv } from "../middleware/profile-auth";
-import { HandleSchema, NameSchema, StickerSchema } from "./profiles";
+import {
+  HandleSchema,
+  handleTaken,
+  NameSchema,
+  StickerSchema,
+  unlessHandleTaken,
+} from "./profiles";
 
 const EditSchema = z.object({
   name: NameSchema.optional(),
@@ -24,20 +30,19 @@ me.patch("/", async (c) => {
   const id = c.get("claims").sub;
   const db = c.env.DB;
   if (body.handle !== undefined && !(await isHandleFree(db, body.handle, id)))
-    return apiError(c, 409, "handle_taken", "That @id is taken");
-  try {
-    await db
-      .prepare(
-        `UPDATE profiles SET name = COALESCE(?, name), handle = COALESCE(?, handle),
-           sticker = COALESCE(?, sticker) WHERE id = ?`,
-      )
-      .bind(body.name ?? null, body.handle ?? null, body.sticker ?? null, id)
-      .run();
-  } catch (e) {
-    if (isUniqueViolation(e, "handle")) return apiError(c, 409, "handle_taken", "That @id is taken");
-    throw e;
-  }
-  return c.json(await getMe(db, id));
+    return handleTaken(c);
+  const taken = await unlessHandleTaken(c, () => editProfile(db, id, body));
+  return taken ?? c.json(await getMe(db, id));
 });
+
+function editProfile(db: D1Database, id: string, edit: z.infer<typeof EditSchema>) {
+  return db
+    .prepare(
+      `UPDATE profiles SET name = COALESCE(?, name), handle = COALESCE(?, handle),
+         sticker = COALESCE(?, sticker) WHERE id = ?`,
+    )
+    .bind(edit.name ?? null, edit.handle ?? null, edit.sticker ?? null, id)
+    .run();
+}
 
 export default me;
