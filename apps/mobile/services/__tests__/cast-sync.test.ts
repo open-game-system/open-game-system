@@ -55,6 +55,8 @@ function fakeSession(name = "Chromecast HD", id = "cc-1") {
 }
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
+const viewUrlOf = (m: unknown) =>
+  typeof m === "object" && m !== null && "viewUrl" in m ? m.viewUrl : null;
 
 function setup(current: FakeSession | null = null) {
   const sm = fakeSessionManager(current);
@@ -226,11 +228,33 @@ describe("cast sync: ordering", () => {
     store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/CD" });
     store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/CD" });
     store.dispatch({ type: "RESET_ERROR" });
+    store.dispatch({ type: "SET_ERROR", error: "unrelated" });
     await flush();
-    expect(session.sent.map((m) => (m as { viewUrl: string }).viewUrl)).toEqual([
-      "https://game/tv/AB",
-      "https://game/tv/CD",
-    ]);
+    expect(session.sent.map(viewUrlOf)).toEqual(["https://game/tv/AB", "https://game/tv/CD"]);
+  });
+
+  it("a late channel from an older session never takes the newer one's place", async () => {
+    const { sm, store } = setup();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/AB" });
+    let openA: () => void = () => {};
+    const a = fakeSession("Den TV", "den");
+    const slowA = {
+      ...a,
+      addChannel: () =>
+        new Promise<Awaited<ReturnType<typeof a.addChannel>>>((resolve) => {
+          openA = () => void a.addChannel().then(resolve);
+        }),
+    };
+    const b = fakeSession("Kitchen TV", "kitchen");
+    sm.emitStarted(slowA);
+    sm.emitEnded();
+    sm.emitStarted(b);
+    await flush();
+    openA();
+    await flush();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/CD" });
+    await flush();
+    expect(b.sent.map(viewUrlOf)).toEqual(["https://game/tv/AB", "https://game/tv/CD"]);
   });
 
   it("a session that ends before its device is known stays ended", async () => {
