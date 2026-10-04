@@ -43,8 +43,8 @@ function HeroBg({ item }: { item: Item }) {
   if (!item.game.art.tv) {
     return (
       <div className="tv-hero-bg" style={{ background: "#14130f" }}>
-        <div style={{ position: "absolute", right: 120, top: 120, transform: "rotate(-6deg)", opacity: 0.9 }}>
-          <BoardSil size={620} />
+        <div style={{ position: "absolute", right: 150, top: 190, transform: "rotate(-5deg)", opacity: 0.55 }}>
+          <BoardSil size={520} />
         </div>
       </div>
     );
@@ -160,7 +160,7 @@ function Launcher({ s }: { s: S }) {
             <div className="tv-row" key={r.id}>
               <h3 className={r.id === "turns" ? "amber" : undefined}>
                 {r.title}
-                {r.id === "turns" ? <small>{r.items.length} games</small> : null}
+                {r.id === "turns" ? <small>{r.items.length} {r.items.length === 1 ? "game" : "games"}</small> : null}
               </h3>
               <div className="tv-track noscroll" key={`${r.id}-${s.focus.row}`}>
                 {r.items.slice(off, off + 5).map((it, j) => (
@@ -171,6 +171,11 @@ function Launcher({ s }: { s: S }) {
           );
         })}
       </div>
+      {s.homeFrom ? (
+        <div className="tv-shrink" key={`shrink-${s.homeFrom}`}>
+          <img src={gameById(s.homeFrom).art.tv} alt="" />
+        </div>
+      ) : null}
       {s.fresh ? (
         <div className="tv-toast">
           <Sticker id={s.remoteHolder} size={72} />
@@ -377,7 +382,7 @@ function Handoff({ s, duel }: { s: S; duel: DuelGame }) {
       <div style={{ position: "relative" }}>
         <BoardSil size={440} played={sent} />
         <span className="tv-phone-ic">
-          <Icon name={sent ? "check" : "phone"} size={56} color="#f6f2ea" />
+          {sent ? <Icon name="check" size={56} color="#f6f2ea" /> : <Sticker id={s.phoneOwner} size={90} />}
         </span>
       </div>
       <div className="txt">

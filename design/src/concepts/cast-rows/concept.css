@@ -37,14 +37,14 @@
 .cr-stk img { width: 92%; height: 92%; object-fit: contain; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35)); }
 
 /* ---------- TV ---------- */
-.tv-hero-bg { position: absolute; inset: 0; overflow: hidden; }
-.tv-hero-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: cr-heroin 0.7s ease-out both; }
+.tv-hero-bg { position: absolute; inset: 0; overflow: hidden; animation: cr-heroin 0.7s ease-out both; }
+.tv-hero-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .tv-hero-bg::after { content: ""; position: absolute; inset: 0;
   background:
     linear-gradient(90deg, rgba(9, 9, 11, 0.96) 0%, rgba(9, 9, 11, 0.86) 30%, rgba(9, 9, 11, 0.25) 62%, rgba(9, 9, 11, 0) 80%),
     linear-gradient(0deg, rgba(9, 9, 11, 1) 0%, rgba(9, 9, 11, 0.94) 34%, rgba(9, 9, 11, 0) 62%),
     linear-gradient(180deg, rgba(9, 9, 11, 0.92) 0%, rgba(9, 9, 11, 0.6) 9%, rgba(9, 9, 11, 0) 22%); }
-@keyframes cr-heroin { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+@keyframes cr-heroin { from { opacity: 0; } to { opacity: 1; } }
 
 .tv-top { position: absolute; left: 96px; right: 96px; top: 44px; height: 64px; display: flex; align-items: center; gap: 28px; z-index: 3; }
 .tv-mark { font: 600 28px var(--cr-text); letter-spacing: 0.02em; display: flex; align-items: center; gap: 14px; }
@@ -310,3 +310,12 @@
 .kd-ctl button.giant { width: 340px; height: 340px; animation: cr-breathe 2.4s ease-in-out infinite; }
 .kd-badge { position: absolute; top: 34px; left: 34px; z-index: 3; }
 .kd-pause { position: absolute; inset: 0; z-index: 5; background: rgba(9, 9, 11, 0.72); display: grid; place-items: center; }
+
+/* Home: the running game shrinks back into its Continue card (same stream, nothing reloads). */
+.tv-shrink { position: absolute; inset: 0; z-index: 6; pointer-events: none; animation: cr-shrink 0.9s cubic-bezier(.5,0,.2,1) both; }
+.tv-shrink img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes cr-shrink {
+  0% { clip-path: inset(0 0 0 0 round 0); opacity: 1; }
+  75% { clip-path: inset(65% 75% 15% 5% round 14px); opacity: 1; }
+  100% { clip-path: inset(65% 75% 15% 5% round 14px); opacity: 0; }
+}

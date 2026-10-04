@@ -1,5 +1,5 @@
 // Session state for "Netflix rows": one cast session, one launcher, games hosted inside it.
-import { COUCH, DUELS, GAMES, HEARTHISLE, HOME, type DuelGame, type GameManifest, type Instance, type Person } from "../../world";
+import { COUCH, DUELS, GAMES, HEARTHISLE, HOME, HOUSEHOLDS, type DuelGame, type GameManifest, type Instance, type Person } from "../../world";
 
 export type CastStatus = "off" | "picking" | "none-found" | "connecting" | "live" | "dropped";
 export type TvScreen = "launcher" | "detail" | "who" | "game" | "duel";
@@ -56,6 +56,8 @@ export interface S {
   remoteAsleep: boolean;
   /** The current connect is a re-cast after a drop (the phone keeps its place). */
   recast: boolean;
+  /** The game Home just left (the TV shrinks it back into its card). */
+  homeFrom: string | null;
   /** Re-cast landed: show the "back to" chip. */
   resumed: boolean;
   /** Which kid the single-iPad shot shows (the stage passes a seat instead). */
@@ -65,7 +67,7 @@ export interface S {
 }
 
 export const PEOPLE: Person[] = HOME.people;
-export const personOf = (id: string): Person => PEOPLE.find((p) => p.id === id) ?? PEOPLE[0]!;
+export const personOf = (id: string): Person => HOUSEHOLDS.flatMap((h) => h.people).find((p) => p.id === id) ?? PEOPLE[0]!;
 
 const couchGames = GAMES.filter((g) => g.shape === "couch");
 const gameOf = (id: string): GameManifest => GAMES.find((g) => g.id === id) ?? GAMES[0]!;
@@ -77,6 +79,9 @@ export function rowsFor(s: Pick<S, "duelsDone" | "pausedTonight" | "playing">): 
     const pa = s.pausedTonight.includes(a.gameId) ? 1 : 0;
     const pb = s.pausedTonight.includes(b.gameId) ? 1 : 0;
     if (pa !== pb) return pb - pa;
+    const da = a.status === "completed" ? 1 : 0;
+    const db = b.status === "completed" ? 1 : 0;
+    if (da !== db) return da - db;
     return b.updatedAt.localeCompare(a.updatedAt);
   });
   const cont: Item[] = order.map((i) => ({ id: `c-${i.id}`, kind: "couch", game: gameOf(i.gameId), instance: i }));
@@ -139,6 +144,7 @@ export function initial(over: Partial<S> = {}): S {
     remoteHolder: "dad",
     remoteAsleep: false,
     recast: false,
+    homeFrom: null,
     resumed: false,
     ipadSeat: "juneau",
     before: "launcher",
@@ -150,7 +156,11 @@ export function initial(over: Partial<S> = {}): S {
 export function roleFor(game: GameManifest, personId: string) {
   const p = personOf(personId);
   if (p.band === "grownup") return game.roles.find((r) => r.audience === "grownup");
-  return game.roles.find((r) => r.audience === p.band) ?? game.roles.find((r) => r.audience === "kid");
+  const own = game.roles.find((r) => r.audience === p.band);
+  if (own) return own;
+  const kid = game.roles.find((r) => r.audience === "kid");
+  // A little in a game with no little role helps the kid role (manifest-driven, no game ids).
+  return kid && p.band === "little" ? { ...kid, label: `${kid.label}'s helper` } : kid;
 }
 
 /** The audience a kid's controller is drawn for: "little" gets one giant button even in a kid-only game. */

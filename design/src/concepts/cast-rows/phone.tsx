@@ -3,7 +3,7 @@
 // an always-there Home.
 import { useRef, type PointerEvent as RPointerEvent } from "react";
 import type { Store } from "../../harness/store";
-import { gameById, HOME } from "../../world";
+import { gameById, GAMES, HOME } from "../../world";
 import { back, connect, confirmWho, DUEL_RACK, DUEL_WORD, goHome, leaveDuel, ok, placeTile, press, sendDuel, startItem, startNew, toggleWho, touchItem, type Dir } from "./actions";
 import { focused, personOf, PEOPLE, resumeLine, roleFor, rowsFor, type Item, type S } from "./state";
 import { Art, Icon, Sticker, relTime } from "./ui";
@@ -65,7 +65,7 @@ function Start({ s, store }: P) {
     <div className="ph">
       <div className="ph-body noscroll" style={{ padding: 0 }}>
         <div className="ph-start">
-          <img src={gameById("rocket-crew").art.tv} alt="" />
+          <Art game={rowsFor(s)[0]?.items[0]?.game ?? GAMES[0]!} />
           <div style={{ position: "absolute", top: 58, left: 16, right: 16, zIndex: 2, display: "flex", alignItems: "center", gap: 10 }}>
             <span className="tv-mark" style={{ fontSize: 18 }}>
               <i style={{ width: 22, height: 22, borderWidth: 2.5 }} />
@@ -196,6 +196,14 @@ function Browse({ s, store }: P) {
           <Icon name="tv" size={26} />
           <span>
             <b>You're the remote.</b> Touch a game to show it on the TV; touch it again to play.
+          </span>
+        </div>
+      ) : null}
+      {s.homeFrom ? (
+        <div className="ph-note">
+          <Icon name="check" size={24} />
+          <span>
+            <b>{gameById(s.homeFrom).name} is saved at {s.resume[s.homeFrom]?.split(" · ")[0]}.</b> The TV stays cast; pick what's next.
           </span>
         </div>
       ) : null}
@@ -333,7 +341,6 @@ function Remote({ s, store }: P) {
   const screen = s.tv === "who" ? "Who's playing" : s.tv === "detail" ? "Game page" : "Game shelf";
   return (
     <div className="rm">
-      <div inert={s.keyboard} style={{ display: "contents" }}>
       <div className="rm-now">
         <span className="th">{item ? <Art game={item.game} tile={14} /> : null}</span>
         <div>
@@ -341,6 +348,8 @@ function Remote({ s, store }: P) {
           <b>{item ? `${item.game.name}${resumeLine(s, item) ? ` · ${resumeLine(s, item)?.split(" · ")[0]}` : ""}` : "Nothing focused"}</b>
         </div>
       </div>
+      {s.keyboard ? <Keyboard store={store} /> : (
+      <>
       <div className="pad" onPointerDown={down} onPointerUp={up}>
         {(["up", "down", "left", "right"] as const).map((d) => (
           <button key={d} className={`edge ${d}`} data-bot={`pad-${d}`} aria-label={`Move ${d}`} onClick={() => go(d)}>
@@ -366,8 +375,8 @@ function Remote({ s, store }: P) {
           Keyboard
         </button>
       </div>
-      </div>
-      {s.keyboard ? <Keyboard store={store} /> : null}
+      </>
+      )}
     </div>
   );
 }
@@ -375,11 +384,9 @@ function Remote({ s, store }: P) {
 function Keyboard({ store }: { store: Store<S> }) {
   return (
     <>
-      <div className="ph-scrim" onClick={() => store.update((x) => ({ ...x, keyboard: false }))} />
-      <div className="ph-sheet">
-        <div className="grab" />
-        <h2>Type on the TV</h2>
-        <p className="sub">Letters go to the search box on the TV.</p>
+      <div className="ph-kbd" style={{ padding: "8px 2px" }}>
+        <h2 style={{ font: "700 22px var(--cr-text)", margin: "0 0 4px" }}>Type on the TV</h2>
+        <p style={{ font: "500 15px var(--cr-text)", color: "var(--cr-paper-2)", margin: "0 0 16px" }}>Letters go to the search box on the TV.</p>
         <label style={{ display: "flex", alignItems: "center", gap: 10, height: 52, borderRadius: 14, background: "var(--cr-2)", padding: "0 14px", font: "500 17px var(--cr-text)" }}>
           <Icon name="search" size={20} />
           <input aria-label="Search games" placeholder="Search games" style={{ flex: 1, background: "none", border: 0, color: "var(--cr-paper)", font: "inherit", outline: "none", height: 44 }} />
@@ -539,7 +546,7 @@ function Pickup({ s, store }: P) {
         </div>
         <button className="ph-btn" data-bot="take-remote" onClick={() => store.update((x) => ({ ...x, remoteHolder: x.phoneOwner, remoteAsleep: false }))}>
           <Icon name={inGame ? "play" : "remote"} size={20} />
-          {inGame ? `Take the ${roleFor(gameById(s.playing?.gameId ?? "rocket-crew"), s.remoteHolder)?.label ?? "grown-up"}'s controls` : "Take the remote"}
+          {inGame ? `Take the ${roleFor(gameById(s.playing?.gameId ?? GAMES[0]!.id), s.remoteHolder)?.label ?? "grown-up"}'s controls` : "Take the remote"}
         </button>
         <span style={{ font: "500 14px var(--cr-text)", color: "var(--cr-paper-2)", margin: 0 }}>{holder} gets it back by opening Open Game.</span>
       </div>

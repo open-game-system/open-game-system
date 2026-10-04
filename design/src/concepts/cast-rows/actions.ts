@@ -34,7 +34,7 @@ export function goHome(s: S): S {
   if (!s.playing) return { ...s, tv: "launcher", keyboard: false };
   const p = s.playing;
   const paused = [p.gameId, ...s.pausedTonight.filter((g) => g !== p.gameId)];
-  const next: S = { ...s, tv: "launcher", playing: null, pausedTonight: paused, resume: { ...s.resume, [p.gameId]: p.title } };
+  const next: S = { ...s, tv: "launcher", playing: null, homeFrom: p.gameId, pausedTonight: paused, resume: { ...s.resume, [p.gameId]: p.title } };
   // Focus lands on the game you just left (now first in Continue).
   const inCont = rowsFor(next)[0]?.items.find((i) => i.game.id === p.gameId);
   return { ...next, focus: inCont ? positionOf(next, inCont.id) : { row: 0, col: 0 } };
@@ -100,7 +100,7 @@ export function back(s: S): S {
 export function touchItem(s: S, item: Item): S {
   const cur = focused(s);
   if (cur?.id === item.id && s.tv === "launcher" && !s.fresh) return item.kind === "night" ? { ...s, tv: "detail", detailBtn: 0 } : startItem(s, item);
-  return { ...s, tv: "launcher", fresh: false, focus: positionOf(s, item.id) };
+  return { ...s, tv: "launcher", fresh: false, homeFrom: null, focus: positionOf(s, item.id) };
 }
 
 export const DUEL_RACK = ["O", "W", "N", "E", "R", "S", "A"];
