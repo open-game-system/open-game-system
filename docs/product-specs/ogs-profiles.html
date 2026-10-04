@@ -146,8 +146,6 @@ td.area { font-weight: 700; white-space: nowrap }
 .notif { background: rgba(255,255,255,.88); color: #17161a; border-radius: 12px; padding: 8px 9px; font: 600 11.5px/1.3 var(--display); display: flex; gap: 8px; align-items: flex-start }
 .notif small { display: block; font: 400 10.5px/1.3 var(--display); color: #57545e }
 .btnrow { display: flex; gap: 6px; align-items: center; justify-content: center }
-.idt td, .idt th { text-align: center } .idt td:first-child, .idt th:first-child { text-align: left }
-.idt td code { font-size: 13px }
 .done { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
 .done .panel { display: flex; gap: 12px; align-items: baseline; padding: 14px 16px }
 .done .qn { font: 600 11px var(--mono); color: var(--ok); flex: none; width: 22px }
@@ -205,7 +203,7 @@ td.area { font-weight: 700; white-space: nowrap }
         <div class="avs" style="margin-top:24px"><span class="av lg bear">bear</span></div>
         <div class="ttl" style="text-align:center">Hi, Jonathan</div>
         <div class="t" style="text-align:center">@jonathan.m</div>
-        <div class="t" style="text-align:center">Games see your name and sticker. Never your friends or other games.</div>
+        <div class="t" style="text-align:center">Games see your @id, name and sticker. Never your friends or other games.</div>
         <div class="grow"></div>
         <div class="btn hot">Let's go</div>
         <div class="btn ghost">Back up your profile</div>
@@ -345,10 +343,10 @@ td.area { font-weight: 700; white-space: nowrap }
 <!-- 3 · IDENTITY TO GAMES -->
 <section>
   <span class="kicker">3 · Games know who you are</span>
-  <h2>A signed, per-game profile token</h2>
+  <h2>A signed profile token, scoped to one game</h2>
   <p class="sub">Phone WebView: new <code>profile</code> bridge store. TV page: <code>ogs:start.token</code> (empty today) names the players. Game servers verify with OGS's public key.</p>
   <div class="flow">
-    <svg viewBox="0 0 900 300" role="img" aria-label="The OGS API mints per-game tokens; the app passes one to the game WebView via the profile bridge store; the TV launcher passes a session token in ogs:start; the game server verifies with the public key.">
+    <svg viewBox="0 0 900 300" role="img" aria-label="The OGS API mints game-scoped tokens; the app passes one to the game WebView via the profile bridge store; the TV launcher passes a session token in ogs:start; the game server verifies with the public key.">
       <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
       <rect class="box hot" x="20" y="115" width="170" height="70" rx="10"/>
       <text x="105" y="145" text-anchor="middle">OGS API</text>
@@ -386,14 +384,16 @@ td.area { font-weight: 700; white-space: nowrap }
 const me = useOgsProfile();
 <span class="c">// undefined → asking the app (≤300 ms)</span>
 <span class="c">// null      → plain browser: ask for a name</span>
-<span class="c">// { id, name, avatar, token }</span>
-<span class="c">//   id:     per-game, stable ("rc_7Hq2")</span>
+<span class="c">// { id, handle, name, avatar, token }</span>
+<span class="c">//   id:     OGS profile id ("p_4Kq8…")</span>
+<span class="c">//   handle: "@juneau.m"</span>
 <span class="c">//   avatar: https URL of the sticker</span>
-<span class="c">//   token:  JWT, aud = this game, 1 h</span>
+<span class="c">//   token:  JWT, aud = this game, 1 h:</span>
+<span class="c">//           can't be replayed to another game</span>
 
 <span class="c">// TV page</span>
 const { players, token } = useOgsSession();
-<span class="c">// players: [{ id, name, avatar }]</span></pre>
+<span class="c">// players: [{ id, handle, name, avatar }]</span></pre>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <span class="tag">Rocket Crew: NameGate skips itself</span>
@@ -441,35 +441,23 @@ export function NameGate({ onJoin, full }) {
     </div>
   </div>
 
-  <span class="tag">One person, a different id in every game</span>
-  <div class="tbl"><table class="idt" style="min-width:560px">
-    <thead><tr><th>Profile</th><th>OGS (never shared)</th><th>Rocket Crew sees</th><th>Bake Shop sees</th><th>Night Flight sees</th></tr></thead>
-    <tbody>
-      <tr><td><span class="person" style="display:inline-flex;border:0;padding:0;background:none"><span class="av sm dragon"></span>Juneau</span></td><td><code>@juneau.m</code></td><td><code>rc_7Hq2</code></td><td><code>bs_K9xm</code></td><td><code>nf_2Lpw</code></td></tr>
-      <tr><td><span class="person" style="display:inline-flex;border:0;padding:0;background:none"><span class="av sm bear"></span>Jonathan</span></td><td><code>@jonathan.m</code></td><td><code>rc_Va81</code></td><td><code>bs_3Tdq</code></td><td><code>nf_Qz6e</code></td></tr>
-    </tbody>
-  </table></div>
-  <div class="grid">
-    <div class="panel"><span class="tag">Why</span><p style="margin:6px 0 0">Games comparing or leaking databases can't join a kid's history across games.</p></div>
-    <div class="panel"><span class="tag">Why</span><p style="margin:6px 0 0">Cross-game features (friends, Playing, the couch) belong to OGS, not games.</p></div>
-    <div class="panel"><span class="tag">Why</span><p style="margin:6px 0 0">Same model as Sign in with Apple's per-developer ids.</p></div>
-  </div>
-
   <div class="seenot">
     <div class="panel yes"><span class="tag">A game sees</span>
       <ul>
-        <li>A per-game id, stable in that game</li>
-        <li>Display name and sticker image URL</li>
+        <li>Your OGS profile id</li>
+        <li>Your @id</li>
+        <li>Display name</li>
+        <li>Avatar (sticker image URL)</li>
         <li>On the TV: who's playing this game in this session</li>
       </ul>
     </div>
     <div class="panel no"><span class="tag">A game never sees</span>
       <ul>
-        <li>Your @id or OGS profile id</li>
-        <li>Your age, or whether you're a kid</li>
-        <li>Your friends, or who's on the couch but not in the game</li>
+        <li>Your friends list</li>
         <li>Your other games</li>
-        <li>Device ids, push tokens, sign-in details, the app's own token</li>
+        <li>Device ids or push tokens</li>
+        <li>The app's own OGS token</li>
+        <li>Your age</li>
       </ul>
     </div>
   </div>
@@ -502,9 +490,9 @@ RESEND_BASE_URL=http://localhost:…/resend</pre>
   <div class="tbl"><table>
     <thead><tr><th>Area</th><th>Today</th><th>Now</th></tr></thead>
     <tbody>
-      <tr><td class="area">ogs-protocol · token.ts</td><td><code>{ hid, did, pid?, kind, exp }</code> HS256</td><td>App token <code>{ sub: profileId, did, kind, exp }</code>. New <code>GameTokenSchema { aud: appId, sub: per-game id, name, avatar, sid?, exp }</code>, ES256.</td></tr>
+      <tr><td class="area">ogs-protocol · token.ts</td><td><code>{ hid, did, pid?, kind, exp }</code> HS256</td><td>App token <code>{ sub: profileId, did, kind, exp }</code>. New <code>GameTokenSchema { aud: appId, sub: profileId, handle, name, avatar, sid?, exp }</code>, ES256, 1 h.</td></tr>
       <tr><td class="area">ogs-protocol · session.ts</td><td><code>householdId</code>, <code>personId</code></td><td><code>sessionId</code>, <code>hostProfileId</code>, <code>profileId</code> on hello and roster, <code>members[]</code>. Reducer rules unchanged.</td></tr>
-      <tr><td class="area">ogs-protocol · frame.ts</td><td><code>ogs:start.token: ""</code></td><td>Session game token (aud = appId) and players with per-game id, name, avatar.</td></tr>
+      <tr><td class="area">ogs-protocol · frame.ts</td><td><code>ogs:start.token: ""</code></td><td>Session game token (aud = appId) and players with profile id, @id, name, avatar.</td></tr>
       <tr><td class="area">app bridge</td><td><code>ogs</code> store</td><td>New <code>profile</code> store <code>{ id, name, avatar, token }</code>. New <code>@open-game-system/profile-kit</code>.</td></tr>
       <tr><td class="area">API routes</td><td class="del"><code>/households</code>, <code>/:hid/devices</code>, <code>/:hid/launcher-token</code>, <code>/:hid/library</code>, <code>/:hid/instances</code></td><td class="new"><code>POST /profiles</code> · <code>GET/PATCH /me</code> · <code>POST /auth/apple</code>, <code>/auth/google</code>, <code>/auth/email/start</code>, <code>/auth/email/verify</code> · <code>/friends</code> (invite, accept, list, remove) · <code>POST /sessions</code>, <code>/sessions/:sid/join</code> · <code>POST /games/:appId/token</code> · <code>/me/library</code>, <code>/me/instances</code> · <code>GET/PUT /me/notifications</code> · <code>/.well-known/jwks.json</code></td></tr>
       <tr><td class="area">schema.sql</td><td class="del"><code>households</code>, <code>household_people</code>, <code>household_devices</code></td><td class="new"><code>profiles(id, handle, name, sticker)</code>, <code>profile_logins(provider, subject, profile_id)</code>, <code>profile_devices</code>, <code>friendships</code>, <code>friend_invites</code>, <code>notification_settings</code>; library and instances keyed by profile</td></tr>
@@ -522,7 +510,7 @@ RESEND_BASE_URL=http://localhost:…/resend</pre>
       <p style="margin:8px 0 0;font-size:14px"><code>2026-03-15-ogs-app-onboarding.feature</code>: profile page between pages 2 and 3; completion offers Back up.</p>
     </div>
     <div class="panel"><span class="tag">Acceptance: new ogs-profiles.feature</span>
-      <p style="margin:8px 0 0;font-size:14px">Create a profile · taken @id suggests another · set up a profile on another device without sign-in · back up with Apple / Google / email (emulated) · sign in on a new phone restores @id and friends · add a friend by QR / code / link / @id · request shows in Friends · friend sees Join while you cast · casting push respects its switch · friend-joined push · non-friend joins by TV code · game gets the name, no form · TV page gets players · same person, different id per game · game A's token rejected by game B · token has no friends and no age · plain browser falls back to NameGate.</p>
+      <p style="margin:8px 0 0;font-size:14px">Create a profile · taken @id suggests another · set up a profile on another device without sign-in · back up with Apple / Google / email (emulated) · sign in on a new phone restores @id and friends · add a friend by QR / code / link / @id · request shows in Friends · friend sees Join while you cast · casting push respects its switch · friend-joined push · non-friend joins by TV code · game gets the name, no form · TV page gets players · game gets profile id and @id · game A's token rejected by game B · token has no friends and no age · plain browser falls back to NameGate.</p>
     </div>
   </div>
 </section>
@@ -535,7 +523,7 @@ RESEND_BASE_URL=http://localhost:…/resend</pre>
     <div class="panel"><span class="qn">Q1</span><div><b>Unique @id</b> <span class="t2">pre-filled from the name, editable</span></div></div>
     <div class="panel"><span class="qn">Q2</span><div><b>Everyone gets a full profile</b> <span class="t2">no kids concept; Family is later</span></div></div>
     <div class="panel"><span class="qn">Q3</span><div><b>No automatic joining</b> <span class="t2">friends tap Join, others use the TV code; pushes with switches</span></div></div>
-    <div class="panel"><span class="qn">Q4</span><div><b>Per-game id</b> <span class="t2">stable in a game, unlinkable across games</span></div></div>
+    <div class="panel"><span class="qn">Q4</span><div><b>Games get your profile id, @id, name and avatar</b> <span class="t2">tokens stay scoped to one game</span></div></div>
     <div class="panel"><span class="qn">Q5</span><div><b>No age to games</b> <span class="t2">name and sticker only</span></div></div>
     <div class="panel"><span class="qn">Q6</span><div><b>Apple, Google or email</b> <span class="t2">offered after onboarding, not required</span></div></div>
   </div>
