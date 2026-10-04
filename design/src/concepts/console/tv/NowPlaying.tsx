@@ -1,5 +1,6 @@
-// "Now playing": the console's one sentence after a cut (title, resume point, who's in), and the
-// small corner chip it settles into so the game owns the TV again.
+// "Now playing": the console's one line after a cut (title, resume point, who's in) as a strip along
+// the bottom edge, never in the game's focal area, and the small corner chip it collapses into
+// within ~2 s so the game owns the TV again.
 import { gameById } from "../../../world";
 import { resumeDetail, resumePoint } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
@@ -11,15 +12,17 @@ export function NowBand({ gameId, kicker, seats, settle, stagger = 0 }: { gameId
   return (
     <div className={`ct-band ${settle ? "ct-band--settle" : ""}`}>
       <div className="ct-band__scrim" />
-      <section className="ct-band__title">
-        <span className="ct-kicker">{kicker}</span>
-        <h1>{g.name}</h1>
-        <p>
-          {resumePoint(gameId)}
-          {detail ? ` · ${detail}` : ""}
-        </p>
-      </section>
-      <Roster seats={seats} stagger={stagger} />
+      <div className="ct-band__row">
+        <section className="ct-band__title">
+          <span className="ct-kicker">{kicker}</span>
+          <h1>{g.name}</h1>
+          <p>
+            {resumePoint(gameId)}
+            {detail ? ` · ${detail}` : ""}
+          </p>
+        </section>
+        <Roster seats={seats} stagger={stagger} />
+      </div>
     </div>
   );
 }

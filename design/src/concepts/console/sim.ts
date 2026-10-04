@@ -4,14 +4,26 @@
 import { useEffect } from "react";
 import type { Store } from "../../harness/store";
 import { answerInvites, passTurn, US } from "./nights";
-import { advance, type S } from "./state";
+import { advance, type S, type SwitchPhase } from "./state";
+
+/**
+ * How long each phase of a switch holds, in ms. One ordering on every device, cause before effect:
+ *   saving    — phone spins "Saving"; the TV folds the game into a card and fills its save ring.
+ *   cutover   — phone shows ✓; a beat later the same ✓ stamps onto the TV's saved card; the kids'
+ *               characters walk the dotted path on their iPads (TV: their seats are on the way).
+ *   following — the iPads arrive (TV seats check in), then the new game opens from its own tile on the
+ *               TV and on the iPads; the "now playing" strip rises along the TV's bottom edge.
+ * After `following` the strip collapses into the corner chip (TvPlaying, ~1.5 s of CSS), so the whole
+ * switch is ~5.3 s of continuous motion: no frozen tail.
+ */
+export const SWITCH_MS: Record<SwitchPhase, number> = { saving: 1300, cutover: 1500, following: 1300 };
 
 /** The phone drives the switch's timeline (one clock for the whole session; frozen in shots). */
 export function useSwitchClock(s: S, store: Store<S>, shot: boolean) {
   const phase = s.switching?.phase;
   useEffect(() => {
     if (shot || !phase) return;
-    const t = setTimeout(() => store.update(advance), phase === "saving" ? 1300 : 1500);
+    const t = setTimeout(() => store.update(advance), SWITCH_MS[phase]);
     return () => clearTimeout(t);
   }, [phase, shot, store]);
 }

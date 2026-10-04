@@ -19,12 +19,11 @@ export function TvPaused({ gameId }: { gameId: string }) {
         </span>
         <Clock />
       </header>
-      <span className="ct-paused__badge">
+      <span className="ct-paused__badge" aria-hidden>
         <PauseGlyph />
-        Paused · {resumePoint(gameId)}
       </span>
       <section className="ct-paused__info">
-        <span className="ct-kicker">On hold</span>
+        <span className="ct-kicker">Paused · {resumePoint(gameId)}</span>
         <h2>{g.name}</h2>
         <p className="ct-paused__line">{resumeDetail(gameId) || resumePoint(gameId)}</p>
         <p className="ct-paused__note">Switching saves it. Back to it any time tonight.</p>
