@@ -1,0 +1,298 @@
+{
+  "concept": "console",
+  "thresholds": {
+    "minTarget": 44,
+    "contrastBody": 4.5,
+    "contrastLarge": 3,
+    "tvMinText": 24
+  },
+  "summary": {
+    "shots": 11,
+    "targetsUnder44": 0,
+    "contrastFails": 0,
+    "kidWords": 0,
+    "tvSmallText": 0,
+    "clippedText": 0,
+    "textOverlaps": 0,
+    "ackFailures": 0
+  },
+  "tapsPerFlow": [
+    {
+      "flow": "home",
+      "label": "Console home: the phone is the remote",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap",
+      "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap-undo",
+      "label": "Changed our minds: back to Rocket Crew",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "word-duel",
+      "label": "Word Duel: Nana's game, play CRANE, back to the list",
+      "taps": 7,
+      "perDevice": {
+        "phone": 7
+      }
+    },
+    {
+      "flow": "game-night",
+      "label": "A new Hearthisle night across three homes, while turn 14 waits",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "game-night-resume",
+      "label": "Next Friday 8:00: resume turn 14, our roll, pause again",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "your-turn",
+      "label": "A push on Dad's phone → the move → next game waiting, across games",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "tonight",
+      "label": "Friday night: who's here, Play on TV, devices join by name",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "first-run",
+      "label": "First run: the TV, who plays here (stickers), pair the kids' iPads",
+      "taps": 15,
+      "perDevice": {
+        "phone": 15
+      }
+    },
+    {
+      "flow": "continue",
+      "label": "Bake Shop: start a new bakery, keeping day 4",
+      "taps": 4,
+      "perDevice": {
+        "phone": 4
+      }
+    },
+    {
+      "flow": "turn-arrives",
+      "label": "A move arrives while Home is open",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "stream-crash",
+      "label": "The cloud picture freezes mid mission 6; it comes back at mission 6 (0 kid taps, 1 phone tap)",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "remote-handoff",
+      "label": "Jonathan's phone dies mid mission 6; Mom's phone picks up the remote, nothing restarts",
+      "taps": 4,
+      "perDevice": {
+        "ipad": 2,
+        "phone": 2
+      }
+    },
+    {
+      "flow": "save-conflict",
+      "label": "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "home-drop",
+      "label": "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    }
+  ],
+  "shots": [
+    {
+      "name": "home.01-phone-friday--phone",
+      "scenario": "home.01-phone-friday",
+      "label": "Phone home: now playing, your turn, jump back in",
+      "flow": "home",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.02-tv-console-home--tv",
+      "scenario": "home.02-tv-console-home",
+      "label": "TV console home (cast, between games)",
+      "flow": "home",
+      "state": "default",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.02-tv-console-home--phone",
+      "scenario": "home.02-tv-console-home",
+      "label": "TV console home (cast, between games)",
+      "flow": "home",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.06-phone-is-remote--phone",
+      "scenario": "home.06-phone-is-remote",
+      "label": "Phone is the remote: focus Bake Shop, the TV follows",
+      "flow": "home",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.06-phone-is-remote--tv",
+      "scenario": "home.06-phone-is-remote",
+      "label": "Phone is the remote: focus Bake Shop, the TV follows",
+      "flow": "home",
+      "state": "partial",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.03-kid-paired-idle--ipad",
+      "scenario": "home.03-kid-paired-idle",
+      "label": "Juneau's iPad: paired, following tonight",
+      "flow": "home",
+      "state": "default",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.04-library--phone",
+      "scenario": "home.04-library",
+      "label": "Library: couch shelf, game night, duels",
+      "flow": "home",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.07-our-roll--phone",
+      "scenario": "home.07-our-roll",
+      "label": "Our roll in Hearthisle: it joins Your turn beside the duels",
+      "flow": "home",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.08-all-caught-up--phone",
+      "scenario": "home.08-all-caught-up",
+      "label": "Nobody waiting on you; nights still listed",
+      "flow": "home",
+      "state": "empty",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.05-first-run--phone",
+      "scenario": "home.05-first-run",
+      "label": "First run: library ready, living room not set up",
+      "flow": "home",
+      "state": "empty",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "home.09-move-incoming--phone",
+      "scenario": "home.09-move-incoming",
+      "label": "Home, a beat before Tunde's move arrives",
+      "flow": "home",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    }
+  ]
+}

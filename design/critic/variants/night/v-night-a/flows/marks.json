@@ -1,0 +1,60 @@
+{
+  "game-night": {
+    "label": "A new Hearthisle night across three homes, while turn 14 waits",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.831,
+        "text": "A new Hearthisle night across three homes, while turn 14 waits"
+      },
+      {
+        "t": 2.345,
+        "text": "Game nights → New. A new thread; the turn-14 night keeps its own",
+        "device": "phone",
+        "bot": "night-new"
+      },
+      {
+        "t": 4.692,
+        "text": "Send the invite: it becomes the thread's first entry. Pinned on top: what the other homes see of us",
+        "device": "phone",
+        "bot": "invite-send"
+      },
+      {
+        "t": 6.605,
+        "text": "Their view: the same thread on Nana & Pop's phone. Our kids are only our crest",
+        "device": "phone",
+        "bot": "invite-preview"
+      },
+      {
+        "t": 9.521,
+        "text": "Back to ours: both replies have landed in the thread",
+        "device": "phone",
+        "bot": "preview-close"
+      },
+      {
+        "t": 11.432,
+        "text": "Pick our seat: Jonathan + Juneau share blue",
+        "device": "phone",
+        "bot": "night-seats"
+      },
+      {
+        "t": 13.542,
+        "text": "The seat pick posts to the thread for every home",
+        "device": "phone",
+        "bot": "seats-next"
+      },
+      {
+        "t": 15.652,
+        "text": "Start: 'Game on, turn 1'. The board is the thread's live attachment",
+        "device": "phone",
+        "bot": "night-start"
+      },
+      {
+        "t": 18.769,
+        "text": "Home: two game nights, one live, one paused",
+        "device": "phone",
+        "bot": "night-back"
+      }
+    ]
+  }
+}

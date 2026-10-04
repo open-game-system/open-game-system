@@ -1,0 +1,284 @@
+{
+  "concept": "console",
+  "thresholds": {
+    "minTarget": 44,
+    "contrastBody": 4.5,
+    "contrastLarge": 3,
+    "tvMinText": 24
+  },
+  "summary": {
+    "shots": 10,
+    "targetsUnder44": 0,
+    "contrastFails": 0,
+    "kidWords": 0,
+    "tvSmallText": 0,
+    "clippedText": 0,
+    "textOverlaps": 0,
+    "ackFailures": 0
+  },
+  "tapsPerFlow": [
+    {
+      "flow": "home",
+      "label": "Console home: the phone is the remote",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap",
+      "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap-undo",
+      "label": "Changed our minds: back to Rocket Crew",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "word-duel",
+      "label": "Word Duel: Nana's game, play CRANE, back to the list",
+      "taps": 7,
+      "perDevice": {
+        "phone": 7
+      }
+    },
+    {
+      "flow": "game-night",
+      "label": "A new Hearthisle night across three homes, while turn 14 waits",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "game-night-resume",
+      "label": "Next Friday 8:00: resume turn 14, our roll, pause again",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "your-turn",
+      "label": "A push on Dad's phone → the move → next game waiting, across games",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "tonight",
+      "label": "Friday night: who's here, Play on TV, devices join by name",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "first-run",
+      "label": "First run: the TV, who plays here (stickers), pair the kids' iPads",
+      "taps": 15,
+      "perDevice": {
+        "phone": 15
+      }
+    },
+    {
+      "flow": "continue",
+      "label": "Bake Shop: start a new bakery, keeping day 4",
+      "taps": 4,
+      "perDevice": {
+        "phone": 4
+      }
+    },
+    {
+      "flow": "turn-arrives",
+      "label": "A move arrives while Home is open",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "stream-crash",
+      "label": "The cloud picture freezes mid mission 6; it comes back at mission 6 (0 kid taps, 1 phone tap)",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "remote-handoff",
+      "label": "Jonathan's phone dies mid mission 6; Mom's phone picks up the remote, nothing restarts",
+      "taps": 4,
+      "perDevice": {
+        "ipad": 2,
+        "phone": 2
+      }
+    },
+    {
+      "flow": "save-conflict",
+      "label": "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "home-drop",
+      "label": "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    }
+  ],
+  "shots": [
+    {
+      "name": "kid.01-ava-idle--ipad",
+      "scenario": "kid.01-ava-idle",
+      "label": "Ava's iPad: paired, nothing on TV for her, a toy",
+      "flow": "home",
+      "state": "default",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.02-menu-paused--ipad",
+      "scenario": "kid.02-menu-paused",
+      "label": "Console menu open: TV paused, Juneau's dragon steps onto the path",
+      "flow": "swap",
+      "state": "partial",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.03-ava-menu-paused--ipad",
+      "scenario": "kid.03-ava-menu-paused",
+      "label": "Console menu open on Ava's iPad",
+      "flow": "swap",
+      "state": "partial",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.04-ava-saving--ipad",
+      "scenario": "kid.04-ava-saving",
+      "label": "Ava's iPad while Rocket Crew saves",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.05-ava-cutover--ipad",
+      "scenario": "kid.05-ava-cutover",
+      "label": "Ava's dinosaur walking the path during the cut",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.06-ava-rocket-helper--ipad",
+      "scenario": "kid.06-ava-rocket-helper",
+      "label": "Ava in Rocket Crew: two giant always-right buttons",
+      "flow": "swap",
+      "state": "default",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.07-undo-follow--ipad",
+      "scenario": "kid.07-undo-follow",
+      "label": "Undo: Juneau's dragon walks back to Rocket Crew",
+      "flow": "swap",
+      "state": "undone",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.08-ava-asleep-switching--ipad",
+      "scenario": "kid.08-ava-asleep-switching",
+      "label": "Ava's iPad asleep at 9% while everyone moves: she stays asleep, seat kept",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.09-juneau-bake-switch-following--ipad",
+      "scenario": "kid.09-juneau-bake-switch-following",
+      "label": "Juneau's iPad: Bake Shop opens wide around the dragon",
+      "flow": "swap",
+      "state": "partial",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "kid.10-ava-mash-cutover--ipad",
+      "scenario": "kid.10-ava-mash-cutover",
+      "label": "Ava mashes her iPad during the cut: every tap sparkles, her dinosaur giggles, nothing changes",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    }
+  ]
+}

@@ -1,0 +1,550 @@
+{
+  "concept": "v-swap-b",
+  "thresholds": {
+    "minTarget": 44,
+    "contrastBody": 4.5,
+    "contrastLarge": 3,
+    "tvMinText": 24
+  },
+  "summary": {
+    "shots": 29,
+    "targetsUnder44": 0,
+    "contrastFails": 0,
+    "kidWords": 0,
+    "tvSmallText": 0,
+    "clippedText": 0,
+    "textOverlaps": 0,
+    "ackFailures": 0
+  },
+  "tapsPerFlow": [
+    {
+      "flow": "home",
+      "label": "Console home: the phone is the remote",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap",
+      "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap-undo",
+      "label": "Changed our minds: back to Rocket Crew",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "word-duel",
+      "label": "Word Duel: Nana's game, play CRANE, back to the list",
+      "taps": 7,
+      "perDevice": {
+        "phone": 7
+      }
+    },
+    {
+      "flow": "game-night",
+      "label": "A new Hearthisle night across three homes, while turn 14 waits",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "game-night-resume",
+      "label": "Next Friday 8:00: resume turn 14, our roll, pause again",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "your-turn",
+      "label": "A push on Dad's phone → the move → next game waiting, across games",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "tonight",
+      "label": "Friday night: who's here, Play on TV, devices join by name",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "first-run",
+      "label": "First run: the TV, who plays here (stickers), pair the kids' iPads",
+      "taps": 15,
+      "perDevice": {
+        "phone": 15
+      }
+    },
+    {
+      "flow": "continue",
+      "label": "Bake Shop: start a new bakery, keeping day 4",
+      "taps": 4,
+      "perDevice": {
+        "phone": 4
+      }
+    },
+    {
+      "flow": "turn-arrives",
+      "label": "A move arrives while Home is open",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "stream-crash",
+      "label": "The cloud picture freezes mid mission 6; it comes back at mission 6 (0 kid taps, 1 phone tap)",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "remote-handoff",
+      "label": "Jonathan's phone dies mid mission 6; Mom's phone picks up the remote, nothing restarts",
+      "taps": 4,
+      "perDevice": {
+        "ipad": 2,
+        "phone": 2
+      }
+    },
+    {
+      "flow": "save-conflict",
+      "label": "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "home-drop",
+      "label": "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    }
+  ],
+  "shots": [
+    {
+      "name": "swap.01-mid-rocket-crew--phone",
+      "scenario": "swap.01-mid-rocket-crew",
+      "label": "Mid Rocket Crew: Dad captains, Juneau fixes",
+      "flow": "swap",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.01-mid-rocket-crew--ipad",
+      "scenario": "swap.01-mid-rocket-crew",
+      "label": "Mid Rocket Crew: Dad captains, Juneau fixes",
+      "flow": "swap",
+      "state": "default",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.01-mid-rocket-crew--tv",
+      "scenario": "swap.01-mid-rocket-crew",
+      "label": "Mid Rocket Crew: Dad captains, Juneau fixes",
+      "flow": "swap",
+      "state": "default",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.02-console-menu--phone",
+      "scenario": "swap.02-console-menu",
+      "label": "Console button: pick the next game",
+      "flow": "swap",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.02-console-menu--tv",
+      "scenario": "swap.02-console-menu",
+      "label": "Console button: pick the next game",
+      "flow": "swap",
+      "state": "default",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.03-saving--phone",
+      "scenario": "swap.03-saving",
+      "label": "Saving Rocket Crew at mission 6",
+      "flow": "swap",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.03-saving--tv",
+      "scenario": "swap.03-saving",
+      "label": "Saving Rocket Crew at mission 6",
+      "flow": "swap",
+      "state": "loading",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.03-saving--ipad",
+      "scenario": "swap.03-saving",
+      "label": "Saving Rocket Crew at mission 6",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.04-tv-cutover--tv",
+      "scenario": "swap.04-tv-cutover",
+      "label": "TV cuts over to Bake Shop",
+      "flow": "swap",
+      "state": "loading",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.04-tv-cutover--phone",
+      "scenario": "swap.04-tv-cutover",
+      "label": "TV cuts over to Bake Shop",
+      "flow": "swap",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.04-tv-cutover--ipad",
+      "scenario": "swap.04-tv-cutover",
+      "label": "TV cuts over to Bake Shop",
+      "flow": "swap",
+      "state": "loading",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.05-kids-follow--ipad",
+      "scenario": "swap.05-kids-follow",
+      "label": "Kid iPads follow by name",
+      "flow": "swap",
+      "state": "partial",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.05-kids-follow--tv",
+      "scenario": "swap.05-kids-follow",
+      "label": "Kid iPads follow by name",
+      "flow": "swap",
+      "state": "partial",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.05-kids-follow--phone",
+      "scenario": "swap.05-kids-follow",
+      "label": "Kid iPads follow by name",
+      "flow": "swap",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.06-everyone-in--phone",
+      "scenario": "swap.06-everyone-in",
+      "label": "Bake Shop day 4, everyone in their seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.06-everyone-in--tv",
+      "scenario": "swap.06-everyone-in",
+      "label": "Bake Shop day 4, everyone in their seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.06-everyone-in--ipad",
+      "scenario": "swap.06-everyone-in",
+      "label": "Bake Shop day 4, everyone in their seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.07-ava-helper--ipad",
+      "scenario": "swap.07-ava-helper",
+      "label": "Ava's iPad: littlest helper",
+      "flow": "swap",
+      "state": "success",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.08-ava-asleep-switching--tv",
+      "scenario": "swap.08-ava-asleep-switching",
+      "label": "Ava's iPad asleep (9%) while everyone moves",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.08-ava-asleep-switching--phone",
+      "scenario": "swap.08-ava-asleep-switching",
+      "label": "Ava's iPad asleep (9%) while everyone moves",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.09-ava-asleep--phone",
+      "scenario": "swap.09-ava-asleep",
+      "label": "Ava's iPad didn't follow: seat saved",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.09-ava-asleep--ipad",
+      "scenario": "swap.09-ava-asleep",
+      "label": "Ava's iPad didn't follow: seat saved",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.10-ava-wakes--phone",
+      "scenario": "swap.10-ava-wakes",
+      "label": "Ava's iPad wakes and drops into her seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.10-ava-wakes--ipad",
+      "scenario": "swap.10-ava-wakes",
+      "label": "Ava's iPad wakes and drops into her seat",
+      "flow": "swap",
+      "state": "success",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.11-undo-back--phone",
+      "scenario": "swap.11-undo-back",
+      "label": "Undo: back to Rocket Crew mission 6",
+      "flow": "swap",
+      "state": "undone",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.11-undo-back--tv",
+      "scenario": "swap.11-undo-back",
+      "label": "Undo: back to Rocket Crew mission 6",
+      "flow": "swap",
+      "state": "undone",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.11-undo-back--ipad",
+      "scenario": "swap.11-undo-back",
+      "label": "Undo: back to Rocket Crew mission 6",
+      "flow": "swap",
+      "state": "undone",
+      "device": "ipad",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.06b-tv-settled--tv",
+      "scenario": "swap.06b-tv-settled",
+      "label": "TV 4 s after the cut: the game owns the screen, a corner chip remains",
+      "flow": "swap",
+      "state": "success",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "swap.09b-tv-asleep-settled--tv",
+      "scenario": "swap.09b-tv-asleep-settled",
+      "label": "TV after the cut with Ava's iPad asleep: her seat waits, dimmed in the chip",
+      "flow": "swap",
+      "state": "interrupted",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    }
+  ]
+}

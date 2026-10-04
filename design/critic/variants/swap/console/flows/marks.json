@@ -1,0 +1,24 @@
+{
+  "swap": {
+    "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 0.776,
+        "text": "Rocket Crew mission 6 → Bake Shop day 4, every device"
+      },
+      {
+        "t": 2.292,
+        "text": "Dad presses the console button: Rocket Crew pauses on the TV, the next games come up",
+        "device": "phone",
+        "bot": "console-home"
+      },
+      {
+        "t": 4.656,
+        "text": "Picks Bake Shop: mission 6 saves, the TV cuts over, Juneau's iPad follows on its own",
+        "device": "phone",
+        "bot": "next-bake-shop"
+      }
+    ]
+  }
+}

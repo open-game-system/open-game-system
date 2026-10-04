@@ -1,0 +1,60 @@
+{
+  "game-night": {
+    "label": "A new Hearthisle night across three homes, while turn 14 waits",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.777,
+        "text": "A new Hearthisle night across three homes, while turn 14 waits"
+      },
+      {
+        "t": 2.288,
+        "text": "Game nights → New: an empty table. The paused night (turn 14) keeps its place",
+        "device": "phone",
+        "bot": "night-new"
+      },
+      {
+        "t": 4.621,
+        "text": "A chair for each home we play with. Invite 2: their lights blink, on the way",
+        "device": "phone",
+        "bot": "invite-send"
+      },
+      {
+        "t": 6.33,
+        "text": "See what Nana & Pop see: the invite, their accept or decline",
+        "device": "phone",
+        "bot": "invite-preview"
+      },
+      {
+        "t": 9.04,
+        "text": "Both chairs light up as the homes say yes",
+        "device": "phone",
+        "bot": "preview-close"
+      },
+      {
+        "t": 10.947,
+        "text": "Our chair: Jonathan + Juneau share blue. The lock: other homes see 'The Mumms', never the kids",
+        "device": "phone",
+        "bot": "seat-hh-mumm"
+      },
+      {
+        "t": 13.059,
+        "text": "Juneau gets his own chair: a green seat joins the table",
+        "device": "phone",
+        "bot": "seat-split"
+      },
+      {
+        "t": 15.169,
+        "text": "Start, from the host tray: turn 1 on every home's screen; the lamp points at the Okafors",
+        "device": "phone",
+        "bot": "night-start"
+      },
+      {
+        "t": 17.282,
+        "text": "Home: two game nights, one live (the rolls go on: Nana & Pop, then us), one paused",
+        "device": "phone",
+        "bot": "night-back"
+      }
+    ]
+  }
+}

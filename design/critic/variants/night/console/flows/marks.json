@@ -1,0 +1,60 @@
+{
+  "game-night": {
+    "label": "A new Hearthisle night across three homes, while turn 14 waits",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.773,
+        "text": "A new Hearthisle night across three homes, while turn 14 waits"
+      },
+      {
+        "t": 2.288,
+        "text": "Game nights → New. The paused night (turn 14) keeps its place",
+        "device": "phone",
+        "bot": "night-new"
+      },
+      {
+        "t": 4.609,
+        "text": "Invite the Okafors and Nana & Pop. Other homes see 'The Mumms · blue', never the kids",
+        "device": "phone",
+        "bot": "invite-send"
+      },
+      {
+        "t": 6.324,
+        "text": "See what Nana & Pop see: the invite, their accept or decline",
+        "device": "phone",
+        "bot": "invite-preview"
+      },
+      {
+        "t": 9.04,
+        "text": "Both homes say yes while we look",
+        "device": "phone",
+        "bot": "preview-close"
+      },
+      {
+        "t": 10.954,
+        "text": "Seats: a seat is a person or a whole home. Jonathan + Juneau share blue",
+        "device": "phone",
+        "bot": "night-seats"
+      },
+      {
+        "t": 13.267,
+        "text": "Where each home plays: our TV, their TV, Nana & Pop on phones",
+        "device": "phone",
+        "bot": "seats-next"
+      },
+      {
+        "t": 15.579,
+        "text": "Start: turn 1 on our TV; the Okafors roll first, ours comes next",
+        "device": "phone",
+        "bot": "night-start"
+      },
+      {
+        "t": 17.696,
+        "text": "Home: two game nights, one live (the rolls go on: Nana & Pop, then us), one paused",
+        "device": "phone",
+        "bot": "night-back"
+      }
+    ]
+  }
+}

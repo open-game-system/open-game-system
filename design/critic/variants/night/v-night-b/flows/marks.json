@@ -1,0 +1,60 @@
+{
+  "game-night": {
+    "label": "A new Hearthisle night across three homes, while turn 14 waits",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.76,
+        "text": "A new Hearthisle night across three homes, while turn 14 waits"
+      },
+      {
+        "t": 2.272,
+        "text": "New card. The paused night keeps its ribbon at turn 14",
+        "device": "phone",
+        "bot": "night-new"
+      },
+      {
+        "t": 4.59,
+        "text": "Send copies to the Okafors and Nana & Pop. The back says what they see: the Mumms, never the kids",
+        "device": "phone",
+        "bot": "invite-send"
+      },
+      {
+        "t": 6.3,
+        "text": "Nana & Pop's copy, addressed to them, with their two answers",
+        "device": "phone",
+        "bot": "invite-preview"
+      },
+      {
+        "t": 9.01,
+        "text": "Both homes stamp yes while we look",
+        "device": "phone",
+        "bot": "preview-close"
+      },
+      {
+        "t": 10.923,
+        "text": "Set the table: a place is a person or a whole home. Jonathan + Juneau share blue",
+        "device": "phone",
+        "bot": "night-seats"
+      },
+      {
+        "t": 13.231,
+        "text": "Where each place plays: our TV, their TV, Nana & Pop on phones",
+        "device": "phone",
+        "bot": "seats-next"
+      },
+      {
+        "t": 15.542,
+        "text": "Start: turn 1 on our TV; the Okafors roll first, ours comes next",
+        "device": "phone",
+        "bot": "night-start"
+      },
+      {
+        "t": 17.658,
+        "text": "Home: the paused card with its ribbon; the new night is live on our TV",
+        "device": "phone",
+        "bot": "night-back"
+      }
+    ]
+  }
+}

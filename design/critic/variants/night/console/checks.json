@@ -1,0 +1,438 @@
+{
+  "concept": "console",
+  "thresholds": {
+    "minTarget": 44,
+    "contrastBody": 4.5,
+    "contrastLarge": 3,
+    "tvMinText": 24
+  },
+  "summary": {
+    "shots": 21,
+    "targetsUnder44": 0,
+    "contrastFails": 0,
+    "kidWords": 0,
+    "tvSmallText": 0,
+    "clippedText": 0,
+    "textOverlaps": 0,
+    "ackFailures": 0
+  },
+  "tapsPerFlow": [
+    {
+      "flow": "home",
+      "label": "Console home: the phone is the remote",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap",
+      "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "swap-undo",
+      "label": "Changed our minds: back to Rocket Crew",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "word-duel",
+      "label": "Word Duel: Nana's game, play CRANE, back to the list",
+      "taps": 7,
+      "perDevice": {
+        "phone": 7
+      }
+    },
+    {
+      "flow": "game-night",
+      "label": "A new Hearthisle night across three homes, while turn 14 waits",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "game-night-resume",
+      "label": "Next Friday 8:00: resume turn 14, our roll, pause again",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "your-turn",
+      "label": "A push on Dad's phone → the move → next game waiting, across games",
+      "taps": 8,
+      "perDevice": {
+        "phone": 8
+      }
+    },
+    {
+      "flow": "tonight",
+      "label": "Friday night: who's here, Play on TV, devices join by name",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "first-run",
+      "label": "First run: the TV, who plays here (stickers), pair the kids' iPads",
+      "taps": 15,
+      "perDevice": {
+        "phone": 15
+      }
+    },
+    {
+      "flow": "continue",
+      "label": "Bake Shop: start a new bakery, keeping day 4",
+      "taps": 4,
+      "perDevice": {
+        "phone": 4
+      }
+    },
+    {
+      "flow": "turn-arrives",
+      "label": "A move arrives while Home is open",
+      "taps": 2,
+      "perDevice": {
+        "phone": 2
+      }
+    },
+    {
+      "flow": "stream-crash",
+      "label": "The cloud picture freezes mid mission 6; it comes back at mission 6 (0 kid taps, 1 phone tap)",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    },
+    {
+      "flow": "remote-handoff",
+      "label": "Jonathan's phone dies mid mission 6; Mom's phone picks up the remote, nothing restarts",
+      "taps": 4,
+      "perDevice": {
+        "ipad": 2,
+        "phone": 2
+      }
+    },
+    {
+      "flow": "save-conflict",
+      "label": "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind",
+      "taps": 3,
+      "perDevice": {
+        "phone": 3
+      }
+    },
+    {
+      "flow": "home-drop",
+      "label": "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
+      "taps": 1,
+      "perDevice": {
+        "phone": 1
+      }
+    }
+  ],
+  "shots": [
+    {
+      "name": "game-night.01-lane--phone",
+      "scenario": "game-night.01-lane",
+      "label": "Home: Game nights lane, Hearthisle paused at turn 14",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.02-paused-night--phone",
+      "scenario": "game-night.02-paused-night",
+      "label": "Hearthisle night: paused at turn 14, tonight 8:00, Nana & Pop not back",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.03-new-while-paused--phone",
+      "scenario": "game-night.03-new-while-paused",
+      "label": "New game night: pick homes; turn 14 keeps its place",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.04-kid-names-on--phone",
+      "scenario": "game-night.04-kid-names-on",
+      "label": "Trust: show Juneau's name to the other homes (off by default)",
+      "flow": "game-night",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.05-invites-out--phone",
+      "scenario": "game-night.05-invites-out",
+      "label": "Invites sent: Okafors and Nana & Pop deciding",
+      "flow": "game-night",
+      "state": "loading",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.06-what-they-see--phone",
+      "scenario": "game-night.06-what-they-see",
+      "label": "What Nana & Pop see: the invite, accept or decline",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.07-everyone-in--phone",
+      "scenario": "game-night.07-everyone-in",
+      "label": "Both homes said yes",
+      "flow": "game-night",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.08-seats--phone",
+      "scenario": "game-night.08-seats",
+      "label": "Seats: Jonathan + Juneau share blue; a seat is a person or a home",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.09-seats-split--phone",
+      "scenario": "game-night.09-seats-split",
+      "label": "Seats: Juneau gets his own (green)",
+      "flow": "game-night",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.10-where--phone",
+      "scenario": "game-night.10-where",
+      "label": "Where each home plays: our TV, their TV, Nana & Pop on phones",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.11-started--phone",
+      "scenario": "game-night.11-started",
+      "label": "Started: turn 1, Okafors rolling, ours next",
+      "flow": "game-night",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.11-started--tv",
+      "scenario": "game-night.11-started",
+      "label": "Started: turn 1, Okafors rolling, ours next",
+      "flow": "game-night",
+      "state": "success",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.12-two-nights--phone",
+      "scenario": "game-night.12-two-nights",
+      "label": "Home: two game nights, one paused, one live",
+      "flow": "game-night",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.13-declined--phone",
+      "scenario": "game-night.13-declined",
+      "label": "Nana & Pop declined: their seat leaves, the night still works",
+      "flow": "game-night",
+      "state": "error",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.14-everyone-back--phone",
+      "scenario": "game-night.14-everyone-back",
+      "label": "Friday 8:00: every home is back, resume turn 14",
+      "flow": "game-night",
+      "state": "default",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.15-resumed--phone",
+      "scenario": "game-night.15-resumed",
+      "label": "Resumed: turn 14, Nana & Pop rolling, ours next",
+      "flow": "game-night",
+      "state": "success",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.15-resumed--tv",
+      "scenario": "game-night.15-resumed",
+      "label": "Resumed: turn 14, Nana & Pop rolling, ours next",
+      "flow": "game-night",
+      "state": "success",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.16-our-roll--phone",
+      "scenario": "game-night.16-our-roll",
+      "label": "Our roll across homes: Controller or pause",
+      "flow": "game-night",
+      "state": "partial",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.16-our-roll--tv",
+      "scenario": "game-night.16-our-roll",
+      "label": "Our roll across homes: Controller or pause",
+      "flow": "game-night",
+      "state": "partial",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.17-paused-again--phone",
+      "scenario": "game-night.17-paused-again",
+      "label": "Paused at turn 15: resumes when everyone's back, next Friday",
+      "flow": "game-night",
+      "state": "interrupted",
+      "device": "phone",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    },
+    {
+      "name": "game-night.40-tv-our-board--tv",
+      "scenario": "game-night.40-tv-our-board",
+      "label": "Game night on the living room TV: the shared board, our seat and whose turn",
+      "flow": "game-night",
+      "state": "default",
+      "device": "tv",
+      "targetsUnder44": [],
+      "contrastFails": [],
+      "kidWords": [],
+      "tvSmallText": [],
+      "clippedText": [],
+      "textOverlaps": []
+    }
+  ]
+}

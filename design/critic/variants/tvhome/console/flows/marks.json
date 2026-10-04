@@ -1,0 +1,30 @@
+{
+  "tonight": {
+    "label": "Friday night: who's here, Play on TV, devices join by name",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 0.75,
+        "text": "Friday night: who's here, Play on TV, devices join by name"
+      },
+      {
+        "t": 2.262,
+        "text": "Who's on the couch tonight? Mom's out; Juneau and Ava are in",
+        "device": "phone",
+        "bot": "couch-who"
+      },
+      {
+        "t": 4.394,
+        "text": "Three on the couch",
+        "device": "phone",
+        "bot": "who-done"
+      },
+      {
+        "t": 5.904,
+        "text": "Play on TV: the living room TV connects, the iPads join by name",
+        "device": "phone",
+        "bot": "play-on-tv"
+      }
+    ]
+  }
+}

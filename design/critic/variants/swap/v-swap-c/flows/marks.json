@@ -1,0 +1,24 @@
+{
+  "swap": {
+    "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 0.768,
+        "text": "Rocket Crew mission 6 → Bake Shop day 4, every device"
+      },
+      {
+        "t": 2.284,
+        "text": "Console button: Rocket Crew just pauses; four games to switch to",
+        "device": "phone",
+        "bot": "console-home"
+      },
+      {
+        "t": 4.241,
+        "text": "Bake Shop: a cut, not a journey. Every device is in in about a second; the receipt stays",
+        "device": "phone",
+        "bot": "next-bake-shop"
+      }
+    ]
+  }
+}

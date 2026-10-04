@@ -1,0 +1,42 @@
+{
+  "your-turn": {
+    "label": "A push on Dad's phone → the move → next game waiting, across games",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.775,
+        "text": "A push on Dad's phone → the move → next game waiting, across games"
+      },
+      {
+        "t": 2.29,
+        "text": "Nana played. The push lands on Dad's phone only, and opens her board",
+        "device": "phone",
+        "bot": "push-open"
+      },
+      {
+        "t": 4.21,
+        "text": "Tiles into the glowing squares",
+        "device": "phone",
+        "bot": "rack-C"
+      },
+      {
+        "t": 9.056,
+        "text": "CRANE for 27. Next waiting on you, whatever the game",
+        "device": "phone",
+        "bot": "play"
+      },
+      {
+        "t": 11.369,
+        "text": "Next: Mom's game",
+        "device": "phone",
+        "bot": "duel-next"
+      },
+      {
+        "t": 13.482,
+        "text": "Back to the list",
+        "device": "phone",
+        "bot": "duel-back"
+      }
+    ]
+  }
+}
