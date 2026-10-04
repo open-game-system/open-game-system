@@ -12,7 +12,7 @@ export interface ReturnPill {
  * - cast: `home`, so the session pauses the game and the launcher shows its box again;
  * - a game that never reported itself: a Tier 0 `visit` (one stable id per game, so visits
  *   collapse to a single Continue entry);
- * - always: the "Back in" return pill.
+ * - always: the "Rejoin" return pill.
  */
 export function leaveGame(input: {
   appId: string | null;

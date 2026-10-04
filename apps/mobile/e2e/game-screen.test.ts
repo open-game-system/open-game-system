@@ -37,7 +37,7 @@ describe("Game Screen", () => {
     await expect(element(by.id("tabLibrary"))).not.toBeVisible();
   });
 
-  it("swipes back from the left edge to the tabs and leaves a Back in pill", async () => {
+  it("swipes back from the left edge to the tabs and leaves a Rejoin pill", async () => {
     // The first-visit hint covers the game and teaches the swipe; swiping on it must work.
     await waitFor(element(by.id("swipeHintOverlay")))
       .toBeVisible()

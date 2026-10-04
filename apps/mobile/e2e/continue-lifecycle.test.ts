@@ -1,7 +1,7 @@
 import { by, element, expect, waitFor } from "detox";
 import { freshLaunchWithOnboardingDone } from "./helpers";
 
-// Spec v3, Getting back in: after swiping back from a game, a "Back in" return pill sits above
+// Spec v3, Getting back in: after swiping back from a game, a "Rejoin" return pill sits above
 // the tabs on every tab. Replaces the Continue list (last 20 URLs), which spec v3 retires in
 // favour of instances. Needs the local API (EXPO_PUBLIC_OGS_API) for the Library's games.
 async function openFirstPhoneGame(): Promise<void> {
@@ -11,7 +11,7 @@ async function openFirstPhoneGame(): Promise<void> {
   await element(by.id("libraryGame-rocket-crew")).tap();
 }
 
-describe("Back in", () => {
+describe("Rejoin", () => {
   beforeAll(async () => {
     await freshLaunchWithOnboardingDone();
   });

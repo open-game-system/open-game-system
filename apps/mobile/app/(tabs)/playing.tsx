@@ -56,7 +56,7 @@ export default function PlayingScreen() {
             {current.label ? <Text style={styles.liveLabel}>{current.label}</Text> : null}
             <Button
               testID="nowPlayingBackIn"
-              label="Back in"
+              label="Rejoin"
               onPress={() => openGame(liveGame)}
               style={styles.liveButton}
             />

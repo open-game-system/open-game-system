@@ -52,7 +52,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
         <Pressable
           testID="returnPill"
           accessibilityRole="button"
-          accessibilityLabel={`Back in to ${pill.name}`}
+          accessibilityLabel={`Rejoin ${pill.name}`}
           style={styles.pill}
           onPress={() => openPill(pill)}
         >
@@ -60,7 +60,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           <Text style={styles.pillName} numberOfLines={1}>
             {pill.name}
           </Text>
-          <Text style={styles.pillAction}>Back in</Text>
+          <Text style={styles.pillAction}>Rejoin</Text>
         </Pressable>
       ) : null}
       <View style={styles.bar}>
