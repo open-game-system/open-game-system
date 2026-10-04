@@ -20,7 +20,7 @@ export function WelcomeStep({
     <View style={styles.page} testID="onboardingWelcome">
       <View style={styles.middle}>
         <TvHero compact={small} />
-        <View style={[styles.text, small && styles.textSmall]}>
+        <View style={styles.text}>
           <Text style={[styles.heading, small && styles.headingSmall]} accessibilityRole="header">
             Your TV is the console
           </Text>
@@ -45,9 +45,8 @@ export function WelcomeStep({
 
 const styles = StyleSheet.create({
   page: { flex: 1, paddingHorizontal: 24, paddingBottom: 16 },
-  middle: { flex: 1, justifyContent: "center" },
-  text: { gap: 8, marginTop: 28 },
-  textSmall: { marginTop: 18 },
+  middle: { flex: 1, justifyContent: "space-evenly" },
+  text: { gap: 8 },
   heading: {
     fontFamily: fonts.display,
     fontSize: 34,

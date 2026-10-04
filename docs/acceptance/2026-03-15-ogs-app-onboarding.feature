@@ -51,25 +51,25 @@ Feature: OGS App Onboarding
       | Turn alerts for board games  |
       | Game invites from friends    |
       | Live game countdowns         |
-    And an "Enable Notifications" button is displayed
-    And a "Maybe Later" link is displayed
+    And a "Turn on notifications" button is displayed
+    And a "Maybe later" button is displayed
 
-  Scenario: Tapping Enable Notifications triggers OS permission dialog
+  Scenario: Tapping Turn on notifications triggers OS permission dialog
     Given the user is on onboarding page 2
-    When the user taps "Enable Notifications"
+    When the user taps "Turn on notifications"
     Then the iOS system notification permission dialog is presented
     When the user grants notification permission
     Then "Make your OGS profile" is displayed
 
-  Scenario: Tapping Enable Notifications and denying still advances
+  Scenario: Tapping Turn on notifications and denying still advances
     Given the user is on onboarding page 2
-    When the user taps "Enable Notifications"
+    When the user taps "Turn on notifications"
     And the user denies notification permission in the OS dialog
     Then "Make your OGS profile" is displayed
 
-  Scenario: Tapping Maybe Later skips permission and advances
+  Scenario: Tapping Maybe later skips permission and advances
     Given the user is on onboarding page 2
-    When the user taps "Maybe Later"
+    When the user taps "Maybe later"
     Then "Make your OGS profile" is displayed
     And no OS notification permission dialog is shown
 
@@ -105,6 +105,7 @@ Feature: OGS App Onboarding
   Scenario: The done page greets and offers Back up
     Given the profile "Jonathan Mumm" "@jonathan.m" was just made
     Then the done page says "Hi, Jonathan" with "@jonathan.m"
+    And it shows the welcome's TV with Jonathan's sticker on the couch in front of it
     And a "Let's go" button is displayed
     And a "Back up your profile" button is displayed
     And page dots show position 4 of 4

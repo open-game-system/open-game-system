@@ -1,0 +1,13 @@
+| Row | Better | Version A | Version B | Evidence |
+|---|---:|---:|---:|---|
+| A — First impression | Same | 8 | 8 | TV-as-console concept reads within three seconds. |
+| B — Identity | A | 8 | 7 | Character pedestal and stronger purple/peach system feel more ownable. |
+| C — Two-path hierarchy | Same | 8 | 8 | “Make my profile” is clearly primary; existing-profile path remains obvious. |
+| D — Craft | A | 8 | 7 | A fixes the muddy brown disabled button and improves button-label casing. |
+| E — Both phone sizes | A | 8 | 7 | A maintains more comfortable rhythm on SE, especially the final screen. |
+| F — Copy | A | 8 | 7 | “Turn on notifications” is more direct and natural; B’s privacy copy is more precise, though. |
+| G — Cross-page consistency | A | 8 | 7 | A’s controls, capitalization, colors, and character presentation cohere better. |
+
+**OVERALL: A**
+
+**Largest gap:** The done screen still feels like a static confirmation rather than a rewarding first-party finish. Add one restrained celebratory character motion and change “Nothing else” to the clearer privacy promise: “Never your friends or other games.”

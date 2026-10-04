@@ -47,7 +47,21 @@ const FADE_MS = 700;
  * The welcome's picture: a living-room TV playing a real game (games change every few seconds),
  * cast from a phone, with the family on the couch in front. Reduced motion: one still game.
  */
-export function TvHero({ compact }: { compact: boolean }) {
+export function TvHero({
+  compact,
+  sitters = COUCH,
+  stickerSize,
+  chip = "Cast from your phone",
+  maxWidth = 360,
+}: {
+  compact: boolean;
+  /** Who's on the couch (sticker ids). */
+  sitters?: readonly string[];
+  stickerSize?: number;
+  /** The label on the TV's corner chip; null for none. */
+  chip?: string | null;
+  maxWidth?: number;
+}) {
   const [shown, setShown] = useState(0);
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -78,14 +92,14 @@ export function TvHero({ compact }: { compact: boolean }) {
   }, [fade]);
 
   const game = GAMES[shown];
-  const sticker = compact ? 48 : 58;
+  const sticker = stickerSize ?? (compact ? 48 : 58);
   return (
     <View
       style={styles.root}
       accessible
       accessibilityLabel="A game on the TV, the family on the couch"
     >
-      <View style={styles.tv}>
+      <View style={[styles.tv, { maxWidth }]}>
         <View style={styles.screen}>
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
             <Image source={game.hero} style={styles.art} resizeMode="cover" />
@@ -98,20 +112,25 @@ export function TvHero({ compact }: { compact: boolean }) {
             <Image source={game.logo} style={styles.logo} resizeMode="contain" />
           </Animated.View>
         </View>
-        <View style={styles.castChip}>
-          <SymbolView
-            name="iphone.radiowaves.left.and.right"
-            size={13}
-            tintColor={colors.ink}
-            weight="semibold"
-          />
-          <Text style={styles.castText}>Cast from your phone</Text>
-        </View>
+        {chip ? (
+          <View style={styles.castChip}>
+            <SymbolView
+              name="iphone.radiowaves.left.and.right"
+              size={13}
+              tintColor={colors.ink}
+              weight="semibold"
+            />
+            <Text style={styles.castText}>{chip}</Text>
+          </View>
+        ) : null}
       </View>
-      <View style={[styles.couch, { marginTop: 10 }]}>
+      {/* The couch sits just in front of the TV: the sitters overlap its bottom edge a little. */}
+      <View
+        style={[styles.couch, { marginTop: -Math.round(sticker * 0.22), maxWidth: maxWidth * 0.8 }]}
+      >
         <View style={styles.couchSeat} />
         <View style={styles.sitters}>
-          {COUCH.map((id) => (
+          {sitters.map((id) => (
             <Sticker key={id} id={id} size={sticker} />
           ))}
         </View>
@@ -148,13 +167,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lamp,
   },
   castText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
-  couch: { width: "78%", alignItems: "center", justifyContent: "flex-end" },
+  couch: { alignItems: "center", justifyContent: "flex-end", paddingHorizontal: 22 },
   couchSeat: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: "55%",
+    height: "50%",
     borderRadius: 18,
     backgroundColor: colors.dusk2,
     borderTopWidth: 1,

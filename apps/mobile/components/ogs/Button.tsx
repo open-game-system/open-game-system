@@ -27,11 +27,18 @@ export function Button({
         styles.base,
         kind === "primary" ? styles.primary : styles.ghost,
         pressed && { opacity: 0.8 },
-        disabled && { opacity: 0.5 },
+        // Disabled: "not yet", in the page's own colours (a half-faded peach reads as brown).
+        disabled && (kind === "primary" ? styles.primaryDisabled : { opacity: 0.5 }),
         style,
       ]}
     >
-      <Text style={[styles.label, kind === "primary" ? styles.primaryLabel : styles.ghostLabel]}>
+      <Text
+        style={[
+          styles.label,
+          kind === "primary" ? styles.primaryLabel : styles.ghostLabel,
+          disabled && kind === "primary" && styles.disabledLabel,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -47,6 +54,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   primary: { backgroundColor: colors.peach },
+  primaryDisabled: { backgroundColor: colors.dusk3 },
+  disabledLabel: { color: colors.cream3 },
   ghost: { borderWidth: 1.5, borderColor: colors.hair, backgroundColor: colors.dusk1 },
   label: { fontSize: 17, fontWeight: "700" },
   primaryLabel: { color: colors.ink },

@@ -43,14 +43,15 @@ export function NotificationsStep({ onNext }: { onNext: () => void }) {
       </View>
       <View style={styles.actions}>
         <Button
-          label="Enable Notifications"
+          label="Turn on notifications"
           testID="onboardingEnableNotificationsButton"
           onPress={() => void enable()}
         />
         <Button
-          label="Maybe Later"
+          label="Maybe later"
           kind="ghost"
           testID="onboardingMaybeLaterButton"
+          style={styles.second}
           onPress={onNext}
         />
       </View>
@@ -87,4 +88,5 @@ const styles = StyleSheet.create({
   },
   benefitText: { color: colors.cream, fontSize: 16 },
   actions: { gap: 12, marginTop: 32 },
+  second: { borderColor: "rgba(251, 242, 228, 0.28)", backgroundColor: colors.dusk2 },
 });
