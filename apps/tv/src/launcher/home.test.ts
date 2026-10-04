@@ -1,7 +1,15 @@
 import type { SuspendedGame } from "@open-game-system/ogs-protocol";
 import { describe, expect, it } from "vitest";
 import { FIXTURE_GAMES, fixtureInstances } from "../session/fixture";
-import { buildHome, homeFocusRows, homeMove, iconArt, recoverFocus, roomArt } from "./home";
+import {
+  buildHome,
+  forKids,
+  homeFocusRows,
+  homeMove,
+  iconArt,
+  recoverFocus,
+  roomArt,
+} from "./home";
 import { SURPRISE_ITEM } from "./shortcuts";
 
 const NOW = new Date(2026, 9, 3, 19, 10).getTime(); // a Saturday, 7:10 pm
@@ -50,12 +58,11 @@ describe("home: a row of game icons, the room, activity cards", () => {
     expect([pg?.tag, pg?.resume]).toEqual(["", "Find who is hiding"]);
   });
 
-  it("puts the latest sitting first, then Surprise me, then the other sittings (paused, then tonight)", () => {
+  it("puts the latest sitting first, then Surprise me, then the next sitting: three large cards", () => {
     expect(home.cards.map((c) => c.itemId)).toEqual([
       "game:~continue:rocket-crew:rc-1",
       SURPRISE_ITEM,
       "game:~continue:bake-shop:bs-1",
-      "game:~continue:story-nook:story-nook-ember",
     ]);
     const first = home.cards[0];
     expect(first?.kind === "sitting" && [first.name, first.tag, first.resume]).toEqual([
@@ -117,12 +124,20 @@ describe("art", () => {
     expect(roomArt({ ...base, art: { tile: "/t.jpg", hero: "/h.jpg", safe } })).toEqual({
       src: "/h.jpg",
       safe,
+      captured: true,
     });
-    expect(roomArt({ ...base, art: { tile: "/t.jpg" } })).toEqual({ src: "/t.jpg" });
+    expect(roomArt({ ...base, art: { tile: "/t.jpg" } })).toEqual({
+      src: "/t.jpg",
+      captured: true,
+    });
   });
   it("uses the square icon, or the cropped tile without one", () => {
     expect(iconArt({ ...base, art: { ...kit("x"), safe } })).toEqual({ src: "/art/x/icon.png" });
-    expect(iconArt({ ...base, art: { tile: "/t.jpg", safe } })).toEqual({ src: "/t.jpg", safe });
+    expect(iconArt({ ...base, art: { tile: "/t.jpg", safe } })).toEqual({
+      src: "/t.jpg",
+      safe,
+      captured: true,
+    });
   });
 });
 
@@ -167,5 +182,35 @@ describe("homeMove: the remote between the icon row and the cards", () => {
   it("goes nowhere down when there are no cards", () => {
     const bare = [rows[0] ?? { id: "games", items: [] }, { id: "activity", items: [] }];
     expect(homeMove(bare, "game:b", "down", null)).toBe("game:b");
+  });
+});
+
+describe("for the kids", () => {
+  const base = FIXTURE_GAMES[0];
+  if (!base) throw new Error("fixture");
+  it("reads a game as kid-friendly from its shop ages (5 and under), or when it says none", () => {
+    expect(forKids({ ...base, shop: { ages: "2+" } })).toBe(true);
+    expect(forKids({ ...base, shop: { ages: "5+" } })).toBe(true);
+    expect(forKids({ ...base, shop: { ages: "10+" } })).toBe(false);
+    expect(forKids({ ...base, shop: {} })).toBe(true);
+  });
+  it("lets Surprise me pick only kid-friendly games", () => {
+    const games = FIXTURE_GAMES.map((g) =>
+      g.appId === "hearthisle" ? { ...g, shop: { ages: "10+" } } : g,
+    );
+    const h = buildHome({ games, instances: [], suspended: [], now: NOW });
+    const surprise = h.cards.find((c) => c.kind === "surprise");
+    expect(surprise?.kind === "surprise" && surprise.pool).not.toContain("hearthisle");
+    expect(surprise?.kind === "surprise" && surprise.pool).toHaveLength(5);
+  });
+  it("marks tonight's game night as upcoming, not a sitting to continue", () => {
+    const h = buildHome({
+      games: FIXTURE_GAMES,
+      instances: fixtureInstances(NOW),
+      suspended: [],
+      now: NOW,
+    });
+    const kinds = h.cards.map((c) => (c.kind === "sitting" ? c.upcoming : c.kind));
+    expect(kinds).toEqual([false, "surprise", true]);
   });
 });

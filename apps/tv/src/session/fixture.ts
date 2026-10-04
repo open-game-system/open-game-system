@@ -8,6 +8,7 @@ const game = (
   tagline: string,
   tv: Manifest["tv"],
   shape: Manifest["shape"] = "couch",
+  ages = "2+",
 ): Manifest => ({
   appId,
   name,
@@ -26,18 +27,25 @@ const game = (
     logo: `/art/${appId}/logo.png`,
     heroClean: `/art/${appId}/hero-clean.jpg`,
   },
-  shop: {},
+  shop: { ages },
   instanceTtlMs: 7 * 24 * 60 * 60 * 1000,
 });
 
 export const FIXTURE_GAMES: Manifest[] = [
-  game("rocket-crew", "Rocket Crew", "Fly the rocket together", "required"),
+  game("rocket-crew", "Rocket Crew", "Fly the rocket together", "required", "couch", "4+"),
   game("bake-shop", "Bake Shop", "Bake what the bears order", "required"),
   game("story-nook", "Story Nook", "Paint a character, tell a story", "required"),
   game("peekaboo-garden", "Peekaboo Garden", "Find who is hiding", "required"),
-  game("night-flight", "Night Flight", "Fly the owls home before sunrise", "required"),
+  game(
+    "night-flight",
+    "Night Flight",
+    "Fly the owls home before sunrise",
+    "required",
+    "couch",
+    "3+",
+  ),
   {
-    ...game("hearthisle", "Hearthisle", "Settle the island", "optional", "live"),
+    ...game("hearthisle", "Hearthisle", "Settle the island", "optional", "live", "10+"),
     // No art kit yet: the launcher falls back to its captures.
     art: { tile: "/art/hearthisle/tv.jpg", hero: "/art/hearthisle/dusk.jpg" },
   },

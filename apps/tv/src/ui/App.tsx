@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { Boot } from "../boot";
 import { buildHome, homeFocusRows, homeMove, recoverFocus } from "../launcher/home";
-import { nameForDevice, phoneOf } from "../launcher/people";
+import { nameForDevice, phoneOf, playersOf } from "../launcher/people";
 import { pageMove, readShortcut, shortcutStart } from "../launcher/shortcuts";
 import type { Connection, SessionClient } from "../session/client";
 import type { LauncherData } from "../session/data";
@@ -131,6 +131,9 @@ function Living(props: {
     [state.suspended, state.remote],
   );
   const send = useCallback((m: ClientMessage) => client.send(m), [client]);
+  const surpriseCard = home.cards.find((c) => c.kind === "surprise");
+  const surprisePool = surpriseCard?.kind === "surprise" ? surpriseCard.pool : [];
+  const playersFor = useCallback((appId: string) => playersOf(state, appId), [state]);
 
   // A keyboard drives the session the way the phone's remote does (development; a TV has none).
   const onKey = useEffectEvent((e: KeyboardEvent) => {
@@ -160,6 +163,7 @@ function Living(props: {
         focus={state.focus}
         session={data.session}
         members={state.members}
+        playersOf={playersFor}
         remoteHolder={remoteHolder}
         now={now}
       />
@@ -168,7 +172,7 @@ function Living(props: {
       )}
       {shortcut?.kind === "surprise" && (
         <Surprise
-          icons={home.icons}
+          icons={home.icons.filter((i) => surprisePool.includes(i.appId))}
           recent={state.suspended[0]?.appId ?? null}
           start={startSurprise}
           send={send}

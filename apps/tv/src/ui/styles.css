@@ -147,6 +147,13 @@ figure {
     linear-gradient(180deg, rgba(18, 8, 24, 0.78) 0%, rgba(18, 8, 24, 0.4) 22%, rgba(18, 8, 24, 0) 34%),
     linear-gradient(0deg, rgba(18, 8, 24, 0.86) 0%, rgba(18, 8, 24, 0.4) 24%, rgba(18, 8, 24, 0) 40%);
 }
+/* A gameplay capture may carry its own captions low in the frame: keep them under the cards. */
+.room[data-captured="true"] .room-scrim {
+  background:
+    linear-gradient(90deg, rgba(18, 8, 24, 0.78) 0%, rgba(18, 8, 24, 0.5) 30%, rgba(18, 8, 24, 0) 52%),
+    linear-gradient(180deg, rgba(18, 8, 24, 0.78) 0%, rgba(18, 8, 24, 0.4) 22%, rgba(18, 8, 24, 0) 34%),
+    linear-gradient(0deg, rgba(18, 8, 24, 0.96) 0%, rgba(18, 8, 24, 0.85) 26%, rgba(18, 8, 24, 0) 50%);
+}
 @keyframes hero-text-in {
   from {
     opacity: 0;
@@ -227,6 +234,17 @@ figure {
   display: block;
   animation: name-in 260ms ease-out both;
 }
+/* The focused card's game: still large and named up top, so you never lose your place. */
+.game-icon.current .game-icon-art {
+  width: 176px;
+  height: 176px;
+  border-radius: 34px;
+  opacity: 1;
+}
+.game-icon.current .game-icon-name {
+  display: block;
+  color: var(--cream-dim);
+}
 @keyframes name-in {
   from {
     opacity: 0;
@@ -288,6 +306,24 @@ figure {
   overflow: hidden;
   line-height: 1.2;
 }
+.spot-players {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--cream-dim);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+.spot-players img {
+  height: 60px;
+  width: auto;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+}
+.spot-players span {
+  margin-left: 12px;
+}
 .spotlight.empty {
   top: 300px;
 }
@@ -303,19 +339,14 @@ figure {
   z-index: 3;
 }
 .card {
-  --w: 264px;
-  --h: 149px;
+  --w: 400px;
+  --h: 225px;
   width: var(--w);
   display: flex;
   flex-direction: column;
   transition:
     transform 220ms var(--ease),
     opacity 220ms;
-}
-/* The latest sitting and Surprise me lead the row, larger. */
-.card:nth-child(-n + 2) {
-  --w: 400px;
-  --h: 225px;
 }
 .card-art {
   position: relative;
@@ -353,15 +384,11 @@ figure {
 }
 .play-mark {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  width: 56px;
-  height: 56px;
-  color: var(--cream);
-}
-.card:nth-child(-n + 2) .play-mark {
+  right: 14px;
+  bottom: 14px;
   width: 72px;
   height: 72px;
+  color: var(--cream);
 }
 .card-name {
   margin-top: 14px;
@@ -771,7 +798,8 @@ figure {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: filter 500ms ease-out 450ms;
+  /* Dims only once it has grown: the tile itself stays bright while it travels. */
+  transition: filter 500ms ease-out 700ms;
 }
 .player.waiting .player-art {
   filter: brightness(0.62) saturate(0.9);
@@ -792,8 +820,8 @@ figure {
 }
 /* While the game grows out of its icon (or shrinks back), the home behind steps back. */
 .launcher:has(.player:is([data-phase="entering"], [data-phase="leaving"])) .home {
-  filter: brightness(0.45);
-  transition: filter 300ms ease-out;
+  filter: brightness(0.3) blur(8px);
+  transition: filter 240ms ease-out;
 }
 .game-frame {
   position: absolute;
@@ -897,6 +925,11 @@ figure {
 }
 
 /* ---------- assembling (connecting) ---------- */
+.assembling {
+  background:
+    radial-gradient(1100px 700px at 75% 45%, rgba(246, 187, 82, 0.16), transparent 70%),
+    radial-gradient(900px 600px at 20% 80%, rgba(196, 98, 61, 0.14), transparent 70%);
+}
 .assembling-hero {
   position: absolute;
   left: var(--safe-x);

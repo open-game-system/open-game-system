@@ -7,6 +7,8 @@ export interface Art {
   src: string;
   /** The HUD crop: only ever on captured gameplay art, never on the clean kit. */
   safe?: Manifest["art"]["safe"];
+  /** A gameplay capture (no clean kit art): it may carry the game's own captions. */
+  captured?: true;
 }
 
 export interface IconModel {
@@ -31,22 +33,37 @@ export type CardModel =
       art: Art;
       tag: string;
       resume: string;
+      /** Tonight's game night: on the calendar, not a sitting to continue. */
+      upcoming: boolean;
     }
-  | { kind: "surprise"; itemId: string; icons: Art[] };
+  | {
+      kind: "surprise";
+      itemId: string;
+      icons: Art[];
+      /** The games Surprise me picks from: the kid-friendly ones. */
+      pool: string[];
+    };
 
 export interface HomeModel {
   icons: IconModel[];
   cards: CardModel[];
 }
 
-const MAX_SITTINGS = 3;
+/** Two sittings and Surprise me: three large cards (the icons carry every other game). */
+const MAX_SITTINGS = 2;
 
 const captured = (src: string, safe: Manifest["art"]["safe"]): Art =>
-  safe ? { src, safe } : { src };
+  safe ? { src, safe, captured: true } : { src, captured: true };
 
 /** The focused game's art for the whole room: the clean hero, else the captured hero cropped. */
 export const roomArt = (g: Manifest): Art =>
   g.art.heroClean ? { src: g.art.heroClean } : captured(g.art.hero ?? g.art.tile, g.art.safe);
+
+/** For the kids: the shop's ages start at 5 or under ("2+"), or the game doesn't say. */
+export function forKids(g: Manifest): boolean {
+  const m = g.shop.ages ? /^(\d+)/.exec(g.shop.ages) : null;
+  return m?.[1] ? Number(m[1]) <= 5 : true;
+}
 
 /** The square icon, else the captured tile cropped. */
 export const iconArt = (g: Manifest): Art =>
@@ -97,16 +114,22 @@ export function buildHome(input: {
               art: roomArt(g),
               tag: b.tag,
               resume: b.resume,
+              upcoming: b.tag.startsWith("Tonight"),
             },
           ]
         : [];
     });
   // Surprise me sits right after the latest sitting: the kids' button is never at the far end.
-  if (icons.length >= 2)
+  const kids = icons.filter((i) => {
+    const g = byId.get(i.appId);
+    return g ? forKids(g) : false;
+  });
+  if (kids.length >= 2)
     cards.splice(Math.min(1, cards.length), 0, {
       kind: "surprise",
       itemId: SURPRISE_ITEM,
-      icons: icons.map((i) => i.icon),
+      icons: kids.map((i) => i.icon),
+      pool: kids.map((i) => i.appId),
     });
   return { icons, cards };
 }

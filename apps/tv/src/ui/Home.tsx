@@ -2,7 +2,7 @@ import type { Member } from "@open-game-system/ogs-protocol";
 import { useEffect, useState } from "react";
 import type { Art, CardModel, HomeModel, IconModel } from "../launcher/home";
 import { clock } from "../launcher/layout";
-import type { CouchSession } from "../session/data";
+import { type CouchSession, stickerUrl } from "../session/data";
 import { safeStyle } from "./art";
 import { Couch } from "./Couch";
 import { roomTitle } from "./copy";
@@ -17,7 +17,8 @@ function spotOf(home: HomeModel, focus: string | null): Spot {
   const icon = home.icons.find((i) => i.itemId === focus);
   if (icon) return { kind: "game", icon };
   const card = home.cards.find((c) => c.itemId === focus);
-  if (card?.kind === "surprise") return { kind: "surprise", icons: home.icons };
+  if (card?.kind === "surprise")
+    return { kind: "surprise", icons: home.icons.filter((i) => card.pool.includes(i.appId)) };
   const game = card && home.icons.find((i) => i.appId === card.appId);
   if (game) return { kind: "game", icon: game };
   const first = home.icons[0];
@@ -33,6 +34,8 @@ export function Home(props: {
   focus: string | null;
   session: CouchSession;
   members: Member[];
+  /** Who played each game last time (its roster), for the spotlight. */
+  playersOf: (appId: string) => Member[];
   remoteHolder: string | null;
   now: number;
 }) {
@@ -52,13 +55,23 @@ export function Home(props: {
       {home.icons.length > 0 ? (
         <div className="icon-row" data-row="games">
           {home.icons.map((i) => (
-            <GameIcon key={i.itemId} icon={i} focused={i.itemId === focus} />
+            <GameIcon
+              key={i.itemId}
+              icon={i}
+              focused={i.itemId === focus}
+              current={inCards && spot?.kind === "game" && spot.icon.appId === i.appId}
+            />
           ))}
         </div>
       ) : (
         <EmptyHero name={props.remoteHolder} />
       )}
-      {spot && <Spotlight spot={spot} />}
+      {spot && (
+        <Spotlight
+          spot={spot}
+          players={spot.kind === "game" ? props.playersOf(spot.icon.appId) : []}
+        />
+      )}
       {home.cards.length > 0 && (
         <div className="cards" data-row="activity">
           {home.cards.map((c) => (
@@ -121,10 +134,12 @@ function useShuffle(spot: Spot): Art | null {
   return spot.icons[tick % Math.max(1, spot.icons.length)]?.room ?? null;
 }
 
-function GameIcon({ icon, focused }: { icon: IconModel; focused: boolean }) {
+/** An icon; `current` is the game of the focused card: it stays large and named, without the ring. */
+function GameIcon(props: { icon: IconModel; focused: boolean; current: boolean }) {
+  const { icon, focused, current } = props;
   return (
     <div
-      className={`game-icon${focused ? " focused" : ""}`}
+      className={`game-icon${focused ? " focused" : ""}${current ? " current" : ""}`}
       data-item={icon.itemId}
       data-focused={focused || undefined}
     >
@@ -138,7 +153,7 @@ function GameIcon({ icon, focused }: { icon: IconModel; focused: boolean }) {
 }
 
 /** The left third: the game's logo, large, and where you left off. */
-function Spotlight({ spot }: { spot: NonNullable<Spot> }) {
+function Spotlight({ spot, players }: { spot: NonNullable<Spot>; players: Member[] }) {
   if (spot.kind === "surprise")
     return (
       <div className="spotlight" key="surprise">
@@ -158,6 +173,14 @@ function Spotlight({ spot }: { spot: NonNullable<Spot> }) {
         {icon.tag && <span className="spot-tag">{icon.tag}</span>}
         <span className="spot-resume">{icon.resume}</span>
       </p>
+      {players.length > 0 && (
+        <p className="spot-players" data-testid="spot-players">
+          {players.map((m) => (
+            <img key={m.profileId} src={stickerUrl(m.sticker)} alt="" />
+          ))}
+          <span>Played last time</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -196,7 +219,7 @@ function Card({ card, focused }: { card: CardModel; focused: boolean }) {
       <div className="card-art">
         <img src={card.art.src} alt="" style={safeStyle(card.art.safe)} />
         <span className="card-tag">{card.tag}</span>
-        <PlayMark />
+        {card.upcoming ? <ClockMark /> : <PlayMark />}
       </div>
       <span className="card-name">{card.name}</span>
       <span className="card-resume">{card.resume}</span>
@@ -219,6 +242,23 @@ function PlayMark() {
     <svg className="play-mark" viewBox="0 0 48 48" aria-hidden="true">
       <circle cx="24" cy="24" r="23" fill="rgba(23,11,31,0.72)" />
       <path d="M19 14 L35 24 L19 34 Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** A clock: tonight's game night is on the calendar, not paused. */
+function ClockMark() {
+  return (
+    <svg className="play-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <circle cx="24" cy="24" r="23" fill="rgba(23,11,31,0.72)" />
+      <circle cx="24" cy="24" r="13" fill="none" stroke="currentColor" strokeWidth="3.5" />
+      <path
+        d="M24 17 V24 L29 28"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

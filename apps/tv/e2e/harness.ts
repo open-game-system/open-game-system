@@ -18,10 +18,9 @@ export const BROKEN_TV = "https://night-flight.jonathanrmumm.workers.dev/tv?room
  * A stand-in for a game's TV page on its own origin. `talks` makes it answer ogs:start with a resume
  * point (the way a game could); without it, it says nothing at all, like today's games.
  */
-function gamePage(art: string, title: string, talks: boolean) {
+function gamePage(art: string, talks: boolean) {
   return `<!doctype html><html><body style="margin:0;background:#000;overflow:hidden">
 <img src="${art}" style="position:fixed;inset:0;width:100%;height:100%;object-fit:cover">
-<div style="position:fixed;left:96px;top:54px;font:800 40px sans-serif;color:#fff;text-shadow:0 2px 8px #000">${title} (framed game page)</div>
 <script>
 window.received = [];
 addEventListener("message", (e) => {
@@ -36,12 +35,12 @@ export async function launch(): Promise<Browser> {
 }
 
 /** Serves a fake game page on the game's own origin, with its art from the launcher's public dir. */
-async function routeGame(page: Page, origin: string, art: string, title: string, talks: boolean) {
+async function routeGame(page: Page, origin: string, art: string, talks: boolean) {
   await page.route(`${origin}/**`, async (r) => {
     const path = new URL(r.request().url()).pathname;
     if (path.startsWith("/art/"))
       return r.fulfill({ response: await page.request.fetch(`${BASE}${path}`) });
-    return r.fulfill({ contentType: "text/html", body: gamePage(art, title, talks) });
+    return r.fulfill({ contentType: "text/html", body: gamePage(art, talks) });
   });
 }
 
@@ -59,14 +58,12 @@ export async function open(
     page,
     "https://rocket-crew.jonathanrmumm.workers.dev",
     "/art/rocket-crew/launch.jpg",
-    "Rocket Crew",
     true,
   );
   await routeGame(
     page,
     "https://bake-shop.jonathanrmumm.workers.dev",
     "/art/bake-shop/bear.jpg",
-    "Bake Shop",
     false,
   );
   // Never answers: a game page that fails to load.

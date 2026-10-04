@@ -65,13 +65,9 @@ describe("TV launcher (fake session)", () => {
     const cards = await page
       .locator('[data-row="activity"] [data-item]')
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
-    expect(cards).toHaveLength(4);
+    expect(cards).toHaveLength(3);
     expect(cards[0]).toMatch(/^game:~continue:bake-shop:/);
-    expect(cards.slice(1)).toEqual([
-      "game:~surprise",
-      "game:~continue:story-nook:story-nook-ember",
-      "game:~continue:hearthisle:hearthisle-night",
-    ]);
+    expect(cards.slice(1)).toEqual(["game:~surprise", "game:~continue:story-nook:story-nook-ember"]);
     expect(
       await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
     ).toContain("Day 4");
@@ -160,8 +156,9 @@ describe("TV launcher (fake session)", () => {
     await page.getByTestId("surprise").waitFor();
     const pick = await page.getByTestId("surprise").getAttribute("data-pick");
     expect(pick).toMatch(/^[a-z-]+$/);
-    // Not the game just played (Bake Shop is the last paused one).
+    // Not the game just played (Bake Shop is the last paused one), and never a grown-up game.
     expect(pick).not.toBe("bake-shop");
+    expect(pick).not.toBe("hearthisle");
     await page.locator('[data-testid=surprise][data-phase="landed"]').waitFor();
     await shot(page, "07-surprise");
     await expect
@@ -180,6 +177,8 @@ describe("TV launcher (fake session)", () => {
     await send(page, { type: "home" });
     await send(page, { type: "focus.set", itemId: "game:rocket-crew" });
     await expect.poll(focused).toBe("game:rocket-crew");
+    // Home's spotlight shows who played it last time, by sticker.
+    expect(await page.locator("[data-testid=spot-players] img").count()).toBe(1);
     await send(page, { type: "select", deviceId: "jonathan-phone" });
     await page.getByTestId("game-page").waitFor();
     expect(await page.locator(".page-players .eyebrow").textContent()).toBe("Playing last time");
