@@ -1,8 +1,7 @@
-import { useEffect } from "react";
 import type { Store } from "../../../harness/store";
 import { useStore } from "../../../harness/store";
-import { answerInvites, passTurn, US } from "../nights";
-import { advance, type S } from "../state";
+import type { S } from "../state";
+import { useCastClock, useNightClock, useSwitchClock } from "../sim";
 import { StatusBar } from "../ui/Brand";
 import { DuelGameView } from "../wordduel/DuelGame";
 import { DuelList } from "../wordduel/DuelList";
@@ -15,47 +14,6 @@ import { Home } from "./Home";
 import { InGame } from "./InGame";
 import { LibraryView } from "./Library";
 import { TabBar } from "./TabBar";
-
-/** The phone drives the switch's timeline (one clock for the whole session; frozen in shots). */
-function useSwitchClock(s: S, store: Store<S>, shot: boolean) {
-  const phase = s.switching?.phase;
-  useEffect(() => {
-    if (shot || !phase) return;
-    const t = setTimeout(() => store.update(advance), phase === "saving" ? 1300 : 1500);
-    return () => clearTimeout(t);
-  }, [phase, shot, store]);
-}
-
-/**
- * The other homes' side of a game night, played by the prototype: invited homes answer a beat after
- * the invite goes out, and while a night is live the other homes take their rolls until it's ours.
- */
-function useNightClock(s: S, store: Store<S>, shot: boolean) {
-  const n = s.nights.list.find((x) => x.id === s.nights.open);
-  const answering = !!n && n.status === "setup" && n.homes.some((h) => h.reply === "invited");
-  const rolling = s.phone === "night" && !!n && n.status === "live" && n.turnOf !== US ? `${n.id}:${n.turn}` : null;
-  useEffect(() => {
-    if (shot || !answering) return;
-    const t = setTimeout(() => store.update((x) => ({ ...x, nights: answerInvites(x.nights) })), 2600);
-    return () => clearTimeout(t);
-  }, [answering, shot, store]);
-  useEffect(() => {
-    if (shot || !rolling) return;
-    const id = rolling.split(":")[0] ?? "";
-    const t = setTimeout(() => store.update((x) => ({ ...x, nights: passTurn(x.nights, id) })), 2200);
-    return () => clearTimeout(t);
-  }, [rolling, shot, store]);
-}
-
-/** The cast connects a beat after Play on TV (frozen in shots). */
-function useCastClock(s: S, store: Store<S>, shot: boolean) {
-  const connecting = s.cast === "connecting";
-  useEffect(() => {
-    if (shot || !connecting) return;
-    const t = setTimeout(() => store.update((x) => ({ ...x, cast: "on" })), 2600);
-    return () => clearTimeout(t);
-  }, [connecting, shot, store]);
-}
 
 export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }) {
   const s = useStore(store);
