@@ -1,6 +1,8 @@
 // The developer site's frame: the OGS ring, Docs | Console, and the docs' left nav.
 import type { ReactNode } from "react";
+import { HOME, person } from "../../../world";
 import { Mark } from "../ui/Brand";
+import { Sticker, StickerRow } from "../ui/Sticker";
 import { NAV, isConsole, type DevPage } from "./pages";
 
 export function TierChip({ tier, size = "md" }: { tier: 0 | 1 | 2; size?: "sm" | "md" }) {
@@ -43,7 +45,7 @@ function Top({ page, go }: { page: DevPage; go: (p: DevPage) => void }) {
       <span className="dv-top__right">
         <span className="dv-top__ver">API v1</span>
         <span className="dv-acct">
-          <span className="dv-acct__dot" aria-hidden>J</span>
+          <Sticker person={person("dad")} size={32} />
           Jonathan Mumm
         </span>
       </span>
@@ -59,20 +61,30 @@ export function Shell({ page, go, children }: { page: DevPage; go: (p: DevPage) 
         {!isConsole(page) && (
           <nav className="dv-nav" aria-label="Docs">
             {NAV.map((g) => (
-              <div key={g.group} className="dv-nav__group">
+              <div key={g.group} className={`dv-nav__group ${g.group === "Tiers" ? "dv-nav__group--path" : ""}`}>
                 <h3 className="dv-nav__h">{g.group}</h3>
                 {g.items.map((it) => (
                   <button key={it.page} className={`dv-nav__item ${it.page === page ? "is-on" : ""}`} data-bot={`nav-${it.page}`} onClick={() => go(it.page)} aria-current={it.page === page ? "page" : undefined}>
-                    {it.tier !== undefined && <TierGlyph tier={it.tier} />}
-                    <span>{it.label}</span>
-                    {it.tier !== undefined && <span className="dv-nav__n">{it.tier}</span>}
+                    {it.tier !== undefined && (
+                      <span className="dv-nav__stop">
+                        <TierGlyph tier={it.tier} />
+                      </span>
+                    )}
+                    <span className="dv-nav__label">{it.label}</span>
+                    {it.tier !== undefined && <span className="dv-nav__n">T{it.tier}</span>}
                   </button>
                 ))}
               </div>
             ))}
             <div className="dv-nav__foot">
-              <span>Everything new in this design is marked</span>
-              <span className="dv-new">New</span>
+              <span className="dv-nav__family">
+                <StickerRow people={HOME.people} size={30} />
+              </span>
+              <span className="dv-nav__foottext">Every example: the Mumms, Friday 7:10 pm.</span>
+              <span className="dv-nav__legend">
+                <span className="dv-new">New</span>
+                <span>beyond today's spec</span>
+              </span>
             </div>
           </nav>
         )}
