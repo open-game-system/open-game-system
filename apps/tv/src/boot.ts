@@ -34,7 +34,7 @@ export interface Boot {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function loadWithRetry(load: () => Promise<LauncherData>): Promise<LauncherData> {
+export async function loadWithRetry(load: () => Promise<LauncherData>): Promise<LauncherData> {
   for (let attempt = 0; ; attempt++) {
     try {
       return await load();
