@@ -92,6 +92,75 @@ describe("Onboarding: make your OGS profile", () => {
   });
 });
 
+describe("Next stays above the keyboard on the profile step (no return key first)", () => {
+  beforeAll(freshInstall);
+
+  it("type a name, and Next is visible and makes the profile with the keyboard still up", async () => {
+    await element(by.id("onboardingSkipButton")).tap();
+    await waitFor(element(by.id("profileStep")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await element(by.id("profileNameInput")).typeText("Keyboard Kid");
+    await waitFor(element(by.id("profileHandleStatus")))
+      .toHaveText("free")
+      .withTimeout(10000);
+    // The keyboard is still up (the name field still has it): Next is on screen above it.
+    await expect(element(by.id("profileNameInput"))).toBeFocused();
+    await expect(element(by.id("profileNext"))).toBeVisible();
+    await element(by.id("profileNext")).tap();
+    await waitFor(element(by.id("profileDone")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Keyboard");
+  });
+});
+
+describe("Next with the keyboard closed also makes the profile", () => {
+  beforeAll(freshInstall);
+
+  it("type a name, close the keyboard, Next", async () => {
+    await element(by.id("onboardingSkipButton")).tap();
+    await waitFor(element(by.id("profileStep")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await element(by.id("profileNameInput")).typeText("Closed Kid");
+    await waitFor(element(by.id("profileHandleStatus")))
+      .toHaveText("free")
+      .withTimeout(10000);
+    // A tap on the heading closes the keyboard.
+    await element(by.text("Make your OGS profile")).tap();
+    await expect(element(by.id("profileNameInput"))).not.toBeFocused();
+    await expect(element(by.id("profileNext"))).toBeVisible();
+    await element(by.id("profileNext")).tap();
+    await waitFor(element(by.id("profileDone")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Closed");
+  });
+});
+
+describe("The profile step's return keys: name → @id → make the profile", () => {
+  beforeAll(freshInstall);
+
+  it("return on the name moves to the @id; return on the @id is Next", async () => {
+    await element(by.id("onboardingSkipButton")).tap();
+    await waitFor(element(by.id("profileStep")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await element(by.id("profileNameInput")).typeText("Return Kid");
+    await element(by.id("profileNameInput")).tapReturnKey();
+    await expect(element(by.id("profileHandleInput"))).toBeFocused();
+    await waitFor(element(by.id("profileHandleStatus")))
+      .toHaveText("free")
+      .withTimeout(10000);
+    await element(by.id("profileHandleInput")).tapReturnKey();
+    await waitFor(element(by.id("profileDone")))
+      .toBeVisible()
+      .withTimeout(10000);
+    await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Return");
+  });
+});
+
 describe("Sign in on a new phone restores the profile", () => {
   beforeAll(freshInstall);
 

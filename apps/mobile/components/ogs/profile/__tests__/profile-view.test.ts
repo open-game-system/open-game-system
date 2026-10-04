@@ -1,5 +1,5 @@
 import type { Identity } from "../../../../services/identity";
-import { backupView, greeting, profileView } from "../profile-view";
+import { backupView, greeting, profileReturnKey, profileView } from "../profile-view";
 
 const identity: Identity = {
   profile: { id: "pr1", handle: "jonathan.m", name: "Jonathan", sticker: "bear" },
@@ -52,5 +52,26 @@ describe("greeting (onboarding's done page)", () => {
   it("greets by first name", () => {
     expect(greeting("Jonathan Mumm")).toBe("Hi, Jonathan");
     expect(greeting("  Juneau ")).toBe("Hi, Juneau");
+  });
+});
+
+describe("profileReturnKey (the keyboard's return key on the profile fields)", () => {
+  it("on the name it says Next and moves to the @id", () => {
+    expect(profileReturnKey("name", true)).toEqual({
+      returnKeyType: "next",
+      action: "focusHandle",
+    });
+    expect(profileReturnKey("name", false)).toEqual({
+      returnKeyType: "next",
+      action: "focusHandle",
+    });
+  });
+
+  it("on the @id it says Done and submits the profile once it can be submitted", () => {
+    expect(profileReturnKey("handle", true)).toEqual({ returnKeyType: "done", action: "submit" });
+  });
+
+  it("on the @id it only closes the keyboard while the profile cannot be submitted", () => {
+    expect(profileReturnKey("handle", false)).toEqual({ returnKeyType: "done", action: "dismiss" });
   });
 });

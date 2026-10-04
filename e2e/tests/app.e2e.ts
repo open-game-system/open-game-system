@@ -29,8 +29,8 @@ describe("OGS app, cast-first", { tags: ["ios"], serial: true, requires: ["nativ
     await expect(screen.getByText("Who's in your family?")).toHaveCount(0);
     await screen.getByTestId("profileNameInput").fill("Jonathan Mumm");
     await expect(screen.getByTestId("profileHandleStatus")).toHaveText("free", { timeout: 10_000 });
-    // Close the keyboard with its return key (it covers Next on a phone), then Next.
-    await screen.getByTestId("profileNameInput").press("Enter");
+    // Next stays above the keyboard: tap it with the keyboard still up.
+    await expect(screen.getByTestId("profileNext")).toBeVisible();
     await screen.getByTestId("profileNext").tap();
     // The done page greets by first name and offers Back up (never required) and Let's go.
     await expect(screen.getByTestId("profileDoneGreeting")).toHaveText("Hi, Jonathan", { timeout: 10_000 });

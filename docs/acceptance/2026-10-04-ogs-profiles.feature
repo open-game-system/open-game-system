@@ -26,6 +26,23 @@ Feature: OGS profiles
     When Jonathan edits the profile id to "jonny" and picks the owl sticker
     Then the profile is made as "@jonny" with the owl
 
+  Scenario: Next stays above the keyboard
+    Given "Make your OGS profile" on an iPhone 17 Pro or an iPhone SE
+    When Jonathan types his name and the keyboard is still up
+    Then Next is on screen above the keyboard and makes the profile when tapped
+    And Next is also there, at the bottom, once the keyboard is closed
+
+  Scenario: The return key moves through the profile fields
+    When Jonathan presses return on the name
+    Then the profile id field is focused, scrolled into view above Next
+    When he presses return on the profile id
+    Then the profile is made, as Next would
+
+  Scenario: Text fields stay above the keyboard
+    Given Edit profile, Back up / Sign in (email, code), Join a TV and Add a friend
+    When a text field is focused
+    Then the field and its button (Save, Send code, Back up, Join, Add, Send) are above the keyboard
+
   Scenario: A kid's iPad runs the same onboarding
     Given Juneau's iPad has no profile
     When a grown-up types "Juneau" on it and taps Next

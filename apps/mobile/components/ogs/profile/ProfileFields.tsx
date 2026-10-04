@@ -1,17 +1,24 @@
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { STICKERS } from "../../../services/identity";
 import { handleStatusText, type ProfileForm } from "../../../services/profile-form";
+import { useRevealFocused } from "../KeyboardFooter";
 import { Sticker } from "../Sticker";
 import { colors, fonts, TARGET } from "../theme";
+import { profileReturnKey } from "./profile-view";
 
 /**
  * Name (typed), @id (pre-filled from the name, editable, checked) and sticker (pre-picked,
  * changeable): onboarding's "Make your OGS profile" and the Profile tab's Edit.
+ * Return on the name moves to the @id; return on the @id submits (`onSubmit`) once it can.
  */
-export function ProfileFields({ form }: { form: ProfileForm }) {
+export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?: () => void }) {
   const s = useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot);
   const status = handleStatusText(s);
+  const handleRef = useRef<TextInput>(null);
+  const reveal = useRevealFocused();
+  const nameKey = profileReturnKey("name", form.canSubmit());
+  const handleKey = profileReturnKey("handle", form.canSubmit());
   return (
     <View style={styles.wrap}>
       <View style={styles.big}>
@@ -21,6 +28,8 @@ export function ProfileFields({ form }: { form: ProfileForm }) {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.stickers}
+        // With the keyboard up, a sticker tap picks it (not just closes the keyboard).
+        keyboardShouldPersistTaps="handled"
         testID="profileStickers"
       >
         {STICKERS.map((st) => (
@@ -48,13 +57,20 @@ export function ProfileFields({ form }: { form: ProfileForm }) {
         placeholderTextColor={colors.cream3}
         autoCapitalize="words"
         autoCorrect={false}
-        returnKeyType="done"
+        returnKeyType={nameKey.returnKeyType}
+        // Keep the keyboard up: return moves on to the @id.
+        submitBehavior="submit"
+        onSubmitEditing={() => {
+          if (nameKey.action === "focusHandle") handleRef.current?.focus();
+        }}
       />
       <Text style={styles.label}>Profile id</Text>
       <View style={styles.handleRow}>
         <Text style={styles.at}>@</Text>
         <TextInput
+          ref={handleRef}
           testID="profileHandleInput"
+          onFocus={reveal}
           value={s.handle}
           onChangeText={(t) => form.setHandle(t)}
           style={styles.handleInput}
@@ -63,6 +79,11 @@ export function ProfileFields({ form }: { form: ProfileForm }) {
           autoCorrect={false}
           placeholder="your.id"
           placeholderTextColor={colors.cream3}
+          returnKeyType={handleKey.returnKeyType}
+          submitBehavior="blurAndSubmit"
+          onSubmitEditing={() => {
+            if (handleKey.action === "submit") onSubmit?.();
+          }}
         />
         <Text
           testID="profileHandleStatus"

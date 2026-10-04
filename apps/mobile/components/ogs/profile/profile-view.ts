@@ -35,3 +35,17 @@ export function backupView(logins: Login[]): { backedUp: boolean; label: string 
 export function greeting(name: string): string {
   return `Hi, ${name.trim().split(/\s+/)[0] ?? name}`;
 }
+
+export type ProfileField = "name" | "handle";
+
+/**
+ * The keyboard's return key on the profile fields: on the name it moves to the @id; on the @id it
+ * submits once the profile can be (otherwise it only closes the keyboard).
+ */
+export function profileReturnKey(
+  field: ProfileField,
+  canSubmit: boolean,
+): { returnKeyType: "next" | "done"; action: "focusHandle" | "submit" | "dismiss" } {
+  if (field === "name") return { returnKeyType: "next", action: "focusHandle" };
+  return { returnKeyType: "done", action: canSubmit ? "submit" : "dismiss" };
+}

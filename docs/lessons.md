@@ -17,6 +17,10 @@ Persistent project knowledge. Review at the start of each task.
 - **tsup with composite tsconfig**: If a package has multiple source files, set `composite: false` in the package tsconfig or tsup's DTS build fails with "file not listed" errors.
 - **BridgeStores type constraint**: Use `type` (not `interface`) for store definitions — interfaces lack the implicit index signature that `BridgeStores` requires.
 
+- **Keyboard: React Native's KeyboardAvoidingView is wrong away from the top of the window**: it computes the overlap from its `onLayout` frame (relative to its parent), so inside an onboarding pager page (84 points down) it fell 84 points short and Next stayed under the keyboard. And in a modal sheet (Fabric) even `measureInWindow` measures from the sheet's top, not the display's. `components/ogs/KeyboardFooter.tsx` measures in the window, adds a sheet's offset (sheets sit on the bottom: window height - sheet height), and pins the form's main action in a footer above the keyboard; `Screen` takes a `footer`, and a plain `Screen` uses `automaticallyAdjustKeyboardInsets` (native, window-correct) to scroll a focused field above the keyboard.
+- **Every enclosing ScrollView needs `keyboardShouldPersistTaps="handled"`**: a button outside the inner ScrollView but inside an outer one (the onboarding FlatList pager) only closes the keyboard on the first tap, unless the outer one says "handled" too. Same for a horizontal picker inside a form (the sticker row).
+- **Detox can't see an InputAccessoryView**: the bar lives in the keyboard's window, which Detox doesn't search; and Detox's `toBeVisible` ignores the keyboard window, so only a `tap()` that creates something proves a button isn't under the keyboard.
+
 ## Architecture
 
 - **Error response consistency**: Every API error must use `{ error: { code, message, status } }`. Don't mix formats.

@@ -267,6 +267,9 @@ export default function OnboardingScreen() {
         pagingEnabled
         // Buttons move between pages: no swiping past the profile step without a profile.
         scrollEnabled={false}
+        // The profile step's Next sits outside its own scroll view: with the keyboard up, a tap on
+        // it must press it (the pager would otherwise swallow the tap to close the keyboard).
+        keyboardShouldPersistTaps="handled"
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}

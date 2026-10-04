@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { StyleSheet, View } from "react-native";
+import { Keyboard, StyleSheet } from "react-native";
 import { Button } from "../components/ogs/Button";
 import { ErrorLine } from "../components/ogs/ErrorLine";
 import { ProfileFields } from "../components/ogs/profile/ProfileFields";
@@ -9,7 +9,7 @@ import { createProfileForm } from "../services/profile-form";
 import { api, appState } from "../services/runtime";
 import type { ErrorAction } from "../services/user-message";
 
-/** Profile tab → Edit: name, @id and sticker (PATCH /me). */
+/** Profile tab → Edit: name, @id and sticker (PATCH /me). Save stays above the keyboard. */
 export default function EditProfileScreen() {
   const router = useRouter();
   const [form] = useState(() => {
@@ -26,6 +26,8 @@ export default function EditProfileScreen() {
   useEffect(() => () => form.dispose(), [form]);
 
   const save = async () => {
+    if (busy || !form.canSubmit()) return;
+    Keyboard.dismiss();
     const changes = form.changes();
     if (Object.keys(changes).length === 0) {
       router.back();
@@ -41,25 +43,30 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <Screen title="Edit profile" testID="editProfileScreen">
-      <ProfileFields form={form} />
-      <View style={styles.actions}>
-        <ErrorLine
-          text={error?.text ?? null}
-          action={error?.action}
-          onRetry={() => void save()}
-          testID="editProfileError"
-        />
-        <Button
-          label={busy ? "Saving…" : "Save"}
-          testID="editProfileSave"
-          disabled={busy || !form.canSubmit()}
-          onPress={() => void save()}
-        />
-        <Button label="Cancel" kind="ghost" onPress={() => router.back()} />
-      </View>
+    <Screen
+      title="Edit profile"
+      testID="editProfileScreen"
+      footer={
+        <>
+          <ErrorLine
+            text={error?.text ?? null}
+            action={error?.action}
+            onRetry={() => void save()}
+            testID="editProfileError"
+          />
+          <Button
+            label={busy ? "Saving…" : "Save"}
+            testID="editProfileSave"
+            disabled={busy || !form.canSubmit()}
+            onPress={() => void save()}
+          />
+        </>
+      }
+    >
+      <ProfileFields form={form} onSubmit={() => void save()} />
+      <Button label="Cancel" kind="ghost" onPress={() => router.back()} style={styles.cancel} />
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({ actions: { gap: 10, marginTop: 20 } });
+const styles = StyleSheet.create({ cancel: { marginTop: 20 } });
