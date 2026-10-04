@@ -23,7 +23,11 @@ const SEED: ManifestInput[] = [
       { id: "captain", label: "Captain", audience: "grownup" },
       { id: "fixer", label: "Fixer", audience: "kid" },
     ],
-    art: { tile: "/art/rocket-crew/tv.jpg", hero: "/art/rocket-crew/launch.jpg" },
+    art: {
+      tile: "/art/rocket-crew/tv.jpg",
+      hero: "/art/rocket-crew/alt.jpg",
+      safe: { scale: 1.17, ox: 50, oy: 100 },
+    },
     shop: { ages: "4+", minutes: [10, 20], players: "2" },
   },
   {
@@ -38,7 +42,11 @@ const SEED: ManifestInput[] = [
       { id: "baker", label: "Baker", audience: "kid" },
       { id: "sprinkler", label: "Sprinkler", audience: "little" },
     ],
-    art: { tile: "/art/bake-shop/tv.jpg", hero: "/art/bake-shop/alt.jpg" },
+    art: {
+      tile: "/art/bake-shop/tv.jpg",
+      hero: "/art/bake-shop/alt.jpg",
+      safe: { scale: 1.15, ox: 28, oy: 100 },
+    },
     shop: { ages: "2+", minutes: [10, 25], players: "2-4" },
   },
   {
@@ -53,7 +61,11 @@ const SEED: ManifestInput[] = [
       { id: "kid", label: "Kid", audience: "kid" },
       { id: "little", label: "Little one", audience: "little" },
     ],
-    art: { tile: "/art/story-nook/tv.jpg", hero: "/art/story-nook/journey.jpg" },
+    art: {
+      tile: "/art/story-nook/tv.jpg",
+      hero: "/art/story-nook/journey.jpg",
+      safe: { scale: 1.04, ox: 50, oy: 60 },
+    },
     shop: { ages: "2+", minutes: [10, 20], players: "2-4" },
   },
   {
@@ -68,7 +80,11 @@ const SEED: ManifestInput[] = [
       { id: "seeker", label: "Seeker", audience: "kid" },
       { id: "little", label: "Little one", audience: "little" },
     ],
-    art: { tile: "/art/peekaboo-garden/tv.jpg", hero: "/art/peekaboo-garden/alt.jpg" },
+    art: {
+      tile: "/art/peekaboo-garden/tv.jpg",
+      hero: "/art/peekaboo-garden/tv.jpg",
+      safe: { scale: 1.13, ox: 50, oy: 100 },
+    },
     shop: { ages: "2+", minutes: [10, 20], players: "2-4" },
   },
   {
@@ -83,7 +99,11 @@ const SEED: ManifestInput[] = [
       { id: "pilot", label: "Pilot", audience: "kid" },
       { id: "little", label: "Little one", audience: "little" },
     ],
-    art: { tile: "/art/night-flight/tv.jpg", hero: "/art/night-flight/alt.jpg" },
+    art: {
+      tile: "/art/night-flight/tv.jpg",
+      hero: "/art/night-flight/tv.jpg",
+      safe: { scale: 1.85, ox: 46, oy: 49 },
+    },
     shop: { ages: "3+", minutes: [10, 20], players: "2-4" },
   },
 ];

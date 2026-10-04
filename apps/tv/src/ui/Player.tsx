@@ -1,6 +1,7 @@
 import type { Manifest, Screen } from "@open-game-system/ogs-protocol";
 import { useLayoutEffect, useRef } from "react";
 import type { FrameSlot } from "../launcher/frames";
+import { safeStyle } from "./art";
 import type { useFrames } from "./useFrames";
 
 const W = 1920;
@@ -99,7 +100,9 @@ export function Player(props: {
       data-phase="hidden"
       data-testid="player"
     >
-      {game && <img className="player-art" src={game.art.tile} alt="" />}
+      {game && (
+        <img className="player-art" src={game.art.tile} alt="" style={safeStyle(game.art.safe)} />
+      )}
       {slots.map((slot) => (
         <iframe
           key={slot.instanceId}

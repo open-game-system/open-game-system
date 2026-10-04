@@ -30,7 +30,9 @@ describe("frame slots", () => {
     expect(nextFrames(EMPTY_FRAMES, cur()).frames).toBe(EMPTY_FRAMES);
     const parked = nextFrames(nextFrames(EMPTY_FRAMES, cur({ viewUrl: RC })).frames, null).frames;
     const waiting = nextFrames(parked, cur({ appId: "bake-shop", instanceId: "bs-1" }));
-    expect(nextFrames(waiting.frames, cur({ appId: "bake-shop", instanceId: "bs-1" })).frames).toBe(waiting.frames);
+    expect(nextFrames(waiting.frames, cur({ appId: "bake-shop", instanceId: "bs-1" })).frames).toBe(
+      waiting.frames,
+    );
   });
 
   it("frames the view URL when it arrives", () => {

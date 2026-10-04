@@ -1,4 +1,5 @@
 import type { BoxModel } from "../launcher/layout";
+import { safeStyle } from "./art";
 
 /** A game as a box: key art on the cover, a spine, and the resume point on its label. */
 export function Box({ box, focused }: { box: BoxModel; focused: boolean }) {
@@ -9,7 +10,7 @@ export function Box({ box, focused }: { box: BoxModel; focused: boolean }) {
       data-focused={focused || undefined}
     >
       <div className="box-cover" data-cover={box.appId}>
-        <img src={box.cover} alt="" loading="eager" />
+        <img src={box.cover} alt="" loading="eager" style={safeStyle(box.safe)} />
         <span className="box-spine" />
         {box.tag && <span className="box-tag">{box.tag}</span>}
       </div>

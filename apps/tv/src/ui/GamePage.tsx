@@ -2,6 +2,7 @@ import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
 import { when } from "../launcher/layout";
 import type { Household } from "../session/data";
 import { stickerUrl } from "../session/data";
+import { safeStyle } from "./art";
 
 /** The box opened: its art, where you left off, Continue / New, and who's playing. */
 export function GamePage(props: {
@@ -20,7 +21,7 @@ export function GamePage(props: {
   return (
     <div className="screen game-page" data-testid="game-page" data-page={game.appId}>
       <div className="page-art" data-cover-page={game.appId}>
-        <img src={game.art.hero ?? game.art.tile} alt="" />
+        <img src={game.art.hero ?? game.art.tile} alt="" style={safeStyle(game.art.safe)} />
       </div>
       <div className="page-card">
         <p className="eyebrow">{paused ? `Paused ${when(paused.at, now)}` : "From the shelf"}</p>

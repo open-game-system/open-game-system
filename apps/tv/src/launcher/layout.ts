@@ -9,6 +9,8 @@ import type { FocusRow } from "./focus-grid";
 export type RowId = "continue" | "tonight" | "library";
 
 export interface BoxModel {
+  /** The manifest's HUD-free crop for cover and hero. */
+  safe?: Manifest["art"]["safe"];
   itemId: string;
   appId: string;
   name: string;
@@ -57,6 +59,7 @@ function box(game: Manifest, tag: string, resume: string): BoxModel {
     tagline: game.tagline,
     cover: game.art.tile,
     hero: game.art.hero ?? game.art.tile,
+    safe: game.art.safe,
     tag,
     resume,
   };

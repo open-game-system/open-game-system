@@ -1,6 +1,7 @@
 import { locate } from "../launcher/focus-grid";
 import { type BoxModel, clock, focusRows, type RowModel } from "../launcher/layout";
 import type { Household } from "../session/data";
+import { safeStyle } from "./art";
 import { Box } from "./Box";
 import { Couch } from "./Couch";
 
@@ -65,7 +66,7 @@ export function Home(props: {
 function Hero({ box }: { box: BoxModel }) {
   return (
     <div className="hero" data-testid="hero" data-hero={box.appId}>
-      <img key={box.appId} className="hero-art" src={box.hero} alt="" />
+      <img key={box.appId} className="hero-art" src={box.hero} alt="" style={safeStyle(box.safe)} />
       <div className="hero-text" key={`t-${box.appId}`}>
         {box.tag && <p className="hero-tag">{box.tag}</p>}
         <h2 className="hero-title">{box.name}</h2>
