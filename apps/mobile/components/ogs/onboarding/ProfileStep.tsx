@@ -2,7 +2,9 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
 import { createProfileForm } from "../../../services/profile-form";
 import { api, appState } from "../../../services/runtime";
+import type { UserMessage } from "../../../services/user-message";
 import { Button } from "../Button";
+import { ErrorLine } from "../ErrorLine";
 import { ProfileFields } from "../profile/ProfileFields";
 import { colors, fonts } from "../theme";
 
@@ -14,7 +16,7 @@ export function ProfileStep({ onNext }: { onNext: () => void }) {
   const [form] = useState(() => createProfileForm({ checkHandle: (q) => api.checkHandle(q) }));
   useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UserMessage | null>(null);
   // The form's debounce timer must not outlive the page.
   useEffect(() => () => form.dispose(), [form]);
 
@@ -25,7 +27,7 @@ export function ProfileStep({ onNext }: { onNext: () => void }) {
     setBusy(false);
     if (result.ok) onNext();
     else if (result.reason === "handle_taken") form.taken(result.suggestion);
-    else setError(`Can't reach OGS to make your profile (${result.message}). Try again.`);
+    else setError({ text: result.message, action: result.action });
   };
 
   return (
@@ -41,11 +43,12 @@ export function ProfileStep({ onNext }: { onNext: () => void }) {
         <Text style={styles.heading}>Make your OGS profile</Text>
         <Text style={styles.body}>Games use this name when you join.</Text>
         <ProfileFields form={form} />
-        {error ? (
-          <Text style={styles.error} testID="profileStepError">
-            {error}
-          </Text>
-        ) : null}
+        <ErrorLine
+          text={error?.text ?? null}
+          action={error?.action}
+          onRetry={() => void next()}
+          testID="profileStepError"
+        />
         <Button
           label={busy ? "Making your profile…" : "Next"}
           testID="profileNext"
@@ -63,5 +66,4 @@ const styles = StyleSheet.create({
   page: { paddingHorizontal: 24, paddingBottom: 40, gap: 10 },
   heading: { fontFamily: fonts.display, fontSize: 30, color: colors.cream },
   body: { color: colors.cream2, fontSize: 16, lineHeight: 22, marginBottom: 6 },
-  error: { color: colors.peach, fontSize: 15 },
 });

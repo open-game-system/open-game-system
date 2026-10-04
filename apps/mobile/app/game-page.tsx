@@ -18,6 +18,7 @@ import {
   waitForOgsCast,
 } from "../services/runtime";
 import { playedAgo, type Sitting, sittingsFor } from "../services/sittings";
+import { userMessage } from "../services/user-message";
 
 /**
  * A game's page (a tap in Library): the game, your in-progress sittings of it (each with its own
@@ -54,7 +55,7 @@ export default function GamePage() {
       if (result === "started" && (await waitForOgsCast(8000))) play();
       else setNote("The TV didn't answer. Try again from the TV tab.");
     } catch (err) {
-      setNote(err instanceof Error ? err.message : String(err));
+      setNote(userMessage(err, "cast").text);
     } finally {
       setBusy(false);
     }

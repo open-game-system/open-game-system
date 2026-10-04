@@ -320,6 +320,17 @@ describe("app state: library, catalogue, instances", () => {
     expect(app.getSnapshot().catalogue).toHaveLength(2);
   });
 
+  it("a token OGS no longer takes says signed out, with Sign in", async () => {
+    const { app, api } = setup();
+    await app.createProfile(newProfile);
+    api.me.mockRejectedValueOnce(new OgsApiError("profile_not_found", "gone", 404));
+    await app.refresh();
+    expect(app.getSnapshot().error).toEqual({
+      text: "You've been signed out. Sign in again.",
+      action: "sign-in",
+    });
+  });
+
   it("offline keeps what it had and says so", async () => {
     const { app, api } = setup();
     await app.createProfile(newProfile);
@@ -327,7 +338,10 @@ describe("app state: library, catalogue, instances", () => {
     api.library.mockRejectedValueOnce(new OgsApiError("OFFLINE", "no", 0));
     await app.refresh();
     expect(app.getSnapshot().status).toBe("offline");
-    expect(app.getSnapshot().error).toBe("Can't reach OGS. Check your Wi-Fi and try again.");
+    expect(app.getSnapshot().error).toEqual({
+      text: "Can't reach OGS. Check your Wi-Fi and try again.",
+      action: "retry",
+    });
     expect(app.getSnapshot().library).toHaveLength(1);
   });
 

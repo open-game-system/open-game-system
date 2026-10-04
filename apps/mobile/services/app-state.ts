@@ -19,7 +19,7 @@ import {
   type ProfilePatch,
   SessionInfoSchema,
 } from "./ogs-api";
-import { type ErrorAction, type ErrorContext, userMessage } from "./user-message";
+import { type ErrorAction, type ErrorContext, type UserMessage, userMessage } from "./user-message";
 
 /**
  * The app's shared data: this device's profile, its games and instances, the couch session it is
@@ -44,7 +44,8 @@ export interface AppData {
   library: Manifest[];
   instances: Instance[];
   status: "idle" | "loading" | "ready" | "offline";
-  error: string | null;
+  /** The last load failure, in words people read (with its one action). */
+  error: UserMessage | null;
   pill: ReturnPill | null;
 }
 
@@ -273,7 +274,7 @@ export function createAppState(opts: {
         if (me) await keepMe(me);
         set({ catalogue, library: libraryOf(catalogue), instances, status: "ready", error: null });
       } catch (err) {
-        set({ status: "offline", error: userMessage(err, "load").text });
+        set({ status: "offline", error: userMessage(err, "load") });
       }
     },
     async addGame(appId: string) {

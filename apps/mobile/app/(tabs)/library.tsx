@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "../../components/ogs/Button";
+import { ErrorLine } from "../../components/ogs/ErrorLine";
 import { LibraryRow } from "../../components/ogs/library/LibraryRow";
 import { needsTv } from "../../components/ogs/library/needs-tv";
 import { Screen } from "../../components/ogs/Screen";
@@ -25,13 +25,10 @@ export default function LibraryScreen() {
     <Screen title="Library" testID="libraryScreen">
       {app.error && app.status !== "ready" ? (
         <View style={styles.notice} testID="libraryOffline">
-          <Text style={styles.noticeText}>
-            Can't reach OGS right now. Your games will be back soon.
-          </Text>
-          <Button
-            label="Try again"
-            kind="ghost"
-            onPress={() => void appState.init().then(appState.refresh)}
+          <ErrorLine
+            text={app.error.text}
+            action={app.error.action}
+            onRetry={() => void appState.init().then(appState.refresh)}
           />
         </View>
       ) : null}
