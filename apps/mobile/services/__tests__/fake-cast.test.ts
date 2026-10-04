@@ -164,7 +164,7 @@ describe("fake cast, the receiver channel", () => {
   it("is the simulated living room Chromecast", () => {
     expect(FAKE_TV).toEqual({
       id: "fake-living-room",
-      name: "Living room TV (simulated)",
+      name: "Living room TV",
       type: "chromecast",
     });
   });
@@ -247,7 +247,7 @@ describe("fake cast, the session manager", () => {
     const session = await sm.getCurrentCastSession();
     await expect(session?.getCastDevice()).resolves.toEqual({
       deviceId: "fake-living-room",
-      friendlyName: "Living room TV (simulated)",
+      friendlyName: "Living room TV",
     });
     endSub.remove();
     await sm.endCurrentSession(true);
