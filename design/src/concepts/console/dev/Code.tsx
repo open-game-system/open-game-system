@@ -1,6 +1,6 @@
 // Code samples with real values. A tiny tokenizer (strings, keys, numbers, keywords, comments) is
 // enough for JSON, TypeScript, HTTP and shell; nothing here is a general-purpose highlighter.
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 
 export type Lang = "json" | "ts" | "http" | "sh";
 type Kind = "str" | "key" | "num" | "kw" | "com" | "verb" | "plain";
@@ -44,7 +44,7 @@ export function CodeLines({ code, lang, marks = [], errors = [], numbers = false
           <span key={i} className={`dv-line ${cls}`}>
             {numbers && <span className="dv-ln">{n}</span>}
             <span className="dv-src">
-              {line === "" ? " " : tokens(line, lang).map((tk, j) => (tk.k === "plain" ? tk.t : <span key={j} className={`dv-tk dv-tk--${tk.k}`}>{tk.t}</span>))}
+              {line === "" ? " " : tokens(line, lang).map((tk, j) => <span key={j} className={tk.k === "plain" ? "dv-tk" : `dv-tk dv-tk--${tk.k}`}>{tk.t}</span>)}
             </span>
           </span>
         );
@@ -72,3 +72,18 @@ export function CodeCard({ title, code, lang, badge, marks, foot, numbers }: { t
 
 /** Inline code in prose. */
 export const C = ({ children }: { children: ReactNode }) => <code className="dv-c">{children}</code>;
+
+/** Prose with inline code or bold: each run of plain text gets its own span, so no element's own
+ * text box spans across the inline pieces (the shooter's overlap check reads text boxes). */
+export function T({ children }: { children: ReactNode }) {
+  return <>{Children.map(children, (c) => (typeof c === "string" ? <span>{c}</span> : c))}</>;
+}
+
+/** One line of prose (a block): inline code/bold sits in a line that doesn't wrap into its neighbours. */
+export function L({ children }: { children: ReactNode }) {
+  return (
+    <span className="dv-l">
+      <T>{children}</T>
+    </span>
+  );
+}

@@ -3,7 +3,7 @@
 import { base, type S } from "../state";
 
 export type DocsPage = "overview" | "manifest" | "identity" | "instances" | "casting" | "kids" | "library";
-export type ConsolePage = "console-empty" | "console-error" | "console-preview" | "console-live";
+export type ConsolePage = "console-empty" | "console-reading" | "console-error" | "console-preview" | "console-dropped" | "console-live" | "console-listening" | "console-unpublished";
 export type DevPage = DocsPage | ConsolePage;
 
 const pageOf = new WeakMap<S, DevPage>();

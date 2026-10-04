@@ -396,3 +396,77 @@
 .dc-log__body { color: var(--ink2); min-width: 0; }
 .dc-log__code { font-family: var(--mono); font-weight: 700; color: #1b6b43; text-align: right; }
 .dc-log__code.is-bad { color: #8c1d16; }
+
+/* ============ Console: in-between states (loading, interrupted, undone) ============ */
+.dc-spin { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid currentColor; border-right-color: transparent; display: inline-block; flex: none; animation: dc-spin 0.8s linear infinite; }
+@keyframes dc-spin { to { transform: rotate(360deg); } }
+.dc-pill--busy { background: #2b2540; color: #d9ccff; }
+.dc-panel__h--busy { color: var(--ink); }
+.dc-panel__h--warn { color: #8c1d16; }
+.dc-panel--warn { box-shadow: inset 4px 0 0 #b3261e, 0 1px 0 var(--line); }
+.dc-panel__p { margin-top: 8px !important; font-size: 15px; line-height: 1.5; color: var(--ink2); }
+.dc-prog { display: grid; gap: 2px; margin-top: 12px; }
+.dc-prog li { display: grid; grid-template-columns: 20px 1fr auto; column-gap: 10px; align-items: center; min-height: 40px; padding: 4px 0; border-top: 1px solid var(--line); color: #1b6b43; }
+.dc-prog li:first-child { border-top: 0; }
+.dc-prog b { font-size: 15px; color: var(--ink); }
+.dc-prog li > span:last-child { font-size: 13px; color: var(--ink3); font-family: var(--mono); }
+.dc-prog li.is-next b { color: var(--ink3); font-weight: 600; }
+.dc-prog li.is-now { color: var(--ink); }
+.dc-prog__dot { width: 14px; height: 14px; border-radius: 50%; justify-self: center; }
+.dc-prog__dot--now { background: var(--signal); box-shadow: 0 0 0 0 rgba(163, 48, 11, 0.4); animation: dc-ping 1.2s ease-out infinite; }
+.dc-prog__dot--next { box-shadow: inset 0 0 0 2px #b9b5ac; }
+@keyframes dc-ping { to { box-shadow: 0 0 0 10px rgba(163, 48, 11, 0); } }
+.dc-prog__note { margin-top: 10px !important; font-size: 14px; color: var(--ink2); }
+.dc-skel { display: grid; grid-template-columns: 1fr 250px; gap: 18px; padding: 16px 18px; border-radius: 16px; background: var(--paper); box-shadow: 0 1px 0 var(--line); }
+.dc-skel__tv { aspect-ratio: 16 / 9; margin: 6px; border-radius: 8px; background: linear-gradient(100deg, #e9e6df 30%, #f5f3ee 50%, #e9e6df 70%) 0 0 / 300% 100%; animation: dc-shimmer 1.6s linear infinite; display: grid; place-items: center; }
+.dc-skel__side { display: grid; gap: 10px; align-content: start; padding-top: 6px; }
+.dc-skel__side i { height: 18px; border-radius: 6px; background: #ebe8e1; }
+.dc-skel__side i:nth-child(1) { height: 64px; }
+.dc-skel__side i:nth-child(3) { width: 60%; }
+@keyframes dc-shimmer { to { background-position: -300% 0; } }
+/* the dotted path (identity token): the TV frame is on its way */
+.dc-path { width: 46%; height: 6px; background: radial-gradient(circle, #a39d92 1.7px, transparent 2.2px) 0 50% / 12px 6px repeat-x; animation: dc-march 0.9s linear infinite; }
+@keyframes dc-march { to { background-position: 12px 50%; } }
+
+.dc-dropped { position: relative; }
+.dc-dropped .dc-tv { filter: grayscale(0.85) brightness(0.8); }
+.dc-dropped__tag { position: absolute; left: 34px; top: 52px; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(17, 18, 22, 0.88); color: #fff; font-size: 13px; font-weight: 800; }
+.dc-dropped__dot { width: 10px; height: 10px; border-radius: 50%; background: #ff8a78; }
+.dc-test--stopped { background: #2a1d1a; }
+.dc-test--stopped .dc-casting { color: #ffb4a6; }
+
+.dc-sig--wait { color: var(--signal); }
+.dc-sig--wait > span:last-child { color: var(--signal); font-weight: 800; }
+.dc-listen { position: relative; width: 12px; height: 12px; margin-top: 3px; border-radius: 50%; background: var(--signal); flex: none; animation: dc-ping 1.2s ease-out infinite; }
+.dc-listen--lg { width: 16px; height: 16px; margin: 0 7px; }
+.dc-banner--wait { background: #fbf0e8; color: #3b1a0c; box-shadow: inset 0 0 0 1px #f0cdb7; }
+.dc-banner--off { background: var(--paper); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+.dc-banner__icon--off { background: var(--ink2); }
+.dc-table tr.is-off { background: #f4f2ee; }
+.dc-table tr.is-off .dc-game__art { filter: grayscale(1); opacity: 0.6; }
+.dc-table tr.is-off .dc-sig--ok { color: var(--ink2); }
+.dc-log li.is-wait { background: #fbf3ec; }
+.dc-curl { margin: 2px 0; padding: 12px 14px; border-radius: 12px; background: var(--code-bg); color: var(--code-ink); font-family: var(--mono); font-size: 12px; line-height: 18px; white-space: pre; overflow: hidden; }
+.dc-next__btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.dv-btn--quiet { background: transparent !important; color: var(--ink2) !important; }
+
+.dc-after__tile { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; padding: 10px; border-radius: 14px; background: var(--bone); }
+.dc-after__art { width: 96px; height: 60px; border-radius: 10px; overflow: hidden; filter: grayscale(1); opacity: 0.55; }
+.dc-after__art img { width: 100%; height: 100%; object-fit: cover; }
+.dc-after__tile > span:last-child { display: grid; gap: 2px; }
+.dc-after__tile b { font-size: 15px; color: var(--ink2); }
+.dc-after__tile > span:last-child > span { font-size: 13px; color: var(--ink2); }
+.dc-next .dc-after li { grid-template-columns: 112px 1fr; align-items: center; }
+.dc-after li > span:last-child { display: block !important; font-size: 14px; color: var(--ink2); line-height: 1.45; }
+.dc-after li b { font-size: 14px; color: var(--ink); }
+.dc-after__who { display: inline-flex; gap: 2px; }
+.dc-after__icon { justify-self: end; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #e2f1e8; color: #1b6b43; }
+.dc-after__note { font-size: 14px; color: var(--ink2); }
+.dc-next .dc-after li.is-homes { grid-template-columns: 1fr; gap: 6px; }
+.dc-next .dc-after li { grid-template-columns: 28px 1fr; }
+.dc-after__icon { justify-self: start; }
+.dc-after__icon--off { background: var(--mist); color: var(--ink2); }
+.dc-after__who { gap: 6px; }
+.dc-curl { white-space: pre-wrap; }
+.dv-l { display: block; }
+.dc-after li b { display: block; }

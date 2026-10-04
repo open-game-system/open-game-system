@@ -1,5 +1,5 @@
 // Tier 2: one POST per instance change. Real example: Rocket Crew mission 6, paused for Bake Shop.
-import { C, CodeCard } from "../Code";
+import { C, CodeCard, L } from "../Code";
 import type { DevPage } from "../pages";
 import { LiveCard, Push } from "../Payoff";
 import { INSTANCE_POST, INSTANCE_WORKER, TURN_SNIPPET } from "../samples";
@@ -29,7 +29,9 @@ export function Instances({ go }: { go: (p: DevPage) => void }) {
         </p>
         <h1 className="dv-h1">Instance reports</h1>
         <p className="dv-lede">
-          Post the whole card whenever an instance changes. OGS draws it on Home, gathers <b>Your turn</b> across games and pushes grown-ups. You never send a notification.
+          <L>Post the whole card whenever an instance changes.</L>
+          <L>OGS draws it on Home, gathers <b>Your turn</b> across games</L>
+          <L>and pushes grown-ups. You never send a notification.</L>
         </p>
 
         <h2 className="dv-h2">When to post</h2>
@@ -60,7 +62,8 @@ export function Instances({ go }: { go: (p: DevPage) => void }) {
           <LiveCard gameId="rocket-crew" badge="Paused 7:14 pm" title="Mission 6 · Navigator rank" detail="Bake Shop is on now" seats={["dad", "juneau"]} />
           <div className="dv-payoff__stack">
             <p className="dv-p">
-              Set <C>turn</C> and it joins <b>Your turn</b>, with one push:
+              <L>Set <C>turn</C> and it joins <b>Your turn</b>,</L>
+              <L>with one push:</L>
             </p>
             <Push title="Word Duel · your move" body="Nana played QUILT for 34" when="6:47 pm" />
           </div>

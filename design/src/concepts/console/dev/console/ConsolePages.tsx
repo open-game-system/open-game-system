@@ -3,11 +3,12 @@
 import { GAMES, gameById } from "../../../../world";
 import { GameArt } from "../../ui/GameArt";
 import { Check, Plus } from "../../ui/Icons";
-import { C } from "../Code";
+import { C, L } from "../Code";
 import type { ConsolePage, DevPage } from "../pages";
 import { MANIFEST_PATH, PEEK_MANIFEST, PEEK_MANIFEST_BROKEN } from "../samples";
 import { TierChip, TierGlyph } from "../Shell";
 import { Checks, ConsoleHead, Editor, Previews, Problems, TvButton, Warn } from "./parts";
+import { AfterUnpublish, Dropped, Reading } from "./States";
 import { validate } from "./validate";
 
 type Go = (p: DevPage) => void;
@@ -102,7 +103,8 @@ function PreviewState({ go }: { go: Go }) {
           }
         />
         <p className="dc-leftnote">
-          Hosting it at <C>{MANIFEST_PATH}</C> too? OGS re-reads that file when you publish, so the two never drift.
+          <L>Hosting it at <C>{MANIFEST_PATH}</C> too?</L>
+          <L>OGS re-reads that file when you publish, so the two never drift.</L>
         </p>
         </div>
         <div className="dc-side">
@@ -132,6 +134,8 @@ function PreviewState({ go }: { go: Go }) {
 interface Signal {
   ok: boolean;
   text: string;
+  /** Set up, waiting for its first signal to arrive. */
+  wait?: boolean;
 }
 
 const SIGNALS: Record<string, [Signal, Signal | null, Signal | null]> = {
@@ -144,6 +148,13 @@ const SIGNALS: Record<string, [Signal, Signal | null, Signal | null]> = {
 
 function SignalCell({ s }: { s: Signal | null }) {
   if (!s) return <span className="dc-sig dc-sig--none">Not set up</span>;
+  if (s.wait)
+    return (
+      <span className="dc-sig dc-sig--wait">
+        <span className="dc-listen" aria-hidden />
+        <span>{s.text}</span>
+      </span>
+    );
   return (
     <span className={`dc-sig ${s.ok ? "dc-sig--ok" : "dc-sig--warn"}`}>
       {s.ok ? <Check size={15} /> : <Warn size={15} />}
@@ -159,7 +170,16 @@ const LOG: { at: string; game: string; what: string; body: string; code: string;
   { at: "7:15 am", game: "Story Nook", what: "PUT /saves", body: "If-Match \"4\" but the slot is at v5. Reload, then save.", code: "409", ok: false },
 ];
 
-function Live({ go }: { go: Go }) {
+/** The Live page's three moments: everything reporting, waiting on a first POST, a game taken down. */
+type LiveMode = "live" | "listening" | "unpublished";
+
+const PEEK_SIGNALS: Record<LiveMode, [Signal | null, Signal | null, Signal | null]> = {
+  live: [{ ok: true, text: "Published 7:10 pm" }, null, null],
+  listening: [{ ok: true, text: "Published 7:10 pm" }, { ok: true, text: "Token verified · 7:31 pm" }, { ok: true, wait: true, text: "Listening for the first POST" }],
+  unpublished: [{ ok: true, text: "Unpublished 7:24 pm" }, null, null],
+};
+
+function Live({ go, mode = "live" }: { go: Go; mode?: LiveMode }) {
   const mine = GAMES.filter((g) => SIGNALS[g.id]).sort((a, b) => (a.id === "peekaboo-garden" ? -1 : b.id === "peekaboo-garden" ? 1 : b.tier - a.tier));
   const peek = gameById("peekaboo-garden");
   return (
@@ -169,14 +189,39 @@ function Live({ go }: { go: Go }) {
           <Plus size={18} /> Add a game
         </button>
       </ConsoleHead>
-      <div className="dc-banner" role="status">
-        <span className="dc-banner__icon">
-          <Check size={18} />
-        </span>
-        <span>
-          <b>{peek.name} is live.</b> It's on the <b>Together on the TV</b> shelf for every household that adds it, castable today.
-        </span>
-      </div>
+      {mode === "live" && (
+        <div className="dc-banner" role="status">
+          <span className="dc-banner__icon">
+            <Check size={18} />
+          </span>
+          <span>
+            <b>{peek.name} is live.</b>
+            <span> It's on the </span>
+            <b>Together on the TV</b>
+            <span> shelf for every household that adds it, castable today.</span>
+          </span>
+        </div>
+      )}
+      {mode === "listening" && (
+        <div className="dc-banner dc-banner--wait" role="status">
+          <span className="dc-listen dc-listen--lg" aria-hidden />
+          <span>
+            <b>Listening for {peek.name}'s first report.</b>
+            <span> Families see nothing new until a valid POST lands; it shows up here within a second.</span>
+          </span>
+        </div>
+      )}
+      {mode === "unpublished" && (
+        <div className="dc-banner dc-banner--off" role="status">
+          <span className="dc-banner__icon dc-banner__icon--off" aria-hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M6 12h12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" /></svg>
+          </span>
+          <span>
+            <b>{peek.name} is unpublished.</b>
+            <span> Nothing was deleted: its manifest, saves and reports are kept for 30 days.</span>
+          </span>
+        </div>
+      )}
       <div className="dc-live">
         <div className="dc-left">
         <table className="dc-table">
@@ -196,9 +241,10 @@ function Live({ go }: { go: Go }) {
           </thead>
           <tbody>
             {mine.map((g) => {
-              const [t0, t1, t2] = SIGNALS[g.id] ?? [null, null, null];
+              const [t0, t1, t2] = (g.id === "peekaboo-garden" ? PEEK_SIGNALS[mode] : SIGNALS[g.id]) ?? [null, null, null];
+              const rowClass = g.id !== "peekaboo-garden" ? "" : mode === "unpublished" ? "is-off" : "is-new";
               return (
-                <tr key={g.id} className={g.id === "peekaboo-garden" ? "is-new" : ""}>
+                <tr key={g.id} className={rowClass}>
                   <th scope="row">
                     <span className="dc-game">
                       <span className="dc-game__art">
@@ -229,6 +275,15 @@ function Live({ go }: { go: Go }) {
             <span className="dv-dot" aria-hidden /> Recent reports
           </h2>
           <ol>
+            {mode === "listening" && (
+              <li className="is-wait">
+                <span className="dc-log__at">7:31 pm</span>
+                <span className="dc-log__game">Peekaboo Garden</span>
+                <C>GET /me</C>
+                <span className="dc-log__body">dev-juneau-ipad · Juneau · finder · token verified</span>
+                <span className="dc-log__code">200</span>
+              </li>
+            )}
             {LOG.map((l) => (
               <li key={l.at + l.what}>
                 <span className="dc-log__at">{l.at}</span>
@@ -241,6 +296,7 @@ function Live({ go }: { go: Go }) {
           </ol>
         </section>
         </div>
+        {mode === "live" && (
         <aside className="dc-next">
           <h2>Next for {peek.name}</h2>
           <p>It starts fresh every time. Two small steps would let the Mumms pick up where they left off.</p>
@@ -248,7 +304,11 @@ function Live({ go }: { go: Go }) {
             <li>
               <TierChip tier={1} size="sm" />
               <span>
-                <b>Read the <C>?ogs</C> token</b>
+                <b>
+                  <span>Read the </span>
+                  <C>?ogs</C>
+                  <span> token</span>
+                </b>
                 <span>We'll show "Token verified" here on the first one.</span>
               </span>
             </li>
@@ -260,17 +320,45 @@ function Live({ go }: { go: Go }) {
               </span>
             </li>
           </ol>
-          <button className="dv-btn dv-btn--ghost" data-bot="docs-tier1" onClick={() => go("identity")}>
-            Add Tier 1
+          <div className="dc-next__btns">
+            <button className="dv-btn dv-btn--ghost" data-bot="docs-tier1" onClick={() => go("identity")}>
+              Add Tier 1
+            </button>
+            <button className="dv-btn dv-btn--quiet" data-bot="unpublish" onClick={() => go("console-unpublished")}>
+              Unpublish
+            </button>
+          </div>
+        </aside>
+        )}
+        {mode === "listening" && (
+        <aside className="dc-next">
+          <h2>Send one to see it here</h2>
+          <p>Your key is in test mode: reports from it show only on your own household's Home.</p>
+          <pre className="dc-curl">{CURL}</pre>
+          <button className="dv-btn dv-btn--ghost" data-bot="docs-tier2" onClick={() => go("instances")}>
+            What goes in a report
           </button>
         </aside>
+        )}
+        {mode === "unpublished" && <AfterUnpublish go={go} />}
       </div>
     </div>
   );
 }
 
+const CURL = `POST /api/v1/instances
+Authorization: Bearer $GAME_API_KEY
+
+{ "id": "pg-1", "household": "hh-mumm",
+  "status": "completed",
+  "title": "A hedgehog moved in" }`;
+
 export function ConsoleView({ page, go }: { page: ConsolePage; go: Go }) {
   if (page === "console-empty") return <Empty go={go} />;
+  if (page === "console-reading") return <Reading go={go} />;
+  if (page === "console-dropped") return <Dropped go={go} />;
+  if (page === "console-listening") return <Live go={go} mode="listening" />;
+  if (page === "console-unpublished") return <Live go={go} mode="unpublished" />;
   if (page === "console-error") return <ErrorState go={go} />;
   if (page === "console-preview") return <PreviewState go={go} />;
   return <Live go={go} />;

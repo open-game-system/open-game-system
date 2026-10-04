@@ -2,7 +2,7 @@
 import { HOME, gameById } from "../../../../world";
 import { seatPlan } from "../../state";
 import { Portrait } from "../../ui/Brand";
-import { C } from "../Code";
+import { C, L } from "../Code";
 import type { DevPage } from "../pages";
 
 const RULES: [string, string][] = [
@@ -24,7 +24,8 @@ export function Kids({ go }: { go: (p: DevPage) => void }) {
         <p className="dv-kicker">Guide · every tier</p>
         <h1 className="dv-h1">Kid devices</h1>
         <p className="dv-lede">
-          Every role names its <C>audience</C>. OGS seats each person by age band, so a kid's iPad opens your kid screen with no picker. Three audiences, five rules.
+          <L>Every role names its <C>audience</C>.</L>
+          <L>OGS seats each person by age band, so a kid's iPad opens your kid screen with no picker. Three audiences, five rules.</L>
         </p>
         <ol className="dv-rules">
           {RULES.map(([h, d], i) => (

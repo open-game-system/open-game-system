@@ -1,7 +1,7 @@
 // The same game (Bake Shop) at Tier 0, 1 and 2, as the family's phone and iPads show it.
 // Each column is what one more step of integration buys, in the console's own components.
 import { COUCH, gameById } from "../../../../world";
-import { C } from "../Code";
+import { C, L } from "../Code";
 import type { DevPage } from "../pages";
 import { JoinByName, KEEPS, LiveCard, Push, ResumeRow, Tile } from "../Payoff";
 import { TierChip } from "../Shell";
@@ -43,7 +43,8 @@ export function LibraryTiers({ go }: { go: (p: DevPage) => void }) {
       <p className="dv-kicker">Guide · payoff</p>
       <h1 className="dv-h1">One game, three tiers</h1>
       <p className="dv-lede">
-        {g.name} as the Mumms see it. Every difference comes from your manifest, your saves or your <C>POST</C>, never from OGS app code.
+        <L>{g.name} as the Mumms see it: every difference comes from your manifest,</L>
+        <L>your saves or your <C>POST</C>, never from OGS app code.</L>
       </p>
       <div className="dv-matrix" role="table" aria-label={`${g.name} at each tier`}>
         <div className="dv-matrix__row dv-matrix__row--head" role="row">
@@ -72,7 +73,7 @@ export function LibraryTiers({ go }: { go: (p: DevPage) => void }) {
       </div>
       <div className="dv-matrix__foot">
         <p className="dv-p">
-          Bake Shop is a couch game, so it never has a turn. A game that sets <C>turn</C> also lands in <b>Your turn</b> on Home, like Word Duel.
+          <L>A couch game never has a turn; a game that sets <C>turn</C> also lands in <b>Your turn</b>.</L>
         </p>
         <button className="dv-link" data-bot="to-console" onClick={() => go("console-empty")}>
           Register your game in the Console →

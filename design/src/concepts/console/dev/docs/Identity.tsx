@@ -1,6 +1,6 @@
 // Tier 1: who is playing (a signed token on the start URL) and OGS-hosted saves.
 import { useState } from "react";
-import { C, CodeCard, CodeLines } from "../Code";
+import { C, CodeCard, CodeLines, L } from "../Code";
 import type { DevPage } from "../pages";
 import { JoinByName, ResumeRow } from "../Payoff";
 import { READ_TOKEN, SAVE_GET, SAVE_PUT } from "../samples";
@@ -26,7 +26,8 @@ export function Identity({ go }: { go: (p: DevPage) => void }) {
         </p>
         <h1 className="dv-h1">Identity and saves</h1>
         <p className="dv-lede">
-          OGS adds <C>?ogs=</C> to your <C>startUrl</C>: a signed token for household, person and device. It also unlocks one save per household × game.
+          <L>OGS adds <C>?ogs=</C> to your <C>startUrl</C>:</L>
+          <L>a signed token for household, person and device. It also unlocks one save per household × game.</L>
         </p>
 
         <h2 className="dv-h2">
@@ -50,7 +51,9 @@ export function Identity({ go }: { go: (p: DevPage) => void }) {
           <span className="dv-step">2</span> Load and save
         </h2>
         <p className="dv-p">
-          Put a one-line <C>resume</C> in every save; the library shows it. <C>If-Match</C> stops two phones overwriting each other (409: reload). 64 KB per slot.
+          <L>Put a one-line <C>resume</C> in every save; the library shows it.</L>
+          <L><C>If-Match</C> stops two phones overwriting each other.</L>
+          <L>409 means reload. 64 KB per slot.</L>
         </p>
 
         <div className="dv-payoff dv-payoff--row dv-payoff--t1">

@@ -1,6 +1,6 @@
 // The TV URL contract: what the cast stream is, and the five rules of a TV page.
 import { gameById } from "../../../../world";
-import { C, CodeCard } from "../Code";
+import { C, CodeCard, L } from "../Code";
 import type { DevPage } from "../pages";
 import { CAST_SNIPPET, STREAM_SNIPPET } from "../samples";
 
@@ -20,7 +20,8 @@ export function Casting({ go }: { go: (p: DevPage) => void }) {
         <p className="dv-kicker">Guide · every tier</p>
         <h1 className="dv-h1">The TV page</h1>
         <p className="dv-lede">
-          Your <C>tvUrl</C> is a page, not a video. OGS casts it as-is; you never write receiver code.
+          <L>Your <C>tvUrl</C> is a page, not a video.</L>
+          <L>OGS casts it as-is; you never write receiver code.</L>
         </p>
         <ol className="dv-rules">
           {RULES.map(([h, d], i) => (
@@ -34,7 +35,8 @@ export function Casting({ go }: { go: (p: DevPage) => void }) {
           ))}
         </ol>
         <p className="dv-p">
-          Need the room in the TV URL? Call <C>useCastViewUrl</C> from your host page. It replaces the manifest's <C>tvUrl</C> for that cast.
+          <L>Need the room in the TV URL? Call <C>useCastViewUrl</C>.</L>
+          <L>From your host page, it replaces the manifest's tvUrl for that cast.</L>
         </p>
         <button className="dv-link" data-bot="next-kids" onClick={() => go("kids")}>
           Next: kid devices →

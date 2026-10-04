@@ -1,5 +1,5 @@
 // Tier 0: the manifest. A copy-pasteable file for a real game (Peekaboo Garden).
-import { C, CodeCard } from "../Code";
+import { C, CodeCard, L } from "../Code";
 import type { DevPage } from "../pages";
 import { Tile } from "../Payoff";
 import { MANIFEST_PATH, PEEK_MANIFEST } from "../samples";
@@ -24,7 +24,8 @@ export function Manifest({ go }: { go: (p: DevPage) => void }) {
         </p>
         <h1 className="dv-h1">Add a manifest</h1>
         <p className="dv-lede">
-          One file on your domain at <C>{MANIFEST_PATH}</C>, or pasted into the Console. That is the whole integration.
+          <L>One file on your domain at <C>{MANIFEST_PATH}</C>,</L>
+          <L>or pasted into the Console. That is the whole integration.</L>
         </p>
 
         <table className="dv-fields">
@@ -53,7 +54,8 @@ export function Manifest({ go }: { go: (p: DevPage) => void }) {
             <Tile gameId="peekaboo-garden" tier={0} />
           </div>
           <p>
-            On the <b>Together on the TV</b> shelf, castable from any phone. Every sitting <b>starts fresh</b>.{" "}
+            <b className="dv-l">Together on the TV shelf</b>
+            <L>Any phone casts it. Starts fresh.</L>
             <button className="dv-link" data-bot="next-identity" onClick={() => go("identity")}>
               Keep their place with Tier 1 →
             </button>
@@ -71,7 +73,8 @@ export function Manifest({ go }: { go: (p: DevPage) => void }) {
           foot={
             <>
               <span>
-                <C>appId</C>, <C>name</C> and <C>apiVersion</C> are the spec's domain file today. The rest is new.
+                <L><C>appId</C>, <C>name</C> and <C>apiVersion</C></L>
+                <L>are the spec's domain file today. The rest is new.</L>
               </span>
               <button className="dv-btn dv-btn--light" data-bot="paste-console" onClick={() => go("console-error")}>
                 Paste into Console
