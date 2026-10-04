@@ -271,6 +271,7 @@ stateDiagram-v2
     <div class="panel"><b>Add games: curated or open?</b><span class="cap">A reviewed catalogue, plus anyone's manifest by link (your own vibe-coded games) with a "from a link" label?</span></div>
     <div class="panel"><b>Who's playing, every time?</b><span class="cap">Or only when the roster changed since last time.</span></div>
     <div class="panel"><b>Frame or navigate?</b><span class="cap">Framing swaps instantly but needs each TV page to allow framing and autoplay.</span></div>
+    <div class="panel"><b>No Chromecast</b><span class="cap">Offer "any screen with a browser" (the launcher at opengame.org/tv with a code; rendered locally, no cloud stream)? And should "Where to get one" be a store or affiliate link?</span></div>
     <div class="panel"><b>Who sends pushes</b><span class="cap">OGS from instance reports, or each game via notification-kit?</span></div>
     <div class="panel"><b>Save keys</b><span class="cap">Saves keyed by the player's token are callable from the browser: needs a security review.</span></div>
   </div>
@@ -327,6 +328,8 @@ const F=[
 ['Or Playing: the live game is pinned on top.',tv(`<div class="row" style="gap:8px;height:100%"><div class="tile" style="flex:1.2"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Saved · Mission 6')}</div></div>`),act('Now playing on TV · Rocket Crew · Back in')],
 ['Or a push opens the same card. One tap back into the exact state.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Captain')}<div class="tile" style="flex:1"></div>${w('← swipe back')}`)]]],
 ['8 · When something drops',[
+['No TV found: the likely causes first (Local Network permission, same Wi-Fi, TV on), each with one fix.',off('TV off'),ph(`${w('No TV found')}${li('Allow Local Network')}${li('Same Wi-Fi?')}${li('TV on?')}<div style="flex:1"></div>${btn('Search again',1)}${btn('Other ways')}`)],
+['Other ways to play: any screen with a browser (opengame.org/tv + a 4-letter code), phones only, or get a Chromecast.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:6px">${w('opengame.org/tv')}${w('Code: KITE')}</div>`),ph(`${w('Other ways')}${li('Any browser screen')}${li('Just phones')}${li('Get a Chromecast')}`)],
 ['Remote phone dies: Mom’s phone offers to take the TV. Nothing restarts.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Take the TV?')}<div style="flex:1"></div>${btn('Take it',1)}`)],
 ['Cast drops: the TV tab is the big button again, now Reconnect; the game resumes at Mission 6.',off('TV off'),ph(`<div class="ctr" style="flex:1;flex-direction:column;gap:5px"><div class="ctr" style="width:46px;height:46px;border-radius:50%;background:var(--ember);color:#fff;font:800 9px var(--display)">Reconnect</div>${w('TV lost')}</div>${tabs('t')}`)]]]];
 document.getElementById('flows').innerHTML=F.map(([t,steps])=>`<div style="display:flex;flex-direction:column;gap:10px"><span class="tag">${t}</span><div class="steps">${steps.map(([c,t2,p,i],n)=>`<div class="step"><span class="n">${String(n+1).padStart(2,'0')}</span>${t2}<div class="devs">${p||''}${i||''}</div><span class="cap">${c}</span></div>`).join('')}</div></div>`).join('');
