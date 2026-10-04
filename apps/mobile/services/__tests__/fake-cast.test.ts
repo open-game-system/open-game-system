@@ -54,15 +54,13 @@ describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
     }
   });
 
-  it("=2: a new search starts over, so the second TV trickles in again", () => {
+  it("=2: a new search keeps the TVs already found (like Cast's known routes)", () => {
     jest.useFakeTimers();
     try {
       const { backend } = setup("two");
       backend.startDiscovery();
       jest.advanceTimersByTime(FAKE_TV_2_DELAY_MS);
       backend.startDiscovery();
-      expect(backend.getDevices()).toEqual([FAKE_TV]);
-      jest.advanceTimersByTime(FAKE_TV_2_DELAY_MS);
       expect(backend.getDevices()).toEqual([FAKE_TV, FAKE_TV_2]);
     } finally {
       jest.useRealTimers();

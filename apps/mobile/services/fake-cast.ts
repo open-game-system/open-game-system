@@ -108,7 +108,7 @@ export function createFakeCastBackend(opts: {
       };
       if (trickle) clearTimeout(trickle);
       trickle = null;
-      if (devices.length < 2) return publish(devices);
+      if (devices.length < 2 || discovered.length === devices.length) return publish(devices);
       publish(devices.slice(0, 1));
       trickle = setTimeout(() => {
         trickle = null;

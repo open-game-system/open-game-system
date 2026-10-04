@@ -177,10 +177,10 @@ export function NowOnTv({
           {device}
           <Text style={styles.change}>Change</Text>
           <SymbolView
-            name="chevron.up.chevron.down"
+            name="chevron.down"
             size={14}
             weight="semibold"
-            tintColor={colors.cream3}
+            tintColor={colors.cream2}
             style={styles.chev}
           />
         </Pressable>
@@ -235,11 +235,10 @@ const styles = StyleSheet.create({
   face: { height: ART_H, backgroundColor: colors.dusk2 },
   faceText: { flex: 1, padding: 16, paddingBottom: 12, gap: 8, alignItems: "flex-start" },
   kicker: {
-    color: colors.cream2,
-    fontSize: 11,
+    color: colors.cream,
+    fontSize: 12,
     fontWeight: "800",
     letterSpacing: 1.4,
-    opacity: 0.85,
   },
   title: { fontFamily: fonts.display, fontSize: 28, color: colors.cream, maxWidth: 220 },
   logo: { height: 58, maxWidth: 190 },
@@ -262,9 +261,9 @@ const styles = StyleSheet.create({
   },
   chipLive: { backgroundColor: colors.lamp },
   chipText: { color: colors.ink, fontSize: 12, fontWeight: "800" },
-  resume: { color: colors.cream, fontSize: 14, fontWeight: "700" },
+  resume: { color: colors.cream, fontSize: 15, fontWeight: "700" },
   spacer: { flex: 1 },
-  action: { color: colors.cream, fontSize: 15, fontWeight: "700" },
+  action: { color: colors.cream, fontSize: 16, fontWeight: "700" },
   device: {
     minHeight: 52,
     flexDirection: "row",
@@ -282,8 +281,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ember },
-  deviceName: { flex: 1, color: colors.cream, fontSize: 16, fontWeight: "700" },
-  change: { color: colors.cream2, fontSize: 15, fontWeight: "600" },
+  deviceName: { flex: 1, color: colors.cream, fontSize: 17, fontWeight: "700" },
+  change: { color: colors.cream, fontSize: 15, fontWeight: "700" },
   chev: { width: 14, height: 14 },
   holder: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   holderSticker: {

@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   sym: { width: 22, height: 22 },
   rowText: { flex: 1, gap: 2 },
   name: { color: colors.cream, fontSize: 17, fontWeight: "700" },
-  status: { color: colors.cream3, fontSize: 14 },
+  status: { color: colors.cream2, fontSize: 15 },
   statusOn: { color: colors.mint },
   check: { width: 24, height: 24 },
   error: { color: colors.peach, fontSize: 15 },

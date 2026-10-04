@@ -37,3 +37,7 @@ Judges: Codex `gpt-5.6-sol` (reasoning medium) and a fresh Claude Opus critic su
 | r11 | Claude | 8 | 7 | 7 | 7 | 7 | 6 | 8 | 8 | 7 | 6 | B (r11) clearly better; kept |
 | r12 vs r11 | Codex | 9 | 8 | 8 | 9 | 8 | 8 | 9 | 8 | 7 | 7 | A (r12) better (pressed model, vertical fit); kept |
 | r12 vs r11 | Claude | 8 | 7.5 | 7 | 7.5 | 7 | 7.5 | 8 | 8 | 7.5 | 7 | A (r12) better (tighter composition, progressive picker); kept |
+| r13 vs r12 | Codex | 7 | 7 | 8 | 8 | 7 | 6 | 9 | 7 | 8 | 6 | prefers r12 (chips under Cast too small, lower void) |
+| r13 vs r12 | Claude | 8 | 7 | 7 | 8 | 8 | 7 | 8 | 7 | 7 | 7 | prefers r13 (no orphan, Join visible); split vote, reverted as a whole, uncontested parts carried into r14 |
+| r14 vs r12 | Codex | 8 | 8 | 8 | 9 | 8 | 8 | 8 | 8 | 8 | 8 | A (r14) better; every row at 8+; kept |
+| r14 vs r12 | Claude | 7 | 7 | 7 | 7 | 7 | 7 | 8 | 7 | 7 | 7 | A (r14) better (Join visible, no orphan, rows with glyph + check); kept |

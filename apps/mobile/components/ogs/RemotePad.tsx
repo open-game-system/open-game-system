@@ -4,7 +4,7 @@ import { DPad, RING_GAP } from "./remote/DPad";
 import { RoundKey } from "./remote/RoundKey";
 
 /** The pad's diameter for the room it has: big in the thumb zone, never past the corner keys. */
-export const padSize = (room: number) => Math.max(200, Math.min(268, room - RING_GAP * 2));
+export const padSize = (room: number) => Math.max(200, Math.min(264, room - RING_GAP * 2));
 
 /**
  * The TV tab once cast: the clickpad in the thumb zone, Back and Home flanking its lower half
@@ -27,6 +27,6 @@ export function RemotePad({ size, onPress }: { size: number; onPress: (b: Remote
 const styles = StyleSheet.create({
   wrap: { alignSelf: "stretch", alignItems: "center", justifyContent: "center" },
   corner: { position: "absolute", bottom: 0 },
-  left: { left: -12 },
-  right: { right: -12 },
+  left: { left: -14 },
+  right: { right: -14 },
 });

@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { SymbolView } from "expo-symbols";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -60,7 +61,7 @@ export default function TvScreen() {
 }
 
 /** The pad area's room for the holder line above the pad. */
-const HOLDER_ROOM = 58;
+const HOLDER_ROOM = 80;
 
 function Remote({ castDeviceName }: { castDeviceName: string | null }) {
   const insets = useSafeAreaInsets();
@@ -194,6 +195,8 @@ function NotCast({ connecting }: { connecting: boolean }) {
   }, [phase, devices.length]);
 
   const tv = castTarget(devices, picked, stopped);
+  // With several TVs the chooser names the one Cast goes to; the caption would repeat it.
+  const choosing = devices.length > 1 && !connecting && phase !== "searching";
 
   const onCast = async () => {
     setError(null);
@@ -256,7 +259,10 @@ function NotCast({ connecting }: { connecting: boolean }) {
     <Screen title="TV" testID="tvNotCast">
       {stopped ? (
         <View testID="castStopped">
-          <Text style={styles.headline}>Stopped casting on {stopped.name}</Text>
+          <Text style={styles.headline}>
+            Stopped casting on{"\n"}
+            {stopped.name}
+          </Text>
           <Text style={styles.lead}>Your games keep their place: one tap casts them back.</Text>
         </View>
       ) : (
@@ -281,7 +287,11 @@ function NotCast({ connecting }: { connecting: boolean }) {
             </Text>
           )}
         </Pressable>
-        <Text style={styles.tvName} testID="castTarget">
+        <Text
+          style={[styles.tvName, choosing && styles.hidden]}
+          testID="castTarget"
+          accessibilityElementsHidden={choosing}
+        >
           {connecting
             ? `Connecting to ${tv?.name ?? "the TV"}…`
             : phase === "searching"
@@ -296,19 +306,42 @@ function NotCast({ connecting }: { connecting: boolean }) {
         />
       </View>
       {devices.length > 1 ? (
-        <View style={styles.choices}>
-          <Text style={styles.otherTitle}>Which TV?</Text>
-          {devices.map((d) => (
-            <Pressable
-              key={d.id}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: tv?.id === d.id }}
-              onPress={() => setPicked(d)}
-              style={[styles.choice, tv?.id === d.id && styles.choiceOn]}
-            >
-              <Text style={styles.choiceText}>{d.name}</Text>
-            </Pressable>
-          ))}
+        <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel="Which TV">
+          <Text style={styles.choicesTitle}>Which TV?</Text>
+          {devices.map((d) => {
+            const on = tv?.id === d.id;
+            return (
+              <Pressable
+                key={d.id}
+                testID={`castChoice-${d.id}`}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                onPress={() => setPicked(d)}
+                style={({ pressed }) => [
+                  styles.choice,
+                  on && styles.choiceOn,
+                  pressed && styles.choicePressed,
+                ]}
+              >
+                <SymbolView
+                  name="tv"
+                  size={18}
+                  weight="semibold"
+                  tintColor={on ? colors.peach : colors.cream2}
+                  style={styles.choiceSym}
+                />
+                <Text style={styles.choiceText}>{d.name}</Text>
+                {on ? (
+                  <SymbolView
+                    name="checkmark.circle.fill"
+                    size={20}
+                    tintColor={colors.peach}
+                    style={styles.choiceCheck}
+                  />
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
       ) : null}
       <JoinTv joined={session} />
@@ -350,7 +383,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 12,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   cause: { backgroundColor: colors.dusk1, borderRadius: 16, padding: 14, marginTop: 10 },
   causeTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },
@@ -372,15 +406,23 @@ const styles = StyleSheet.create({
   },
   otherText: { flex: 1, color: colors.cream2, fontSize: 16 },
   chevron: { color: colors.cream3, fontSize: 26 },
-  choices: { marginTop: 10 },
+  choices: { alignSelf: "stretch", gap: 8, marginTop: 4 },
+  choicesTitle: { color: colors.cream2, fontSize: 15, fontWeight: "700" },
   choice: {
-    minHeight: TARGET + 4,
-    borderRadius: 14,
+    minHeight: TARGET + 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    justifyContent: "center",
     backgroundColor: colors.dusk1,
-    marginTop: 8,
+    borderWidth: 1.5,
+    borderColor: colors.hair,
   },
-  choiceOn: { borderWidth: 2, borderColor: colors.peach },
-  choiceText: { color: colors.cream, fontSize: 16, fontWeight: "600" },
+  choiceOn: { borderColor: colors.peach },
+  choicePressed: { backgroundColor: colors.dusk2 },
+  choiceSym: { width: 18, height: 18 },
+  choiceCheck: { width: 20, height: 20 },
+  hidden: { display: "none" },
+  choiceText: { flex: 1, color: colors.cream, fontSize: 16, fontWeight: "600" },
 });

@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   quietOn: { backgroundColor: colors.dusk2 },
   sym: { width: 15, height: 15 },
-  quietText: { color: colors.cream2, fontSize: 14, fontWeight: "600" },
+  quietText: { color: colors.cream, fontSize: 15, fontWeight: "600" },
   scrim: { flex: 1, backgroundColor: "rgba(10, 8, 20, 0.6)" },
   sheet: {
     backgroundColor: colors.dusk1,

@@ -16,7 +16,7 @@ const SYMBOL = {
 } as const;
 const DOTS = 44;
 /** The dotted ring sits this far outside the pad. */
-export const RING_GAP = 16;
+export const RING_GAP = 12;
 
 /** Every measure of the pad from its diameter, so it can grow into the room the screen has. */
 function geometry(size: number) {
