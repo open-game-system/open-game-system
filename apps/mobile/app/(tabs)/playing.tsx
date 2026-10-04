@@ -157,8 +157,7 @@ function EmptyPlaying({
       {cast ? null : (
         <Button
           testID="playingCast"
-          label="Cast to the TV"
-          kind="ghost"
+          label="Cast to TV"
           style={{ marginTop: 24 }}
           onPress={() => router.navigate("/tv")}
         />
