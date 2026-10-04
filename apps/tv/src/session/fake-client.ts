@@ -1,0 +1,72 @@
+import {
+  type ClientMessage,
+  initialSession,
+  reduceSession,
+  type SessionState,
+} from "@open-game-system/ogs-protocol";
+import type { Dir } from "../launcher/focus-grid";
+import { Emitter, type SessionClient, type SessionSnapshot } from "./client";
+
+export interface FakeClient extends SessionClient {
+  connect(): void;
+  drop(): void;
+  restore(): void;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/** The evening so far: the TV cast, two phones and Juneau's iPad here, Bake Shop paused at Day 4. */
+function seed(now: number): SessionState {
+  const steps: [ClientMessage, number][] = [
+    [
+      { type: "hello", deviceId: "jonathan-phone", kind: "phone", personId: "jonathan" },
+      now - 3 * DAY,
+    ],
+    [{ type: "game.start", appId: "bake-shop", mode: "new" }, now - 3 * DAY],
+    [{ type: "game.resume-point", appId: "bake-shop", label: "Day 4" }, now - 3 * DAY],
+    [{ type: "home" }, now - 3 * DAY + 40 * 60 * 1000],
+    [{ type: "hello", deviceId: "mom-phone", kind: "phone", personId: "mom" }, now],
+    [{ type: "hello", deviceId: "juneau-ipad", kind: "tablet", personId: "juneau" }, now],
+    [{ type: "hello", deviceId: "living-room-tv", kind: "launcher" }, now],
+  ];
+  let s: SessionState = initialSession("mumms");
+  for (const [msg, at] of steps) s = reduceSession(s, msg, at).state;
+  return { ...s, focus: null, rosters: {} };
+}
+
+/**
+ * An in-memory couch session running the protocol's own reducer, so tests and the design page
+ * drive the launcher exactly as the Durable Object would.
+ */
+export function createFakeClient(opts: { now?: () => number; hold?: boolean } = {}): FakeClient {
+  const now = opts.now ?? Date.now;
+  const changes = new Emitter<void>();
+  const moves = new Emitter<Dir>();
+  let snapshot: SessionSnapshot = { state: null, connection: "connecting" };
+  const publish = (next: Partial<SessionSnapshot>) => {
+    snapshot = { ...snapshot, ...next };
+    changes.emit();
+  };
+  const client: FakeClient = {
+    subscribe: (fn) => changes.on(fn),
+    getSnapshot: () => snapshot,
+    onFocusMove: (fn) => moves.on(fn),
+    send(msg) {
+      if (!snapshot.state || snapshot.connection !== "open") return;
+      const { state, out } = reduceSession(snapshot.state, msg, now());
+      for (const o of out) {
+        if (o.to === "launcher") {
+          const dir = o.msg.dir;
+          queueMicrotask(() => moves.emit(dir));
+        }
+      }
+      publish({ state });
+    },
+    connect: () => publish({ state: snapshot.state ?? seed(now()), connection: "open" }),
+    drop: () => publish({ connection: "reconnecting" }),
+    restore: () => publish({ connection: "open" }),
+    close: () => {},
+  };
+  if (!opts.hold) client.connect();
+  return client;
+}
