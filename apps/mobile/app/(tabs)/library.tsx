@@ -1,47 +1,28 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ogs/Button";
-import { AddGamesRow } from "../../components/ogs/library/AddGamesRow";
 import { LibraryRow } from "../../components/ogs/library/LibraryRow";
-import { needsTv, rowAffordance } from "../../components/ogs/library/row-affordance";
+import { needsTv } from "../../components/ogs/library/needs-tv";
 import { Screen } from "../../components/ogs/Screen";
-import { StickerRow } from "../../components/ogs/Sticker";
-import { colors, TARGET } from "../../components/ogs/theme";
-import { gameStatusLine } from "../../services/library-view";
-import { appState, openGame, useApp, useCouch } from "../../services/runtime";
+import { colors } from "../../components/ogs/theme";
+import { appState, useApp } from "../../services/runtime";
 
-/** Spec v3: Library is your games, one per row (art, name, status), ending in "+ Add games". */
+/**
+ * Library is the games you have, one per row (art, name, tagline, "Needs a TV"). A tap opens the
+ * game's page, which lists your sittings of it and starts a new one.
+ */
 export default function LibraryScreen() {
   const router = useRouter();
   const app = useApp();
-  const { state } = useCouch();
   useFocusEffect(
     useCallback(() => {
       void appState.refresh();
     }, []),
   );
-  const now = Date.now();
 
   return (
-    <Screen
-      title="Library"
-      testID="libraryScreen"
-      right={
-        <Pressable
-          testID="householdButton"
-          accessibilityRole="button"
-          accessibilityLabel="Household and settings"
-          onPress={() => router.push("/settings")}
-          style={styles.household}
-        >
-          <StickerRow ids={app.identity?.people.map((p) => p.sticker) ?? ["bear"]} size={30} />
-          <Text style={styles.householdName} numberOfLines={1}>
-            {app.identity?.householdName ?? "Settings"}
-          </Text>
-        </Pressable>
-      }
-    >
+    <Screen title="Library" testID="libraryScreen">
       {app.error && app.status !== "ready" ? (
         <View style={styles.notice} testID="libraryOffline">
           <Text style={styles.noticeText}>
@@ -60,21 +41,13 @@ export default function LibraryScreen() {
             key={game.appId}
             testID={`libraryGame-${game.appId}`}
             game={game}
-            status={gameStatusLine(game, app.instances, state, now)}
-            affordance={rowAffordance(game, {
-              instances: app.instances,
-              session: state,
-              pillAppId: app.pill?.appId ?? null,
-              now,
-            })}
             needsTv={needsTv(game)}
-            onPress={() => openGame(game)}
+            onPress={() => router.push({ pathname: "/game-page", params: { appId: game.appId } })}
           />
         ))}
         {app.library.length === 0 && app.status === "ready" ? (
-          <Text style={styles.empty}>Add your first game: they're free web games.</Text>
+          <Text style={styles.empty}>No games yet.</Text>
         ) : null}
-        <AddGamesRow testID="addGames" onPress={() => router.push("/add-games")} />
       </View>
     </Screen>
   );
@@ -83,14 +56,6 @@ export default function LibraryScreen() {
 const styles = StyleSheet.create({
   list: { gap: 10 },
   empty: { color: colors.cream2, fontSize: 16, marginBottom: 8 },
-  household: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    minHeight: TARGET,
-    maxWidth: 190,
-  },
-  householdName: { color: colors.cream, fontWeight: "700", fontSize: 15, flexShrink: 1 },
   notice: {
     backgroundColor: colors.dusk2,
     borderRadius: 16,

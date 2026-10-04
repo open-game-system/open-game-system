@@ -16,6 +16,7 @@ import {
   useOgsCast,
   usePlaying,
 } from "../../services/runtime";
+import { playedAgo } from "../../services/sittings";
 
 const TITLES: Record<SectionKind, string> = {
   yourTurn: "Your turn",
@@ -81,15 +82,23 @@ export default function PlayingScreen() {
 }
 
 function InstanceRow({ item, game }: { item: Instance; game: Manifest | undefined }) {
-  const label = [game?.name ?? item.appId, item.detail].filter(Boolean).join(" · ");
+  // Two sittings of one game read apart by their detail, else by when they were last played.
+  const label = [game?.name ?? item.appId, item.detail || playedAgo(item.updatedAt, Date.now())]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <Pressable
       testID={`playingItem-${item.instanceId}`}
       accessibilityRole="button"
-      accessibilityLabel={`${item.title || game?.name || item.appId}, ${label}`}
+      accessibilityLabel={`${item.title || game?.name || item.appId}, ${label}, Rejoin`}
       disabled={!game}
       onPress={() =>
-        game && openGame(game, { mode: "continue", resumeUrl: item.resumeUrl ?? undefined })
+        game &&
+        openGame(game, {
+          mode: "continue",
+          resumeUrl: item.resumeUrl ?? undefined,
+          instanceId: item.instanceId,
+        })
       }
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.8 }]}
     >
@@ -102,7 +111,9 @@ function InstanceRow({ item, game }: { item: Instance; game: Manifest | undefine
           {label}
         </Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <View style={styles.rejoin}>
+        <Text style={styles.rejoinText}>Rejoin</Text>
+      </View>
     </Pressable>
   );
 }
@@ -185,7 +196,15 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },
   rowSub: { color: colors.cream3, fontSize: 14, marginTop: 2 },
-  chevron: { color: colors.cream3, fontSize: 26 },
+  rejoin: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: colors.lamp,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rejoinText: { color: colors.ink, fontSize: 15, fontWeight: "800" },
   emptyLead: { color: colors.cream2, fontSize: 17, marginBottom: 16, lineHeight: 24 },
   picks: { gap: 22 },
   pickRow: { flexDirection: "row", gap: 14 },

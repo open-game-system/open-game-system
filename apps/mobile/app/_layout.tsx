@@ -69,7 +69,6 @@ export default function RootLayout() {
         options={{ gestureEnabled: false, animation: "slide_from_right" }}
       />
       <Stack.Screen name="game-page" />
-      <Stack.Screen name="add-games" options={{ presentation: "modal" }} />
       <Stack.Screen name="game-detail" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="dev-tools" />
