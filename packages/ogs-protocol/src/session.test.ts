@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { type ClientMessage, initialSession, reduceSession, type SessionState } from "./session";
+import {
+  type ClientMessage,
+  initialSession,
+  reduceSession,
+  type SessionState,
+  SessionStateSchema,
+} from "./session";
 
 const T = 1_000;
 function run(msgs: ClientMessage[], from: SessionState = initialSession("hh")) {
@@ -179,5 +185,55 @@ describe("couch session", () => {
     const { s: back } = run([{ type: "hello", deviceId: "tv", kind: "launcher" }], s);
     expect(back.cast).toBe(true);
     expect(back.current?.appId).toBe("rocket-crew");
+  });
+
+  it("a launcher socket reconnecting is not a recast; a new launcher is", () => {
+    const { s } = run([
+      ...living(),
+      { type: "bye", deviceId: "tv" },
+      { type: "hello", deviceId: "tv", kind: "launcher" },
+    ]);
+    expect(s.casts).toBe(1);
+    const { s: again } = run([{ type: "hello", deviceId: "tv-2", kind: "launcher" }], s);
+    expect(again.casts).toBe(2);
+  });
+
+  it("a resume point reported after home updates the paused card", () => {
+    const { s } = run([
+      ...living(),
+      { type: "game.start", appId: "rocket-crew", mode: "continue", roster: crew },
+      { type: "home" },
+      { type: "game.resume-point", appId: "rocket-crew", label: "Mission 7" },
+    ]);
+    expect(s.suspended[0]).toMatchObject({ appId: "rocket-crew", label: "Mission 7" });
+  });
+
+  it("on the game page, focusing New and selecting starts a new sitting", () => {
+    const { s: paused } = run([
+      ...living(),
+      { type: "game.start", appId: "rocket-crew", mode: "continue", roster: crew },
+      { type: "home" },
+    ]);
+    const old = paused.suspended[0]?.instanceId;
+    const { s } = run(
+      [
+        { type: "select", deviceId: "phone-dad" },
+        { type: "focus.set", itemId: "action:new" },
+        { type: "select", deviceId: "phone-dad" },
+      ],
+      paused,
+    );
+    expect(s.current?.mode).toBe("new");
+    expect(s.current?.instanceId).not.toBe(old);
+  });
+
+  it("exports a schema that parses every state the reducer makes", () => {
+    const { s } = run([
+      ...living(),
+      { type: "game.start", appId: "rocket-crew", mode: "continue", roster: crew },
+      { type: "home" },
+    ]);
+    expect(SessionStateSchema.parse(s)).toEqual(s);
+    expect(SessionStateSchema.parse(initialSession("hh"))).toEqual(initialSession("hh"));
   });
 });

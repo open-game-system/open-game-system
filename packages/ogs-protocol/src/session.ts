@@ -73,6 +73,41 @@ export interface SessionDevice {
 
 export type Screen = "home" | "game-page" | "game";
 
+/** Parses the session state a client receives (the reducer's output). */
+export const SessionStateSchema = z.object({
+  householdId: z.string(),
+  cast: z.boolean(),
+  screen: z.enum(["home", "game-page", "game"]),
+  focus: z.string().nullable(),
+  page: z.string().nullable(),
+  current: z
+    .object({
+      appId: z.string(),
+      instanceId: z.string(),
+      mode: z.enum(["continue", "new"]),
+      roster: z.array(RosterEntrySchema),
+      label: z.string(),
+      startedAt: z.number(),
+      viewUrl: z.string().nullable(),
+      hostDeviceId: z.string().nullable(),
+    })
+    .nullable(),
+  suspended: z.array(
+    z.object({ appId: z.string(), instanceId: z.string(), label: z.string(), at: z.number() }),
+  ),
+  remote: z.string().nullable(),
+  devices: z.array(
+    z.object({
+      deviceId: z.string(),
+      kind: ClientKindSchema,
+      personId: z.string().optional(),
+      online: z.boolean(),
+    }),
+  ),
+  rosters: z.record(z.string(), z.array(RosterEntrySchema)),
+  casts: z.number(),
+});
+
 export interface SessionState {
   householdId: string;
   /** True while a launcher (the TV) is connected. */
@@ -186,12 +221,17 @@ export function reduceSession(
   const extra: Outbound[] = [];
   switch (msg.type) {
     case "hello": {
+      // A launcher socket reconnecting is the same cast; only a new launcher (a new LOAD_VIEW) is a recast.
+      const knownLauncher = s.devices.some(
+        (d) => d.deviceId === msg.deviceId && d.kind === "launcher",
+      );
       const devices = [
         ...s.devices.filter((d) => d.deviceId !== msg.deviceId),
         { deviceId: msg.deviceId, kind: msg.kind, personId: msg.personId, online: true },
       ];
       s = { ...s, devices };
-      if (msg.kind === "launcher") s = { ...s, cast: true, casts: s.casts + 1 };
+      if (msg.kind === "launcher")
+        s = { ...s, cast: true, casts: knownLauncher ? s.casts : s.casts + 1 };
       if (msg.kind === "phone" && !s.remote) s = { ...s, remote: msg.deviceId };
       break;
     }
@@ -229,7 +269,12 @@ export function reduceSession(
       else if (s.screen === "game-page" && s.page)
         return reduceSession(
           s,
-          { type: "game.start", appId: s.page, mode: "continue", hostDeviceId: msg.deviceId },
+          {
+            type: "game.start",
+            appId: s.page,
+            mode: s.focus === "action:new" ? "new" : "continue",
+            hostDeviceId: msg.deviceId,
+          },
           now,
         );
       break;
@@ -274,7 +319,15 @@ export function reduceSession(
       if (s.current?.appId === msg.appId) s = { ...s, current: { ...s.current, viewUrl: msg.url } };
       break;
     case "game.resume-point":
+      // Games often report on suspend, after home already moved them to suspended.
       if (s.current?.appId === msg.appId) s = { ...s, current: { ...s.current, label: msg.label } };
+      else
+        s = {
+          ...s,
+          suspended: s.suspended.map((g) =>
+            g.appId === msg.appId ? { ...g, label: msg.label } : g,
+          ),
+        };
       break;
     case "end":
       s = { ...suspendCurrent(s, now), screen: "home", page: null, cast: false };

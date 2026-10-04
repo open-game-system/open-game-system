@@ -12,34 +12,33 @@ export const RoleSchema = z.object({
 export type Role = z.infer<typeof RoleSchema>;
 
 /** A game's manifest: everything OGS needs to list, launch, cast and resume it. Config, not code. */
-export const ManifestSchema = z
-  .object({
-    appId: z.string().regex(/^[a-z0-9-]+$/),
-    name: z.string().min(1),
-    tagline: z.string().default(""),
-    shape: z.enum(["couch", "live", "async"]),
-    tv: TvNeedSchema,
-    /** Played on a phone or tablet (also the controller URL when the TV shows tvUrl). */
-    startUrl: z.string().url(),
-    /** A static TV page. Room-based games omit it: their phone page sends the room's TV URL at runtime (cast-kit useCastViewUrl). */
-    tvUrl: z.string().url().optional(),
-    roles: z.array(RoleSchema).default([]),
-    art: z.object({
-      tile: z.string().min(1),
-      hero: z.string().optional(),
-      safe: z.object({ scale: z.number().positive(), ox: z.number(), oy: z.number() }).optional(),
-    }),
-    shop: z
-      .object({
-        ages: z.string().optional(),
-        minutes: z.tuple([z.number(), z.number()]).optional(),
-        players: z.string().optional(),
-      })
-      .default({}),
-    /** How long an instance may stay silent before it expires (ms). */
-    instanceTtlMs: z
-      .number()
-      .positive()
-      .default(7 * 24 * 60 * 60 * 1000),
-  });
+export const ManifestSchema = z.object({
+  appId: z.string().regex(/^[a-z0-9-]+$/),
+  name: z.string().min(1),
+  tagline: z.string().default(""),
+  shape: z.enum(["couch", "live", "async"]),
+  tv: TvNeedSchema,
+  /** Played on a phone or tablet (also the controller URL when the TV shows tvUrl). */
+  startUrl: z.string().url(),
+  /** A static TV page. Room-based games omit it: their phone page sends the room's TV URL at runtime (cast-kit useCastViewUrl). */
+  tvUrl: z.string().url().optional(),
+  roles: z.array(RoleSchema).default([]),
+  art: z.object({
+    tile: z.string().min(1),
+    hero: z.string().optional(),
+    safe: z.object({ scale: z.number().positive(), ox: z.number(), oy: z.number() }).optional(),
+  }),
+  shop: z
+    .object({
+      ages: z.string().optional(),
+      minutes: z.tuple([z.number(), z.number()]).optional(),
+      players: z.string().optional(),
+    })
+    .default({}),
+  /** How long an instance may stay silent before it expires (ms). */
+  instanceTtlMs: z
+    .number()
+    .positive()
+    .default(7 * 24 * 60 * 60 * 1000),
+});
 export type Manifest = z.infer<typeof ManifestSchema>;
