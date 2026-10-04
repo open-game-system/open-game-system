@@ -1,6 +1,6 @@
 import type { Member } from "@open-game-system/ogs-protocol";
 import { useState } from "react";
-import { cardChip, spotLine } from "../launcher/facts";
+import { cardChip, cardResume, spotLine } from "../launcher/facts";
 import type { Art, CardModel, HomeModel, IconModel } from "../launcher/home";
 import { clock } from "../launcher/layout";
 import { type CouchSession, stickerUrl } from "../session/data";
@@ -43,6 +43,8 @@ export function Home(props: {
   const spot = spotOf(home, focus);
   const inCards = home.cards.some((c) => c.itemId === focus);
   const spotApp = spot?.kind === "game" ? spot.icon.appId : null;
+  const zone = inCards ? "cards" : "icons";
+  const spotResume = spot?.kind === "game" ? spotLine(spot.icon, zone).resume : "";
   return (
     <div className="screen home" data-testid="home" data-zone={inCards ? "cards" : "icons"}>
       <Room spot={spot} />
@@ -70,7 +72,7 @@ export function Home(props: {
       {spot && (
         <Spotlight
           spot={spot}
-          zone={inCards ? "cards" : "icons"}
+          zone={zone}
           players={spot.kind === "game" ? props.playersOf(spot.icon.appId) : []}
         />
       )}
@@ -82,6 +84,7 @@ export function Home(props: {
               card={c}
               focused={c.itemId === focus}
               chip={c.kind === "sitting" ? cardChip(c, spotApp) : ""}
+              resume={c.kind === "sitting" ? cardResume(c, spotApp, spotResume) : ""}
             />
           ))}
         </div>
@@ -185,8 +188,9 @@ function Spotlight(props: { spot: NonNullable<Spot>; zone: "icons" | "cards"; pl
   );
 }
 
-/** `chip`: when, short; "" on the spotlit game's card (the spotlight already says it). */
-function Card({ card, focused, chip }: { card: CardModel; focused: boolean; chip: string }) {
+/** `chip` and `resume`: "" on the spotlit game's card when the spotlight already says them. */
+function Card(props: { card: CardModel; focused: boolean; chip: string; resume: string }) {
+  const { card, focused, chip, resume } = props;
   const common = {
     "data-item": card.itemId,
     "data-focused": focused || undefined,
@@ -215,7 +219,7 @@ function Card({ card, focused, chip }: { card: CardModel; focused: boolean; chip
         {card.upcoming ? <ClockMark /> : <PlayMark />}
       </div>
       <span className="card-name">{card.name}</span>
-      <span className="card-resume">{card.resume}</span>
+      {resume && <span className="card-resume">{resume}</span>}
     </div>
   );
 }

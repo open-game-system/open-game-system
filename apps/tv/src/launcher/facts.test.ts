@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardChip, SPOT_TAGLINE_FITS, spotLine } from "./facts";
+import { cardChip, cardResume, SPOT_TAGLINE_FITS, spotLine } from "./facts";
 
 const bake = { tag: "Paused just now", resume: "Day 4", tagline: "Bake what the bears order" };
 const long = "Animal customers, picture orders, a sprinkle of chaos.";
@@ -65,5 +65,20 @@ describe("cardChip: a sitting card's chip only when it adds something", () => {
   it("every other card shows when, short", () => {
     expect(cardChip(card, "rocket-crew")).toBe("Just now");
     expect(cardChip(card, null)).toBe("Just now");
+  });
+});
+
+describe("cardResume: a sitting card's name, unless the spotlight just said it", () => {
+  const card = { appId: "bake-shop", resume: "Day 4" };
+  it("the spotlit game's card leaves its resume point to the spotlight", () => {
+    expect(cardResume(card, "bake-shop", "Day 4")).toBe("");
+  });
+  it("keeps it when the spotlight didn't say it (dropped as a repeat of the status)", () => {
+    expect(cardResume(card, "bake-shop", "")).toBe("Day 4");
+  });
+  it("every other card keeps its sitting name", () => {
+    expect(cardResume(card, "rocket-crew", "Mission 6")).toBe("Day 4");
+    expect(cardResume(card, null, "")).toBe("Day 4");
+    expect(cardResume(card, "rocket-crew", "Day 4")).toBe("Day 4");
   });
 });

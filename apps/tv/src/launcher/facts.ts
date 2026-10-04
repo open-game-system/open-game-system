@@ -38,3 +38,10 @@ export function spotLine(
 /** A sitting card's chip: "" for the spotlit game (the spotlight says it), else its short when. */
 export const cardChip = (card: { appId: string; chip: string }, spotApp: string | null): string =>
   card.appId === spotApp ? "" : card.chip;
+
+/** A sitting card's subtitle: "" on the spotlit game's card when the spotlight already says it. */
+export const cardResume = (
+  card: { appId: string; resume: string },
+  spotApp: string | null,
+  spotResume: string,
+): string => (card.appId === spotApp && spotResume === card.resume ? "" : card.resume);

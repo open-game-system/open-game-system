@@ -70,9 +70,15 @@ describe("TV launcher (fake session)", () => {
     expect(cards[0]).toMatch(/^play:bake-shop:/);
     expect(cards[1]).toMatch(/^play:(story-nook|rocket-crew|peekaboo-garden|night-flight)$/);
     expect(cards[2]).toBe("play:story-nook:story-nook-ember");
+    // Each fact once (owner, 2026-10-04): Bake Shop is focused, so the spotlight says "Day 4" and
+    // its card doesn't; the other sitting's card keeps its own name.
     expect(
       await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
-    ).toContain("Day 4");
+    ).not.toContain("Day 4");
+    expect(
+      await page.locator('[data-card="sitting"][data-app="story-nook"]').textContent(),
+    ).toContain("Juneau's dragon is ready");
+    expect(await page.getByText("Day 4").count()).toBe(1);
     // The focused icon shows its name; the room shows its clean art and logo, with the resume point.
     expect(await page.locator("[data-focused] .game-icon-name").textContent()).toBe("Bake Shop");
     expect(await page.locator(".room-art.in").getAttribute("src")).toBe(
@@ -246,8 +252,10 @@ describe("TV launcher (fake session)", () => {
     await send(page, { type: "home" });
     await page.locator('[data-testid=player][data-phase="hidden"]').waitFor({ state: "attached" });
     const card = page.locator('[data-card="sitting"][data-app="rocket-crew"]');
-    expect(await card.textContent()).toContain("Mission 6");
     await expect.poll(focused).toBe("game:rocket-crew");
+    // Rocket Crew is focused: the spotlight says "Mission 6", its card doesn't repeat it.
+    expect(await page.locator(".spot-resume").textContent()).toBe("Mission 6");
+    expect(await card.textContent()).not.toContain("Mission 6");
     // Each fact once (owner, 2026-10-04): the focused game's status is said by the spotlight only,
     // not again on its card.
     expect(await page.locator(".spot-tag").textContent()).toBe("Paused just now");
@@ -281,9 +289,12 @@ describe("TV launcher (fake session)", () => {
       .locator('[data-card="sitting"]')
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-app")));
     expect(sittings.slice(0, 2)).toEqual(["bake-shop", "rocket-crew"]);
+    // Each fact once (owner, 2026-10-04): Bake Shop's "Day 4" is said once, by the spotlight when
+    // Bake Shop is focused, else by its card; Rocket Crew's card keeps its own name.
+    expect(await page.getByText("Day 4").count()).toBe(1);
     expect(
-      await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
-    ).toContain("Day 4");
+      await page.locator('[data-card="sitting"][data-app="rocket-crew"] .card-resume').count(),
+    ).toBe(1);
 
     await send(page, { type: "game.start", appId: "bake-shop", mode: "continue" });
     await expect.poll(() => attr(page, "game-frame", "src")).toBe(BAKE_TV);
