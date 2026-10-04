@@ -115,7 +115,7 @@ export function Player(props: {
       ))}
       {shown && game && !active && (
         <div className="player-card" data-testid="starting">
-          <p className="eyebrow">Starting</p>
+          <p className="eyebrow">Getting ready</p>
           <p className="player-line">
             Starting {game.name} on {props.hostPhone}
           </p>
