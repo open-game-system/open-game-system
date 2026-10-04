@@ -2,18 +2,28 @@ import { useRouter } from "expo-router";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ogs/Button";
-import { EndForTonight, RemotePad } from "../../components/ogs/RemotePad";
+import { RemotePad } from "../../components/ogs/RemotePad";
+import { HolderLine, NowOnTv } from "../../components/ogs/remote/NowOnTv";
+import { type OnTv, pickerDevices, remoteView } from "../../components/ogs/remote/remote-view";
+import { StopCasting } from "../../components/ogs/remote/StopCasting";
+import { TvPicker } from "../../components/ogs/remote/TvPicker";
 import { Screen } from "../../components/ogs/Screen";
 import { colors, fonts, TARGET } from "../../components/ogs/theme";
+import { switchTv } from "../../services/cast-flow";
 import type { CastDevice } from "../../services/cast-store";
 import { remotePress } from "../../services/remote";
 import {
+  api,
   castBackend,
   castNow,
+  castStore,
+  config,
   couchHub,
   deviceId,
   endTonight,
+  useApp,
   useCast,
+  useCouch,
   useOgsCast,
 } from "../../services/runtime";
 
@@ -38,23 +48,83 @@ export default function TvScreen() {
 }
 
 function Remote({ tvName }: { tvName: string }) {
+  const couch = useCouch();
+  const app = useApp();
+  const castState = useCast();
+  const found = useDevices();
+  const [picking, setPicking] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [pickError, setPickError] = useState<string | null>(null);
+  const view = remoteView({
+    state: couch.state,
+    library: app.library,
+    people: app.identity?.people ?? [],
+    myDeviceId: deviceId(),
+  });
+  const currentId = castState.session.deviceId;
+  const devices = pickerDevices(found, currentId ? { id: currentId, name: tvName } : null);
+
   const press = (button: Parameters<typeof remotePress>[0]) => {
     const { messages, stopCast } = remotePress(button, deviceId());
     if (stopCast) void endTonight();
     else for (const m of messages) couchHub.send(m);
   };
+  const openPicker = () => {
+    castBackend.startDiscovery();
+    setPickError(null);
+    setPicking(true);
+  };
+  const pick = async (tv: CastDevice) => {
+    setSwitchingId(tv.id);
+    setPickError(null);
+    try {
+      const result = await switchTv({
+        api,
+        config,
+        castStore,
+        backend: castBackend,
+        deviceId: tv.id,
+      });
+      if (result === "no-tv") setPickError(`Couldn't reach ${tv.name}. Is it on?`);
+      else setPicking(false);
+    } catch (err) {
+      setPickError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSwitchingId(null);
+    }
+  };
+
   return (
-    <Screen title="TV" testID="tvRemote">
-      <View style={styles.onTv}>
-        <View style={styles.liveDot} />
-        <Text style={styles.onTvText}>On {tvName}</Text>
+    <Screen
+      title="TV"
+      testID="tvRemote"
+      right={
+        <StopCasting
+          tvName={tvName}
+          gameName={view.onTv.kind === "game" ? view.onTv.name : pausedName(view.onTv)}
+          onStop={() => press("end")}
+        />
+      }
+    >
+      <NowOnTv onTv={view.onTv} tvName={tvName} onChangeTv={openPicker} />
+      <View style={styles.padArea}>
+        <HolderLine holder={view.holder} />
+        <RemotePad onPress={press} />
       </View>
-      <RemotePad onPress={press} />
-      <View style={{ height: 36 }} />
-      <EndForTonight onPress={press} />
+      <TvPicker
+        visible={picking}
+        devices={devices}
+        currentId={currentId}
+        switchingId={switchingId}
+        error={pickError}
+        onPick={(tv) => void pick(tv)}
+        onClose={() => setPicking(false)}
+      />
     </Screen>
   );
 }
+
+const pausedName = (onTv: OnTv) => (onTv.kind === "home" ? onTv.paused : null);
 
 function NotCast({ connecting }: { connecting: boolean }) {
   const router = useRouter();
@@ -206,9 +276,7 @@ const styles = StyleSheet.create({
   castText: { fontFamily: fonts.display, fontSize: 40, color: colors.ink },
   tvName: { color: colors.cream, fontSize: 18, fontWeight: "700" },
   error: { color: colors.peach, fontSize: 15, textAlign: "center" },
-  onTv: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 28 },
-  liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.ember },
-  onTvText: { color: colors.cream, fontSize: 18, fontWeight: "700" },
+  padArea: { alignItems: "center", marginTop: 18, marginBottom: 10, gap: 6 },
   cause: { backgroundColor: colors.dusk1, borderRadius: 16, padding: 14, marginTop: 10 },
   causeTitle: { color: colors.cream, fontSize: 17, fontWeight: "700" },
   causeBody: { color: colors.cream3, fontSize: 15, marginTop: 4, lineHeight: 21 },

@@ -62,6 +62,26 @@ Feature: Cast-first OGS app with games inside one stream
     When Jonathan presses right on the remote
     Then the focus ring on the TV moves to the next game
 
+  Scenario: The remote says what's on the TV and what OK will do
+    Given the launcher is on the TV with Rocket Crew paused and focused
+    When Jonathan opens the TV tab
+    Then the remote shows "Home" and "OK continues Rocket Crew"
+    And it shows which TV is cast to and that he has the remote
+
+  Scenario: Stop casting asks first
+    Given the launcher is on the TV
+    When Jonathan taps Stop casting on the remote
+    Then he is asked to confirm, and the TV is still cast
+    When he confirms
+    Then the session ends, the cast stops and the TV tab offers Cast again
+
+  Scenario: Move the evening to another TV
+    Given the launcher is on "Living room TV" with Rocket Crew paused
+    When Jonathan taps the TV chip on the remote and picks "Den TV"
+    Then the cast stops on "Living room TV" and the launcher loads on "Den TV"
+    And Rocket Crew is still paused with its resume point
+    And picking the TV he's already on does nothing
+
   Scenario: No TV found
     Given no Chromecast is visible
     When Jonathan taps Cast

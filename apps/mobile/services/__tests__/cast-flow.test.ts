@@ -4,7 +4,7 @@ jest.mock("react-native-google-cast", () => ({
 }));
 
 import type { ClientMessage } from "@open-game-system/ogs-protocol";
-import { castToTv, createGameCastStore, endForTonight } from "../cast-flow";
+import { castToTv, createGameCastStore, endForTonight, switchTv } from "../cast-flow";
 import { createCastStore } from "../cast-store";
 import { castCommands, startCastSync } from "../cast-sync";
 import { readConfig } from "../config";
@@ -104,5 +104,60 @@ describe("Cast from the TV tab (spec v3, Architecture: Cast)", () => {
     await endForTonight({ send: t.send, sessionManager: t.backend.sessionManager });
     expect(t.sent).toEqual([{ type: "end" }]);
     expect(t.castStore.getSnapshot().session.status).toBe("disconnected");
+  });
+});
+
+describe("Switch TV from the remote's TV picker", () => {
+  /** A session manager that records what it was asked to do, with two TVs in the room. */
+  function twoTvs(reachable = ["den", "living"]) {
+    const calls: string[] = [];
+    const base = setup().backend.sessionManager;
+    const sessionManager = {
+      ...base,
+      async startSession(id: string) {
+        calls.push(`start:${id}`);
+        return reachable.includes(id);
+      },
+      async endCurrentSession(stop?: boolean) {
+        calls.push(`end:${String(stop)}`);
+      },
+    };
+    return { calls, backend: { sessionManager } };
+  }
+
+  it("stops the old TV, then casts the launcher to the new one with a fresh token", async () => {
+    const t = setup();
+    const tvs = twoTvs();
+    t.castStore.dispatch({ type: "START_CASTING", deviceId: "living" });
+    await expect(switchTv({ ...t, backend: tvs.backend, deviceId: "den" })).resolves.toBe(
+      "started",
+    );
+    expect(tvs.calls).toEqual(["end:true", "start:den"]);
+    expect(t.api.launcherToken).toHaveBeenCalledTimes(1);
+    expect(t.castStore.getSnapshot().viewUrl).toContain("token=launch-1");
+  });
+
+  it("does not end the couch session (the game keeps its place on the new TV)", async () => {
+    const t = setup();
+    const tvs = twoTvs();
+    await switchTv({ ...t, backend: tvs.backend, deviceId: "den" });
+    expect(t.sent).toEqual([]);
+  });
+
+  it("picking the TV you're already on does nothing", async () => {
+    const t = setup();
+    await castToTv({ ...t, deviceId: FAKE_TV.id });
+    await flush();
+    await expect(switchTv({ ...t, deviceId: FAKE_TV.id })).resolves.toBe("same");
+    expect(t.api.launcherToken).toHaveBeenCalledTimes(1);
+    expect(t.loads).toHaveLength(1);
+    expect(t.castStore.getSnapshot().session.status).toBe("connected");
+  });
+
+  it("a new TV that can't be reached reports no-TV (the old one was already stopped)", async () => {
+    const t = setup();
+    const tvs = twoTvs(["living"]);
+    await expect(switchTv({ ...t, backend: tvs.backend, deviceId: "den" })).resolves.toBe("no-tv");
+    expect(tvs.calls).toEqual(["end:true", "start:den"]);
   });
 });

@@ -25,7 +25,21 @@ export async function castToTv(input: {
   return ok ? "started" : "no-tv";
 }
 
-/** Remote → End for tonight: the session suspends the game and goes home, then the cast stops. */
+/**
+ * Remote → TV picker: move the evening to another TV. Stops the cast on the old TV (without
+ * ending the couch session, so the current game keeps its place), then casts the launcher to the
+ * new one. Picking the TV you're already on does nothing.
+ */
+export async function switchTv(
+  input: Parameters<typeof castToTv>[0],
+): Promise<"started" | "no-tv" | "same"> {
+  const { session } = input.castStore.getSnapshot();
+  if (session.status === "connected" && session.deviceId === input.deviceId) return "same";
+  await input.backend.sessionManager.endCurrentSession(true).catch(() => {});
+  return castToTv(input);
+}
+
+/** Remote → Stop casting (was "End for tonight"): the session suspends the game and goes home, then the cast stops. */
 export async function endForTonight(input: {
   send: (msg: ClientMessage) => void;
   sessionManager: SessionManagerLike;

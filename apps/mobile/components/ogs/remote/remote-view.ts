@@ -1,0 +1,93 @@
+import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
+import type { CastDevice } from "../../../services/cast-store";
+import type { Person } from "../../../services/ogs-api";
+
+export type OnTv =
+  | { kind: "home"; focus: string | null; paused: string | null }
+  | { kind: "page"; name: string; game: Manifest | null }
+  | { kind: "game"; name: string; game: Manifest | null; detail: string | null };
+
+export type Holder =
+  | { kind: "me"; sticker: string | null }
+  | { kind: "person"; name: string; sticker: string }
+  | { kind: "someone" }
+  | { kind: "nobody" };
+
+/** The remote's header: what the TV shows right now, and who holds the remote. */
+export function remoteView(input: {
+  state: SessionState | null;
+  library: Manifest[];
+  people: Person[];
+  myDeviceId: string;
+}): { onTv: OnTv; holder: Holder } {
+  const { state, library, people, myDeviceId } = input;
+  const find = (appId: string) => library.find((g) => g.appId === appId) ?? null;
+  return { onTv: onTvOf(state, find), holder: holderOf(state, people, myDeviceId) };
+}
+
+function onTvOf(state: SessionState | null, find: (appId: string) => Manifest | null): OnTv {
+  if (state?.screen === "game-page" && state.page) {
+    const game = find(state.page);
+    return { kind: "page", name: game?.name ?? state.page, game };
+  }
+  if (state?.screen === "game" && state.current) {
+    const game = find(state.current.appId);
+    return {
+      kind: "game",
+      name: game?.name ?? state.current.appId,
+      game,
+      detail: state.current.label || null,
+    };
+  }
+  const nameOf = (appId: string) => find(appId)?.name ?? appId;
+  const focused = state?.focus?.startsWith("game:") ? state.focus.slice(5) : null;
+  const last = state?.suspended.reduce<SessionState["suspended"][number] | null>(
+    (a, b) => (a && a.at >= b.at ? a : b),
+    null,
+  );
+  return {
+    kind: "home",
+    focus: focused ? nameOf(focused) : null,
+    paused: last ? nameOf(last.appId) : null,
+  };
+}
+
+function holderOf(state: SessionState | null, people: Person[], me: string): Holder {
+  const remote = state?.remote;
+  if (!remote) return { kind: "nobody" };
+  const personId = state.devices.find((d) => d.deviceId === remote)?.personId;
+  const person = people.find((p) => p.personId === personId);
+  if (remote === me) return { kind: "me", sticker: person?.sticker ?? null };
+  return person
+    ? { kind: "person", name: person.name, sticker: person.sticker }
+    : { kind: "someone" };
+}
+
+/** The TV picker's rows: the TV being cast to first (even if discovery hasn't re-found it), then the rest. */
+export function pickerDevices(
+  found: CastDevice[],
+  current: { id: string; name: string } | null,
+): CastDevice[] {
+  if (!current) return found;
+  const self = found.find((d) => d.id === current.id) ?? {
+    id: current.id,
+    name: current.name,
+    type: "chromecast" as const,
+  };
+  return [self, ...found.filter((d) => d.id !== current.id)];
+}
+
+/** The line under the name of what's on the TV: what OK will do, or where you are. */
+export function nowLine(onTv: OnTv): string {
+  switch (onTv.kind) {
+    case "home":
+      if (onTv.focus && onTv.focus === onTv.paused) return `OK continues ${onTv.focus}`;
+      if (onTv.focus) return `OK opens ${onTv.focus}`;
+      if (onTv.paused) return `${onTv.paused} is paused`;
+      return "Pick a game with the arrows";
+    case "page":
+      return "Press OK to play";
+    case "game":
+      return onTv.detail ?? "Playing now";
+  }
+}
