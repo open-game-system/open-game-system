@@ -9,15 +9,15 @@ describe("App Lifecycle", () => {
   // --- Backgrounding / Foregrounding ---
 
   describe("Background and Foreground", () => {
-    it("should return to home screen after backgrounding and foregrounding", async () => {
-      await expect(element(by.id("homeScreen"))).toExist();
+    it("should return to Library after backgrounding and foregrounding", async () => {
+      await expect(element(by.id("libraryScreen"))).toExist();
 
       // Background the app
       await device.sendToHome();
       // Foreground the app
       await device.launchApp({ newInstance: false });
 
-      await waitFor(element(by.id("homeScreen")))
+      await waitFor(element(by.id("libraryScreen")))
         .toExist()
         .withTimeout(5000);
     });
@@ -26,11 +26,11 @@ describe("App Lifecycle", () => {
   // --- Force Quit ---
 
   describe("Force Quit", () => {
-    it("should show home screen after force quit and relaunch", async () => {
+    it("should show Library after force quit and relaunch", async () => {
       // Force quit by launching as new instance
       await device.launchApp({ newInstance: true });
 
-      await waitFor(element(by.id("homeScreen")))
+      await waitFor(element(by.id("libraryScreen")))
         .toExist()
         .withTimeout(5000);
       // Should not show onboarding (already completed)

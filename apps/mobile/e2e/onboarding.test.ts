@@ -24,16 +24,20 @@ describe("Onboarding — Full Flow", () => {
 
   it("should navigate to completion page and finish (skips notifications when pre-granted)", async () => {
     // Tap Next — since notifications are pre-granted, page 2 is skipped
-    // and we go directly to page 3 ("You're all set")
+    // and we go to the family step (spec v3: household + identity), then "You're all set"
     await element(by.id("onboardingNextButton")).tap();
+    await waitFor(element(by.text("Who's in your family?")))
+      .toBeVisible()
+      .withTimeout(5000);
+    await element(by.id("familyNext")).tap();
     await waitFor(element(by.text("You're all set")))
       .toBeVisible()
       .withTimeout(5000);
     await expect(element(by.id("onboardingLetsGoButton"))).toBeVisible();
 
-    // Page 3 → Home
+    // Last page → Library
     await element(by.id("onboardingLetsGoButton")).tap();
-    await waitFor(element(by.id("homeScreen")))
+    await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);
     await expect(element(by.id("onboardingScreen"))).not.toExist();
@@ -41,7 +45,7 @@ describe("Onboarding — Full Flow", () => {
 
   it("should not show onboarding on relaunch after completion", async () => {
     await device.launchApp({ newInstance: true });
-    await waitFor(element(by.id("homeScreen")))
+    await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);
     await expect(element(by.id("onboardingScreen"))).not.toExist();
@@ -62,14 +66,14 @@ describe("Onboarding — Skip Flow", () => {
 
   it("should go directly to home when tapping Skip", async () => {
     await element(by.id("onboardingSkipButton")).tap();
-    await waitFor(element(by.id("homeScreen")))
+    await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);
   });
 
   it("should not show onboarding on relaunch after skipping", async () => {
     await device.launchApp({ newInstance: true });
-    await waitFor(element(by.id("homeScreen")))
+    await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);
     await expect(element(by.id("onboardingScreen"))).not.toExist();

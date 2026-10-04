@@ -1,7 +1,7 @@
 import { device } from "detox";
 
 /**
- * Complete onboarding by skipping it. Call before tests that need the home screen.
+ * Complete onboarding by skipping it. Call before tests that need the Library.
  */
 export async function skipOnboarding(): Promise<void> {
   const { by, element, waitFor } = require("detox");
@@ -10,7 +10,7 @@ export async function skipOnboarding(): Promise<void> {
       .toBeVisible()
       .withTimeout(5000);
     await element(by.id("onboardingSkipButton")).tap();
-    await waitFor(element(by.id("homeScreen")))
+    await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);
   } catch {

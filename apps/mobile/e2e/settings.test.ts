@@ -2,15 +2,15 @@ import { by, element, expect, waitFor } from "detox";
 import { freshLaunchWithOnboardingDone } from "./helpers";
 
 /**
- * Navigate from home screen to settings.
+ * Navigate from Library to settings.
  * Called after reloadReactNative puts us on home (onboarding already done).
  */
 async function goToSettings(): Promise<void> {
   const { by, element, waitFor } = require("detox");
-  await waitFor(element(by.id("homeScreen")))
+  await waitFor(element(by.id("libraryScreen")))
     .toExist()
     .withTimeout(5000);
-  await element(by.id("hamburgerMenu")).tap();
+  await element(by.id("householdButton")).tap();
   await waitFor(element(by.id("settingsScreen")))
     .toExist()
     .withTimeout(3000);
@@ -58,10 +58,10 @@ describe("Settings", () => {
     await expect(element(by.text("Privacy Policy"))).toBeVisible();
   });
 
-  it("should close settings and return to home", async () => {
+  it("should close settings and return to Library", async () => {
     await goToSettings();
     await element(by.id("settingsCloseButton")).tap();
-    await waitFor(element(by.id("homeScreen")))
+    await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(3000);
   });
