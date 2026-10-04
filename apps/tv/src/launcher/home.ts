@@ -47,7 +47,9 @@ export type CardModel =
       itemId: string;
       /** The game this visit's Surprise me starts (never the one just played, when there is another). */
       appId: string;
-      icons: Art[];
+      /** Its own picture (a gift box of dice) and its own room, drawn for it. */
+      art: Art;
+      room: Art;
       /** The games Surprise me picks from: the kid-friendly ones. */
       pool: string[];
     };
@@ -56,6 +58,11 @@ export interface HomeModel {
   icons: IconModel[];
   cards: CardModel[];
 }
+
+export const SURPRISE_ART = {
+  card: { src: "/art/surprise/card.jpg" },
+  room: { src: "/art/surprise/room.jpg" },
+} satisfies Record<string, Art>;
 
 /** Two sittings and Surprise me: three large cards (the icons carry every other game). */
 const MAX_SITTINGS = 2;
@@ -141,7 +148,8 @@ export function buildHome(input: {
       kind: "surprise",
       itemId: playItem(pick),
       appId: pick,
-      icons: kids.map((i) => i.icon),
+      art: SURPRISE_ART.card,
+      room: SURPRISE_ART.room,
       pool: kids.map((i) => i.appId),
     });
   return { icons, cards };

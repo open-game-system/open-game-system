@@ -209,6 +209,14 @@ describe("for the kids", () => {
     expect(pickWith(0.99)).toEqual(["night-flight", "play:night-flight"]);
     expect(pickWith(0, [])).toEqual(["rocket-crew", "play:rocket-crew"]);
   });
+  it("gives Surprise me its own picture and room, not a collage of the games", () => {
+    const h = buildHome({ games: FIXTURE_GAMES, instances: [], suspended: [], now: NOW });
+    const card = h.cards.find((c) => c.kind === "surprise");
+    expect(card?.kind === "surprise" && [card.art, card.room]).toEqual([
+      { src: "/art/surprise/card.jpg" },
+      { src: "/art/surprise/room.jpg" },
+    ]);
+  });
   it("lets Surprise me pick only kid-friendly games", () => {
     const games = FIXTURE_GAMES.map((g) =>
       g.appId === "hearthisle" ? { ...g, shop: { ages: "10+" } } : g,

@@ -9,3 +9,5 @@ round	critic	model	R1	R2	R3	R4	R5	R6	R7	R8	min	decision	note
 03	codex	gpt-5.6-sol (medium)	8	7	7	7	8	7	7	7	7	keep	pairwise vs 02 (Codex, blind): 03 better overall
 04	claude	opus-5.5 (general-purpose subagent)	7	7	7	6	8	8	7	6	6	keep	pairwise vs 03: both judges prefer 04 (caption cropped, Surprise result in left third, no duplicate chip in cards)
 04	codex	gpt-5.6-sol (medium)	8	7	7	8	7	8	8	7	7	keep	min flat at 7 (codex) / 6 (claude) since round 01: plateau
+05	claude	opus-5.5 (general-purpose subagent)	8	8	7	8	8	8	7	7	7	keep (pivot)	pivot: one-motion cut-over (box picture rides the grow, home dims+blurs in step, frame crossfades in), card focus grows 344->516 under the icon ring, Surprise own Codex art (card + room) + reel over Getting ready, connecting = warm room with real icons; pairwise vs 04: 05 better overall (04 better R7)
+05	codex	gpt-5.6-sol (medium)	8	7	7	8	8	8	7	7	7	keep (pivot)	pairwise vs 04: 05 better overall (04 better R2). Codex min flat at 7 through the pivot: stop

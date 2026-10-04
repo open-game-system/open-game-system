@@ -8,8 +8,9 @@ import type { useFrames } from "./useFrames";
 
 const W = 1920;
 const H = 1080;
-const EASE = "cubic-bezier(0.22, 0.8, 0.24, 1)";
-const DURATION = 620;
+/** Slow out of the box, quick through the middle, settling into full screen: one weighted motion. */
+const EASE = "cubic-bezier(0.5, 0, 0.15, 1)";
+const DURATION = 680;
 
 interface Rect {
   x: number;
@@ -30,6 +31,23 @@ function rectInStage(player: HTMLElement, selector: string): Rect | null {
   return { x: (r.left - s.left) / k, y: (r.top - s.top) / k, w: r.width / k, h: r.height / k };
 }
 
+/** The box the game grows out of: the item it was started from, else its icon. */
+function coverOf(player: HTMLElement, appId: string, origin: string | null) {
+  const selectors = [
+    `[data-cover-page="${appId}"]`,
+    origin ? `[data-item="${origin}"] [data-cover-card]` : null,
+    `[data-cover="${appId}"]`,
+  ];
+  for (const sel of selectors) {
+    const rect = sel ? rectInStage(player, sel) : null;
+    const img = sel
+      ? player.closest(".stage")?.querySelector<HTMLImageElement>(`${sel} img`)
+      : null;
+    if (rect) return { rect, src: img?.currentSrc || null };
+  }
+  return null;
+}
+
 /** A rect that already fills the stage (the game page's art): nothing to grow from. */
 const fillsStage = (r: Rect) => r.w >= W - 1 && r.h >= H - 1;
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -40,8 +58,10 @@ const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)"
  */
 function useCutOver(
   ref: React.RefObject<HTMLDivElement | null>,
+  tile: React.RefObject<HTMLImageElement | null>,
   shown: boolean,
   appId: string | null,
+  origin: string | null,
 ) {
   const was = useRef(false);
   useLayoutEffect(() => {
@@ -52,10 +72,8 @@ function useCutOver(
     // Phase first: while the player is up, the shelves jump instead of sliding (styles.css), so
     // the box measured below is where it will rest, not where a scroll transition starts.
     el.dataset.phase = shown ? "entering" : "leaving";
-    const cover = appId
-      ? (rectInStage(el, `[data-cover-page="${appId}"]`) ??
-        rectInStage(el, `[data-cover="${appId}"]`))
-      : null;
+    const found = appId ? coverOf(el, appId, origin) : null;
+    const cover = found?.rect ?? null;
     const done = () => {
       el.dataset.phase = shown ? "shown" : "hidden";
     };
@@ -78,7 +96,24 @@ function useCutOver(
           { ...small, opacity: 0 },
         ];
     el.animate(frames, { duration: DURATION, easing: EASE }).onfinish = done;
-  }, [shown, appId, ref]);
+    // The box's own picture rides the motion: it hands over to the room as the box opens, and
+    // comes back as it closes, so the icon (or card) and the game read as one object.
+    const img = tile.current;
+    if (!img || !found?.src) return;
+    for (const a of img.getAnimations()) a.cancel();
+    img.src = found.src;
+    const k = Math.max(cover.w / W, cover.h / H);
+    Object.assign(img.style, {
+      left: `${(W - cover.w / k) / 2}px`,
+      top: `${(H - cover.h / k) / 2}px`,
+      width: `${cover.w / k}px`,
+      height: `${cover.h / k}px`,
+    });
+    const fade = shown
+      ? [{ opacity: 1 }, { opacity: 1, offset: 0.08 }, { opacity: 0, offset: 0.35 }, { opacity: 0 }]
+      : [{ opacity: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 1, offset: 0.8 }, { opacity: 1 }];
+    img.animate(fade, { duration: DURATION, easing: "linear", fill: "forwards" });
+  }, [shown, appId, origin, ref, tile]);
 }
 
 export function Player(props: {
@@ -87,12 +122,15 @@ export function Player(props: {
   hostPhone: string;
   remoteHolder: string | null;
   frames: ReturnType<typeof useFrames>;
+  /** The home item the game was started from (a card grows out of its card, not its icon). */
+  origin: string | null;
 }) {
   const { game, frames } = props;
   const ref = useRef<HTMLDivElement>(null);
+  const tile = useRef<HTMLImageElement>(null);
   const shown = props.screen === "game";
   const art = game ? roomArt(game) : null;
-  useCutOver(ref, shown, game?.appId ?? null);
+  useCutOver(ref, tile, shown, game?.appId ?? null, props.origin);
   const { active, parked } = frames.frames;
   const slots = [active, parked].filter((s): s is FrameSlot => s !== null);
   const activeShowing = active !== null && frames.isLoaded(active);
@@ -118,6 +156,7 @@ export function Player(props: {
           onLoad={() => frames.onLoad(slot)}
         />
       ))}
+      <img ref={tile} className="player-tile" alt="" />
       {shown && game && !active && (
         <div className="player-card" data-testid="starting">
           {game.art.logo && <img className="player-logo" src={game.art.logo} alt="" />}

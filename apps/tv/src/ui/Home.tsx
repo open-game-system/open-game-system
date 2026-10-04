@@ -1,5 +1,5 @@
 import type { Member } from "@open-game-system/ogs-protocol";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Art, CardModel, HomeModel, IconModel } from "../launcher/home";
 import { clock } from "../launcher/layout";
 import { type CouchSession, stickerUrl } from "../session/data";
@@ -11,14 +11,13 @@ import { JoinCode } from "./JoinCode";
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /** What the room shows: the focused game, or the Surprise card's shuffle. */
-type Spot = { kind: "game"; icon: IconModel } | { kind: "surprise"; icons: IconModel[] } | null;
+type Spot = { kind: "game"; icon: IconModel } | { kind: "surprise"; room: Art } | null;
 
 function spotOf(home: HomeModel, focus: string | null): Spot {
   const icon = home.icons.find((i) => i.itemId === focus);
   if (icon) return { kind: "game", icon };
   const card = home.cards.find((c) => c.itemId === focus);
-  if (card?.kind === "surprise")
-    return { kind: "surprise", icons: home.icons.filter((i) => card.pool.includes(i.appId)) };
+  if (card?.kind === "surprise") return { kind: "surprise", room: card.room };
   const game = card && home.icons.find((i) => i.appId === card.appId);
   if (game) return { kind: "game", icon: game };
   const first = home.icons[0];
@@ -95,7 +94,7 @@ export function Home(props: {
 
 /** The whole room is the focused game's clean hero; the last one stays under it while it fades in. */
 function Room({ spot }: { spot: Spot }) {
-  const art = useShuffle(spot);
+  const art = spot ? (spot.kind === "game" ? spot.icon.room : spot.room) : null;
   const id = spot?.kind === "game" ? spot.icon.appId : spot ? "surprise" : "";
   const [layers, setLayers] = useState<Art[]>(art ? [art] : []);
   if (art && layers.at(-1)?.src !== art.src) setLayers([...layers.slice(-1), art]);
@@ -118,20 +117,6 @@ function Room({ spot }: { spot: Spot }) {
       <div className="room-scrim" />
     </div>
   );
-}
-
-/** On the Surprise card the room flips through every game, like a deck being shuffled. */
-function useShuffle(spot: Spot): Art | null {
-  const [tick, setTick] = useState(0);
-  const shuffling = spot?.kind === "surprise";
-  useEffect(() => {
-    if (!shuffling || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setInterval(() => setTick((n) => n + 1), 1400);
-    return () => clearInterval(t);
-  }, [shuffling]);
-  if (!spot) return null;
-  if (spot.kind === "game") return spot.icon.room;
-  return spot.icons[tick % Math.max(1, spot.icons.length)]?.room ?? null;
 }
 
 /** An icon; `current` is the game of the focused card: it stays large and named, without the ring. */
@@ -193,17 +178,8 @@ function Card({ card, focused }: { card: CardModel; focused: boolean }) {
   if (card.kind === "surprise")
     return (
       <div className={`card surprise${focused ? " focused" : ""}`} data-card="surprise" {...common}>
-        <div className="card-art surprise-art">
-          {card.icons.slice(0, 4).map((a, n) => (
-            <img
-              key={a.src}
-              className={`fan fan-${n}`}
-              src={a.src}
-              alt=""
-              style={safeStyle(a.safe)}
-            />
-          ))}
-          <SurpriseMark />
+        <div className="card-art surprise-art" data-cover-card="surprise">
+          <img src={card.art.src} alt="" />
         </div>
         <span className="card-name">Surprise me</span>
         <span className="card-resume">A game for the kids</span>
@@ -214,9 +190,10 @@ function Card({ card, focused }: { card: CardModel; focused: boolean }) {
       className={`card${focused ? " focused" : ""}`}
       data-card="sitting"
       data-app={card.appId}
+      data-upcoming={card.upcoming || undefined}
       {...common}
     >
-      <div className="card-art">
+      <div className="card-art" data-cover-card={card.appId}>
         <img src={card.art.src} alt="" style={safeStyle(card.art.safe)} />
         <span className="card-tag">{card.tag}</span>
         {card.upcoming ? <ClockMark /> : <PlayMark />}
@@ -259,27 +236,6 @@ function ClockMark() {
         strokeWidth="3.5"
         strokeLinecap="round"
       />
-    </svg>
-  );
-}
-
-/** Two dice: a game picked for you. */
-function SurpriseMark() {
-  return (
-    <svg className="surprise-mark" viewBox="0 0 96 96" aria-hidden="true">
-      <g transform="rotate(-14 34 52)">
-        <rect x="8" y="26" width="52" height="52" rx="12" fill="#f8ecd9" />
-        <circle cx="22" cy="40" r="5" fill="#2a1533" />
-        <circle cx="34" cy="52" r="5" fill="#2a1533" />
-        <circle cx="46" cy="64" r="5" fill="#2a1533" />
-      </g>
-      <g transform="rotate(12 66 40)">
-        <rect x="42" y="12" width="46" height="46" rx="11" fill="#f6bb52" />
-        <circle cx="55" cy="25" r="4.5" fill="#2a1533" />
-        <circle cx="75" cy="25" r="4.5" fill="#2a1533" />
-        <circle cx="55" cy="45" r="4.5" fill="#2a1533" />
-        <circle cx="75" cy="45" r="4.5" fill="#2a1533" />
-      </g>
     </svg>
   );
 }

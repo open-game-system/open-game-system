@@ -133,8 +133,10 @@ const scenarios: Scenario[] = [
       await send(p, { type: "focus.set", itemId: "game:rocket-crew" });
       await settle(p, 600);
       await send(p, { type: "game.start", appId: "rocket-crew", mode: "new" });
-      await p.getByTestId("player").evaluate((el) => {
-        for (const a of el.getAnimations()) {
+      // Everything that moves with the cut-over (the box, its picture, the room behind) is frozen
+      // at the same instant, so the shot is a real frame of the motion.
+      await p.evaluate(() => {
+        for (const a of document.getAnimations()) {
           a.pause();
           a.currentTime = 300;
         }

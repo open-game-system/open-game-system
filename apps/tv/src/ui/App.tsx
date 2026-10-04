@@ -38,7 +38,7 @@ export function App({ boot }: { boot: Boot }) {
 function Launcher({ boot }: { boot: Boot }) {
   const data = use(boot.data);
   const snap = useSyncExternalStore(boot.client.subscribe, boot.client.getSnapshot);
-  if (!snap.state) return <Assembling session={data.session} />;
+  if (!snap.state) return <Connecting data={data} />;
   return (
     <Living
       client={boot.client}
@@ -49,6 +49,15 @@ function Launcher({ boot }: { boot: Boot }) {
       grants={boot.grants}
     />
   );
+}
+
+function Connecting({ data }: { data: LauncherData }) {
+  const home = useMemo(
+    () =>
+      buildHome({ games: data.games, instances: data.instances, suspended: [], now: Date.now() }),
+    [data],
+  );
+  return <Assembling session={data.session} home={home} />;
 }
 
 const KEYS: Record<string, "up" | "down" | "left" | "right"> = {
@@ -77,16 +86,20 @@ function Living(props: {
     setLastScreen(state.screen);
     if (state.screen === "home") setSurpriseSeed(Math.random());
   }
+  // While a game is up, home behind it keeps the cards it had, so the box it grew from stays put.
+  const homeSuspended = useRef(state.suspended);
+  if (state.screen !== "game") homeSuspended.current = state.suspended;
+  const suspended = homeSuspended.current;
   const home = useMemo(
     () =>
       buildHome({
         games: data.games,
         instances: data.instances,
-        suspended: state.suspended,
+        suspended,
         now,
         surpriseSeed,
       }),
-    [data, state.suspended, now, surpriseSeed],
+    [data, suspended, now, surpriseSeed],
   );
   const grid = useMemo(() => homeFocusRows(home), [home]);
   const pageGame = state.page ? games.get(state.page) : undefined;
@@ -126,8 +139,10 @@ function Living(props: {
   // A sitting started from the Surprise card plays the reel over Getting ready, once.
   const homeFocus = useRef<string | null>(null);
   const surpriseFor = useRef<string | null>(null);
+  const startedFrom = useRef<string | null>(null);
   if (state.screen === "home") homeFocus.current = state.focus;
   else if (state.screen === "game" && state.current && homeFocus.current) {
+    startedFrom.current = homeFocus.current;
     const play = readPlayItem(homeFocus.current);
     const picked = play && !play.instanceId && play.appId === state.current.appId;
     surpriseFor.current = picked ? state.current.instanceId : null;
@@ -186,11 +201,13 @@ function Living(props: {
         hostPhone={phoneOf(state, state.current?.hostDeviceId ?? null)}
         remoteHolder={remoteHolder}
         frames={frames}
+        origin={startedFrom.current}
       />
       {surprising && state.current && (
         <Surprise
           icons={home.icons.filter((i) => surprisePool.includes(i.appId))}
           pick={state.current.appId}
+          line={`Starting ${games.get(state.current.appId)?.name ?? "the game"} on ${phoneOf(state, state.current.hostDeviceId)}`}
           onDone={endReel}
         />
       )}

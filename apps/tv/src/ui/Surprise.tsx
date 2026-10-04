@@ -1,23 +1,31 @@
 import { useEffect, useState } from "react";
-import type { IconModel } from "../launcher/home";
+import { type IconModel, SURPRISE_ART } from "../launcher/home";
 import { safeStyle } from "./art";
 
 const REEL_ROUNDS = 3;
 const SPIN_MS = 1600;
-const HOLD_MS = 900;
+/** "It's this one": the picked game holds, big and named, before Getting ready takes over. */
+const HOLD_MS = 1300;
+const FADE_MS = 400;
 /** Icon pitch on the reel (styles.css: .reel-icon width + gap). */
 const PITCH = 220 + 36;
 /** Where the picked icon lands: the left third, clear of the art's subject. */
 const LAND_X = 130;
 
-type Phase = "ready" | "spin" | "landed";
+type Phase = "ready" | "spin" | "landed" | "leaving";
 
 /**
  * Surprise me, selected: the game is already starting on the phone; meanwhile the icons spin past
  * like a reel and land on it, its art fills the room, then the reel gives way to Getting ready.
  * No reading needed.
  */
-export function Surprise(props: { icons: IconModel[]; pick: string; onDone: () => void }) {
+export function Surprise(props: {
+  icons: IconModel[];
+  pick: string;
+  /** "Starting <game> on <phone>": the select already started it. */
+  line: string;
+  onDone: () => void;
+}) {
   const { pick, onDone } = props;
   const [phase, setPhase] = useState<Phase>("ready");
   useEffect(() => {
@@ -26,10 +34,12 @@ export function Surprise(props: { icons: IconModel[]; pick: string; onDone: () =
       requestAnimationFrame(() => setPhase(reduced ? "landed" : "spin")),
     );
     const land = setTimeout(() => setPhase("landed"), reduced ? 0 : SPIN_MS);
-    const go = setTimeout(onDone, reduced ? 300 : SPIN_MS + HOLD_MS);
+    const leave = setTimeout(() => setPhase("leaving"), reduced ? 300 : SPIN_MS + HOLD_MS);
+    const go = setTimeout(onDone, reduced ? 300 : SPIN_MS + HOLD_MS + FADE_MS);
     return () => {
       cancelAnimationFrame(spin);
       clearTimeout(land);
+      clearTimeout(leave);
       clearTimeout(go);
     };
   }, [onDone]);
@@ -42,7 +52,7 @@ export function Surprise(props: { icons: IconModel[]; pick: string; onDone: () =
     props.icons.map((icon) => ({ icon, key: `${round}-${icon.appId}` })),
   ).flat();
   const stop = phase === "ready" ? 0 : REEL_ROUNDS * props.icons.length + target;
-  const landed = phase === "landed";
+  const landed = phase === "landed" || phase === "leaving";
   return (
     <div
       className="screen surprise-page"
@@ -50,6 +60,7 @@ export function Surprise(props: { icons: IconModel[]; pick: string; onDone: () =
       data-pick={pick}
       data-phase={phase}
     >
+      <img className={`surprise-room${landed ? "" : " in"}`} src={SURPRISE_ART.room.src} alt="" />
       {game && (
         <img
           className={`surprise-room${landed ? " in" : ""}`}
@@ -77,6 +88,11 @@ export function Surprise(props: { icons: IconModel[]; pick: string; onDone: () =
           ) : (
             <p className="spot-wordmark">{game.name}</p>
           )}
+          <p className="eyebrow surprise-ready">
+            <span className="pulse" />
+            Getting ready
+          </p>
+          <p className="player-line">{props.line}</p>
         </div>
       )}
     </div>

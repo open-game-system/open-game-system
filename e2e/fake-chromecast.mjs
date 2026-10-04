@@ -7,7 +7,8 @@
 //   POST /load    -> { viewUrl }  (what the receiver's LOAD_VIEW would do)
 //   POST /stop    -> closes the TV page (end for tonight / cast dropped)
 //   GET  /screenshot -> PNG of the TV now
-//   GET  /launcher   -> { screen, frameApp, frameSrc, starting } read from the launcher's DOM
+//   GET  /launcher   -> { screen, frameApp, frameSrc, starting, continueApps } read from the launcher's DOM
+//                       (continueApps: game:<appId> of each paused sitting card on the TV home)
 import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -88,7 +89,8 @@ const server = createServer(async (req, res) => {
               frameApp: frame?.getAttribute("data-app") ?? null,
               frameSrc: frame?.getAttribute("src") ?? null,
               starting: Boolean(document.querySelector('[data-testid="starting"]')),
-              continueApps: [...document.querySelectorAll('[data-row="continue"] [data-item]')].map((e) => e.getAttribute("data-item")),
+              // Paused sittings on the TV home: the activity cards that continue a game (not tonight's game night).
+              continueApps: [...document.querySelectorAll('[data-row="activity"] [data-card="sitting"]:not([data-upcoming])')].map((e) => `game:${e.getAttribute("data-app")}`),
             };
           })
         : null;

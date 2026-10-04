@@ -30,7 +30,7 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
     await expect(screen.getByTestId("remote-chip")).toContainText("Jonathan has the remote");
     await phone.until(() => phone.state()?.cast, "launcher connected");
     expect(phone.state()?.casts).toBe(1);
-    await expect(browser.locator('[data-row="library"]')).toBeVisible();
+    await expect(browser.locator('[data-row="games"]')).toBeVisible();
     await app.screenshot("home-live");
     phone.close();
     pad.close();
@@ -80,7 +80,8 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
 
     phone.send({ type: "home" });
     await expect(screen.getByTestId("home")).toBeVisible();
-    await expect(browser.locator('[data-row="continue"] [data-item="game:rocket-crew"]')).toContainText("Mission 6");
+    // The paused sitting is a card on the activity row, with its resume point.
+    await expect(browser.locator('[data-row="activity"] [data-card="sitting"][data-app="rocket-crew"]')).toContainText("Mission 6");
     await expect(screen.getByTestId("player")).toHaveAttribute("data-phase", "hidden");
     await app.screenshot("home-with-paused-box");
 

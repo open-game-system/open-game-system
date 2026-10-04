@@ -350,21 +350,23 @@ figure {
   display: flex;
   flex-direction: column;
   transition:
-    transform 220ms var(--ease),
-    opacity 220ms;
+    width 260ms var(--ease),
+    opacity 220ms,
+    filter 220ms;
 }
 .card-art {
   position: relative;
-  width: var(--w);
-  height: var(--h);
+  width: 100%;
+  aspect-ratio: 16 / 9;
   border-radius: 22px;
   overflow: hidden;
   background: var(--plum-700);
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.5),
     inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+  transition: border-radius 260ms var(--ease);
 }
-.card-art > img:not(.fan) {
+.card-art > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -417,83 +419,46 @@ figure {
   text-overflow: ellipsis;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
-/* In the cards, focus is as loud as on the icons: the card lifts and grows, the others step back. */
-.home[data-zone="cards"] .card:not(.focused) {
-  opacity: 0.72;
+/* In the cards, focus is as loud as on the icons: the focused card grows half again (from the
+   bottom, in the flow, so its words stay in title-safe) under the same cream ring; the rest shrink
+   and step back. */
+.home[data-zone="cards"] .card {
+  width: 344px;
 }
-/* Grows from its bottom-left corner so the first card's words never leave title-safe. */
-.card.focused {
-  transform: translateY(-10px) scale(1.06);
-  transform-origin: 0% 100%;
+.home[data-zone="cards"] .card:not(.focused) {
+  opacity: 0.6;
+  filter: saturate(0.75);
+}
+.home[data-zone="cards"] .card.focused {
+  width: 516px;
 }
 .card.focused .card-art {
-  outline: 7px solid var(--cream);
+  border-radius: 30px;
+  outline: 6px solid var(--cream);
   outline-offset: 6px;
   box-shadow:
-    0 0 0 18px rgba(248, 236, 217, 0.18),
-    0 0 60px 18px rgba(248, 236, 217, 0.22),
-    0 24px 48px rgba(0, 0, 0, 0.65);
+    0 0 0 18px rgba(248, 236, 217, 0.16),
+    0 20px 44px rgba(0, 0, 0, 0.6);
+}
+.card.focused .card-name {
+  font-size: 40px;
+  animation: name-in 260ms ease-out both;
 }
 .card.focused .card-resume {
+  font-size: 30px;
   color: var(--amber);
 }
-/* Surprise me: a warm, bright tile of its own (no gameplay picture), dice and a fan of icons. */
-.surprise-art {
-  background:
-    radial-gradient(240px 150px at 70% 70%, rgba(255, 236, 190, 0.85), transparent 70%),
-    linear-gradient(135deg, #f6bb52 0%, #e9845a 55%, #c4623d 100%);
+/* In the cards the spotlight sits a little higher, clear of the grown card. */
+.home[data-zone="cards"] .spotlight {
+  top: 300px;
 }
-.fan {
-  position: absolute;
-  top: 26px;
-  width: 104px;
-  height: 104px;
-  border-radius: 22px;
-  object-fit: cover;
-  box-shadow: 0 8px 18px rgba(80, 30, 10, 0.45);
-  transition: transform 260ms var(--ease);
+/* Surprise me: its own painted picture (a gift box of dice), like a game's card. */
+.card.surprise.focused .card-art img {
+  animation: gift-bob 1.6s ease-in-out infinite;
 }
-.fan-0 {
-  left: 18px;
-  transform: rotate(-14deg);
-}
-.fan-1 {
-  left: 92px;
-  top: 14px;
-  transform: rotate(-4deg);
-}
-.fan-2 {
-  left: 166px;
-  top: 18px;
-  transform: rotate(6deg);
-}
-.fan-3 {
-  display: none;
-}
-.surprise-mark {
-  position: absolute;
-  right: 14px;
-  bottom: 8px;
-  width: 132px;
-  height: 132px;
-  z-index: 2;
-  filter: drop-shadow(0 8px 12px rgba(80, 30, 10, 0.5));
-}
-.card.surprise.focused .fan-0 {
-  transform: rotate(-22deg) translate(-6px, -4px);
-}
-.card.surprise.focused .fan-2 {
-  transform: rotate(14deg) translate(6px, -4px);
-}
-.card.surprise.focused .surprise-mark {
-  animation: dice-wobble 1.4s ease-in-out infinite;
-}
-@keyframes dice-wobble {
-  25% {
-    transform: rotate(-8deg);
-  }
-  75% {
-    transform: rotate(8deg);
+@keyframes gift-bob {
+  50% {
+    transform: scale(1.05) translateY(-4px);
   }
 }
 
@@ -707,8 +672,9 @@ figure {
 }
 
 /* ---------- Surprise me: the reel ---------- */
+/* Over the player: the select already started the game, the reel plays over Getting ready. */
 .surprise-page {
-  z-index: 5;
+  z-index: 7;
   background: var(--plum-950);
   animation: page-in 240ms ease-out both;
 }
@@ -719,7 +685,7 @@ figure {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 500ms ease-out;
+  transition: opacity 260ms ease-out;
 }
 .surprise-room.in {
   opacity: 1;
@@ -769,11 +735,11 @@ figure {
 .surprise-title {
   position: absolute;
   left: var(--safe-x);
-  top: 620px;
+  top: 600px;
   animation: hero-text-in 360ms ease-out both;
 }
 .surprise-logo {
-  height: 260px;
+  height: 200px;
   max-width: 720px;
   object-fit: contain;
   filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.6));
@@ -792,7 +758,7 @@ figure {
   visibility: hidden;
 }
 /* Behind the player the home screen rearranges instantly, so the cut-over lands on the box's resting place. */
-.launcher:has(.player:not([data-phase="hidden"])) :is(.game-icon-art, .card, .fan) {
+.launcher:has(.player:not([data-phase="hidden"])) :is(.game-icon-art, .card, .card-art) {
   transition: none;
 }
 /* The box's cover, grown to full screen; dimmed and softened while the game is on its way. */
@@ -822,10 +788,24 @@ figure {
 .player.waiting::after {
   opacity: 1;
 }
-/* While the game grows out of its icon (or shrinks back), the home behind steps back. */
-.launcher:has(.player:is([data-phase="entering"], [data-phase="leaving"])) .home {
-  opacity: 0.12;
-  transition: opacity 200ms ease-out;
+/* While the game grows out of its box the home behind sinks back with it (dims, softens); as it
+   shrinks home, the room comes forward again in step, so the whole thing is one motion. */
+.home {
+  transition:
+    opacity 560ms ease-in-out,
+    filter 560ms ease-in-out;
+}
+.launcher:has(.player:is([data-phase="entering"], [data-phase="shown"])) .home {
+  opacity: 0.35;
+  filter: blur(6px);
+}
+/* The box's own picture (icon or card), laid on the box inside the growing player. */
+.player-tile {
+  position: absolute;
+  z-index: 3;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
 }
 /* The card already says when: in the cards, the spotlight shows only the resume point. */
 .home[data-zone="cards"] .spot-tag {
@@ -840,11 +820,19 @@ figure {
   background: transparent;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 360ms ease-out;
+  transform: scale(1.03);
+  transition:
+    opacity 700ms ease-out,
+    transform 900ms var(--ease),
+    visibility 0s 700ms;
 }
 .game-frame.live {
   opacity: 1;
   visibility: visible;
+  transform: none;
+  transition:
+    opacity 700ms ease-out,
+    transform 900ms var(--ease);
 }
 /* Getting ready / couldn't open: the game's logo and one line in the left third, like the home's spotlight. */
 .player-card {
@@ -853,7 +841,8 @@ figure {
   bottom: calc(var(--safe-y) + 40px);
   max-width: 1100px;
   z-index: 2;
-  animation: card-in 420ms 300ms ease-out both;
+  /* Lands as the box finishes opening: the logo takes the spotlight's place in the left third. */
+  animation: card-in 420ms 560ms ease-out both;
 }
 .player-logo {
   display: block;
@@ -932,56 +921,73 @@ figure {
   transform: translateX(-50%);
 }
 
-/* ---------- assembling (connecting) ---------- */
-.assembling {
+/* ---------- assembling (connecting): the living room warming up ---------- */
+.assembling-room .room-art {
+  filter: blur(16px) brightness(0.66) saturate(1.1);
+  transform: scale(1.08);
+  animation: warm-up 2.4s ease-out both;
+}
+@keyframes warm-up {
+  from {
+    filter: blur(34px) brightness(0.18) saturate(0.6);
+    transform: scale(1.14);
+  }
+}
+/* A lamp coming on in the room: warm light pooling from the right. */
+.assembling-glow {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(1100px 700px at 75% 45%, rgba(246, 187, 82, 0.16), transparent 70%),
-    radial-gradient(900px 600px at 20% 80%, rgba(196, 98, 61, 0.14), transparent 70%);
+    radial-gradient(900px 640px at 72% 46%, rgba(246, 187, 82, 0.34), transparent 70%),
+    radial-gradient(700px 520px at 18% 86%, rgba(196, 98, 61, 0.26), transparent 70%);
+  animation: glow 3.2s ease-in-out infinite alternate;
+}
+@keyframes glow {
+  from {
+    opacity: 0.6;
+  }
 }
 .assembling-hero {
-  position: absolute;
-  left: var(--safe-x);
-  top: 420px;
+  width: 1200px;
 }
 .assembling-line {
   margin-top: 16px;
+  white-space: nowrap;
   font-family: var(--display);
   font-weight: 600;
   font-size: 72px;
+  line-height: 1.1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
   animation: hero-text-in 600ms ease-out both;
 }
-.assembling-icons {
-  position: absolute;
-  left: var(--safe-x);
-  top: 174px;
+.assembling-hero .eyebrow {
   display: flex;
-  gap: 22px;
+  align-items: center;
+  gap: 12px;
 }
-.assembling-cards {
-  position: absolute;
-  left: var(--safe-x);
-  bottom: calc(var(--safe-y) + 78px);
-  display: flex;
-  gap: 28px;
+.assembling-hero .pulse {
+  background: var(--amber);
 }
-.ghost-icon,
-.ghost-card {
-  border-radius: 26px;
-  background: linear-gradient(100deg, rgba(248, 236, 217, 0.05) 30%, rgba(248, 236, 217, 0.12) 50%, rgba(248, 236, 217, 0.05) 70%);
+.game-icon-art.arriving {
+  animation: icon-arrive 520ms var(--ease) both;
+}
+@keyframes icon-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.86);
+  }
+}
+/* Warm glass where tonight's cards will be, catching the lamp light. */
+.card-art.glass {
+  background: linear-gradient(110deg, rgba(246, 187, 82, 0.1) 30%, rgba(255, 228, 180, 0.26) 50%, rgba(246, 187, 82, 0.1) 70%);
   background-size: 300% 100%;
-  border: 2px solid rgba(248, 236, 217, 0.1);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 2px rgba(255, 228, 180, 0.22);
+  backdrop-filter: blur(10px);
   animation:
-    sitter-in 500ms ease-out both,
-    shimmer 1.8s linear infinite;
-}
-.ghost-icon {
-  width: 128px;
-  height: 128px;
-}
-.ghost-card {
-  width: 320px;
-  height: 180px;
-  border-radius: 20px;
+    icon-arrive 520ms var(--ease) both,
+    shimmer 2.4s linear infinite;
 }
 @keyframes shimmer {
   to {
@@ -1051,4 +1057,20 @@ figure {
 }
 .surprise-logo {
   object-position: left center;
+}
+.surprise-ready {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.surprise-ready .pulse {
+  background: var(--amber);
+}
+/* The reel gives way to the game: fades out over the same room. */
+.surprise-page {
+  transition: opacity 400ms ease-out;
+}
+.surprise-page[data-phase="leaving"] {
+  opacity: 0;
 }
