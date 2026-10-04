@@ -36,9 +36,12 @@ const SPOTS: Record<number, [number, number, number][]> = {
   ],
 };
 
-/** A household's crest: its people's stickers in a little cluster (up to three; grown-ups first). */
-export function Crest({ household, size = 48, dim = false, className = "" }: { household: Household; size?: number; dim?: boolean; className?: string }) {
-  const people = [...household.people].sort((a, b) => rank(a) - rank(b)).slice(0, 3);
+/**
+ * A household's crest: its people's stickers in a little cluster (up to three; grown-ups first).
+ * `shared` is the crest other homes see: the grown-ups' stickers only. Kids' characters stay home.
+ */
+export function Crest({ household, size = 48, dim = false, shared = false, className = "" }: { household: Household; size?: number; dim?: boolean; shared?: boolean; className?: string }) {
+  const people = household.people.filter((p) => !shared || p.band === "grownup").sort((a, b) => rank(a) - rank(b)).slice(0, 3);
   const spots = SPOTS[people.length] ?? SPOTS[1] ?? [];
   return (
     <span className={`ogs-crest ${dim ? "is-dim" : ""} ${className}`} style={{ width: size, height: size }} aria-hidden>

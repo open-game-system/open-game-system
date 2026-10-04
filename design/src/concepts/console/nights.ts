@@ -37,6 +37,8 @@ export interface Night {
   when: string | null;
   /** Day it was paused: "Fri". */
   pausedOn: string | null;
+  /** The home that paused it last (a pause stops the board for every home). */
+  pausedBy: string | null;
   homes: NightHome[];
 }
 
@@ -50,13 +52,15 @@ export interface Nights {
   preview: boolean;
   /** Show Juneau's name (not his picture) to the other homes. Off by default. */
   kidNames: boolean;
+  /** An invite link is out for a free seat (after a home couldn't make it). */
+  link: boolean;
 }
 
 export const US = "hh-mumm";
 
 const COLOR_NAME: Record<string, string> = { "#2f6fc8": "blue", "#c8412f": "red", "#e08a1e": "amber", "#1f8a5b": "green" };
 
-const household = (id: string): Household => {
+export const household = (id: string): Household => {
   const h = HOUSEHOLDS.find((x) => x.id === id);
   if (!h) throw new Error(`unknown household ${id}`);
   return h;
@@ -74,6 +78,7 @@ export function hearthisleNight(): Night {
     turnOf: "hh-nana",
     when: "Tonight 8:00",
     pausedOn: "Fri",
+    pausedBy: "hh-okafor",
     homes: HEARTHISLE.seats.map((seat) => {
       const h = household(seat.householdId);
       return {
@@ -92,7 +97,7 @@ export function hearthisleNight(): Night {
 }
 
 export function baseNights(): Nights {
-  return { list: [hearthisleNight()], open: null, step: "detail", picked: ["hh-okafor", "hh-nana"], preview: false, kidNames: false };
+  return { list: [hearthisleNight()], open: null, step: "detail", picked: ["hh-okafor", "hh-nana"], preview: false, kidNames: false, link: false };
 }
 
 export const homeName = (n: Night, id: string): string => n.homes.find((h) => h.householdId === id)?.name ?? "";
@@ -101,13 +106,12 @@ export const short = (name: string): string => name.replace(/^The /, "");
 export const isOurs = (n: Night): boolean => n.turnOf === US && n.status === "live";
 export const everyoneBack = (n: Night): boolean => n.homes.every((h) => h.back || h.reply === "declined");
 
-/** The night's status, in the shared vocabulary. */
+/** The night's status, in the shared vocabulary (status.ts). A night with a time set is "Coming up". */
 export function nightStatus(n: Night, onTv: string | null): Status {
-  if (n.status === "live") return onTv === n.gameId ? st("live", "Live on TV") : isOurs(n) ? st("yours", "Your turn") : st("theirs", "Their turn");
-  if (n.status === "setup") return n.homes.some((h) => h.reply === "invited") ? st("invited", "Invited") : st("ready", "Ready");
-  if (n.status === "lobby") return st("tonight", n.when ?? "Ready");
-  if (n.when) return st("tonight", n.when);
-  return st("paused", `Paused ${n.pausedOn ?? ""}`.trim());
+  if (n.status === "live") return onTv === n.gameId ? st("live", "Live") : isOurs(n) ? st("yours", "Your roll") : st("theirs", "Their turn");
+  if (n.status === "setup" && n.homes.some((h) => h.reply === "invited")) return st("invited", "Invited");
+  if (n.when) return st("coming", n.when);
+  return st("paused", `Paused at turn ${n.turn}`);
 }
 
 /** One line about where the night stands: "Paused at turn 14 · Nana & Pop to roll". */
@@ -154,7 +158,7 @@ export function sendInvites(ns: Nights): Nights {
     const color = seat?.color ?? "#1f8a5b";
     return { householdId: hid, name: h.name, color, colorName: COLOR_NAME[color] ?? "", seat: "together", screen: screenOf(h), reply: "invited", back: true, score: 0 };
   });
-  const night: Night = { id, gameId: "hearthisle", status: "setup", turn: 0, turnOf: "hh-okafor", when: "Tonight 8:00", pausedOn: null, homes: [{ ...us, score: 0, back: true }, ...others] };
+  const night: Night = { id, gameId: "hearthisle", status: "setup", turn: 0, turnOf: "hh-okafor", when: "Tonight 8:00", pausedOn: null, pausedBy: null, homes: [{ ...us, score: 0, back: true }, ...others] };
   return { ...ns, list: [...ns.list, night], open: id, step: "invite" };
 }
 
@@ -184,6 +188,22 @@ export const passTurn = (ns: Nights, id: string): Nights =>
     return { ...n, turn: n.turn + 1, turnOf: next?.householdId ?? n.turnOf };
   });
 
-export const pauseNight = (ns: Nights, id: string): Nights => mapNight(ns, id, (n) => ({ ...n, status: "paused", pausedOn: "Fri", when: "Next Fri 8:00" }));
+/** Pause for tonight: the board stops for every home at once, and the next sitting is set. */
+export const pauseNight = (ns: Nights, id: string): Nights => mapNight(ns, id, (n) => ({ ...n, status: "paused", pausedOn: "Fri", pausedBy: US, when: "Next Fri 8:00" }));
+
+/** The homes a pause stops besides ours (everyone at the table). */
+export const otherHomes = (n: Night): NightHome[] => n.homes.filter((h) => h.householdId !== US && h.reply !== "declined");
+
+/** A home said no: play on without them (their seat leaves the board before it starts). */
+export const dropDeclined = (ns: Nights): Nights => (ns.open ? mapNight(ns, ns.open, (n) => ({ ...n, homes: n.homes.filter((h) => h.reply !== "declined") })) : ns);
+
+/** A home said no: ask everyone for another night instead (the home that declined is asked again). */
+export const anotherNight = (ns: Nights, when: string): Nights =>
+  ns.open ? mapNight(ns, ns.open, (n) => ({ ...n, when, homes: n.homes.map((h) => (h.reply === "declined" || h.reply === "in" ? { ...h, reply: "invited" } : h)) })) : ns;
+
+/** A home said no: invite someone else by link; whoever opens it takes the free seat. */
+export const inviteInstead = (ns: Nights): Nights => ({ ...dropDeclined(ns), link: true });
+
+export const declined = (n: Night): NightHome[] => n.homes.filter((h) => h.reply === "declined");
 
 export const nightOpen = current;

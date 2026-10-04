@@ -3,8 +3,8 @@
 // so there is no confirm step.
 import type { Store } from "../../../harness/store";
 import { GAMES, HOME, gameById } from "../../../world";
-import { closeMenu, nextLine, resumePoint, seatPlan, startSwitch, type S } from "../state";
-import { couchStatus } from "../status";
+import { closeMenu, resumePoint, seatPlan, startSwitch, type S } from "../state";
+import { couchLine, couchStatus } from "../status";
 import { Portrait } from "../ui/Brand";
 import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
@@ -16,11 +16,6 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
   const low = HOME.devices.find((d) => d.kind === "ipad" && (d.battery ?? 1) < 0.15);
   return (
     <div className="cx-sheetwrap">
-      {current && (
-        <div className="cx-menuart" aria-hidden>
-          <GameArt gameId={current} />
-        </div>
-      )}
       <button className="cx-scrim" aria-label="Close menu" data-bot="menu-close" onClick={() => store.update(closeMenu)} />
       <div className="cx-sheet" role="dialog" aria-label="Console menu">
         <div className="cx-sheet__grab" />
@@ -49,7 +44,7 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
                 </span>
                 <span className="cx-next__text">
                   <b>{g.name}</b>
-                  <span>{nextLine(g.id)}</span>
+                  <span>{couchLine(g.id, null, s.savedTonight)}</span>
                   <span className="cx-next__seats">
                     <Chip status={couchStatus(g.id, null, s.savedTonight)} />
                     {seats.map((x) => (

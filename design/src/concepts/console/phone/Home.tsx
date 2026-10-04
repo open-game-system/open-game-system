@@ -8,7 +8,7 @@ import { Lane } from "../ui/Lane";
 import { NightsLane } from "./NightsLane";
 import { CouchRail, NowPlaying } from "./NowPlaying";
 import { TurnRows } from "./TurnRows";
-import { inbox } from "../inbox";
+import { everyGame } from "../inbox";
 import { Chevron } from "../ui/Icons";
 
 export function HomeHeader() {
@@ -28,7 +28,9 @@ export function HomeHeader() {
 }
 
 export function Home({ s, store }: { s: S; store: Store<S> }) {
-  const turns = inbox(s);
+  const all = everyGame(s);
+  const turns = all.yours;
+  const others = all.theirs.length + all.paused.length;
   return (
     <div className="cx-scroll">
       <HomeHeader />
@@ -42,11 +44,12 @@ export function Home({ s, store }: { s: S; store: Store<S> }) {
         count={turns.length}
         action={
           <button className="cx-lane__more" data-bot="inbox-all" onClick={() => store.update((x) => ({ ...x, phone: "inbox" }))}>
-            All games <Chevron size={16} />
+            All turns <Chevron size={16} />
           </button>
         }
       >
         <TurnRows items={turns.slice(0, 2)} store={store} />
+        {others > 0 && <p className="cx-lane__foot">{others} more waiting on other people, in All turns.</p>}
       </Lane>
       <NightsLane s={s} store={store} />
     </div>

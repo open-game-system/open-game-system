@@ -15,9 +15,12 @@ export function Trust({ s, store, us }: { s: S; store: Store<S>; us: NightHome |
         <Eye size={18} /> What the other homes see of us
       </h3>
       <p className="cx-trust__seen">{seen}</p>
-      <p>{s.nights.kidNames ? `Juneau's name is shown. ${kids[1] ?? "Ava"}'s isn't. Pictures never leave this home.` : `${kids.join(" and ")}'s names and pictures stay in this home. Other homes see only their own hands.`}</p>
+      <p>{s.nights.kidNames ? `${kids[1] ?? "Ava"}'s name isn't shown. Pictures never leave this home.` : `${kids.join(" and ")}'s names and pictures stay in this home. Other homes see only their own hands.`}</p>
       <label className="cx-switchrow">
-        <span>Show Juneau's name</span>
+        <span>
+          <b>{s.nights.kidNames ? "Juneau's name is shown" : "Show Juneau's name"}</b>
+          <span>{s.nights.kidNames ? "Turn this off to hide it again. It leaves every home's screen at once, tonight's board too." : "Off. You can turn it on, and back off, any time."}</span>
+        </span>
         <input type="checkbox" role="switch" data-bot="kid-names" checked={s.nights.kidNames} onChange={() => store.update((x) => ({ ...x, nights: { ...x.nights, kidNames: !x.nights.kidNames } }))} />
       </label>
       <p className="cx-trust__who">Only homes you invite can join. Remove a home any time; its seat leaves the board.</p>

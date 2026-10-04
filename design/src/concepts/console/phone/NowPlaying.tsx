@@ -7,7 +7,7 @@ import { gameById } from "../../../world";
 import { activities, couchShelf } from "../activities";
 import { castAndPlay, hereTonight, pickActivity, resumePoint, type S } from "../state";
 import { nightLine } from "../nights";
-import { LIVE, st } from "../status";
+import { LIVE, READY } from "../status";
 import { Portrait } from "../ui/Brand";
 import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
@@ -25,7 +25,7 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
   const here = hereTonight(s);
   const liveNight = s.nights.list.find((n) => n.status === "live" && n.gameId === playing);
   const point = liveNight ? nightLine(liveNight) : resumePoint(focusId);
-  const status = playing ? LIVE : off ? st("ready", "Ready") : (focusAct?.status ?? st("ready", "Ready"));
+  const status = playing ? LIVE : (focusAct?.status ?? READY);
   return (
     <section className={`cx-now ${playing ? "" : "cx-now--idle"}`}>
       <div className="cx-now__art" key={focusId}>
@@ -39,7 +39,7 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
           </span>
         </div>
         <div className="cx-now__game">{game.name}</div>
-        <div className="cx-now__point">{playing ? point : (focusAct?.title ?? game.tagline)}</div>
+        <div className="cx-now__point">{playing ? point : (focusAct?.detail ?? game.tagline)}</div>
         <div className="cx-now__foot">
           <button className="cx-now__who" data-bot="couch-who" aria-label={`${here.length} here tonight. Change who's here`} onClick={() => store.update((x) => ({ ...x, who: true }))}>
             {here.map((p) => (

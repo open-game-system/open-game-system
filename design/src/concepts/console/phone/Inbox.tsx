@@ -1,15 +1,19 @@
-// Every game with turns, one list: whose move it is, across Word Duel and game nights alike.
-// Grouped by who has to act, like a good async games list; finished and closed games sink.
+// Every game with turns, one list, in the one bucket rule (status.ts): Your turn · Coming up ·
+// Their turn · Paused · Finished. Each game sits in exactly one bucket.
 import type { Store } from "../../../harness/store";
-import { finished, inbox, waiting } from "../inbox";
+import { everyGame } from "../inbox";
 import { goHome, type S } from "../state";
+import { BUCKET_TITLE, type Bucket } from "../status";
 import { StatusBar } from "../ui/Brand";
 import { Chevron } from "../ui/Icons";
 import { Lane } from "../ui/Lane";
-import { TurnRow, TurnRows } from "./TurnRows";
+import { TurnRows } from "./TurnRows";
+
+const ORDER: Bucket[] = ["tv", "yours", "coming", "theirs", "paused", "done"];
+const EMPTY: Partial<Record<Bucket, string>> = { yours: "Nobody is waiting on you. We'll tell you when someone moves." };
 
 export function Inbox({ s, store }: { s: S; store: Store<S> }) {
-  const mine = inbox(s);
+  const all = everyGame(s);
   return (
     <div className="cx-phone">
       <StatusBar dark />
@@ -19,24 +23,13 @@ export function Inbox({ s, store }: { s: S; store: Store<S> }) {
         </button>
       </div>
       <div className="cx-scroll">
-        <h1 className="cx-title cx-title--page">Every game</h1>
-        <Lane id="turns" title="Your turn" count={mine.length}>
-          <TurnRows items={mine} store={store} />
-        </Lane>
-        <Lane id="waiting" title="Waiting on them">
-          <ul className="cx-rows">
-            {waiting(s).map((t) => (
-              <TurnRow key={t.id} item={t} store={store} />
-            ))}
-          </ul>
-        </Lane>
-        <Lane id="done" title="Finished">
-          <ul className="cx-rows cx-rows--quiet">
-            {finished(s).map((t) => (
-              <TurnRow key={t.id} item={t} store={store} />
-            ))}
-          </ul>
-        </Lane>
+        <h1 className="cx-title cx-title--page">All turns</h1>
+        <p className="cx-lede">Word Duel and game nights, by who has to move.</p>
+        {ORDER.filter((b) => all[b].length > 0 || EMPTY[b]).map((b) => (
+          <Lane key={b} id={`bucket-${b}`} title={BUCKET_TITLE[b]} count={b === "yours" ? all[b].length : undefined}>
+            <TurnRows items={all[b]} store={store} empty={EMPTY[b]} quiet={b === "done"} />
+          </Lane>
+        ))}
       </div>
     </div>
   );

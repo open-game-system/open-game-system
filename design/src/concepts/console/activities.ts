@@ -1,57 +1,44 @@
-// Activity cards: what each game instance reports, turned into one line of status. Game-agnostic:
-// everything here comes from the instance (Tier 1/2) or the manifest (Tier 0).
+// Activity cards: what each game reports, turned into one status (status.ts) and one line.
+// Game-agnostic: everything here comes from what the game reports, or from its manifest.
 import { COUCH, HEARTHISLE, gameById, type Instance } from "../../world";
+import { nightLine, nightStatus } from "./nights";
 import type { S } from "./state";
-import { couchStatus, st, type Status } from "./status";
+import { couchLine, couchStatus, type Status } from "./status";
 
 export interface Activity {
   id: string;
   gameId: string;
-  /** Short badge on the art: "Tonight 8:00", "New", "Paused". */
+  /** The status's words, for surfaces that show it as a kicker ("Paused at day 4", "New"). */
   badge: string;
   badgeTone: "signal" | "quiet" | "live";
   title: string;
   detail: string;
-  /** The same status in the shared vocabulary (glyph + words), for chips. */
+  /** The status in the shared vocabulary (glyph + shape + words), for chips. */
   status: Status;
 }
 
+const toneOf = (s: Status): Activity["badgeTone"] => (s.kind === "live" ? "live" : s.kind === "new" || s.kind === "coming" || s.kind === "yours" ? "signal" : "quiet");
+
 function fromInstance(i: Instance, s: S): Activity {
-  return { ...fromInstanceBadge(i, s), status: couchStatus(i.gameId, s.onTv, s.savedTonight) };
+  const status = couchStatus(i.gameId, s.onTv, s.savedTonight);
+  return { id: i.id, gameId: i.gameId, badge: status.label, badgeTone: toneOf(status), title: i.title.split(" · ")[0] ?? i.title, detail: couchLine(i.gameId, s.onTv, s.savedTonight), status };
 }
 
-function fromInstanceBadge(i: Instance, s: S): Omit<Activity, "status"> {
-  const saved = s.savedTonight[i.gameId];
-  if (s.onTv === i.gameId) return { id: i.id, gameId: i.gameId, badge: "On the TV", badgeTone: "live", title: i.title.split(" · ")[0] ?? i.title, detail: "Playing now in the living room" };
-  if (saved) return { id: i.id, gameId: i.gameId, badge: `Saved ${saved}`, badgeTone: "quiet", title: i.title.split(" · ")[0] ?? i.title, detail: "Picks up right where you left it" };
-  if (i.status === "active") return { id: i.id, gameId: i.gameId, badge: "In progress", badgeTone: "live", title: i.title.split(" · ")[0] ?? i.title, detail: i.detail.split(" · ")[0] ?? i.detail };
-  if (i.status === "suspended") {
-    const [when, ...rest] = i.detail.split(" · ");
-    return { id: i.id, gameId: i.gameId, badge: when ?? "Paused", badgeTone: "quiet", title: i.title, detail: rest.join(" · ") };
-  }
-  if (i.status === "completed" && i.updatedAt > "2026-10-03") return { id: i.id, gameId: i.gameId, badge: "New", badgeTone: "signal", title: i.title, detail: i.detail.split(" · ")[0] ?? i.detail };
-  return { id: i.id, gameId: i.gameId, badge: "", badgeTone: "quiet", title: i.title, detail: i.detail.split(" · ")[0] ?? i.detail };
-}
-
-/** Home "Jump back in": tonight's game night first, then the newest news, then paused games. */
+/** Home "Jump back in": tonight's game night first, then new things, then paused games, then the rest. */
 export function activities(s: S): Activity[] {
-  const night: Activity = {
-    id: HEARTHISLE.id,
-    gameId: HEARTHISLE.gameId,
-    badge: "Tonight 8:00",
-    badgeTone: "signal",
-    title: "Game night · turn 14",
-    detail: "Okafors are in · Nana & Pop to roll",
-    status: st("tonight", "Tonight 8:00"),
-  };
+  const n = s.nights.list.find((x) => x.id === HEARTHISLE.id);
+  const status = n ? nightStatus(n, s.onTv) : nightStatusFallback();
+  const night: Activity = { id: HEARTHISLE.id, gameId: HEARTHISLE.gameId, badge: status.label, badgeTone: toneOf(status), title: gameById(HEARTHISLE.gameId).name, detail: n ? nightLine(n) : "", status };
   const couch = COUCH.filter((i) => i.gameId !== s.onTv).map((i) => fromInstance(i, s));
-  const order = (a: Activity) => (a.badge.startsWith("Saved") ? 0 : a.badgeTone === "signal" ? 1 : a.badgeTone === "quiet" && a.badge ? 2 : 3);
+  const order = (a: Activity) => (a.status.kind === "new" ? 0 : a.status.kind === "paused" ? 1 : 2);
   return [night, ...couch.sort((a, b) => order(a) - order(b))];
 }
 
+const nightStatusFallback = (): Status => ({ kind: "coming", label: "Tonight 8:00" });
+
 /**
  * The couch shelf: this household's couch games only, for "On the TV tonight". Game nights live in
- * their own lane (nights.ts), so Hearthisle is not here. Prefer this over activities().
+ * their own lane, so Hearthisle is not here. Prefer this over activities().
  */
 export function couchShelf(s: S): Activity[] {
   return activities(s).filter((a) => a.gameId !== HEARTHISLE.gameId);

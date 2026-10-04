@@ -1,10 +1,10 @@
 // "Your turn": one inbox across every game that has turns. A duel move and a game-night roll sit in
 // the same list, newest first, because to a grown-up they are the same thing: someone is waiting
 // on me. Game-agnostic: an item comes from what an instance reports (whose turn, last move, URL).
-import { gameById } from "../../world";
-import { isOurs, nightLine, nightStatus, short, type Night } from "./nights";
+import { gameById, type DuelGame } from "../../world";
+import { homeName, isOurs, nightLine, nightStatus, short, US, type Night } from "./nights";
 import type { S } from "./state";
-import { CLOSED, DONE, st, type Status } from "./status";
+import { bucketOf, CLOSED, DONE, THEIRS, YOURS, type Bucket, type Status } from "./status";
 import { ago } from "./ui/time";
 
 /** Where an item opens: a duel's board, a night's page, or a game's own list (finished games). */
@@ -21,87 +21,58 @@ export interface TurnItem {
   /** What opening it does. */
   target: TurnTarget;
   at: string;
+  /** For duel rows: the duel, so the row can show the opponent's sticker and a tiny board. */
+  duel?: string;
 }
 
+/** A game night as one item, in whichever bucket its status puts it. */
 function nightItem(n: Night, onTv: string | null): TurnItem {
-  const live = n.status === "live" && onTv === n.gameId;
-  const others = n.homes.filter((h) => h.householdId !== "hh-mumm").length;
+  const status = nightStatus(n, onTv);
+  const others = n.homes.filter((h) => h.householdId !== US && h.reply !== "declined").length;
+  const name = gameById(n.gameId).name;
+  const title =
+    status.kind === "live" ? (isOurs(n) ? "Your roll, on the living room TV" : `Game night on the TV · ${nightLine(n)}`)
+    : status.kind === "yours" ? `Your roll · ${others} homes waiting`
+    : status.kind === "theirs" ? `${short(homeName(n, n.turnOf))} are rolling`
+    : status.kind === "invited" ? `New game night · ${n.homes.filter((h) => h.reply === "invited").length} invites out`
+    : `Game night · ${n.homes.length} homes`;
+  const detail = `${name} · ${status.kind === "coming" || status.kind === "invited" ? nightLine(n) : `turn ${n.turn}`}`;
+  return { id: `night-${n.id}`, gameId: n.gameId, title, detail, status, target: { kind: "night", id: n.id }, at: n.status === "live" ? "2026-10-03T19:09:00-07:00" : "2026-10-03T17:00:00-07:00" };
+}
+
+function duelItem(d: DuelGame): TurnItem {
+  if (d.status === "yourTurn") return { id: `turn-${d.id}`, gameId: "word-duel", title: d.lastMove, detail: `Word Duel · ${ago(d.updatedAt)}`, status: YOURS, target: { kind: "duel", id: d.id }, at: d.updatedAt, duel: d.id };
+  if (d.status === "waiting") return { id: `wait-${d.id}`, gameId: "word-duel", title: `${d.opponent}'s move`, detail: `Word Duel · you played ${d.lastWord ?? ""} · ${ago(d.updatedAt)}`, status: THEIRS, target: { kind: "duel", id: d.id }, at: d.updatedAt, duel: d.id };
+  const won = d.you > d.them;
   return {
-    id: `turn-${n.id}`,
-    gameId: n.gameId,
-    title: live ? "Your roll, on the living room TV" : `Your roll · ${others} homes waiting`,
-    detail: `${gameById(n.gameId).name} · ${nightLine(n).replace(" · your roll", "")}`,
-    status: live ? st("live", "Live on TV") : st("yours", "Your turn"),
-    target: { kind: "night", id: n.id },
-    at: "2026-10-03T19:09:00-07:00",
+    id: `done-${d.id}`,
+    gameId: "word-duel",
+    title: d.status === "expired" ? `${d.opponent} · closed` : `${d.opponent} · ${won ? "you won" : "they won"} by ${Math.abs(d.you - d.them)}`,
+    detail: d.status === "expired" ? "Word Duel · no move in 14 days" : `Word Duel · ${ago(d.updatedAt)}`,
+    status: d.status === "expired" ? CLOSED : DONE,
+    target: { kind: "duels" },
+    at: d.updatedAt,
+    duel: d.id,
   };
 }
 
-export function inbox(s: S): TurnItem[] {
-  const duels = s.duels
-    .filter((d) => d.status === "yourTurn")
-    .map(
-      (d): TurnItem => ({
-        id: `turn-${d.id}`,
-        gameId: "word-duel",
-        title: d.lastMove,
-        detail: `Word Duel · ${ago(d.updatedAt)}`,
-        status: st("yours", "Your turn"),
-        target: { kind: "duel", id: d.id },
-        at: d.updatedAt,
-      }),
-    );
-  const nights = s.nights.list.filter(isOurs).map((n) => nightItem(n, s.onTv));
-  return [...nights, ...duels].sort((a, b) => b.at.localeCompare(a.at));
+/** Every game with turns (duels and game nights), each in exactly one bucket (status.ts bucketOf). */
+export function everyGame(s: S): Record<Bucket, TurnItem[]> {
+  const out: Record<Bucket, TurnItem[]> = { tv: [], yours: [], coming: [], theirs: [], paused: [], done: [] };
+  const items = [...s.nights.list.map((n) => nightItem(n, s.onTv)), ...s.duels.map(duelItem)];
+  for (const t of items) out[bucketOf(t.status)].push(t);
+  for (const k of ["yours", "theirs", "done"] as const) out[k].sort((a, b) => b.at.localeCompare(a.at));
+  return out;
 }
 
-/** Games waiting on someone else, across games: duels on their move, game nights on another home. */
-export function waiting(s: S): TurnItem[] {
-  const duels = s.duels
-    .filter((d) => d.status === "waiting")
-    .map(
-      (d): TurnItem => ({
-        id: `wait-${d.id}`,
-        gameId: "word-duel",
-        title: `${d.opponent}'s move`,
-        detail: `Word Duel · you played ${d.lastWord ?? ""} · ${ago(d.updatedAt)}`,
-        status: st("theirs", "Their turn"),
-        target: { kind: "duel", id: d.id },
-        at: d.updatedAt,
-      }),
-    );
-  const nights = s.nights.list
-    .filter((n) => !isOurs(n) && n.status !== "setup")
-    .map(
-      (n): TurnItem => ({
-        id: `wait-${n.id}`,
-        gameId: n.gameId,
-        title: `Game night · ${n.homes.length} homes`,
-        detail: `${gameById(n.gameId).name} · ${nightLine(n).replace(/ · .*/, "")}`,
-        status: nightStatus(n, s.onTv),
-        target: { kind: "night", id: n.id },
-        at: "2026-10-03T17:00:00-07:00",
-      }),
-    );
-  return [...nights, ...duels];
-}
-
-/** Finished and closed games: kept for a week, then they leave the list. */
-export function finished(s: S): TurnItem[] {
-  return s.duels
-    .filter((d) => d.status === "completed" || d.status === "expired")
-    .map(
-      (d): TurnItem => ({
-        id: `done-${d.id}`,
-        gameId: "word-duel",
-        title: d.status === "expired" ? `${d.opponent} · closed` : `${d.opponent} · ${d.you > d.them ? "you won" : "they won"} by ${Math.abs(d.you - d.them)}`,
-        detail: d.status === "expired" ? "Word Duel · no move in 14 days" : `Word Duel · ${ago(d.updatedAt)}`,
-        status: d.status === "expired" ? CLOSED : DONE,
-        target: { kind: "duels" },
-        at: d.updatedAt,
-      }),
-    );
-}
+/** Waiting on you, across games: duels on your move and game nights on your roll (not on the TV). */
+export const inbox = (s: S): TurnItem[] => everyGame(s).yours;
+/** Waiting on someone else. */
+export const waiting = (s: S): TurnItem[] => everyGame(s).theirs;
+/** Finished and closed: kept for a week, then they leave the list. */
+export const finished = (s: S): TurnItem[] => everyGame(s).done;
+/** Game nights with a time set (and new ones waiting on replies). */
+export const comingUp = (s: S): TurnItem[] => everyGame(s).coming;
 
 /** "Next: …" after a move: the next thing waiting on you, in any game. */
 export function nextTurn(s: S, after: string): TurnItem | undefined {

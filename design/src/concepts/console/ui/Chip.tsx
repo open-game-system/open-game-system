@@ -1,5 +1,7 @@
 // Status chip: the one status vocabulary (status.ts), drawn the same everywhere. Each kind has its
-// own glyph, so colour never carries the meaning alone.
+// own glyph AND its own shape (live: solid pill · your turn: a flag pointing at you · their turn:
+// hollow pill · coming up: dashed pill · paused: square tab · new: ticket · ready: open tag ·
+// done/closed: bare words), so neither colour nor any one cue carries the meaning alone.
 import type { ReactNode } from "react";
 import type { Status, StatusKind } from "../status";
 
@@ -39,7 +41,7 @@ function Glyph({ kind }: { kind: StatusKind }) {
           <circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.6" strokeDasharray="1.6 1.8" />
         </G>
       );
-    case "tonight":
+    case "coming":
       return (
         <G>
           <circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -51,6 +53,13 @@ function Glyph({ kind }: { kind: StatusKind }) {
         <G>
           <rect x="2.6" y="2.2" width="2.3" height="7.6" rx=".8" fill="currentColor" />
           <rect x="7.1" y="2.2" width="2.3" height="7.6" rx=".8" fill="currentColor" />
+        </G>
+      );
+    case "new":
+      // A four-point sparkle: something happened since you last looked.
+      return (
+        <G>
+          <path d="M6 .8l1.3 3.9L11.2 6 7.3 7.3 6 11.2 4.7 7.3.8 6l3.9-1.3z" fill="currentColor" />
         </G>
       );
     case "ready":

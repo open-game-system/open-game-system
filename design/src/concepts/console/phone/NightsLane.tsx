@@ -3,6 +3,7 @@
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
 import { beginNewNight, nightLine, nightStatus, openNight, type Night } from "../nights";
+import { comingUp } from "../inbox";
 import { night, type S } from "../state";
 import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
@@ -30,19 +31,24 @@ export function NightCard({ n, s, store }: { n: Night; s: S; store: Store<S> }) 
   );
 }
 
+/** Lane 3, "Coming up": game nights with a time set (and new ones waiting on replies). A night
+ * whose turn it is sits in Your turn instead, and one on our TV is the TV lane's: never twice. */
 export function NightsLane({ s, store }: { s: S; store: Store<S> }) {
+  const ids = comingUp(s).map((t) => (t.target.kind === "night" ? t.target.id : ""));
+  const list = s.nights.list.filter((n) => ids.includes(n.id));
   return (
     <Lane
       id="nights"
-      title="Game nights"
+      title="Coming up"
       action={
         <button className="cx-lane__more" data-bot="night-new" onClick={() => store.update((x) => night(x, beginNewNight))}>
-          <Plus size={16} /> New
+          <Plus size={16} /> Game night
         </button>
       }
     >
+      {list.length === 0 && <p className="cx-lane__empty">No game nights set. Start one with the homes you play with.</p>}
       <div className="cx-nights">
-        {s.nights.list.map((n) => (
+        {list.map((n) => (
           <NightCard key={n.id} n={n} s={s} store={store} />
         ))}
       </div>

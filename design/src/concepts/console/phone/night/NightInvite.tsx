@@ -2,7 +2,7 @@
 // night keeps its place); after sending, each home's reply, and what they see.
 import type { Store } from "../../../../harness/store";
 import { HOUSEHOLDS } from "../../../../world";
-import { nightLine, sendInvites, togglePick, toStep, US, type Night } from "../../nights";
+import { anotherNight, declined, dropDeclined, inviteInstead, nightLine, sendInvites, togglePick, toStep, US, type Night, type Nights } from "../../nights";
 import type { S } from "../../state";
 import { Check, Eye, Plus } from "../../ui/Icons";
 import { HomeRows } from "./HomeRows";
@@ -52,15 +52,18 @@ function Picker({ s, store }: { s: S; store: Store<S> }) {
   );
 }
 
-function Replies({ n, store }: { n: Night; store: Store<S> }) {
+function Replies({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
+  const out = declined(n);
+  if (out.length > 0) return <Declined n={n} s={s} store={store} />;
   const waiting = n.homes.filter((h) => h.reply === "invited").length;
   return (
     <div className="cx-setup2">
       <h1 className="cx-title">{waiting > 0 ? "Invites sent" : "Everyone's in"}</h1>
-      <p className="cx-lede">{waiting > 0 ? "You can pick seats while they answer." : "Every home said yes. Next, the seats."}</p>
+      <p className="cx-lede">{waiting > 0 ? `For ${(n.when ?? "tonight").toLowerCase()}. You can pick seats while they answer.` : `Every home said yes for ${(n.when ?? "tonight").toLowerCase()}. Next, the seats.`}</p>
+      {s.nights.link && <p className="cx-keeps">Invite link ready to send. Whoever opens it takes the free seat; you'll see their name here first.</p>}
       <HomeRows n={n} store={store} mode="status" />
       <button className="cx-btn cx-btn--line cx-wide" data-bot="invite-preview" onClick={() => store.update((x) => ({ ...x, nights: { ...x.nights, preview: true } }))}>
-        <Eye size={18} /> <span>See what Nana & Pop see</span>
+        <Eye size={18} /> <span>See what the other homes see</span>
       </button>
       <div className="cx-dock">
         <button className="cx-btn cx-btn--light cx-wide" data-bot="night-seats" onClick={() => store.update((x) => ({ ...x, nights: toStep(x.nights, "seats") }))}>
@@ -71,6 +74,45 @@ function Replies({ n, store }: { n: Night; store: Store<S> }) {
   );
 }
 
+/** A home said no. Say who, then the three honest ways on: fewer homes, someone else, another night. */
+function Declined({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
+  const out = declined(n);
+  const names = out.map((h) => h.name).join(" and ");
+  const yes = n.homes.filter((h) => h.householdId !== US && h.reply === "in").map((h) => h.name);
+  const playing = n.homes.filter((h) => h.reply !== "declined").length;
+  const pick = (f: (ns: Nights) => Nights) => store.update((x) => ({ ...x, nights: f(x.nights) }));
+  return (
+    <div className="cx-setup2">
+      <h1 className="cx-title">{names} can't make it</h1>
+      <p className="cx-lede">
+        They said no to {(n.when ?? "tonight").toLowerCase()}.{yes.length > 0 ? ` ${yes.join(" and ")} are in.` : ""} Nothing has started, so nothing is lost.
+      </p>
+      <HomeRows n={n} store={store} mode="status" />
+      <h2 className="cx-subh">What now?</h2>
+      <ul className="cx-choices">
+        <li>
+          <button className="cx-choice" data-bot="decline-play-on" onClick={() => pick((ns) => toStep(dropDeclined(ns), "seats"))}>
+            <b>Play with {playing} homes</b>
+            <span>Start {(n.when ?? "tonight").toLowerCase()} without them. Their seat leaves the board.</span>
+          </button>
+        </li>
+        <li>
+          <button className="cx-choice" data-bot="decline-invite-other" onClick={() => pick(inviteInstead)}>
+            <b>Invite someone else</b>
+            <span>Send a link. Whoever opens it takes the free seat.</span>
+          </button>
+        </li>
+        <li>
+          <button className="cx-choice" data-bot="decline-other-night" onClick={() => pick((ns) => anotherNight(ns, "Sat 8:00"))}>
+            <b>Pick another night</b>
+            <span>Ask every home about Saturday 8:00 instead.</span>
+          </button>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 export function NightInvite({ n, s, store }: { n: Night | undefined; s: S; store: Store<S> }) {
-  return n && n.status === "setup" ? <Replies n={n} store={store} /> : <Picker s={s} store={store} />;
+  return n && n.status === "setup" ? <Replies n={n} s={s} store={store} /> : <Picker s={s} store={store} />;
 }

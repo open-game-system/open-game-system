@@ -30,7 +30,7 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
     <div className="cx-phone">
       <StatusBar />
       {s.firstRun ? <FirstRun /> : s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
-      {!s.firstRun && <TabBar s={s} store={store} />}
+      {!s.firstRun && !s.who && <TabBar s={s} store={store} />}
       {s.who && <WhoSheet s={s} store={store} />}
     </div>
   );

@@ -1,6 +1,7 @@
 // The homes of a night as rows: seat, where they play, and their state in the shared vocabulary.
 import type { Store } from "../../../../harness/store";
-import { removeHome, screenWords, seatWords, US, type Night, type NightHome } from "../../nights";
+import { household, removeHome, screenWords, seatWords, US, type Night, type NightHome } from "../../nights";
+import { Crest } from "../../ui/Sticker";
 import type { S } from "../../state";
 import { st, type Status } from "../../status";
 import { Chip } from "../../ui/Chip";
@@ -8,10 +9,10 @@ import { Close, PhoneIcon, TvIcon } from "../../ui/Icons";
 
 function stateOf(h: NightHome, n: Night): Status {
   if (h.reply === "invited") return st("invited", "Invited");
-  if (h.reply === "declined") return st("closed", "Declined");
+  if (h.reply === "declined") return st("closed", "Can't make it");
   if (n.status === "live" && n.turnOf === h.householdId) return h.householdId === US ? st("yours", "Your roll") : st("theirs", "Rolling");
   if (!h.back) return st("paused", "Not back yet");
-  return st("ready", h.householdId === US ? "Host" : "In");
+  return st("done", h.householdId === US ? "Host" : "In");
 }
 
 export function HomeRows({ n, store, mode }: { n: Night; store: Store<S>; mode: "status" | "seat" | "screen" }) {
@@ -19,7 +20,7 @@ export function HomeRows({ n, store, mode }: { n: Night; store: Store<S>; mode: 
     <ul className="cx-homes">
       {n.homes.map((h) => (
         <li key={h.householdId} className="cx-homes__row">
-          <span className="cx-homes__swatch" style={{ background: h.color }} aria-hidden />
+          <Crest household={household(h.householdId)} size={44} shared dim={h.reply === "declined"} />
           <span className="cx-homes__text">
             <b>{h.name}</b>
             <span>
