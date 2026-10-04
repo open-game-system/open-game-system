@@ -14,7 +14,7 @@ Spec: `docs/product-specs/ogs-app-v3.html`. Plan: `2026-10-03-ogs-app-rework.md`
 | TV tab → Cast: **one** LOAD_VIEW with the launcher URL; tab becomes the remote | iOS e2e (Chromecast loads +1), couch-flow |
 | Remote moves the TV focus ring; select → game page; back | launcher e2e, couch-flow |
 | Library tap → TV says "Getting ready… on Jonathan's phone" → **the real Rocket Crew TV page framed** once its page declares the TV view | iOS e2e (real game, not a fixture) |
-| Left-edge swipe back = Home: game paused in Continue, kids back to the launcher, Back in pill | iOS e2e, Detox `game-screen`, couch-flow |
+| Left-edge swipe back = Home: game paused in Continue, kids back to the launcher, Rejoin pill | iOS e2e, Detox `game-screen`, couch-flow |
 | Swap games in the same stream: **0 recasts** (session casts = 1, Chromecast loads = 1) | iOS e2e, couch-flow, protocol tests |
 | Continue resumes the same instance + resume point; New from the game page | couch-flow, protocol tests |
 | Kid iPads follow by name into their role | couch-flow (WebSocket iPads), protocol tests |

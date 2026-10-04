@@ -86,7 +86,15 @@ Feature: Cast-first OGS app with games inside one stream
     Given Rocket Crew is live and reported its resume point "Mission 6"
     When Jonathan swipes back from the left edge of the game screen
     Then the TV shows the launcher with Rocket Crew paused at "Mission 6"
-    And Playing shows a "Back in" pill on every tab
+    And a "Rejoin" pill shows on every tab
+    And the Library row for Rocket Crew says "In progress · Mission 6"
+
+  Scenario: Rejoin returns to the same room
+    Given Jonathan hosted Rocket Crew in room "PQWS" and swiped back
+    When Jonathan taps Rejoin
+    Then his phone opens room "PQWS" with his Captain seat, without asking his name
+    And the launcher frames the same room's TV page
+    And the TV is not recast
 
   Scenario: Switch games without recasting
     Given Rocket Crew is paused at "Mission 6"
