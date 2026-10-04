@@ -129,7 +129,7 @@ function removeConnection(connectionId) {
  * @param {Array} params.iceServers - ICE server configurations for TURN/STUN
  * @returns {{ sessionDescription: { type: string, sdp: string }, tracks: Array<{ location: string, trackName: string }>, traceId: string }}
  */
-async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
+async function INITIALIZE_PUBLISHER({ iceServers = [], maxKbps = 4000 }) {
   const traceId = crypto.randomUUID();
   publisherTraceId = traceId;
 
@@ -529,7 +529,7 @@ async function INITIALIZE_PUBLISHER({ iceServers = [] }) {
       // Hold 720p when bits run short (drop frames instead): after a dip the quality scaler kept the
       // picture at 640x360 well after the bandwidth came back (measured Oct 3, laptop and cloud alike).
       params.degradationPreference = "maintain-resolution";
-      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: 4_000_000, maxFramerate: 30 }));
+      params.encodings = (params.encodings.length ? params.encodings : [{}]).map((e) => ({ ...e, maxBitrate: maxKbps * 1000, maxFramerate: 30 }));
       sender.setParameters(params).catch((err) => console.warn("[PUBLISHER] setParameters failed:", err?.message));
       tracks.push({
         location: "local",
