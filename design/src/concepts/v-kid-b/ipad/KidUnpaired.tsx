@@ -4,12 +4,19 @@
 // Taps do nothing; there's nothing to derail.
 import type { Pairing } from "../state";
 import { Mark } from "../ui/Brand";
+import { TvArt } from "../tv/TvArt";
 
 export const isUnpaired = (pairing: Pairing | undefined): boolean => pairing !== undefined && pairing !== "paired";
 
-export function KidUnpaired({ pairing }: { pairing: Pairing }) {
+/** Window to the TV: before pairing the glass is frosted over the console's world; while the phone
+ * pairs it, a clear circle wipes open around the ring. `world` is the console home's focused game. */
+export function KidUnpaired({ pairing, world }: { pairing: Pairing; world: string }) {
   return (
     <div className={`kd-unpaired ${pairing === "waiting" ? "is-waiting" : ""}`} aria-hidden>
+      <span className="kw-frost__world">
+        <TvArt gameId={world} />
+      </span>
+      <span className="kw-frost" />
       <span className="kd-unpaired__ring">
         <i />
         <i />

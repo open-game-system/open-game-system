@@ -1,78 +1,73 @@
-// The iPad following the TV, as one continuous toy moment told with art and motion only.
-// The old game is a card top-left, the next one a card top-right, and a dotted path swoops between
-// them through the bottom of the screen. The child's own character walks that path:
-//   paused    (grown-up opened the console menu) — the old game pauses, the character steps out
-//             and plays while it waits; the next window breathes with the games on the Up next shelf;
-//   saving    — the old card gets a gold check, the next game lands in its window, and the
-//             character sets off;
-//   cutover   — the character walks the bottom of the path, footsteps lighting behind it;
-//   following — the new game's window opens wide around the character as it arrives.
-// The walk never stops between phases (path.ts LEG). Taps anywhere only sparkle; mashing makes the
-// character giggle (mash.ts). Nothing here can change the session.
-import { useRef } from "react";
+// The iPad following the TV through a game switch, as one continuous camera move. The glass holds
+// two worlds side by side, the game being left and the next one, and pans between them while the
+// child's own character waits on the window sill:
+//   paused    (grown-up opened the console menu) — the old world dims with a pause mark, and the
+//             TV's "Up next" shelf rises over the sill: the same tiles the TV shows, pokeable for a wish;
+//   saving    — the shelf sinks, a gold check stamps the old world, the glass starts to slide;
+//   cutover   — the glass is mid-pan: half the old world, half the new, a bright seam between;
+//   following — the new world fills the glass and the child's own controls rise from the bottom edge
+//             (the game's own kid view, its lower half), so the next screen is already in their thumbs.
+// Taps anywhere only sparkle; mashing makes the character giggle (mash.ts). A wish never changes
+// what plays.
+import { useRef, type PointerEvent } from "react";
+import type { Store } from "../../../harness/store";
 import { gameById, type Person } from "../../../world";
-import { GameArt } from "../ui/GameArt";
-import { Footsteps } from "./Footsteps";
-import { KidChar } from "./KidChar";
+import { GameKidView } from "../games/registry";
+import { pokeThrough, seatPlan, type S } from "../state";
+import { TvArt } from "../tv/TvArt";
 import { Bursts, useBursts } from "./juice";
+import { KidChar } from "./KidChar";
+import { Shelf } from "./KidWindow";
 import { MASH_SPOTS, useMash } from "./mash";
-import { NextSlot } from "./NextSlot";
-import { LEG, TRAVEL_PATH } from "./path";
+import { nextShelf } from "./window";
 
 export type TravelPhase = "paused" | "saving" | "cutover" | "following";
 
-export function KidTravel({ from, to, phase, who, mashDemo = false }: { from: string; to: string | null; phase: TravelPhase; who: Person; mashDemo?: boolean }) {
+export function KidTravel({ s, store, from, to, phase, who, mashDemo = false }: { s: S; store: Store<S>; from: string; to: string | null; phase: TravelPhase; who: Person; mashDemo?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const { bursts, fire } = useBursts();
-  const a = gameById(from);
   const b = to ? gameById(to) : null;
-  const ground = b ? b.palette.ground : a.palette.ground;
   const sparkle = [b ? b.palette.accent2 : "#fff6e0", "#fff6e0", who.color];
   const { giggle, tap } = useMash(mashDemo);
-  const leg = LEG[phase];
+  const seat = b ? seatPlan(b).find((x) => x.person.id === who.id) : undefined;
+  const wish = (g: string) => (e: PointerEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fire(e, host.current, "star", [who.color, "#fff6e0", "#ffd23f"], true);
+    store.update((x) => pokeThrough(x, who.id, g, true));
+  };
   return (
     <div
       ref={host}
-      className={`kd-travel kd-travel--${phase} ${giggle ? "is-giggle" : ""} ${mashDemo ? "kd-travel--mash" : ""}`}
-      style={{ color: who.color, background: ground }}
+      className={`kp kp--${phase} ${giggle ? "is-giggle" : ""}`}
+      style={{ color: who.color, background: b ? b.palette.ground : gameById(from).palette.ground }}
       onPointerDown={(e) => {
         fire(e, host.current, "spark", sparkle);
         tap();
       }}
     >
-      <div className="kd-travel__bg" aria-hidden>
-        <GameArt gameId={from} alt />
+      <div className="kp__track" aria-hidden>
+        <div className="kp__world kp__world--from">
+          <TvArt gameId={from} />
+          <span className="kp__stamp kp__stamp--pause">
+            <svg width="70" height="70" viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1.6" fill="#1b1430" /><rect x="13.8" y="5" width="4.2" height="14" rx="1.6" fill="#1b1430" /></svg>
+          </span>
+          <span className="kp__stamp kp__stamp--check">
+            <svg width="78" height="78" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#3a2a00" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </span>
+        </div>
+        <span className="kp__seam" />
+        <div className="kp__world kp__world--to">{b && <TvArt gameId={b.id} />}</div>
       </div>
-      <div className="kd-travel__tint" style={{ background: `radial-gradient(90% 70% at 50% 100%, ${who.color}55, transparent 65%), linear-gradient(180deg, ${a.palette.ground}cc, ${ground}ee)` }} aria-hidden />
+      <div className="kp__scrim" aria-hidden />
 
-      <svg className="kd-travel__path" viewBox="0 0 1180 820" aria-hidden>
-        <path d={TRAVEL_PATH} className="kd-path kd-path--ghost" />
-        <path d={TRAVEL_PATH} className="kd-path kd-path--march" />
-      </svg>
-      <Footsteps phase={phase} color={who.color} />
-      {phase === "paused" && [0, 1, 2].map((i) => <i key={i} className="kd-travel__comet" style={{ offsetPath: `path("${TRAVEL_PATH}")`, animationDelay: `${i * 0.7}s` }} aria-hidden />)}
+      {phase === "paused" && <Shelf s={s} games={nextShelf(from)} focus={null} onPoke={wish} className="kp__next" />}
 
-      <div className="kd-travel__from" aria-hidden>
-        <GameArt gameId={from} alt />
-        <span className="kd-travel__pause">
-          <svg width="60" height="60" viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1.6" fill="#1b1430" /><rect x="13.8" y="5" width="4.2" height="14" rx="1.6" fill="#1b1430" /></svg>
-        </span>
-        <span className="kd-travel__check">
-          <svg width="64" height="64" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#3a2a00" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </span>
-      </div>
-
-      <div className={`kd-travel__to ${b ? "" : "is-choosing"}`} aria-hidden>
-        {b ? <GameArt gameId={b.id} /> : <NextSlot from={from} />}
-      </div>
-
-      <div
-        className="kd-travel__walker"
-        style={{ offsetPath: `path("${TRAVEL_PATH}")`, "--from": `${leg.from}%`, "--to": `${leg.to}%`, animationName: `kd-leg-${phase}`, animationDuration: `${leg.ms}ms` }}
-      >
+      <div className="kp__sill" aria-hidden={phase === "following"}>
+        <span className="kw-sill__ledge" aria-hidden />
         <KidChar
           who={who}
-          size={phase === "following" ? 240 : 300}
+          size={250}
+          className="kw-sill__me"
           onPoke={(e) => {
             e.stopPropagation();
             fire(e, host.current, "star", sparkle, true);
@@ -80,6 +75,13 @@ export function KidTravel({ from, to, phase, who, mashDemo = false }: { from: st
           }}
         />
       </div>
+
+      {phase === "following" && b && seat && (
+        <div className="kp__rise">
+          <GameKidView gameId={b.id} who={who} role={seat.role} />
+        </div>
+      )}
+
       {mashDemo && (
         <div className="kd-mash" aria-hidden>
           {MASH_SPOTS.map((m, i) => (
@@ -92,6 +94,7 @@ export function KidTravel({ from, to, phase, who, mashDemo = false }: { from: st
           ))}
         </div>
       )}
+      <span className="kw__glass" aria-hidden />
       <Bursts bursts={bursts} />
     </div>
   );

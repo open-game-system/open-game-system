@@ -1,0 +1,95 @@
+/* Kid B · "Window to the TV". The iPad is a pane of glass onto the same world the TV shows. Loads
+   after kid.css. iPad 1180×820 landscape: the shelf across the middle, the window sill (the family's
+   stickers, the child's own character in the middle) along the bottom between the thumbs. No words. */
+
+/* ---------- the glass (shared by every window screen) ---------- */
+.kw, .kp { position: absolute; inset: 0; overflow: hidden; background: #0b0d1e; }
+.kw__glass { position: absolute; inset: 0; z-index: 45; pointer-events: none; border-radius: 0;
+  box-shadow: inset 0 0 0 16px #120f1c, inset 0 0 0 19px rgba(255, 246, 224, .28), inset 0 0 90px 20px rgba(0, 0, 0, .45);
+  background: linear-gradient(112deg, transparent 22%, rgba(255, 255, 255, .07) 30%, transparent 38%, transparent 70%, rgba(255, 255, 255, .05) 74%, transparent 78%); }
+.kw__world { position: absolute; inset: 0; animation: kw-world-in 0.7s ease-out both; }
+.kw__world .ct-art img { animation: kw-drift 24s ease-in-out infinite alternate both; }
+@keyframes kw-world-in { from { opacity: 0; transform: scale(1.06); } }
+@keyframes kw-drift { from { transform: scale(1.06) translateX(1.5%); } to { transform: scale(1.06) translateX(-1.5%); } }
+.kw__scrim { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 8, 22, .25) 0%, rgba(8, 8, 22, .05) 18%, rgba(8, 8, 22, .3) 40%, rgba(8, 8, 22, .82) 78%, rgba(8, 8, 22, .9) 100%); }
+
+/* ---------- the shelf through the glass (same tiles as the TV) ---------- */
+.kw-shelf { position: absolute; left: 0; right: 0; top: 232px; padding: 30px 0 34px; background: linear-gradient(180deg, transparent, rgba(8, 8, 22, .5) 30%, rgba(8, 8, 22, .5) 72%, transparent); display: flex; justify-content: center; align-items: flex-end; gap: 20px; z-index: 10; }
+.kw-tile { position: relative; width: 180px; height: 118px; padding: 0; border: 0; background: none; cursor: pointer; animation: kw-tile-in 0.6s cubic-bezier(.2, .9, .3, 1.2) both; touch-action: manipulation; }
+.kw-tile__art { position: absolute; inset: 0; border-radius: 18px; overflow: hidden; display: block; box-shadow: 0 14px 34px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(255, 255, 255, .1); }
+.kw-tile.is-focus { width: 280px; height: 176px; }
+.kw-tile.is-focus .kw-tile__art { border-radius: 22px; box-shadow: 0 0 0 6px #f4f2ee, 0 0 0 14px rgba(244, 242, 238, .2), 0 24px 60px rgba(0, 0, 0, .6); }
+.kw-tile__art.is-poked { animation: kw-squash 0.5s cubic-bezier(.3, 1.6, .5, 1) both; }
+.kw-tile__wish { position: absolute; right: -18px; top: -34px; display: flex; z-index: 2; pointer-events: none; }
+.kw-tile__wish img { width: 78px; height: 78px; border-radius: 50%; border: 6px solid; background: #fff6e0; object-fit: contain; margin-left: -22px; box-shadow: 0 8px 18px rgba(0, 0, 0, .45); animation: kw-stick 0.55s cubic-bezier(.3, 1.7, .5, 1) both; }
+@keyframes kw-tile-in { from { opacity: 0; transform: translateY(60px); } }
+@keyframes kw-squash { 0% { transform: scale(1); } 35% { transform: scale(1.1, .9); } 70% { transform: scale(.96, 1.05); } 100% { transform: scale(1); } }
+@keyframes kw-stick { from { transform: scale(0) rotate(-40deg); } to { transform: scale(1) rotate(-8deg); } }
+
+/* ---------- the window sill: the family's stickers, the child in the middle ---------- */
+.kw-sill, .kp__sill { position: absolute; left: 0; right: 0; bottom: 0; height: 300px; z-index: 20; }
+.kw-sill__ledge { position: absolute; left: 0; right: 0; bottom: 0; height: 96px; border-top-left-radius: 26px 14px; border-top-right-radius: 26px 14px;
+  background: linear-gradient(180deg, #fff3dc 0%, #ecd8b4 18%, #d4b88a 100%); box-shadow: 0 -2px 0 rgba(255, 255, 255, .7), 0 -18px 40px rgba(0, 0, 0, .35), inset 0 10px 0 rgba(255, 255, 255, .25); }
+.kw-sill__me { left: 465px; top: -6px; }
+.kd-paired .kw-sill__me { animation: kd-paired-drop 0.9s 0.15s cubic-bezier(.3, 1.4, .5, 1) both; }
+.kw-sill__side { position: absolute; bottom: 58px; display: flex; gap: 20px; }
+.kw-sill__side--l { left: 70px; }
+.kw-sill__side--r { right: 70px; }
+.kw-sticker { position: relative; width: 170px; height: 170px; padding: 0; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+.kw-sticker img { position: absolute; left: 5%; top: 0; width: 90%; height: 92%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0, 0, 0, .35)); }
+.kw-sticker img.is-hop { animation: kw-hop 0.55s cubic-bezier(.3, 1.6, .5, 1) both; }
+.kw-sticker__pad { position: absolute; left: 10%; right: 10%; bottom: -6px; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, currentColor 70%, transparent), transparent); }
+@keyframes kw-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-46px) scale(.95, 1.06); } 75% { transform: translateY(0) scale(1.08, .92); } 100% { transform: none; } }
+
+/* ---------- the switch: one camera pan from the old world to the new ---------- */
+.kp__track { position: absolute; left: 0; top: 0; bottom: 0; width: 2360px; display: flex; transition: transform 1.1s cubic-bezier(.65, 0, .25, 1); }
+.kp__world { position: relative; flex: 0 0 1180px; height: 100%; overflow: hidden; transition: filter 0.6s; }
+.kp--paused .kp__world--from { filter: brightness(.5) saturate(.7); }
+.kp--saving .kp__track { transform: translateX(-70px); }
+.kp--cutover .kp__track { transform: translateX(-590px); }
+.kp--following .kp__track { transform: translateX(-1180px); }
+.kp__seam { position: relative; flex: 0 0 0; z-index: 3; opacity: 0; transition: opacity 0.4s; }
+.kp__seam::after { content: ""; position: absolute; top: 0; bottom: 0; left: -7px; width: 14px; background: linear-gradient(180deg, #fff6e0, #ffd23f 50%, #fff6e0); box-shadow: 0 0 40px 14px rgba(255, 214, 120, .55); }
+.kp--cutover .kp__seam { opacity: 1; }
+.kp__stamp { position: absolute; left: 50%; top: 150px; width: 150px; height: 150px; margin-left: -75px; border-radius: 50%; display: grid; place-items: center; opacity: 0; transform: scale(.4); transition: opacity 0.35s, transform 0.45s cubic-bezier(.3, 1.6, .5, 1); }
+.kp__stamp--pause { background: rgba(244, 242, 238, .92); box-shadow: 0 16px 40px rgba(0, 0, 0, .5); }
+.kp__stamp--check { background: radial-gradient(circle at 35% 30%, #ffe680, #ffc21a 70%); box-shadow: 0 0 0 8px rgba(255, 246, 224, .65), 0 18px 46px rgba(0, 0, 0, .45); }
+.kp--paused .kp__stamp--pause { opacity: 1; transform: none; }
+.kp--saving .kp__stamp--check, .kp--cutover .kp__stamp--check, .kp--following .kp__stamp--check { opacity: 1; transform: rotate(-6deg); }
+.kp__scrim { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, transparent 45%, rgba(8, 8, 22, .55) 80%, rgba(8, 8, 22, .7) 100%); }
+.kp__next { top: 352px; }
+.kp__next .kw-tile { width: 210px; height: 132px; }
+.kp__sill { transition: transform 0.6s cubic-bezier(.5, 0, .3, 1); }
+.kp--following .kp__sill { transform: translateY(110%); }
+.kp.is-giggle .kw-sill__me { animation: kd-giggle 0.5s ease-in-out infinite both; }
+html.shot .kp.is-giggle .kw-sill__me { animation: none !important; transform: rotate(-8deg) translateY(-10px); }
+
+/* following: the child's own controls rise from the bottom edge, the new world above them */
+.kp__rise, .kd-game.kp-open { -webkit-mask: linear-gradient(180deg, transparent 0 12%, #000 19%) 0 0 / 100% 250% no-repeat; mask: linear-gradient(180deg, transparent 0 12%, #000 19%) 0 0 / 100% 250% no-repeat; }
+.kp__rise { position: absolute; inset: 0; z-index: 30; animation: kp-rise 0.8s 0.25s cubic-bezier(.2, .9, .3, 1.1) both; }
+@keyframes kp-rise { from { transform: translateY(55%); } to { transform: none; } }
+/* once the switch lands the window opens all the way into the game */
+.kd-game.kp-open { animation: kp-open 0.9s cubic-bezier(.3, .8, .2, 1) both; }
+@keyframes kp-open { from { -webkit-mask-position: 0 0; mask-position: 0 0; } to { -webkit-mask-position: 0 100%; mask-position: 0 100%; } }
+
+/* ---------- asleep: curtains drawn, the TV's world carries on behind them ---------- */
+.kw-asleep__world { position: absolute; inset: 0; z-index: 0; filter: blur(5px) brightness(.4) saturate(.6); }
+.kw-asleep__curtain { position: absolute; top: 0; bottom: 0; width: 46%; z-index: 0;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .05) 0 22px, rgba(0, 0, 0, .18) 22px 56px), linear-gradient(180deg, color-mix(in srgb, currentColor 30%, #1a1430), #0e0b18); box-shadow: 0 0 60px rgba(0, 0, 0, .6); }
+.kw-asleep__curtain--l { left: 0; border-bottom-right-radius: 60% 18%; }
+.kw-asleep__curtain--r { right: 0; border-bottom-left-radius: 60% 18%; }
+.kd-asleep:has(.kw-asleep__world) { background: #07060c; }
+
+/* ---------- unpaired: frosted glass; while pairing, a clear circle wipes open ---------- */
+.kw-frost__world { position: absolute; inset: 0; }
+.kw-frost { position: absolute; inset: 0; backdrop-filter: blur(34px) brightness(.5) saturate(.8); -webkit-backdrop-filter: blur(34px) brightness(.5) saturate(.8); background: rgba(16, 20, 46, .35); }
+.kd-unpaired.is-waiting .kw-frost { -webkit-mask: radial-gradient(circle 250px at 50% 50%, transparent 92%, #000 100%); mask: radial-gradient(circle 250px at 50% 50%, transparent 92%, #000 100%); }
+.kd-unpaired .kd-unpaired__ring { z-index: 2; }
+
+/* ---------- the TV side: a wish sticker on the tile, a ripple, a hop ---------- */
+.ct-shelf__tile, .ct-paused__shelf li { position: relative; }
+.kw-tv-wish { position: absolute; right: -16px; top: -30px; display: flex; z-index: 3; }
+.kw-tv-wish img { width: 88px; height: 88px; border-radius: 50%; border: 6px solid; background: #fff6e0; object-fit: contain; margin-left: -24px; box-shadow: 0 10px 22px rgba(0, 0, 0, .5); animation: kw-stick 0.55s cubic-bezier(.3, 1.7, .5, 1) both; }
+.kw-tv-wish__ring { position: absolute; right: 10px; top: 10px; width: 80px; height: 80px; border-radius: 50%; border: 8px solid #ffd23f; animation: kw-tv-ring 0.9s ease-out both; pointer-events: none; }
+@keyframes kw-tv-ring { from { transform: scale(.5); opacity: 1; } to { transform: scale(4); opacity: 0; } }
+.kw-tv-hop { display: inline-flex; animation: kw-hop 0.55s cubic-bezier(.3, 1.6, .5, 1) both; }

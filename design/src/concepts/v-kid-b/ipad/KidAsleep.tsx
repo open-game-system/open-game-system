@@ -1,17 +1,27 @@
-// A paired iPad that's asleep with a flat battery. If someone taps it awake it shows only this:
+// A paired iPad that's asleep with a flat battery. Window to the TV: the curtains are drawn, and
+// through the gap the TV's world carries on, dim and soft, so the family is still there. If someone taps it awake it shows only this:
 // her own dinosaur curled up asleep, an empty battery and a plug sliding toward it. Poking her
 // makes her stir and puff a few sleepy bubbles. No words, nothing to press wrong; the moment it's
 // charged enough it drops straight into her seat (see KidArrive).
 import { useRef } from "react";
 import type { Person } from "../../../world";
+import { TvArt } from "../tv/TvArt";
 import { KidChar } from "./KidChar";
 import { Bursts, useBursts } from "./juice";
 
-export function KidAsleep({ who, battery }: { who: Person; battery: number }) {
+/** `world`: what is on the TV right now; behind her drawn curtains it carries on, dim and soft. */
+export function KidAsleep({ who, battery, world }: { who: Person; battery: number; world: string | null }) {
   const host = useRef<HTMLDivElement>(null);
   const { bursts, fire } = useBursts();
   return (
     <div ref={host} className="kd-asleep" style={{ color: who.color }} onPointerDown={(e) => fire(e, host.current, "puff", ["#cdb8ff88", "#ffffff66"])}>
+      {world && (
+        <div className="kw-asleep__world" aria-hidden>
+          <TvArt gameId={world} />
+        </div>
+      )}
+      <span className="kw-asleep__curtain kw-asleep__curtain--l" aria-hidden />
+      <span className="kw-asleep__curtain kw-asleep__curtain--r" aria-hidden />
       <div className="kd-asleep__moon" aria-hidden />
       <div className="kd-asleep__glow" aria-hidden />
       <div className="kd-asleep__bubbles" aria-hidden>

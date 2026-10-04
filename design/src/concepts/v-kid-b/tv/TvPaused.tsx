@@ -6,6 +6,7 @@ import { Portrait } from "../ui/Brand";
 import { PhoneIcon } from "../ui/Icons";
 import { Clock, FollowPath, PulseMark } from "./Motif";
 import { TvArt } from "./TvArt";
+import { TvWish } from "./TvHome";
 
 export function TvPaused({ s, gameId }: { s: S; gameId: string }) {
   const g = gameById(gameId);
@@ -46,6 +47,7 @@ export function TvPaused({ s, gameId }: { s: S; gameId: string }) {
               <span className="ct-paused__tile">
                 <TvArt gameId={x.id} />
               </span>
+              <TvWish s={s} gameId={x.id} />
               <b>{x.name}</b>
               <span>{nextLine(x.id).split(" · ")[0]}</span>
             </li>

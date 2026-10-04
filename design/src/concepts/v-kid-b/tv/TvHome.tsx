@@ -1,7 +1,7 @@
 // The TV when no game is running: the family's console home. The focused couch game's art fills the
 // room; the console adds the household, a big clock, tonight's game night as one ambient line, and
 // the couch shelf. Nobody touches it: the phone moves the focus.
-import { HOME, gameById, type Person } from "../../../world";
+import { HOME, gameById, person, type Person } from "../../../world";
 import { couchShelf, type Activity } from "../activities";
 import { hereTonight, type S } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
@@ -32,8 +32,8 @@ export function TvHome({ s }: { s: S }) {
         </span>
         <Clock />
       </header>
-      <Focus focus={focus} here={hereTonight(s)} />
-      <Shelf shelf={shelf} focus={focus} />
+      <Focus focus={focus} here={hereTonight(s)} s={s} />
+      <Shelf shelf={shelf} focus={focus} s={s} />
       <footer className="ct-home__foot">
         {focusIsCouch ? <GameNightLine s={s} /> : <span />}
         <span className="ct-home__hint">
@@ -46,7 +46,7 @@ export function TvHome({ s }: { s: S }) {
   );
 }
 
-function Focus({ focus, here }: { focus: Activity; here: Person[] }) {
+function Focus({ focus, here, s }: { focus: Activity; here: Person[]; s: S }) {
   return (
     <section className="ct-home__focus" key={focus.gameId}>
       <span className="ct-kicker">{focus.badge || "Jump back in"}</span>
@@ -56,7 +56,9 @@ function Focus({ focus, here }: { focus: Activity; here: Person[] }) {
       <div className="ct-home__here">
         {here.map((p) => (
           <span key={p.id} className="ct-here">
-            <Portrait person={p} size={56} />
+            <span key={s.poke && s.poke.target === p.id ? s.poke.n : 0} className={s.poke && s.poke.target === p.id ? "kw-tv-hop" : ""}>
+              <Portrait person={p} size={56} />
+            </span>
             <span>{p.name}</span>
             {p.band === "grownup" ? <PhoneIcon size={26} /> : <TabletIcon size={26} />}
           </span>
@@ -66,7 +68,7 @@ function Focus({ focus, here }: { focus: Activity; here: Person[] }) {
   );
 }
 
-function Shelf({ shelf, focus }: { shelf: Activity[]; focus: Activity }) {
+function Shelf({ shelf, focus, s }: { shelf: Activity[]; focus: Activity; s: S }) {
   return (
     <section className="ct-shelf" aria-label="Couch games">
       {shelf.map((a, i) => (
@@ -74,9 +76,28 @@ function Shelf({ shelf, focus }: { shelf: Activity[]; focus: Activity }) {
           <div className="ct-shelf__art">
             <TvArt gameId={a.gameId} />
           </div>
+          <TvWish s={s} gameId={a.gameId} />
           <span className="ct-shelf__label">{gameById(a.gameId).name}</span>
         </div>
       ))}
     </section>
+  );
+}
+
+/**
+ * Window to the TV: a child poked this tile through their iPad. Their sticker sits on it (a wish the
+ * grown-ups can see from the couch) and, on the poke itself, a ring ripples out of the tile.
+ */
+export function TvWish({ s, gameId }: { s: S; gameId: string }) {
+  const wishers = Object.entries(s.wish).filter(([, g]) => g === gameId).map(([id]) => person(id));
+  const n = s.poke && s.poke.target === gameId ? s.poke.n : 0;
+  if (!wishers.length) return null;
+  return (
+    <span className="kw-tv-wish" aria-hidden>
+      {n > 0 && <i key={n} className="kw-tv-wish__ring" />}
+      {wishers.map((p) => (
+        <img key={`${p.id}-${n}`} src={p.sticker} alt="" style={{ borderColor: p.color }} />
+      ))}
+    </span>
   );
 }

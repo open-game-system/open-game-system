@@ -71,6 +71,13 @@ export interface S {
   arrival: { id: string; phase: "armed" | "landed" } | null;
   /** The phone's text size (iOS Dynamic Type): 1 is the default; 1.3 is "larger text". */
   textScale: 1 | 1.3;
+  /**
+   * Window to the TV: each child's sticker, stuck on the shelf game they last poked from their
+   * iPad (person id → game id). A wish, shown on the TV for the grown-ups; it never changes what plays.
+   */
+  wish: Record<string, string>;
+  /** The last poke through an iPad window (a shelf tile or a family sticker), so the TV ripples too. */
+  poke: { target: string; by: string; n: number } | null;
 }
 
 // ---- First run ----
@@ -180,8 +187,17 @@ export function base(): S {
     fresh: {},
     arrival: null,
     textScale: 1,
+    wish: {},
+    poke: null,
   };
 }
+
+/** A child pokes something through their iPad window: it ripples on the TV; a game tile also gets their sticker. */
+export const pokeThrough = (s: S, by: string, target: string, isGame: boolean): S => ({
+  ...s,
+  wish: isGame ? { ...s.wish, [by]: target } : s.wish,
+  poke: { target, by, n: (s.poke?.n ?? 0) + 1 },
+});
 
 /** Resume point a game last reported (Tier 1/2), short form: "Mission 6", "Day 4". */
 export function resumePoint(gameId: string): string {
