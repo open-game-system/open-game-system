@@ -83,3 +83,37 @@ Back up vs sign in: an auth call **with** a profile token links the login to tha
 
 API 8790 · launcher 5183 · fake Chromecast 5184 · emulate 4100+ (dev) / 4200+ (integration tests).
 The owner's 8788/5180/5181 stay up; 8788 is restarted on the new code at the end (schema changed).
+
+## API contract (slice 1) — what the TV and mobile clients build against
+
+All under `/api/v1`. Errors keep the contract `{ error: { code, message, status } }`.
+`Profile = { id, handle, name, sticker }` (handle without the `@`).
+`Login = { provider: "apple" | "google" | "email", email: string | null }`.
+`Me = { profile: Profile, logins: Login[] }`.
+`Device = { deviceId, kind: "phone" | "tablet", name }`.
+
+| Method | Path | Auth | Body → Response |
+|---|---|---|---|
+| GET | `/handles?name=<name>` or `?handle=<handle>` | none | → `{ handle, available, suggestion }` (handle normalised: lowercase `[a-z0-9._]`, 2–24; from a name: `jonathan.m` for "Jonathan Mumm", `juneau` for "Juneau"; `suggestion` = a free handle, the same one when available) |
+| POST | `/profiles` | none | `{ name, handle?, sticker, device: Device }` → 201 `{ profile, token }`; 409 `handle_taken` |
+| GET | `/me` | phone/tablet | → `Me` |
+| PATCH | `/me` | phone/tablet | `{ name?, handle?, sticker? }` → `Me`; 409 `handle_taken` |
+| GET | `/me/library` | phone/tablet/launcher (launcher: the host's) | → `{ appIds }` |
+| PUT | `/me/library` | phone/tablet | `{ appIds }` → `{ appIds }` |
+| GET | `/me/instances` | phone/tablet/launcher (host's) | → `Instance[]` (`profileId`) newest first |
+| POST | `/me/instances` | phone/tablet | `InstanceReport & { source }` → `Instance` |
+| GET | `/me/notifications` | phone/tablet | → `{ friendCasting, friendJoined, yourTurn }` (booleans, default true) |
+| PUT | `/me/notifications` | phone/tablet | same shape → same |
+| POST | `/sessions` | phone/tablet | `{ tvName }` → 201 `{ sessionId, code, token, tvName, host: Profile }` (`token` = launcher token, 12 h; `code` = 6-char TV code) |
+| GET | `/sessions/:sid` | that session's launcher, its host or a member | → `{ sessionId, code, tvName, host: Profile }` |
+| POST | `/sessions/join` | phone/tablet | `{ code }` → `{ sessionId, code, tvName, host: Profile }`; 404 `session_not_found` |
+| GET (WS) | `/couch/ws?token=<token>&session=<sid>` | token in query | launcher: its own session (`session` optional); phone/tablet: host or member of `session` → else 403 `not_a_member`, 404 `session_not_found`, 400 `missing_session` |
+| POST | `/auth/apple`, `/auth/google` | optional phone/tablet | `{ idToken, device? }`: with a token → link (back up) → `Me`; without → sign in, `device` required → `Me & { token }`; 401 `invalid_id_token`, 409 `login_in_use`, 404 `login_not_found` |
+| POST | `/auth/email/start` | none | `{ email }` → 202 `{ sent: true }` (6-digit code, 10 min, sent with Resend) |
+| POST | `/auth/email/verify` | optional phone/tablet | `{ email, code, device? }` → like `/auth/apple`; 401 `invalid_code` |
+
+Auth errors on profile routes: 401 `missing_auth` / `invalid_auth` / `invalid_token`, 404
+`profile_not_found` (token for a deleted profile), 403 `profile_token_required` (a launcher token
+on a phone/tablet route). The launcher URL stays `<TV_BASE>/?api=<API>&token=<launcher token>`;
+the launcher reads `sid` from its token's claims (ogs-protocol `ClaimsSchema`) and fetches
+`GET /sessions/:sid` for the TV name, host and code; members come from the session state.
