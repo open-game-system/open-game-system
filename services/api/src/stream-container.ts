@@ -76,65 +76,74 @@ export async function handleSfuRequest(
   request: Request,
   state: SfuState,
 ): Promise<Response | null> {
-  const url = new URL(request.url);
-  const path = url.pathname;
-
-  // GET /sfu/state — return full SFU state snapshot
-  if (path === "/sfu/state" && request.method === "GET") {
-    return Response.json({
-      publisherSessionId: state.publisherSessionId,
-      publisherTracks: state.publisherTracks,
-      subscriberSessions: Object.fromEntries(state.subscriberSessions),
-    });
-  }
-
-  // PUT /sfu/publisher-session — store publisher session info
-  if (path === "/sfu/publisher-session" && request.method === "PUT") {
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return Response.json({ error: "invalid JSON" }, { status: 400 });
-    }
-    try {
-      const parsed = parsePublisherSessionBody(body);
-      state.publisherSessionId = parsed.publisherSessionId;
-      state.publisherTracks = parsed.tracks;
-      return Response.json({ status: "ok" });
-    } catch (err) {
-      return Response.json({ error: (err as Error).message }, { status: 400 });
-    }
-  }
-
-  // PUT /sfu/subscriber-sessions/:id — store a subscriber session
-  const subscriberPutMatch = path.match(/^\/sfu\/subscriber-sessions\/([^/]+)$/);
-  if (subscriberPutMatch && request.method === "PUT") {
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return Response.json({ error: "invalid JSON" }, { status: 400 });
-    }
-    try {
-      const parsed = parseSubscriberSessionBody(body);
-      const id = subscriberPutMatch[1];
-      state.subscriberSessions.set(id, parsed.sessionId);
-      return Response.json({ status: "ok" });
-    } catch (err) {
-      return Response.json({ error: (err as Error).message }, { status: 400 });
-    }
-  }
-
-  // DELETE /sfu/subscriber-sessions/:id — remove a subscriber session
-  const subscriberDeleteMatch = path.match(/^\/sfu\/subscriber-sessions\/([^/]+)$/);
-  if (subscriberDeleteMatch && request.method === "DELETE") {
-    const id = subscriberDeleteMatch[1];
-    state.subscriberSessions.delete(id);
-    return Response.json({ status: "ok" });
-  }
-
+  const path = new URL(request.url).pathname;
+  const subscriberId = path.match(/^\/sfu\/subscriber-sessions\/([^/]+)$/)?.[1];
+  const route = subscriberId === undefined ? path : "/sfu/subscriber-sessions/:id";
+  const handler = SFU_ROUTES.get(`${request.method} ${route}`);
   // All other paths — proxy to container
-  return null;
+  return handler ? handler(request, state, subscriberId ?? "") : null;
+}
+
+type SfuHandler = (request: Request, state: SfuState, id: string) => Promise<Response> | Response;
+
+const OK = () => Response.json({ status: "ok" });
+
+const SFU_ROUTES = new Map<string, SfuHandler>([
+  // Full SFU state snapshot
+  [
+    "GET /sfu/state",
+    (_request, state) =>
+      Response.json({
+        publisherSessionId: state.publisherSessionId,
+        publisherTracks: state.publisherTracks,
+        subscriberSessions: Object.fromEntries(state.subscriberSessions),
+      }),
+  ],
+  // Store publisher session info
+  [
+    "PUT /sfu/publisher-session",
+    (request, state) =>
+      storeFromBody(request, (body) => {
+        const parsed = parsePublisherSessionBody(body);
+        state.publisherSessionId = parsed.publisherSessionId;
+        state.publisherTracks = parsed.tracks;
+      }),
+  ],
+  // Store a subscriber session
+  [
+    "PUT /sfu/subscriber-sessions/:id",
+    (request, state, id) =>
+      storeFromBody(request, (body) => {
+        state.subscriberSessions.set(id, parseSubscriberSessionBody(body).sessionId);
+      }),
+  ],
+  // Remove a subscriber session (idempotent)
+  [
+    "DELETE /sfu/subscriber-sessions/:id",
+    (_request, state, id) => {
+      state.subscriberSessions.delete(id);
+      return OK();
+    },
+  ],
+]);
+
+/** Parses the JSON body and stores it; 400 with the reason when it is not JSON or not valid. */
+async function storeFromBody(request: Request, store: (body: unknown) => void) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  try {
+    store(body);
+    return OK();
+  } catch (err) {
+    return Response.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      { status: 400 },
+    );
+  }
 }
 
 // ---------- StreamContainer DO ----------

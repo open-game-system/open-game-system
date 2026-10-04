@@ -214,3 +214,13 @@ describe("for the kids", () => {
     expect(kinds).toEqual([false, "surprise", true]);
   });
 });
+
+describe("homeMove: an empty icon row", () => {
+  it("keeps the focus on the card when there is no icon to go up to", () => {
+    const rows = [
+      { id: "games", items: [] },
+      { id: "activity", items: ["game:~surprise"] },
+    ];
+    expect(homeMove(rows, "game:~surprise", "up", "game:gone")).toBe("game:~surprise");
+  });
+});

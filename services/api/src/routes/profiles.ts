@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { z } from "zod";
 import { handleFromName, isValidHandle, normaliseHandle } from "../lib/handles";
 import { apiError, invalidBody, parseBody } from "../lib/http";
@@ -34,7 +34,10 @@ profiles.get("/handles", async (c) => {
   const name = c.req.query("name");
   const handle = typed !== undefined ? normaliseHandle(typed) : name ? handleFromName(name) : null;
   if (!handle || !isValidHandle(handle))
-    return invalidBody(c, "name, or a handle of 2–24 lowercase letters, digits, dots or underscores");
+    return invalidBody(
+      c,
+      "name, or a handle of 2–24 lowercase letters, digits, dots or underscores",
+    );
   const suggestion = await freeHandle(c.env.DB, handle);
   return c.json({ handle, available: suggestion === handle, suggestion });
 });
@@ -42,23 +45,43 @@ profiles.get("/handles", async (c) => {
 /** POST /api/v1/profiles — make your OGS profile on this device; answers its device token. */
 profiles.post("/profiles", async (c) => {
   const body = await parseBody(c, CreateProfileSchema);
-  if (!body) return invalidBody(c, "name, sticker and device { deviceId, kind, name } are required");
+  if (!body)
+    return invalidBody(c, "name, sticker and device { deviceId, kind, name } are required");
   const db = c.env.DB;
   const handle = body.handle ?? (await freeHandle(db, handleFromName(body.name)));
-  const profile: Profile = { id: crypto.randomUUID(), handle, name: body.name, sticker: body.sticker };
-  try {
-    await db.batch([
+  const profile: Profile = {
+    id: crypto.randomUUID(),
+    handle,
+    name: body.name,
+    sticker: body.sticker,
+  };
+  const taken = await unlessHandleTaken(c, () =>
+    db.batch([
       db
         .prepare("INSERT INTO profiles (id, handle, name, sticker) VALUES (?, ?, ?, ?)")
         .bind(profile.id, profile.handle, profile.name, profile.sticker),
       upsertDevice(db, profile.id, body.device),
-    ]);
-  } catch (e) {
-    if (isUniqueViolation(e, "handle")) return apiError(c, 409, "handle_taken", "That @id is taken");
-    throw e;
-  }
+    ]),
+  );
+  if (taken) return taken;
   const token = await deviceToken(profile.id, body.device, c.env.OGS_JWT_SECRET);
   return c.json({ profile, token }, 201);
 });
+
+export const handleTaken = (c: Context) => apiError(c, 409, "handle_taken", "That @id is taken");
+
+/** Runs a profile write; its UNIQUE(handle) violation answers 409 handle_taken (other errors throw). */
+export async function unlessHandleTaken(
+  c: Context,
+  write: () => Promise<unknown>,
+): Promise<Response | null> {
+  try {
+    await write();
+    return null;
+  } catch (e) {
+    if (isUniqueViolation(e, "handle")) return handleTaken(c);
+    throw e;
+  }
+}
 
 export default profiles;

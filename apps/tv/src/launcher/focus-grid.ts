@@ -30,11 +30,23 @@ function rowStep(rows: FocusRow[], from: number, step: 1 | -1): number | null {
 export function move(rows: FocusRow[], focus: string | null, dir: Dir): string | null {
   const at = locate(rows, focus);
   if (!at) return firstFocus(rows);
+  const next =
+    dir === "left" || dir === "right" ? sideways(rows, at, dir) : vertical(rows, at, dir);
+  return next ?? focus;
+}
+
+type At = { row: number; col: number };
+
+/** Left or right within the row, stopping at its ends. */
+function sideways(rows: FocusRow[], at: At, dir: "left" | "right"): string | undefined {
   const items = rows[at.row]?.items ?? [];
-  if (dir === "left") return items[Math.max(0, at.col - 1)] ?? focus;
-  if (dir === "right") return items[Math.min(items.length - 1, at.col + 1)] ?? focus;
+  return items[dir === "left" ? Math.max(0, at.col - 1) : Math.min(items.length - 1, at.col + 1)];
+}
+
+/** Up or down to the nearest non-empty row, at the same column or its last item. */
+function vertical(rows: FocusRow[], at: At, dir: "up" | "down"): string | undefined {
   const target = rowStep(rows, at.row, dir === "down" ? 1 : -1);
-  if (target === null) return focus;
+  if (target === null) return undefined;
   const next = rows[target]?.items ?? [];
-  return next[Math.min(at.col, next.length - 1)] ?? focus;
+  return next[Math.min(at.col, next.length - 1)];
 }

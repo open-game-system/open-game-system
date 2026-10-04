@@ -10,13 +10,22 @@ export function gameStatusLine(
   session: SessionState | null,
   now: number,
 ): string {
-  if (session?.current?.appId === game.appId) return "On the TV now";
-  const paused = session?.suspended.find((g) => g.appId === game.appId);
-  if (paused) return paused.label ? `In progress · ${paused.label}` : "In progress";
   const newest = instances
     .filter((i) => i.appId === game.appId && isOpen(i, now, game.instanceTtlMs))
     .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-  if (!newest) return "New";
+  return couchLine(game, session) ?? (newest ? instanceLine(newest) : "New");
+}
+
+/** On the TV, or paused on the couch (with its resume point). */
+function couchLine(game: Manifest, session: SessionState | null): string | null {
+  if (session?.current?.appId === game.appId) return "On the TV now";
+  const paused = session?.suspended.find((g) => g.appId === game.appId);
+  if (!paused) return null;
+  return paused.label ? `In progress · ${paused.label}` : "In progress";
+}
+
+/** The profile's newest open instance: your turn, its title, or just in progress. */
+function instanceLine(newest: Instance): string {
   const label = newest.title || newest.detail;
   if (newest.status === "waiting" && newest.yourTurn)
     return label ? `Your turn · ${label}` : "Your turn";

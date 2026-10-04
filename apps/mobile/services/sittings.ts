@@ -33,33 +33,52 @@ export function sittingsFor(
   const done = new Set(mine.filter(finished).map((i) => i.instanceId));
   const byId = new Map<string, Sitting>();
   for (const i of mine) {
-    if (finished(i) || now - i.updatedAt > game.instanceTtlMs) continue;
-    byId.set(i.instanceId, {
-      instanceId: i.instanceId,
-      // A Tier 0 visit's title is only the game's name.
-      label: i.source === "visit" ? "" : i.title || i.detail,
-      at: i.updatedAt,
-      resumeUrl: i.resumeUrl,
-      live: false,
-    });
+    if (!finished(i) && now - i.updatedAt <= game.instanceTtlMs)
+      byId.set(i.instanceId, fromInstance(i));
   }
-  const onCouch = [
-    ...(session?.current
-      ? [{ ...session.current, at: session.current.startedAt, live: true }]
-      : []),
-    ...(session?.suspended ?? []).map((g) => ({ ...g, live: false })),
-  ].filter((g) => g.appId === game.appId && !done.has(g.instanceId));
-  for (const g of onCouch) {
-    const known = byId.get(g.instanceId);
-    byId.set(g.instanceId, {
-      instanceId: g.instanceId,
-      label: g.label || (known?.label ?? ""),
-      at: Math.max(g.at, known?.at ?? 0),
-      resumeUrl: known?.resumeUrl,
-      live: g.live,
-    });
+  for (const g of couchSittings(session).filter(
+    (g) => g.appId === game.appId && !done.has(g.instanceId),
+  )) {
+    byId.set(g.instanceId, fromCouch(g, byId.get(g.instanceId)));
   }
   return [...byId.values()].sort((a, b) => Number(b.live) - Number(a.live) || b.at - a.at);
+}
+
+function fromInstance(i: Instance): Sitting {
+  return {
+    instanceId: i.instanceId,
+    // A Tier 0 visit's title is only the game's name.
+    label: i.source === "visit" ? "" : i.title || i.detail,
+    at: i.updatedAt,
+    resumeUrl: i.resumeUrl,
+    live: false,
+  };
+}
+
+interface CouchSitting {
+  appId: string;
+  instanceId: string;
+  label: string;
+  at: number;
+  live: boolean;
+}
+
+/** The couch session's live sitting (if any) and its paused ones. */
+function couchSittings(session: SessionState | null): CouchSitting[] {
+  const current = session?.current;
+  const live = current ? [{ ...current, at: current.startedAt, live: true }] : [];
+  return [...live, ...(session?.suspended ?? []).map((g) => ({ ...g, live: false }))];
+}
+
+/** A couch sitting, keeping what the instance knew that the couch doesn't. */
+function fromCouch(g: CouchSitting, known: Sitting | undefined): Sitting {
+  return {
+    instanceId: g.instanceId,
+    label: g.label || (known?.label ?? ""),
+    at: Math.max(g.at, known?.at ?? 0),
+    resumeUrl: known?.resumeUrl,
+    live: g.live,
+  };
 }
 
 const MIN = 60 * 1000;

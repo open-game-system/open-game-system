@@ -36,31 +36,60 @@ export function nextFrames(
   prev: Frames,
   current: CurrentGame | null,
 ): { frames: Frames; posts: FramePost[] } {
+  if (!current) return parkActive(prev);
+  if (prev.active?.instanceId === current.instanceId)
+    return sameSitting(prev, prev.active, current);
+  return swapTo(prev, current);
+}
+
+type Next = { frames: Frames; posts: FramePost[] };
+
+/** Home: the active frame (if any) is parked and suspended. */
+function parkActive(prev: Frames): Next {
+  if (!prev.active) return { frames: prev, posts: [] };
+  return { frames: { active: null, parked: prev.active }, posts: [suspend(prev.active)] };
+}
+
+/** The same sitting: only a new TV view URL changes anything. */
+function sameSitting(prev: Frames, active: FrameSlot, current: CurrentGame): Next {
+  if (!current.viewUrl || current.viewUrl === active.url) return { frames: prev, posts: [] };
+  return {
+    frames: { active: { ...active, url: current.viewUrl }, parked: prev.parked },
+    posts: [],
+  };
+}
+
+/** Another sitting: suspend the active frame, then bring back the parked one or open a new one. */
+function swapTo(prev: Frames, current: CurrentGame): Next {
+  const posts: FramePost[] = prev.active ? [suspend(prev.active)] : [];
+  return prev.parked?.instanceId === current.instanceId
+    ? resumeParked(prev.parked, prev.active, current, posts)
+    : openFresh(prev, current, posts);
+}
+
+/** Continue of the parked sitting: the same frame comes back (no reload) and is told to resume. */
+function resumeParked(
+  parked: FrameSlot,
+  active: FrameSlot | null,
+  current: CurrentGame,
+  posts: FramePost[],
+): Next {
+  return {
+    frames: { active: { ...parked, url: current.viewUrl ?? parked.url }, parked: active },
+    posts: [...posts, { instanceId: parked.instanceId, msg: { type: "ogs:resume" } }],
+  };
+}
+
+/** A new frame for the sitting once its TV view URL is known; the old active one is parked. */
+function openFresh(prev: Frames, current: CurrentGame, posts: FramePost[]): Next {
   const { active, parked } = prev;
-  if (!current) {
-    if (!active) return { frames: prev, posts: [] };
-    return { frames: { active: null, parked: active }, posts: [suspend(active)] };
-  }
-  if (active?.instanceId === current.instanceId) {
-    if (!current.viewUrl || current.viewUrl === active.url) return { frames: prev, posts: [] };
-    return { frames: { active: { ...active, url: current.viewUrl }, parked }, posts: [] };
-  }
-  const posts: FramePost[] = active ? [suspend(active)] : [];
-  const nextParked = active ?? parked;
-  if (parked?.instanceId === current.instanceId) {
-    const url = current.viewUrl ?? parked.url;
-    return {
-      frames: { active: { ...parked, url }, parked: active },
-      posts: [...posts, { instanceId: parked.instanceId, msg: { type: "ogs:resume" } }],
-    };
-  }
   const fresh = current.viewUrl
     ? { appId: current.appId, instanceId: current.instanceId, url: current.viewUrl }
     : null;
   // Waiting for the game's TV view with nothing to change: keep the same object, or the caller's
   // effect sees "new frames" on every render and loops.
-  if (!fresh && !active && nextParked === parked) return { frames: prev, posts };
-  return { frames: { active: fresh, parked: nextParked }, posts };
+  if (!fresh && !active) return { frames: prev, posts };
+  return { frames: { active: fresh, parked: active ?? parked }, posts };
 }
 
 const originOf = (url: string | null): string | null => {

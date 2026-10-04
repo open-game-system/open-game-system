@@ -8,14 +8,18 @@ type SessionDevice = { deviceId: string; friendlyName: string } | null;
  * the user picked, so it's only used when there's a single candidate.
  */
 export function sessionConnectedEvent(device: SessionDevice, discovered: CastDevice[]) {
-  const only = discovered.length === 1 ? discovered[0] : undefined;
-  const deviceId = device?.deviceId ?? only?.id ?? "unknown";
-  const deviceName = device?.friendlyName ?? only?.name ?? "your TV";
   return {
     type: "SESSION_CONNECTED" as const,
-    deviceId,
-    deviceName,
+    ...sessionDevice(device, discovered),
     sessionId: "cast-session",
     streamSessionId: "",
   };
+}
+
+/** The session's own device; else the only one discovered; else a placeholder. */
+function sessionDevice(device: SessionDevice, discovered: CastDevice[]) {
+  if (device) return { deviceId: device.deviceId, deviceName: device.friendlyName };
+  if (discovered.length === 1)
+    return { deviceId: discovered[0].id, deviceName: discovered[0].name };
+  return { deviceId: "unknown", deviceName: "your TV" };
 }

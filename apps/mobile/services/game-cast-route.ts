@@ -21,8 +21,7 @@ export function routeGameCastEvent(
   if (!ctx.ogsCast) return { to: "store" };
   switch (event.type) {
     case "SET_VIEW_URL":
-      if (!ctx.appId || !isAbsoluteUrl(event.url)) return { to: "drop" };
-      return { to: "session", msg: { type: "game.view", appId: ctx.appId, url: event.url } };
+      return viewRoute(event.url, ctx.appId);
     case "START_CASTING":
     case "STOP_CASTING":
     case "SHOW_CAST_PICKER":
@@ -30,6 +29,12 @@ export function routeGameCastEvent(
     default:
       return { to: "store" };
   }
+}
+
+/** The game's TV page goes to the session as game.view (only a real URL of a known game). */
+function viewRoute(url: string, appId: string | null): GameCastRoute {
+  if (!appId || !isAbsoluteUrl(url)) return { to: "drop" };
+  return { to: "session", msg: { type: "game.view", appId, url } };
 }
 
 /**

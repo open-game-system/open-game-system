@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseIceServerConfig,
+  parseIceServers,
   parsePublisherAnswerRequest,
   parsePublisherPrepareRequest,
   parsePublisherPrepareResponse,
@@ -160,6 +162,48 @@ describe("parsePublisherPrepareRequest", () => {
   it("throws for empty url", () => {
     expect(() => parsePublisherPrepareRequest({ url: "", iceServers: [] })).toThrow(
       "url must be a non-empty string",
+    );
+  });
+});
+
+// ---------- parseIceServerConfig / parseIceServers ----------
+
+describe("parseIceServerConfig", () => {
+  it("trims a url list and keeps TURN credentials", () => {
+    expect(
+      parseIceServerConfig({
+        urls: [" turn:a:3478 ", "turns:b:443"],
+        username: "u",
+        credential: "c",
+      }),
+    ).toEqual({ urls: ["turn:a:3478", "turns:b:443"], username: "u", credential: "c" });
+  });
+
+  it.each([
+    ["a non-object", "stun:x", "ice server must be an object"],
+    ["a blank url", { urls: " " }, "iceServers[].urls must be a non-empty string"],
+    [
+      "a blank url in a list",
+      { urls: ["stun:x", ""] },
+      "iceServers[].urls[1] must be a non-empty string",
+    ],
+    [
+      "a numeric username",
+      { urls: "stun:x", username: 1 },
+      "iceServers[].username must be a string when provided",
+    ],
+    [
+      "a numeric credential",
+      { urls: "stun:x", credential: 1 },
+      "iceServers[].credential must be a string when provided",
+    ],
+  ])("rejects %s", (_label, value, message) => {
+    expect(() => parseIceServerConfig(value)).toThrow(message);
+  });
+
+  it("rejects iceServers that are not a list", () => {
+    expect(() => parseIceServers({ urls: "stun:x" })).toThrow(
+      "iceServers must be an array when provided",
     );
   });
 });

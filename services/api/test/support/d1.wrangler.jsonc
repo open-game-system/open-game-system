@@ -1,0 +1,6 @@
+// Only the D1 binding, for test/support/d1.ts (getPlatformProxy in Node, so coverage is measured).
+{
+  "name": "opengame-api-unit",
+  "compatibility_date": "2024-12-01",
+  "d1_databases": [{ "binding": "DB", "database_name": "unit", "database_id": "unit" }]
+}

@@ -117,6 +117,21 @@ function authHeaders(appSecret: string): Record<string, string> {
   };
 }
 
+/** The JSON body of a Realtime API response; throws on an HTTP error or an errorCode body. */
+async function realtimeJson(response: Response, op: string): Promise<unknown> {
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Realtime API ${op} failed: ${response.status} — ${body}`);
+  }
+  const json: unknown = await response.json();
+  if (isRecord(json) && json.errorCode) {
+    throw new Error(
+      `Realtime API ${op} failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
+    );
+  }
+  return json;
+}
+
 // ---------- Public API ----------
 
 /**
@@ -133,17 +148,7 @@ export async function createSession(
     body: offer ? JSON.stringify({ sessionDescription: offer }) : undefined,
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Realtime API createSession failed: ${response.status} — ${body}`);
-  }
-
-  const json = await response.json();
-  if (isRecord(json) && json.errorCode) {
-    throw new Error(
-      `Realtime API createSession failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
-    );
-  }
+  const json = await realtimeJson(response, "createSession");
 
   try {
     return parseSessionResponse(json);
@@ -174,17 +179,7 @@ export async function addTracks(
     }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Realtime API addTracks failed: ${response.status} — ${body}`);
-  }
-
-  const json = await response.json();
-  if (isRecord(json) && json.errorCode) {
-    throw new Error(
-      `Realtime API addTracks failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
-    );
-  }
+  const json = await realtimeJson(response, "addTracks");
 
   // addTracks returns { sessionDescription, tracks, requiresImmediateRenegotiation } — no sessionId
   if (!isRecord(json) || !json.sessionDescription) {
@@ -213,17 +208,7 @@ export async function renegotiate(
     body: JSON.stringify({ sessionDescription: answer }),
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${body}`);
-  }
-
-  const json = await response.json();
-  if (isRecord(json) && json.errorCode) {
-    throw new Error(
-      `Realtime API renegotiate failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
-    );
-  }
+  const json = await realtimeJson(response, "renegotiate");
 
   // renegotiate may return only { requiresImmediateRenegotiation } — no sessionId or sessionDescription
   return {

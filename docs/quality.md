@@ -39,3 +39,16 @@ Grade each package/domain. Update after major changes.
 | services/api | 68.79% | 302 | 137 | scheduled.ts low (30%) — covered by integration tests. Auth improved to 79%. |
 | notification-kit-core | 66.67% | 18 | 9 | Survivors are bridge safety patterns (optional chaining). |
 | notification-kit-server | 82.35% | 28 | 6 | Survivors are error message strings. |
+
+## CRAP (2026-10-04)
+
+Target: CRAP < 8 for every function. Measure from a package dir after `pnpm test:coverage`:
+`node ../../scripts/crap.mjs --src src --threshold 8` (mobile: `--src services`; the script reads
+`coverage/lcov.info`, and `--coverage` can be repeated to merge runs).
+
+| Scope | Max CRAP | Not yet under 8 |
+|-------|----------|-----------------|
+| packages/ogs-protocol (excl. friends) | 6 | none |
+| apps/mobile/services (excl. runtime, app-state, playing-home, friends, ogs-api, identity) | 7 | none |
+| apps/tv/src (excl. ui/*.tsx) | 6 | ui components untested in Node (Player, App, GamePage, Home, useFrames) |
+| services/api/src (excl. friends, presence) | 44.7 | `POST /sessions/:sid/join` (friends), CouchSession DO methods (need a DurableObjectState; the workerd integration suite covers them but can't be measured) |

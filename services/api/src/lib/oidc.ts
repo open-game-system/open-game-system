@@ -52,10 +52,14 @@ const bytesOf = (segment: string) => {
 
 async function signingKey(provider: OidcProvider, kid: string, fetcher: typeof fetch) {
   const discovery = DiscoverySchema.parse(
-    await (await fetcher(`${provider.issuer.replace(/\/+$/, "")}/.well-known/openid-configuration`)).json(),
+    await (
+      await fetcher(`${provider.issuer.replace(/\/+$/, "")}/.well-known/openid-configuration`)
+    ).json(),
   );
   const jwks = JwksSchema.parse(await (await fetcher(discovery.jwks_uri)).json());
-  const jwk = jwks.keys.map((k) => JwkSchema.safeParse(k)).find((k) => k.success && k.data.kid === kid);
+  const jwk = jwks.keys
+    .map((k) => JwkSchema.safeParse(k))
+    .find((k) => k.success && k.data.kid === kid);
   if (!jwk?.success) return null;
   const { kty, n, e } = jwk.data;
   return crypto.subtle.importKey(
@@ -74,30 +78,59 @@ export async function verifyIdToken(
   opts: { now: number; nonce?: string; fetch?: typeof fetch },
 ): Promise<VerifiedLogin | null> {
   try {
-    const parts = idToken.split(".");
-    if (parts.length !== 3) return null;
-    const header = HeaderSchema.safeParse(decodeSegment(parts[0]));
-    const claims = IdClaimsSchema.safeParse(decodeSegment(parts[1]));
-    if (!header.success || !claims.success) return null;
-    const c = claims.data;
-    const issuers = [provider.issuer.replace(/\/+$/, ""), ...(provider.issuerAliases ?? [])];
-    if (!issuers.includes(c.iss)) return null;
-    const audiences = typeof c.aud === "string" ? [c.aud] : c.aud;
-    if (!audiences.some((a) => provider.clientIds.includes(a))) return null;
-    if (c.exp * 1000 <= opts.now) return null;
-    if (opts.nonce !== undefined && c.nonce !== opts.nonce) return null;
-    const key = await signingKey(provider, header.data.kid, opts.fetch ?? fetch);
-    if (!key) return null;
-    const valid = await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5",
-      key,
-      bytesOf(parts[2]),
-      new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
-    );
-    if (!valid) return null;
-    const verifiedEmail = c.email_verified === true || c.email_verified === "true";
-    return { subject: c.sub, email: c.email && verifiedEmail ? c.email.toLowerCase() : null };
+    const token = parseToken(idToken);
+    if (!token || !issuedForUs(token.claims, provider) || !current(token.claims, opts)) return null;
+    const valid = await signedByProvider(token, provider, opts.fetch ?? fetch);
+    return valid ? loginOf(token.claims) : null;
   } catch {
     return null;
   }
+}
+
+type IdClaims = z.infer<typeof IdClaimsSchema>;
+
+interface ParsedToken {
+  kid: string;
+  claims: IdClaims;
+  signed: Uint8Array;
+  signature: Uint8Array;
+}
+
+/** Header + claims of a three-segment RS256 token, or null when either doesn't parse. */
+function parseToken(idToken: string): ParsedToken | null {
+  const parts = idToken.split(".");
+  if (parts.length !== 3) return null;
+  const header = HeaderSchema.safeParse(decodeSegment(parts[0]));
+  const claims = IdClaimsSchema.safeParse(decodeSegment(parts[1]));
+  if (!header.success || !claims.success) return null;
+  return {
+    kid: header.data.kid,
+    claims: claims.data,
+    signed: new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+    signature: bytesOf(parts[2]),
+  };
+}
+
+/** Issued by the provider (or one of its aliases) for one of our client ids. */
+function issuedForUs(c: IdClaims, provider: OidcProvider) {
+  const issuers = [provider.issuer.replace(/\/+$/, ""), ...(provider.issuerAliases ?? [])];
+  const audiences = typeof c.aud === "string" ? [c.aud] : c.aud;
+  return issuers.includes(c.iss) && audiences.some((a) => provider.clientIds.includes(a));
+}
+
+/** Not expired, and carrying the expected nonce when one is expected. */
+function current(c: IdClaims, opts: { now: number; nonce?: string }) {
+  return c.exp * 1000 > opts.now && (opts.nonce === undefined || c.nonce === opts.nonce);
+}
+
+async function signedByProvider(token: ParsedToken, provider: OidcProvider, fetcher: typeof fetch) {
+  const key = await signingKey(provider, token.kid, fetcher);
+  return (
+    key !== null && crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, token.signature, token.signed)
+  );
+}
+
+function loginOf(c: IdClaims): VerifiedLogin {
+  const verifiedEmail = c.email_verified === true || c.email_verified === "true";
+  return { subject: c.sub, email: c.email && verifiedEmail ? c.email.toLowerCase() : null };
 }

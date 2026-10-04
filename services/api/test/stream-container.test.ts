@@ -245,4 +245,91 @@ describe("handleSfuRequest", () => {
       expect(res).toBeNull();
     });
   });
+
+  // ─── Edges ───
+
+  describe("edges", () => {
+    it.each([
+      ["POST", "/sfu/state"],
+      ["GET", "/sfu/publisher-session"],
+      ["GET", "/sfu/subscriber-sessions/sub-1"],
+      ["PUT", "/sfu/subscriber-sessions/a/b"],
+    ])("leaves %s %s to the container", async (method, path) => {
+      const req = new Request(`http://localhost${path}`, {
+        method,
+        body: method === "GET" ? undefined : "{}",
+      });
+      expect(await handleSfuRequest(req, createSfuState())).toBeNull();
+    });
+
+    it.each([
+      "/sfu/publisher-session",
+      "/sfu/subscriber-sessions/sub-1",
+    ])("answers 400 invalid JSON for a malformed PUT %s, storing nothing", async (path) => {
+      const state = createSfuState();
+      const res = await handleSfuRequest(
+        new Request(`http://localhost${path}`, { method: "PUT", body: "{nope" }),
+        state,
+      );
+      expect(res?.status).toBe(400);
+      expect(await res?.json()).toEqual({ error: "invalid JSON" });
+      expect(state).toEqual(createSfuState());
+    });
+
+    it("answers 400 with the parse error for a non-object body", async () => {
+      const req = new Request("http://localhost/sfu/subscriber-sessions/sub-1", {
+        method: "PUT",
+        body: "7",
+      });
+      const res = await handleSfuRequest(req, createSfuState());
+      expect(res?.status).toBe(400);
+      expect(await res?.json()).toEqual({ error: "body must be an object" });
+    });
+
+    const putPublisher = (body: unknown, state = createSfuState()) =>
+      handleSfuRequest(
+        new Request("http://localhost/sfu/publisher-session", {
+          method: "PUT",
+          body: JSON.stringify(body),
+        }),
+        state,
+      );
+
+    it.each([
+      ["a non-object body", 7, "body must be an object"],
+      ["a non-object track", { publisherSessionId: "p", tracks: ["x"] }, "track must be an object"],
+      [
+        "a track with another location",
+        { publisherSessionId: "p", tracks: [{ location: "moon", trackName: "v" }] },
+        "track.location must be 'local' or 'remote'",
+      ],
+      [
+        "a track without a name",
+        { publisherSessionId: "p", tracks: [{ location: "local", trackName: "" }] },
+        "trackName must be a non-empty string",
+      ],
+    ])("refuses a publisher session with %s", async (_label, body, error) => {
+      const res = await putPublisher(body);
+      expect(res?.status).toBe(400);
+      expect(await res?.json()).toEqual({ error });
+    });
+
+    it("keeps a string mid and drops any other", async () => {
+      const state = createSfuState();
+      await putPublisher(
+        {
+          publisherSessionId: "p",
+          tracks: [
+            { location: "local", trackName: "v", mid: "0" },
+            { location: "remote", trackName: "a", mid: 1 },
+          ],
+        },
+        state,
+      );
+      expect(state.publisherTracks).toEqual([
+        { location: "local", trackName: "v", mid: "0" },
+        { location: "remote", trackName: "a" },
+      ]);
+    });
+  });
 });

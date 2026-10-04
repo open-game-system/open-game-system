@@ -160,10 +160,18 @@ export function homeMove(
   dir: Dir,
   lastIcon: string | null,
 ): string | null {
-  const at = locate(rows, focus);
-  const [icons, cards] = [rows[0]?.items ?? [], rows[1]?.items ?? []];
-  if (at?.row === 0 && dir === "down") return cards[0] ?? focus;
-  if (at?.row === 1 && dir === "up")
-    return lastIcon && icons.includes(lastIcon) ? lastIcon : (icons[0] ?? focus);
+  // Row 0 is the icons, row 1 the cards.
+  const step = `${locate(rows, focus)?.row}:${dir}`;
+  if (step === "0:down") return firstCard(rows) ?? focus;
+  if (step === "1:up") return iconAbove(rows, lastIcon) ?? focus;
   return move(rows, focus, dir);
+}
+
+/** The latest sitting's card. */
+const firstCard = (rows: FocusRow[]): string | undefined => rows[1]?.items[0];
+
+/** The icon the ring came down from, while it is still on screen; else the first icon. */
+function iconAbove(rows: FocusRow[], lastIcon: string | null): string | undefined {
+  const icons = rows[0]?.items ?? [];
+  return lastIcon && icons.includes(lastIcon) ? lastIcon : icons[0];
 }

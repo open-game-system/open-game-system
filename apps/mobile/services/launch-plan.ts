@@ -24,15 +24,21 @@ export function launchPlan(input: {
   instanceId?: string;
 }): LaunchPlan {
   const { manifest, ogsCast, deviceId, mode = "continue", resumeUrl } = input;
-  const named = mode === "continue" && input.instanceId ? { instanceId: input.instanceId } : {};
   // Continue opens the instance's own page (its room); a new sitting starts from the start page.
   const url = mode === "new" ? manifest.startUrl : (resumeUrl ?? manifest.startUrl);
   if (ogsCast && manifest.tv !== "none")
-    return {
-      kind: "tv",
-      start: { type: "game.start", appId: manifest.appId, mode, hostDeviceId: deviceId, ...named },
-      url,
-    };
+    return { kind: "tv", start: gameStart(manifest, mode, deviceId, input.instanceId), url };
   if (manifest.tv === "required") return { kind: "needs-tv" };
   return { kind: "phone", url };
+}
+
+/** game.start for the couch session; Continue may name one sitting, a new sitting never does. */
+function gameStart(
+  manifest: Manifest,
+  mode: "continue" | "new",
+  deviceId: string,
+  instanceId: string | undefined,
+): GameStart {
+  const named = mode === "continue" && instanceId ? { instanceId } : {};
+  return { type: "game.start", appId: manifest.appId, mode, hostDeviceId: deviceId, ...named };
 }
