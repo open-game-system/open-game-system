@@ -15,10 +15,10 @@ export function openTurn(s: S, t: TurnTarget): S {
   return night({ ...s, push: null }, (n) => openNight(n, t.id));
 }
 
-export function TurnRow({ item, store, duels }: { item: TurnItem; store: Store<S>; duels: S["duels"] }) {
+export function TurnRow({ item, store, duels, arriving = false }: { item: TurnItem; store: Store<S>; duels: S["duels"]; arriving?: boolean }) {
   const d = item.duel ? duels.find((x) => x.id === item.duel) : undefined;
   return (
-    <li>
+    <li className={arriving ? "is-arriving" : ""}>
       <button className="cx-row" data-bot={item.id} onClick={() => store.update((x) => openTurn(x, item.target))}>
         <span className={`cx-row__art ${d ? "cx-row__art--duel" : ""}`}>{d ? <DuelFace d={d} size={52} /> : <GameArt gameId={item.gameId} alt />}</span>
         <span className="cx-row__text">
@@ -32,12 +32,14 @@ export function TurnRow({ item, store, duels }: { item: TurnItem; store: Store<S
 }
 
 export function TurnRows({ items, store, empty, quiet = false }: { items: TurnItem[]; store: Store<S>; empty?: string; quiet?: boolean }) {
-  const duels = useStore(store).duels;
+  const live = useStore(store);
+  const duels = live.duels;
+  const landed = live.arrival?.phase === "landed" ? `turn-${live.arrival.id}` : null;
   if (items.length === 0) return <p className="cx-lane__empty">{empty ?? "Nobody is waiting on you. We'll tell you when someone moves."}</p>;
   return (
     <ul className={`cx-rows ${quiet ? "cx-rows--quiet" : ""}`}>
       {items.map((t) => (
-        <TurnRow key={t.id} item={t} store={store} duels={duels} />
+        <TurnRow key={t.id} item={t} store={store} duels={duels} arriving={t.id === landed} />
       ))}
     </ul>
   );

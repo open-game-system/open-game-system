@@ -67,6 +67,10 @@ export interface S {
   start: StartNew | null;
   /** Couch games started new tonight, and what happened to the old save. */
   fresh: Record<string, SaveFate>;
+  /** A move arriving from another player while the phone is open (a duel id): armed → landed. */
+  arrival: { id: string; phase: "armed" | "landed" } | null;
+  /** The phone's text size (iOS Dynamic Type): 1 is the default; 1.3 is "larger text". */
+  textScale: 1 | 1.3;
 }
 
 // ---- First run ----
@@ -172,6 +176,8 @@ export function base(): S {
     setup: baseSetup(),
     start: null,
     fresh: {},
+    arrival: null,
+    textScale: 1,
   };
 }
 
@@ -319,3 +325,13 @@ export const toggleHere = (s: S, id: string): S => ({ ...s, here: s.here.include
 
 /** Play on TV with no cast yet: connect the living room TV, then the game comes up and devices join. */
 export const castAndPlay = (s: S, gameId: string): S => ({ ...s, who: false, cast: "connecting", onTv: gameId, tvFocus: gameId, phone: "controller" });
+
+// ---- A move arrives ----
+
+/** Tunde moves while we're looking: his duel jumps from Their turn into Your turn. */
+export function moveArrives(s: S): S {
+  const id = s.arrival?.id;
+  if (!id) return s;
+  const duels = s.duels.map((d): DuelGame => (d.id === id ? { ...d, status: "yourTurn", them: d.them + 44, lastMove: `${d.opponent} played JAZZ for 44`, lastWord: "JAZZ", updatedAt: "2026-10-03T19:10:00-07:00" } : d));
+  return { ...s, duels, arrival: { id, phase: "landed" } };
+}

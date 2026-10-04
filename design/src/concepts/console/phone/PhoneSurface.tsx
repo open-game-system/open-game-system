@@ -2,6 +2,7 @@ import type { Store } from "../../../harness/store";
 import { useStore } from "../../../harness/store";
 import type { S } from "../state";
 import { useCastClock, useNightClock, useSwitchClock } from "../sim";
+import { useArrivalClock } from "./arrival";
 import { StatusBar } from "../ui/Brand";
 import { DuelGameView } from "../wordduel/DuelGame";
 import { DuelList } from "../wordduel/DuelList";
@@ -21,6 +22,7 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
   useSwitchClock(s, store, shot);
   useNightClock(s, store, shot);
   useCastClock(s, store, shot);
+  useArrivalClock(s, store, shot);
   if (s.phone === "lock") return <LockScreen s={s} store={store} />;
   if (s.phone === "night") return <NightPage s={s} store={store} />;
   if (s.phone === "inbox") return <Inbox s={s} store={store} />;
@@ -36,7 +38,7 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
     );
   }
   return (
-    <div className="cx-phone">
+    <div className={`cx-phone ${s.textScale > 1 ? "cx-phone--dt" : ""}`}>
       <StatusBar dark />
       {s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
       {!s.who && !s.start && <TabBar s={s} store={store} />}

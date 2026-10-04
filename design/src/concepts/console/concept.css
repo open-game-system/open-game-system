@@ -1096,3 +1096,54 @@
 .cx .cx-ingame .cx-seats li .ogs-sticker.cx-portrait, .cx .cx-ingame .cx-seats li.is-ready .ogs-sticker.cx-portrait { box-shadow: none !important; }
 .cx .cx-strip .cx-btn--dark { background: var(--ogs-peach) !important; color: #2a1630 !important; }
 .cx-invite__from { gap: 8px; }
+
+/* ---- A move arrives: the opponent's sticker hops in along the dotted path and lands on their board ---- */
+.cx-lane__count { animation: cx-pop 0.45s cubic-bezier(.3,1.6,.5,1) both; }
+.cx-rows li.is-arriving { animation: cx-arrive-row 0.7s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes cx-arrive-row { from { opacity: 0; transform: translateY(-14px); } }
+.cx-rows li.is-arriving .cx-row { animation: cx-arrive-glow 2.4s 0.5s ease-out both; border-radius: 16px; }
+@keyframes cx-arrive-glow { 0% { background: rgba(255, 200, 97, 0.2); } 100% { background: rgba(255, 200, 97, 0); } }
+.cx-rows li.is-arriving .wd-face__who { animation: cx-arrive-hop 1.1s 0.15s cubic-bezier(.3,1.3,.5,1) both; }
+@keyframes cx-arrive-hop {
+  0% { transform: translate(260px, -18px) rotate(14deg); opacity: 0; }
+  20% { opacity: 1; }
+  55% { transform: translate(90px, -26px) rotate(-6deg); }
+  80% { transform: translate(0, -8px) rotate(3deg); }
+  100% { transform: none; }
+}
+.cx-rows li.is-arriving::after { content: ""; position: absolute; left: 70px; right: 16px; top: 50%; height: 6px; margin-top: -3px; background: var(--ogs-dots) 0 50% / 12px 6px repeat-x; transform-origin: left center; animation: cx-arrive-trail 1.3s 0.15s ease-in both; pointer-events: none; }
+@keyframes cx-arrive-trail { 0% { transform: scaleX(1); opacity: 0.9; } 70% { opacity: 0.6; } 100% { transform: scaleX(0); opacity: 0; } }
+.cx-rows li.is-arriving .wd-mini rect[fill="#2f6fc8"] { animation: cx-arrive-tiles 0.5s 1.05s cubic-bezier(.3,1.6,.5,1) both; transform-box: fill-box; transform-origin: center; }
+@keyframes cx-arrive-tiles { from { transform: scale(0); } }
+
+/* ---- Dynamic Type: iOS Larger Text at 1.3× (home and All turns). Text grows; rows and the hero reflow. ---- */
+.cx-phone--dt .cx-lane__head h2 { font-size: 31px; }
+.cx-phone--dt .cx-lane__more { font-size: 19px; }
+.cx-phone--dt .cx-lane__count { min-width: 30px; height: 30px; font-size: 17px; border-radius: 15px; }
+.cx-phone--dt .cx-household__name { font-size: 22px; }
+.cx-phone--dt .cx-now { height: auto; min-height: 228px; }
+.cx-phone--dt .cx-now__art { position: absolute; inset: 0; }
+.cx-phone--dt .cx-now__body { position: relative; padding-top: 70px; }
+.cx-phone--dt .cx-now__game { font-size: 40px; }
+.cx-phone--dt .cx-now__point { font-size: 19px; }
+.cx-phone--dt .cx-now__where > span:last-child { font-size: 16px; height: 32px; border-radius: 16px; }
+.cx-phone--dt .cx-now__foot { flex-wrap: wrap; row-gap: 8px; }
+.cx-phone--dt .cx-now__who { font-size: 18px; }
+.cx-phone--dt .cx-btn { font-size: 20px; min-height: 54px; }
+.cx-phone--dt .cx-chip { height: 32px; font-size: 16px; border-radius: 16px; }
+.cx-phone--dt .cx-rail__tile { width: 180px; }
+.cx-phone--dt .cx-rail__tile b { font-size: 19px; }
+.cx-phone--dt .cx-rail__tile .cx-chip { height: 30px; font-size: 15px; }
+.cx-phone--dt .cx-row { grid-template-columns: 52px 1fr; row-gap: 6px; }
+.cx-phone--dt .cx-row > .cx-chip, .cx-phone--dt .cx-row > svg { grid-column: 2; justify-self: start; }
+.cx-phone--dt .cx-row__text b { font-size: 21px; }
+.cx-phone--dt .cx-row__text span { font-size: 18px; }
+.cx-phone--dt .cx-lane__foot, .cx-phone--dt .cx-lane__empty { font-size: 18px; }
+.cx-phone--dt .cx-nightcard__title b { font-size: 26px; }
+.cx-phone--dt .cx-nightcard__title span, .cx-phone--dt .cx-path__home > span:last-child { font-size: 17px; }
+.cx-phone--dt .cx-path__home b { font-size: 18px; }
+.cx-phone--dt .cx-title { font-size: 42px; }
+.cx-phone--dt .cx-lede { font-size: 20px; }
+.cx-phone--dt .cx-tabs button { font-size: 15px; }
+.cx-phone--dt .cx-back { font-size: 22px; }
+.cx-phone .cx-now__where > span:last-child { white-space: nowrap; }

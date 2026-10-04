@@ -1,6 +1,6 @@
 import type { Scenario } from "../../harness/types";
 import { answerInvites, baseNights, beginNewNight, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
-import { base, baseSetup, playDuel, type Push, type S, type Setup } from "./state";
+import { base, baseSetup, moveArrives, playDuel, type Push, type S, type Setup } from "./state";
 
 /** First run at a given point: the household partly set up. */
 const setupAt = (patch: Partial<Setup>, extra: Partial<S> = {}) => (): S => ({ ...base(), firstRun: true, onTv: null, cast: "off", ...extra, setup: { ...baseSetup(), ...patch } });
@@ -45,6 +45,9 @@ export const scenarios: Scenario<S>[] = [
   { id: "home.05-first-run", label: "First run: library ready, living room not set up", flow: "home", state: "empty", devices: ["phone"], build: at({ firstRun: true, onTv: null }) },
 
   // First run (flow 1): the TV, who plays here (each picks a sticker), the kids' iPads
+  { id: "home.09-move-incoming", label: "Home, a beat before Tunde's move arrives", flow: "home", state: "default", devices: ["phone"], build: at({ onTv: null, arrival: { id: "wd-3", phase: "armed" } }) },
+  { id: "home.10-larger-text", label: "Home at iOS Larger Text (1.3×): lanes reflow, nothing overlaps", flow: "home", state: "default", devices: ["phone"], build: at({ textScale: 1.3 }) },
+  { id: "world-clock.08-inbox-larger-text", label: "All turns at Larger Text (1.3×)", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "inbox", textScale: 1.3 }) },
   { id: "first-run.01-welcome", label: "First run: the library is full; set up the living room", flow: "first-run", state: "empty", devices: ["phone"], build: setupAt({}) },
   { id: "first-run.02-tv-searching", label: "Looking for the TV on this Wi-Fi", flow: "first-run", state: "loading", devices: ["phone"], build: setupAt({ step: "tv", tv: "searching" }) },
   { id: "first-run.03-tv-found", label: "Found: Living room TV (Chromecast); Bedroom TV is off", flow: "first-run", state: "partial", devices: ["phone"], build: setupAt({ step: "tv", tv: "found" }) },
@@ -100,6 +103,8 @@ export const scenarios: Scenario<S>[] = [
   { id: "world-clock.04-inbox-our-roll", label: "Every game: Hearthisle roll sits beside two duels", flow: "world-clock", state: "partial", devices: ["phone"], build: at({ phone: "inbox", onTv: null, nights: nightsWith(liveOurRoll) }) },
   { id: "world-clock.05-next-is-a-roll", label: "Played CRANE; next up is your Hearthisle roll", flow: "world-clock", state: "success", devices: ["phone"], build: () => ({ ...playedState(), onTv: null, nights: nightsWith(liveOurRoll) }) },
   { id: "world-clock.06-caught-up", label: "Every game: nothing waiting on you", flow: "world-clock", state: "empty", devices: ["phone"], build: () => ({ ...base(), phone: "inbox", duels: base().duels.filter((d) => d.status !== "yourTurn") }) },
+
+  { id: "world-clock.07-move-arrives", label: "Tunde moves while Home is open: his whale lands in Your turn on his board", flow: "world-clock", state: "success", devices: ["phone"], build: () => moveArrives({ ...base(), onTv: null, arrival: { id: "wd-3", phase: "armed" } }) },
 
   // Game night across three homes (flow 5), phone side
   { id: "game-night.01-lane", label: "Home: Game nights lane, Hearthisle paused at turn 14", flow: "game-night", state: "default", devices: ["phone"], build: at({ onTv: null }) },

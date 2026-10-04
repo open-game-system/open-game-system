@@ -15,7 +15,7 @@ const EMPTY: Partial<Record<Bucket, string>> = { yours: "Nobody is waiting on yo
 export function Inbox({ s, store }: { s: S; store: Store<S> }) {
   const all = everyGame(s);
   return (
-    <div className="cx-phone">
+    <div className={`cx-phone ${s.textScale > 1 ? "cx-phone--dt" : ""}`}>
       <StatusBar dark />
       <div className="cx-topbar">
         <button className="cx-back" data-bot="inbox-home" onClick={() => store.update(goHome)}>

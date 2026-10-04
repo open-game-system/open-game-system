@@ -57,7 +57,7 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
         <div className="cx-now__where">
           <Chip status={status} />
           <span>
-            <TvIcon size={15} /> {playing ? "Living room TV" : off ? "TV off" : "Showing on the TV"}
+            <TvIcon size={15} /> {playing ? "Living room TV" : off ? "TV off" : "On the TV"}
           </span>
         </div>
         <div className="cx-now__game">{game.name}</div>

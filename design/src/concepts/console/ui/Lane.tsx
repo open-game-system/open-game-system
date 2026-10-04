@@ -8,7 +8,11 @@ export function Lane({ title, count, action, children, id }: { title: string; co
       <header className="cx-lane__head">
         <h2>
           {title}
-          {count !== undefined && count > 0 && <span className="cx-lane__count">{count}</span>}
+          {count !== undefined && count > 0 && (
+            <span key={count} className="cx-lane__count">
+              {count}
+            </span>
+          )}
         </h2>
         {action}
       </header>

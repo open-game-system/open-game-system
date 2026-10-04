@@ -132,4 +132,14 @@ export const flows: Flow[] = [
       { device: "phone", bot: "new-confirm", mark: "A new bakery on the TV; day 4 is still there for Continue", wait: 2600 },
     ],
   },
+  {
+    id: "turn-arrives",
+    flow: "world-clock",
+    label: "A move arrives while Home is open",
+    start: "home.09-move-incoming",
+    steps: [
+      { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His whale hops down the path onto his board; Your turn counts 3", wait: 1800 },
+      { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 1400 },
+    ],
+  },
 ];
