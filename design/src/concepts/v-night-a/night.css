@@ -1,0 +1,149 @@
+
+/* ============ Game night as a group thread (v-night-a) ============
+   One timeline among the homes, hung on the OGS dotted path. Not chat bubbles: entries are lines on
+   the path, each node is the home's crest (or a turn token for a milestone), the board is the live
+   attachment at the foot, and the dock offers the one next thing, never a text box. */
+.nt { background: var(--ogs-dusk-0); color: var(--ogs-cream); }
+.nt .cx-topbar { min-height: 44px; padding-bottom: 0; }
+
+.nt-head { padding: 0 16px 10px; display: grid; gap: 6px; flex: none; }
+.nt-head h1 { font-size: 30px; line-height: 1.05; color: var(--ogs-cream); }
+.nt-head__homes { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 15px; font-weight: 700; color: var(--ogs-cream-2); }
+.nt-head__homes > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Pinned: what the other homes see of us. */
+.nt-seen { flex: none; margin: 0 16px; padding: 10px 12px; border-radius: 16px; background: var(--ogs-dusk-1); box-shadow: inset 0 0 0 1px var(--ogs-hair); display: grid; gap: 8px; }
+.nt-seen__row { display: flex; align-items: center; gap: 10px; }
+.nt-seen__row > p { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.nt-seen__row > p > span { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ogs-cream-3); }
+.nt-seen__row > p > b { font-size: 16px; font-weight: 800; color: var(--ogs-cream); }
+.nt-seen__as { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 22px; background: var(--ogs-dusk-3); color: var(--ogs-cream) !important; font-weight: 800 !important; font-size: 15px; }
+.nt-seen__fine { font-size: 14px; color: var(--ogs-cream-3); }
+.nt-kid { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding-top: 8px; border-top: 1px solid var(--ogs-hair); }
+.nt-kid > span { display: grid; gap: 1px; }
+.nt-kid b { font-size: 15px; font-weight: 800; }
+.nt-kid > span > span { font-size: 14px; color: var(--ogs-cream-3); }
+.nt-kid input { appearance: none; flex: none; width: 52px; height: 32px; border-radius: 16px; background: #4a4560; position: relative; cursor: pointer; transition: background .2s; }
+.nt-kid input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 26px; height: 26px; border-radius: 50%; background: var(--ogs-cream); transition: transform .2s; }
+.nt-kid input:checked { background: var(--ogs-mint); }
+.nt-kid input:checked::after { transform: translateX(20px); background: var(--ogs-dusk-0); }
+
+.nt-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding: 6px 0 14px; }
+.nt-scroll::-webkit-scrollbar { display: none; }
+
+/* The timeline: the dotted path runs down behind the nodes. */
+.nt-thread { position: relative; list-style: none; margin: 0; padding: 4px 16px 0 16px; display: grid; gap: 14px; }
+.nt-thread::before { content: ""; position: absolute; left: 34px; top: 0; bottom: 60px; width: 6px; background: var(--ogs-dots-v) 50% 0 / 6px 12px repeat-y; opacity: .7; }
+.nt-day { position: relative; display: flex; padding-left: 50px; }
+.nt-day span { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ogs-peach); padding: 2px 0; }
+.nt-row { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: start; animation: nt-in .5s cubic-bezier(.2,.9,.25,1) both; }
+@keyframes nt-in { from { opacity: 0; transform: translateY(10px); } }
+.nt-node { position: relative; z-index: 1; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--ogs-dusk-0); }
+.nt-node--turn { background: var(--ogs-cream); color: var(--ogs-dusk-0); font-size: 20px; box-shadow: 0 0 0 4px var(--ogs-dusk-0); }
+.nt-node--dot::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--ogs-cream-3); }
+.nt-row__body { min-width: 0; display: grid; gap: 8px; padding-top: 9px; }
+.nt-row__line { font-size: 16px; line-height: 1.35; color: var(--ogs-cream-2); }
+.nt-row__line b { color: var(--ogs-cream); font-weight: 800; }
+.nt-row__line time { margin-left: 8px; font-size: 13px; font-weight: 600; color: var(--ogs-cream-3); white-space: nowrap; }
+.nt-row.is-milestone .nt-row__line b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); font-size: 18px; }
+.nt-row--pause .nt-node { box-shadow: 0 0 0 2px var(--ogs-lilac); }
+
+/* Entry attachments: the invite card, the seat strip, the "Back Fri 8:00" token. */
+.nt-invite { display: grid; grid-template-columns: 96px 1fr; overflow: hidden; border-radius: 14px; background: var(--ogs-dusk-1); box-shadow: inset 0 0 0 1px var(--ogs-hair); }
+.nt-invite__art { display: block; min-height: 84px; }
+.nt-invite__art .cx-art { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nt-invite__body { display: grid; gap: 2px; padding: 10px 12px; align-content: center; font-size: 14px; color: var(--ogs-cream-2); }
+.nt-invite__body b { font-size: 17px; color: var(--ogs-cream); }
+.nt-seats { list-style: none; margin: 0; padding: 8px 12px; border-radius: 14px; background: var(--ogs-dusk-1); box-shadow: inset 0 0 0 1px var(--ogs-hair); display: grid; gap: 4px; }
+.nt-seats li { display: grid; grid-template-columns: 14px 56px 1fr 18px; align-items: center; gap: 8px; min-height: 28px; font-size: 15px; }
+.nt-seats__dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(251,242,228,.5); }
+.nt-seats__word { font-weight: 800; color: var(--ogs-cream); }
+.nt-seats__who { color: var(--ogs-cream-2); min-width: 0; }
+.nt-seats__where { color: var(--ogs-cream-3); display: inline-flex; }
+.nt-seats .nt-seats__rule { display: block; font-size: 13px; color: var(--ogs-cream-3); padding-top: 4px; border-top: 1px solid var(--ogs-hair); }
+.nt-when { justify-self: start; display: inline-grid; gap: 0; padding: 8px 16px 10px; border-radius: 14px; background: var(--ogs-cream); color: var(--ogs-dusk-0); }
+.nt-when__k { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #5a4a6e; }
+.nt-when__v { font-size: 22px; line-height: 1.1; }
+
+/* Now: pending (deciding, not here yet), rolling, and our roll. */
+.nt-now .nt-row__line b { font-weight: 700; color: var(--ogs-cream-2); }
+.nt-now--deciding .nt-node, .nt-now--away .nt-node { box-shadow: 0 0 0 2px var(--ogs-dusk-0), 0 0 0 3.5px rgba(251,242,228,.35); }
+.nt-now--rolling .nt-row__line b { color: var(--ogs-cream); }
+.nt-now--yours .nt-node { box-shadow: 0 0 0 3px var(--ogs-lamp), 0 0 22px rgba(255,200,97,.45); }
+.nt-now--yours .nt-row__line b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); font-size: 22px; color: var(--ogs-lamp); }
+.nt-dots { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
+.nt-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ogs-cream-3); animation: nt-dot 1.2s infinite both; }
+.nt-dots i:nth-child(2) { animation-delay: .2s; }
+.nt-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes nt-dot { 0%, 100% { opacity: .35; } 40% { opacity: 1; } }
+.nt-answer { display: flex; gap: 8px; }
+.nt-answer .cx-btn { min-height: 44px; font-size: 15px; padding: 0 16px; }
+
+/* The board: the thread's live attachment. */
+.nt-attach { position: relative; padding-left: 0; }
+.nt-board { position: relative; display: grid; grid-template-columns: 1fr; width: 100%; overflow: hidden; border-radius: 18px; min-height: 150px; background: var(--ogs-dusk-1); box-shadow: inset 0 0 0 1px var(--ogs-hair); text-align: left; }
+.nt-board__art { position: absolute; inset: 0; }
+.nt-board__art .cx-art { width: 100%; height: 100%; object-fit: cover; display: block; }
+.nt-board__art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(18,15,34,.94) 0%, rgba(18,15,34,.78) 58%, rgba(18,15,34,.25) 100%); }
+.nt-board__body { position: relative; z-index: 1; display: grid; gap: 6px; padding: 12px 14px; align-content: start; }
+.nt-board__top { display: flex; align-items: center; gap: 10px; }
+.nt-board__k { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ogs-peach); }
+.nt-board b { font-size: 18px; font-weight: 800; color: var(--ogs-cream); }
+.nt-board__score { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 15px; font-weight: 700; color: var(--ogs-cream-2); }
+.nt-board__score > span { display: inline-flex; align-items: center; gap: 6px; }
+.nt-board__score i { width: 11px; height: 11px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(251,242,228,.6); }
+.nt-board__open { justify-self: start; display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 44px; padding: 0 18px; border-radius: 22px; background: var(--ogs-cream); color: var(--ogs-dusk-0); font-weight: 800; font-size: 16px; }
+.nt-board.is-live { box-shadow: 0 0 0 2px var(--ogs-ember), 0 10px 30px rgba(255,122,82,.18); }
+
+/* Drafting a new night: pick who it goes to inside the first entry. */
+.nt-row--draft .nt-row__body { padding: 9px 12px 12px; margin-left: -4px; border-radius: 16px; outline: 1.5px dashed rgba(251,242,228,.32); outline-offset: 0; }
+.nt-thread--draft::before { bottom: 0; }
+.nt-to { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ogs-cream-3); }
+.nt-pick { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.nt-pick button { width: 100%; display: grid; grid-template-columns: 34px 1fr 28px; align-items: center; gap: 10px; min-height: 56px; padding: 6px 12px; border-radius: 14px; background: var(--ogs-dusk-1); box-shadow: inset 0 0 0 1.5px var(--ogs-hair); color: var(--ogs-cream) !important; }
+.nt-pick button.is-on { box-shadow: inset 0 0 0 2px var(--ogs-mint); }
+.nt-pick button > span:nth-child(2) { display: grid; gap: 1px; }
+.nt-pick button b { font-size: 16px; font-weight: 800; }
+.nt-pick button > span > span { font-size: 14px; color: var(--ogs-cream-3); }
+.nt-pick__box { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; box-shadow: inset 0 0 0 2px rgba(251,242,228,.4); }
+.nt-pick button.is-on .nt-pick__box { background: var(--ogs-mint); color: var(--ogs-dusk-0); box-shadow: none; }
+.nt-pick .nt-pick__link { grid-template-columns: auto 1fr; justify-items: start; background: transparent; box-shadow: inset 0 0 0 1.5px dashed; box-shadow: none; outline: 1.5px dashed rgba(251,242,228,.3); outline-offset: -1.5px; font-weight: 700; font-size: 15px; }
+.nt-keeps .nt-row__line { font-size: 15px; }
+
+/* The dock: the one next thing. */
+.nt-dock { flex: none; display: grid; gap: 8px; padding: 10px 16px 26px; background: var(--ogs-dusk-1); box-shadow: 0 -1px 0 var(--ogs-hair); }
+.nt-dock__note { font-size: 14px; line-height: 1.35; color: var(--ogs-cream-3); }
+.nt-dock__title { font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ogs-cream-3); }
+.nt-dock__row { display: flex; gap: 10px; }
+.nt-wide { width: 100%; }
+.nt-grow { flex: 1; min-width: 0; }
+.nt .cx-btn { gap: 8px; }
+.nt-iconbtn { flex: none; width: 48px; height: 48px; border-radius: 24px; display: grid; place-items: center; box-shadow: inset 0 0 0 1.5px #55565e; color: var(--ogs-cream) !important; }
+.nt-choices { display: grid; gap: 8px; width: 100%; }
+.nt-choices .cx-btn { width: 100%; }
+.nt-seatpick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nt-seatpick button { display: grid; grid-template-columns: auto auto 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 4px; row-gap: 2px; min-height: 64px; padding: 8px 12px; border-radius: 14px; background: var(--ogs-dusk-2); box-shadow: inset 0 0 0 1.5px var(--ogs-hair); color: var(--ogs-cream) !important; text-align: left; }
+.nt-seatpick button i { width: 12px; height: 12px; border-radius: 50%; grid-row: 1; }
+.nt-seatpick button b { grid-row: 1; grid-column: 3; font-size: 15px; font-weight: 800; padding-left: 4px; }
+.nt-seatpick button:first-child b { grid-column: 2 / 4; }
+.nt-seatpick button span { grid-row: 2; grid-column: 1 / 4; font-size: 13px; color: var(--ogs-cream-3); }
+.nt-seatpick button.is-on { box-shadow: inset 0 0 0 2px var(--ogs-mint); }
+
+/* Their view: the same thread, on Nana & Pop's phone. */
+.nt-preview { position: absolute; left: 0; right: 0; bottom: 0; top: 70px; display: flex; flex-direction: column; gap: 10px; padding: 14px 0 0; border-radius: 24px 24px 0 0; background: var(--ogs-dusk-0); box-shadow: 0 -1px 0 var(--ogs-hair), 0 -20px 60px rgba(0,0,0,.5); animation: cx-sheet-in .42s cubic-bezier(.2,.9,.25,1) both; }
+.nt-preview__head { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 17px; }
+.nt-preview__head > span { display: inline-flex; align-items: center; gap: 8px; }
+.nt-preview > .nt-kid { margin: 0 16px; padding: 4px 12px; border: 0; border-radius: 14px; background: var(--ogs-dusk-1); }
+.nt-preview__thread { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding-bottom: 24px; display: flex; flex-direction: column-reverse; }
+.nt-preview__thread::-webkit-scrollbar { display: none; }
+.nt-earlier { display: flex; padding-left: 50px; }
+.nt-earlier button { min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--ogs-dusk-2); color: var(--ogs-cream-2) !important; font-weight: 700 !important; font-size: 14px; }
+.nt-scroll { -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px); mask-image: linear-gradient(180deg, transparent 0, #000 14px); }
+.nt-scroll--rev { display: flex; flex-direction: column-reverse; }
+.nt-theirbar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 16px 10px; padding: 6px 6px 6px 14px; border-radius: 28px; background: var(--ogs-lilac); color: var(--ogs-dusk-0); }
+.nt-theirbar > span { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; }
+.nt--theirs .nt-seen { padding: 0 12px; }
+.nt--theirs .nt-kid { border-top: 0; padding-top: 0; }
+.nt-kid input { width: 64px; height: 44px; border-radius: 22px; }
+.nt-kid input::after { left: 4px; top: 4px; width: 36px; height: 36px; }
+.nt-kid input:checked::after { transform: translateX(20px); }

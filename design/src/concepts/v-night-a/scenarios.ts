@@ -1,5 +1,5 @@
 import type { Scenario } from "../../harness/types";
-import { answerInvites, baseNights, beginNewNight, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
+import { answerInvites, baseNights, beginNewNight, declineHome, postSeats, homesReturn, openNight, passTurn, pauseNight, resumeNight, sendInvites, startNight, toStep, toggleSplit, type Nights } from "./nights";
 import { base, baseSetup, moveArrives, playDuel, type Push, type S, type Setup } from "./state";
 
 /** First run at a given point: the household partly set up. */
@@ -117,8 +117,8 @@ export const scenarios: Scenario<S>[] = [
   { id: "game-night.07-everyone-in", label: "Both homes said yes", flow: "game-night", state: "success", devices: ["phone"], build: nightAt((n) => answerInvites(sendInvites(beginNewNight(n)))) },
   { id: "game-night.08-seats", label: "Seats: Jonathan + Juneau share blue; a seat is a person or a home", flow: "game-night", state: "default", devices: ["phone"], build: nightAt((n) => toStep(answerInvites(sendInvites(beginNewNight(n))), "seats")) },
   { id: "game-night.09-seats-split", label: "Seats: Juneau gets his own (green)", flow: "game-night", state: "partial", devices: ["phone"], build: nightAt((n) => toggleSplit(toStep(answerInvites(sendInvites(beginNewNight(n))), "seats"))) },
-  { id: "game-night.10-where", label: "Where each home plays: our TV, their TV, Nana & Pop on phones", flow: "game-night", state: "default", devices: ["phone"], build: nightAt((n) => toStep(answerInvites(sendInvites(beginNewNight(n))), "where")) },
-  { id: "game-night.11-started", label: "Started: turn 1, Okafors rolling, ours next", flow: "game-night", state: "success", devices: ["phone", "tv"], build: () => ({ ...nightAt((n) => ({ ...startNight(answerInvites(sendInvites(beginNewNight(n)))), step: "detail" }))(), onTv: "hearthisle", tvFocus: "hearthisle" }) },
+  { id: "game-night.10-where", label: "Seats posted to the thread; each home plays on its own screen; ready to start", flow: "game-night", state: "default", devices: ["phone"], build: nightAt((n) => postSeats(toStep(answerInvites(sendInvites(beginNewNight(n))), "seats"))) },
+  { id: "game-night.11-started", label: "Started: turn 1, Okafors rolling, ours next", flow: "game-night", state: "success", devices: ["phone", "tv"], build: () => ({ ...nightAt((n) => ({ ...startNight(postSeats(toStep(answerInvites(sendInvites(beginNewNight(n))), "seats"))), step: "detail" }))(), onTv: "hearthisle", tvFocus: "hearthisle" }) },
   { id: "game-night.12-two-nights", label: "Home: two game nights, one paused, one live", flow: "game-night", state: "partial", devices: ["phone"], build: () => ({ ...at({ onTv: "hearthisle", tvFocus: "hearthisle" })(), nights: { ...startNight(answerInvites(sendInvites(beginNewNight(baseNights())))), open: null, step: "detail" } }) },
   { id: "game-night.13-declined", label: "Nana & Pop declined: their seat leaves, the night still works", flow: "game-night", state: "error", devices: ["phone"], build: nightAt((n) => declineNana(sendInvites(beginNewNight(n)))) },
   { id: "game-night.14-everyone-back", label: "Friday 8:00: every home is back, resume turn 14", flow: "game-night", state: "default", devices: ["phone"], build: nightAt((n) => openNight(homesReturn(n, "hi-1"), "hi-1"), { onTv: null }) },
@@ -136,9 +136,7 @@ function nightsWith(f: (n: Nights) => Nights): Nights {
   return { ...f(baseNights()), open: null };
 }
 
-function declineNana(n: Nights): Nights {
-  return { ...n, list: n.list.map((x) => (x.id === n.open ? { ...x, homes: x.homes.map((h) => (h.householdId === "hh-nana" ? { ...h, reply: "declined" } : h.reply === "invited" ? { ...h, reply: "in" } : h)) } : x)) };
-}
+const declineNana = (n: Nights): Nights => declineHome(n, "hh-nana");
 
 function playedState(): S {
   return playDuel({ ...base(), phone: "duel", duel: { open: "wd-1", placed: ["C", "R", "A", "N"], result: null } });

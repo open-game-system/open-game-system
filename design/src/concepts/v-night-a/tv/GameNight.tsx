@@ -2,7 +2,8 @@
 // live on our TV. Both read the night model (nights.ts), so a paused or new night shows truthfully.
 import { HOUSEHOLDS, gameById } from "../../../world";
 import { Crest } from "../ui/Sticker";
-import { nightLine, nightStatus, short, US, type Night } from "../nights";
+import { nightLine, nightStatus, short, US, type Entry, type Night } from "../nights";
+import { lineOf } from "../phone/night/words";
 import type { S } from "../state";
 import { TvArt } from "./TvArt";
 
@@ -54,6 +55,7 @@ export function NightChip({ s }: { s: S }) {
           </span>
         </div>
       )}
+      <LatestEntry n={n} />
       <div className={`ct-chip ct-chip--night ${ourRoll ? "is-ours" : ""}`}>
         <span className="ct-chip__crest" style={{ boxShadow: `0 0 0 4px ${ours.color}` }}>
           <Crest household={home} size={50} />
@@ -64,6 +66,23 @@ export function NightChip({ s }: { s: S }) {
         <span className="ct-chip__turn">{ourRoll ? "Our roll" : `${short(turnHome?.name ?? "")} to roll`}</span>
       </div>
     </>
+  );
+}
+
+/** The night's thread, on the TV: only its latest entry, one quiet line above our seat chip. */
+function LatestEntry({ n }: { n: Night }) {
+  const last = [...n.log].reverse().find((e): e is Exclude<Entry, { kind: "day" }> => e.kind !== "day");
+  if (!last) return null;
+  const l = lineOf(last, n, US);
+  const who = l.who === "You" ? "We" : l.who;
+  const home = l.home ? HOUSEHOLDS.find((h) => h.id === l.home) : undefined;
+  return (
+    <div className="ct-thread" key={`${n.id}:${n.log.length}`}>
+      {home && <Crest household={home} size={44} shared={home.id !== US} />}
+      <span>
+        <b>{who}</b> {l.text}
+      </span>
+    </div>
   );
 }
 

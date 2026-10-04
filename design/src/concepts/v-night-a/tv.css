@@ -236,3 +236,7 @@
 .ct-welcome__device.is-waiting { color: var(--ct-warm); border-color: var(--ct-warm); animation: ct-wait 1.2s ease-in-out infinite alternate both; }
 .ct-welcome__device.is-paired { color: #10241a; background: var(--ogs-mint, #9fe3bf); border: 0; animation: ct-pop 0.4s cubic-bezier(.3, 1.6, .5, 1) both; }
 .ct-welcome__device i { position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #10241a; box-shadow: 0 0 0 4px var(--ogs-dusk-0, #120f22); }
+/* v-night-a: the night's thread, its latest entry, above our seat chip (bottom-left, off the board's focal area). */
+.ct-thread { position: absolute; left: 48px; bottom: 132px; display: inline-flex; align-items: center; gap: 14px; height: 64px; padding: 0 24px 0 14px; border-radius: 32px; background: rgba(18, 15, 34, 0.7); backdrop-filter: blur(14px); color: #fbf2e4; font-size: 26px; animation: ct-chip-in 0.5s 0.2s var(--ct-ease) both; }
+.ct-thread b { font-weight: 800; }
+.ct-thread > span { color: #e6dacb; }
