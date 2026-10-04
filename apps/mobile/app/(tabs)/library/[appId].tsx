@@ -2,12 +2,21 @@ import type { Manifest } from "@open-game-system/ogs-protocol";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { artUrl, GameArt } from "../../../components/ogs/GameArt";
+import { artUrl } from "../../../components/ogs/GameArt";
 import { artKit } from "../../../components/ogs/library/art-kit";
 import { gameFacts } from "../../../components/ogs/library/game-facts";
-import { sittingTitle } from "../../../components/ogs/library/sitting-title";
+import { GameLogo, KeyArt } from "../../../components/ogs/library/KeyArt";
+import { sittingTitles } from "../../../components/ogs/library/sitting-title";
 import { usePlay } from "../../../components/ogs/library/use-play";
 import { SectionTitle } from "../../../components/ogs/Screen";
 import { colors, fonts, TARGET } from "../../../components/ogs/theme";
@@ -15,10 +24,11 @@ import { useApp, useCouch } from "../../../services/runtime";
 import { type Sitting, sittingsFor } from "../../../services/sittings";
 
 /**
- * A game's page, in the Library tab's stack (the tab bar stays): the art with the name set on it,
- * your in-progress sittings of it as cards (each with its own Rejoin: two games of Catan are two
- * cards), and Start game pinned at the bottom in thumb reach. Spec v3, tv: required and not cast:
- * the pinned action is Cast to play instead, and a Rejoin casts first.
+ * A game's page, in the Library tab's stack (the tab bar stays): the art with the name set on it and
+ * the page tinted by it, your in-progress sittings as cards (two games of Catan are two cards), and
+ * one primary action pinned at the bottom in thumb reach: Rejoin the newest sitting (Start game
+ * under it), else Start game. Spec v3, tv: required and not cast: Cast to play instead, every card
+ * keeps its own Rejoin, and a Rejoin casts first.
  */
 export default function GamePage() {
   const { appId } = useLocalSearchParams<{ appId?: string }>();
@@ -35,26 +45,36 @@ function GamePageBody({ game }: { game: Manifest }) {
   const app = useApp();
   const { state } = useCouch();
   const { busy, note, needsCast, rejoin, startNew } = usePlay(game);
+  const { width, height } = useWindowDimensions();
   const now = Date.now();
   const sittings = sittingsFor(game, app.instances, state, now);
+  const titles = sittingTitles(sittings, game.appId, now);
+  // Big art when there's nothing else to show; shorter when sittings need the room.
+  const artHeight = Math.round(height * (sittings.length > 0 ? 0.38 : 0.5));
   const kit = artKit(game);
   const facts = gameFacts(game.shop);
-  const primaryIsNew = sittings.length === 0 || needsCast;
+  // The newest sitting's Rejoin is the page's primary action, unless the TV has to be cast first.
+  const next = needsCast ? null : (sittings[0] ?? null);
+  const nextTitle = next ? titles[0] : null;
 
   return (
     <View style={styles.root} testID="gamePage">
       <StatusBar style="light" />
       <View style={styles.ambient} pointerEvents="none">
-        <Image source={{ uri: artUrl(kit.hero) }} style={styles.ambientArt} blurRadius={50} />
+        <Image
+          source={{ uri: artUrl(kit.heroClean ?? kit.hero) }}
+          style={styles.ambientArt}
+          blurRadius={50}
+        />
         <LinearGradient
           colors={["rgba(18,15,34,0.2)", colors.dusk0]}
           locations={[0.1, 1]}
           style={StyleSheet.absoluteFill}
         />
       </View>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView style={styles.flex} contentContainerStyle={styles.scroll}>
         <View>
-          <GameArt game={game} hero style={styles.art} />
+          <KeyArt game={game} width={width} height={artHeight} />
           <LinearGradient
             colors={["rgba(18,15,34,0.7)", "rgba(18,15,34,0)"]}
             style={[styles.topScrim, { height: insets.top + 56 }]}
@@ -67,13 +87,12 @@ function GamePageBody({ game }: { game: Manifest }) {
             pointerEvents="none"
           />
           <View style={styles.caption}>
-            {kit.logo ? (
-              <Image source={{ uri: artUrl(kit.logo) }} style={styles.logo} resizeMode="contain" />
-            ) : (
-              <Text style={styles.name} accessibilityRole="header">
-                {game.name}
-              </Text>
-            )}
+            <GameLogo
+              game={game}
+              width={width * 0.62}
+              height={artHeight * 0.32}
+              nameStyle={styles.name}
+            />
             {facts.length > 0 ? (
               <Text style={styles.facts} numberOfLines={1}>
                 {facts.join("  ·  ")}
@@ -91,9 +110,9 @@ function GamePageBody({ game }: { game: Manifest }) {
                 <SittingCard
                   key={s.instanceId}
                   sitting={s}
+                  title={titles[i]}
                   game={game}
-                  now={now}
-                  primary={i === 0 && !needsCast}
+                  next={s === next}
                   disabled={busy}
                   onRejoin={() => rejoin(s)}
                 />
@@ -121,28 +140,60 @@ function GamePageBody({ game }: { game: Manifest }) {
       <View style={styles.bar}>
         <LinearGradient
           colors={["rgba(18,15,34,0)", colors.dusk0]}
-          locations={[0, 0.45]}
-          style={StyleSheet.absoluteFill}
+          style={styles.barFade}
           pointerEvents="none"
         />
         {note ? <Text style={styles.note}>{note}</Text> : null}
-        <Pressable
-          testID={needsCast ? "castToPlay" : "gameNew"}
-          accessibilityRole="button"
-          accessibilityLabel={needsCast ? "Cast to play" : "Start game"}
-          disabled={busy}
-          onPress={startNew}
-          style={({ pressed }) => [
-            styles.action,
-            primaryIsNew ? styles.actionPrimary : styles.actionQuiet,
-            (pressed || busy) && styles.actionPressed,
-          ]}
-        >
-          {primaryIsNew ? <View style={styles.triangle} /> : null}
-          <Text style={[styles.actionText, !primaryIsNew && styles.actionTextQuiet]}>
-            {needsCast ? (busy ? "Casting…" : "Cast to play") : "Start game"}
-          </Text>
-        </Pressable>
+        {next && nextTitle ? (
+          <>
+            <Pressable
+              testID={`gameSittingRejoin-${next.instanceId}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Rejoin ${game.name}, ${nextTitle.headline}`}
+              disabled={busy}
+              onPress={() => rejoin(next)}
+              style={({ pressed }) => [
+                styles.action,
+                styles.actionPrimary,
+                (pressed || busy) && styles.actionPressed,
+              ]}
+            >
+              <View style={styles.triangle} />
+              <Text style={styles.actionText} numberOfLines={1}>
+                Rejoin
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="gameNew"
+              accessibilityRole="button"
+              accessibilityLabel="Start game"
+              disabled={busy}
+              onPress={startNew}
+              hitSlop={6}
+              style={({ pressed }) => [styles.textAction, pressed && styles.actionPressed]}
+            >
+              <Text style={styles.textActionLabel}>Start game</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable
+            testID={needsCast ? "castToPlay" : "gameNew"}
+            accessibilityRole="button"
+            accessibilityLabel={needsCast ? "Cast to play" : "Start game"}
+            disabled={busy}
+            onPress={startNew}
+            style={({ pressed }) => [
+              styles.action,
+              styles.actionPrimary,
+              (pressed || busy) && styles.actionPressed,
+            ]}
+          >
+            <View style={styles.triangle} />
+            <Text style={styles.actionText}>
+              {needsCast ? (busy ? "Casting…" : "Cast to play") : "Start game"}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -150,48 +201,52 @@ function GamePageBody({ game }: { game: Manifest }) {
 
 function SittingCard({
   sitting,
+  title,
   game,
-  now,
-  primary,
+  next,
   disabled,
   onRejoin,
 }: {
   sitting: Sitting;
+  title: { headline: string; detail: string };
   game: Manifest;
-  now: number;
-  primary: boolean;
+  next: boolean;
   disabled: boolean;
   onRejoin: () => void;
 }) {
-  const { headline, detail } = sittingTitle(sitting, game.appId, now);
+  const { headline, detail } = title;
   return (
-    <View style={styles.card} testID={`gameSitting-${sitting.instanceId}`}>
+    <Pressable
+      testID={`gameSitting-${sitting.instanceId}`}
+      accessibilityRole="button"
+      accessibilityLabel={`Rejoin ${game.name}, ${headline}, ${detail}`}
+      disabled={disabled}
+      onPress={onRejoin}
+      style={({ pressed }) => [styles.card, next && styles.cardNext, pressed && styles.cardPressed]}
+    >
       <View style={styles.cardText}>
+        <Text style={styles.cardHeadline} numberOfLines={1}>
+          {headline}
+        </Text>
         <View style={styles.cardDetailRow}>
           {sitting.live ? <View style={styles.liveDot} /> : null}
           <Text style={[styles.cardDetail, sitting.live && styles.cardLive]} numberOfLines={1}>
             {detail}
           </Text>
         </View>
-        <Text style={styles.cardHeadline} numberOfLines={1}>
-          {headline}
-        </Text>
       </View>
-      <Pressable
-        testID={`gameSittingRejoin-${sitting.instanceId}`}
-        accessibilityRole="button"
-        accessibilityLabel={`Rejoin ${game.name}, ${headline}, ${detail}`}
-        disabled={disabled}
-        onPress={onRejoin}
-        style={({ pressed }) => [
-          styles.rejoin,
-          primary ? styles.rejoinPrimary : styles.rejoinQuiet,
-          (pressed || disabled) && styles.actionPressed,
-        ]}
-      >
-        <Text style={[styles.rejoinText, !primary && styles.rejoinTextQuiet]}>Rejoin</Text>
-      </Pressable>
-    </View>
+      {next ? (
+        <Text style={styles.cardNextTag}>Up next</Text>
+      ) : (
+        <View
+          testID={`gameSittingRejoin-${sitting.instanceId}`}
+          accessibilityElementsHidden
+          style={styles.rejoin}
+        >
+          <Text style={styles.rejoinText}>Rejoin</Text>
+        </View>
+      )}
+    </Pressable>
   );
 }
 
@@ -199,19 +254,28 @@ const BAR = TARGET + 12;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dusk0 },
-  ambient: { ...StyleSheet.absoluteFillObject, bottom: "35%" },
-  ambientArt: { width: "100%", height: "100%", opacity: 0.6 },
-  scroll: { paddingBottom: BAR + 40 },
-  art: { width: "100%", aspectRatio: 4 / 3, borderRadius: 0 },
+  ambient: { ...StyleSheet.absoluteFillObject },
+  ambientArt: { width: "100%", height: "100%", opacity: 0.75 },
+  scroll: { paddingBottom: 24 },
   topScrim: { position: "absolute", top: 0, left: 0, right: 0 },
   bottomScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" },
   caption: { position: "absolute", left: 20, right: 20, bottom: 14, gap: 6 },
   name: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: colors.cream },
-  logo: { width: "70%", height: 80 },
   facts: { color: colors.cream2, fontSize: 14, fontWeight: "600", letterSpacing: 0.2 },
   body: { paddingHorizontal: 20, paddingTop: 6, gap: 6 },
   tagline: { color: colors.cream2, fontSize: 17, lineHeight: 24 },
   sittings: { gap: 10 },
+  cardNext: { borderColor: colors.lamp, borderWidth: 1.5 },
+  cardPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  cardNextTag: {
+    color: colors.lamp,
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  textAction: { minHeight: TARGET, alignItems: "center", justifyContent: "center" },
+  textActionLabel: { color: colors.cream, fontSize: 17, fontWeight: "700" },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -237,11 +301,10 @@ const styles = StyleSheet.create({
     borderRadius: TARGET / 2,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: colors.cream3,
   },
-  rejoinPrimary: { backgroundColor: colors.lamp },
-  rejoinQuiet: { borderWidth: 1.5, borderColor: colors.cream3 },
-  rejoinText: { color: colors.ink, fontSize: 16, fontWeight: "800" },
-  rejoinTextQuiet: { color: colors.cream },
+  rejoinText: { color: colors.cream, fontSize: 16, fontWeight: "800" },
   back: {
     position: "absolute",
     left: 14,
@@ -262,16 +325,16 @@ const styles = StyleSheet.create({
     borderColor: colors.cream,
     transform: [{ rotate: "45deg" }],
   },
+  flex: { flex: 1 },
+  // In the layout, under the scroll, so nothing ever hides behind it; a fade marks the edge.
   bar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     paddingHorizontal: 20,
-    paddingTop: 28,
+    paddingTop: 8,
     paddingBottom: 12,
-    gap: 8,
+    gap: 4,
+    backgroundColor: colors.dusk0,
   },
+  barFade: { position: "absolute", left: 0, right: 0, top: -28, height: 28 },
   note: { color: colors.peach, fontSize: 15, textAlign: "center" },
   action: {
     flexDirection: "row",
@@ -282,7 +345,6 @@ const styles = StyleSheet.create({
     borderRadius: BAR / 2,
   },
   actionPrimary: { backgroundColor: colors.lamp },
-  actionQuiet: { borderWidth: 1.5, borderColor: colors.cream3, backgroundColor: colors.dusk1 },
   actionPressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   triangle: {
     width: 0,
@@ -295,5 +357,4 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.ink,
   },
   actionText: { color: colors.ink, fontSize: 19, fontWeight: "800" },
-  actionTextQuiet: { color: colors.cream },
 });

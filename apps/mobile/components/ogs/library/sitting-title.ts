@@ -41,3 +41,26 @@ export function sittingTitle(
   const when = days <= 0 ? clock(start) : days === 1 ? "yesterday" : `${days} days ago`;
   return { headline: `Started ${when}`, detail };
 }
+
+/**
+ * Every card on a game's page, never two alike: when headlines collide (two sittings with no
+ * resume point started the same minute), they become "Game 1", "Game 2" by start order and the
+ * start time moves to the second line.
+ */
+export function sittingTitles(
+  sittings: Sitting[],
+  appId: string,
+  now: number,
+): { headline: string; detail: string }[] {
+  const titles = sittings.map((s) => sittingTitle(s, appId, now));
+  const counts = new Map<string, number>();
+  for (const t of titles) counts.set(t.headline, (counts.get(t.headline) ?? 0) + 1);
+  if (![...counts.values()].some((n) => n > 1)) return titles;
+  const byStart = [...sittings].sort((a, b) => startedAt(a, appId, now) - startedAt(b, appId, now));
+  return sittings.map((s, i) => {
+    const t = titles[i];
+    if ((counts.get(t.headline) ?? 0) < 2) return t;
+    const detail = s.live ? t.detail : t.detail.replace(/^Played/, "played");
+    return { headline: `Game ${byStart.indexOf(s) + 1}`, detail: `${t.headline} · ${detail}` };
+  });
+}

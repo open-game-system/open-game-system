@@ -1,31 +1,29 @@
 import type { Manifest } from "@open-game-system/ogs-protocol";
 
 /**
- * The Library's art for one game. Today's manifests carry a 16:9 tile (and maybe a hero); the
- * proposed art kit adds cover (2:3, logo baked in), icon (1:1) and logo (transparent). Those are
- * read defensively so the Library switches to covers the day manifests carry them, with no
- * crop of 16:9 art into portrait in the meantime.
+ * The Library's art for one game. Every manifest has a 16:9 capture (tile, maybe hero, cropped
+ * HUD-free with art.safe); the art kit adds a 2:3 cover with the title baked in, a 1:1 icon, a
+ * transparent logo and a clean 16:9 hero (no text or HUD, left third free for the logo). Missing
+ * kit fields fall back to the capture; the capture is never cropped into portrait.
  */
 export interface ArtKit {
   landscape: string;
   hero: string;
+  heroClean: string | null;
   cover: string | null;
   icon: string | null;
   logo: string | null;
 }
 
-const optional = (art: object, key: string): string | null => {
-  const value: unknown = Object.entries(art).find(([k]) => k === key)?.[1];
-  return typeof value === "string" && value.length > 0 ? value : null;
-};
-
 export function artKit(game: Manifest): ArtKit {
+  const { art } = game;
   return {
-    landscape: game.art.tile,
-    hero: game.art.hero || game.art.tile,
-    cover: optional(game.art, "cover"),
-    icon: optional(game.art, "icon"),
-    logo: optional(game.art, "logo"),
+    landscape: art.tile,
+    hero: art.hero || art.tile,
+    heroClean: art.heroClean ?? null,
+    cover: art.cover ?? null,
+    icon: art.icon ?? null,
+    logo: art.logo ?? null,
   };
 }
 

@@ -1,5 +1,5 @@
 import type { Sitting } from "../../../../services/sittings";
-import { sittingTitle, startedAt } from "../sitting-title";
+import { sittingTitle, sittingTitles, startedAt } from "../sitting-title";
 
 const MIN = 60 * 1000;
 const H = 60 * MIN;
@@ -71,6 +71,36 @@ describe("sittingTitle: a sitting row's headline and its second line", () => {
   it("just played reads 'Played just now'", () => {
     expect(sittingTitle(sitting({ at: NOW - 10_000 }), "catan", NOW).detail).toBe(
       "Played just now",
+    );
+  });
+});
+
+describe("sittingTitles: a game page's cards never read the same", () => {
+  it("keeps distinct headlines as they are", () => {
+    const list = [
+      sitting({ instanceId: "a", label: "Mission 6" }),
+      sitting({ instanceId: "b", label: "Mission 2" }),
+    ];
+    expect(sittingTitles(list, "catan", NOW).map((t) => t.headline)).toEqual([
+      "Mission 6",
+      "Mission 2",
+    ]);
+  });
+
+  it("two started the same minute are numbered by start order, the time moving to the second line", () => {
+    const older = sitting({ instanceId: id(at(11, 3)), at: NOW - 10 * MIN });
+    const newer = sitting({ instanceId: id(at(11, 3) + 20_000), at: NOW - MIN });
+    const titles = sittingTitles([newer, older], "catan", NOW);
+    expect(titles.map((t) => t.headline)).toEqual(["Game 2", "Game 1"]);
+    expect(titles[0].detail).toMatch(/^Started 11:03\s?AM · played 1 min ago$/);
+    expect(titles[1].detail).toMatch(/^Started 11:03\s?AM · played 10 min ago$/);
+  });
+
+  it("a live one keeps 'On the TV now' on its second line", () => {
+    const a = sitting({ instanceId: id(at(11, 3)), live: true });
+    const b = sitting({ instanceId: id(at(11, 3) + 1000) });
+    expect(sittingTitles([a, b], "catan", NOW)[0].detail).toMatch(
+      /^Started 11:03\s?AM · On the TV now$/,
     );
   });
 });

@@ -45,17 +45,17 @@ const session = (patch: Partial<SessionState>): SessionState => ({
 const ids = (games: Manifest[]) => games.map((g) => g.appId);
 const library = ["a", "b", "c", "d", "e"].map(game);
 
-describe("libraryShelves: the Library's hero and All Games", () => {
+describe("libraryShelves: the Library's hero and the grid (each game once, in a stable order)", () => {
   it("is empty for an empty library", () => {
-    expect(libraryShelves([], [], null, NOW)).toEqual({ hero: null, all: [] });
+    expect(libraryShelves([], [], null, NOW)).toEqual({ hero: null, grid: [] });
   });
 
-  it("first run: the first game is the hero with nothing to rejoin; All Games keeps library order", () => {
+  it("first run: the first game is the hero with nothing to rejoin; the grid is the rest in library order", () => {
     const shelves = libraryShelves(library, [], null, NOW);
     expect(shelves.hero?.game.appId).toBe("a");
     expect(shelves.hero?.sitting).toBeNull();
     expect(shelves.hero?.playedAt).toBeNull();
-    expect(ids(shelves.all)).toEqual(["a", "b", "c", "d", "e"]);
+    expect(ids(shelves.grid)).toEqual(["b", "c", "d", "e"]);
   });
 
   it("the most recently played game is the hero, with its newest sitting to rejoin", () => {
@@ -70,7 +70,7 @@ describe("libraryShelves: the Library's hero and All Games", () => {
     expect(shelves.hero?.playedAt).toBe(NOW - 2 * H);
   });
 
-  it("All Games lists every game once: played newest first, then the rest in library order", () => {
+  it("the grid keeps library order whatever was played (only the hero leaves it)", () => {
     const shelves = libraryShelves(
       library,
       [inst("e", 5 * H), inst("b", H), inst("a", 2 * DAY), inst("d", 3 * H)],
@@ -78,7 +78,7 @@ describe("libraryShelves: the Library's hero and All Games", () => {
       NOW,
     );
     expect(shelves.hero?.game.appId).toBe("b");
-    expect(ids(shelves.all)).toEqual(["b", "d", "e", "a", "c"]);
+    expect(ids(shelves.grid)).toEqual(["a", "c", "d", "e"]);
   });
 
   it("a finished game still counts as played (hero without a sitting: Start game)", () => {
@@ -88,7 +88,7 @@ describe("libraryShelves: the Library's hero and All Games", () => {
     expect(shelves.hero?.playedAt).toBe(NOW - H);
   });
 
-  it("the game live on the TV is the hero (and first in All Games) even when another was touched later", () => {
+  it("the game live on the TV is the hero even when another was touched later", () => {
     const live = session({
       current: {
         appId: "e",
@@ -104,7 +104,7 @@ describe("libraryShelves: the Library's hero and All Games", () => {
     const shelves = libraryShelves(library, [inst("a", MIN)], live, NOW);
     expect(shelves.hero?.game.appId).toBe("e");
     expect(shelves.hero?.sitting?.live).toBe(true);
-    expect(ids(shelves.all)).toEqual(["e", "a", "b", "c", "d"]);
+    expect(ids(shelves.grid)).toEqual(["a", "b", "c", "d"]);
   });
 
   it("a game paused on the couch session counts as played at its pause time", () => {
@@ -115,25 +115,21 @@ describe("libraryShelves: the Library's hero and All Games", () => {
     expect(shelves.hero?.game.appId).toBe("d");
     expect(shelves.hero?.playedAt).toBe(NOW - 10 * MIN);
     expect(shelves.hero?.sitting?.label).toBe("Wave 2");
-    expect(ids(shelves.all)).toEqual(["d", "a", "b", "c", "e"]);
   });
 
   it("ignores instances and sessions of games not in the library", () => {
     const shelves = libraryShelves(library.slice(0, 2), [inst("zzz", MIN)], null, NOW);
     expect(shelves.hero?.game.appId).toBe("a");
-    expect(ids(shelves.all)).toEqual(["a", "b"]);
+    expect(ids(shelves.grid)).toEqual(["b"]);
   });
 
-  it("scales to 30 games: every game once, newest played first", () => {
+  it("scales to 30 games: hero plus 29 in the grid, each once, in library order", () => {
     const many = Array.from({ length: 30 }, (_, i) => game(`g${i}`));
-    // Only the even games were played; higher index = more recent.
     const played = many.filter((_, i) => i % 2 === 0).map((g, k) => inst(g.appId, (30 - k) * H));
     const shelves = libraryShelves(many, played, null, NOW);
     expect(shelves.hero?.game.appId).toBe("g28");
-    expect(shelves.all).toHaveLength(30);
-    expect(new Set(ids(shelves.all)).size).toBe(30);
-    expect(ids(shelves.all).slice(0, 3)).toEqual(["g28", "g26", "g24"]);
-    expect(ids(shelves.all).slice(15, 18)).toEqual(["g1", "g3", "g5"]);
+    expect(shelves.grid).toHaveLength(29);
+    expect(ids(shelves.grid)).toEqual(ids(many.filter((g) => g.appId !== "g28")));
   });
 });
 
@@ -153,19 +149,18 @@ describe("heroEyebrow: the line above the hero's name", () => {
   });
 
   it("is nothing for a game never played", () => {
-    expect(heroEyebrow(hero({}), NOW)).toBeNull();
+    expect(heroEyebrow(hero({}))).toBeNull();
   });
-  it("says when it was last played", () => {
-    expect(heroEyebrow(hero({ playedAt: NOW - 2 * H }), NOW)).toBe("Played 2 hours ago");
-    expect(heroEyebrow(hero({ playedAt: NOW - 30 * H }), NOW)).toBe("Played yesterday");
+  it("is nothing for a game merely played before: Library shows games, not their state", () => {
+    expect(heroEyebrow(hero({ playedAt: NOW - 2 * H }))).toBeNull();
   });
   it("names the resume point when the game gave one", () => {
-    expect(heroEyebrow(hero({ playedAt: NOW - H, sitting: sitting(false, "Level 3") }), NOW)).toBe(
+    expect(heroEyebrow(hero({ playedAt: NOW - H, sitting: sitting(false, "Level 3") }))).toBe(
       "Level 3",
     );
   });
   it("says the game is on the TV now when it's live", () => {
-    expect(heroEyebrow(hero({ playedAt: NOW, sitting: sitting(true, "Level 3") }), NOW)).toBe(
+    expect(heroEyebrow(hero({ playedAt: NOW, sitting: sitting(true, "Level 3") }))).toBe(
       "On the TV now",
     );
   });

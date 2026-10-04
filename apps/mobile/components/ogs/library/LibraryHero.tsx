@@ -1,34 +1,44 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { artUrl, GameArt } from "../GameArt";
-import { colors, fonts, TARGET } from "../theme";
+import { artUrl } from "../GameArt";
+import { colors, TARGET } from "../theme";
 import { artKit } from "./art-kit";
+import { GameLogo, KeyArt } from "./KeyArt";
 import { type LibraryHero as Hero, heroEyebrow } from "./shelves";
 import { usePlay } from "./use-play";
 
 /**
- * The Library's big game (Steam's "continue playing"): the art, its name set large on it, and one
- * action: Rejoin its newest sitting, else Start game. A tap on the art opens the game's page.
- * The art, blurred, tints the top of the page.
+ * The Library's big game (Steam's "continue playing"): its clean key art with the logo in the
+ * left third, and one action: Rejoin its newest sitting, else Start game. A tap on the art opens
+ * the game's page. The art, blurred, tints the top of the page.
  */
 export function LibraryHero({
   hero,
+  width,
   onOpen,
   testID,
 }: {
   hero: Hero;
+  width: number;
   onOpen: () => void;
   testID?: string;
 }) {
   const { game, sitting } = hero;
   const play = usePlay(game);
   const kit = artKit(game);
-  const eyebrow = heroEyebrow(hero, Date.now());
+  const eyebrow = heroEyebrow(hero);
   const label = play.busy ? "Casting…" : sitting ? "Rejoin" : "Start game";
+  const height = Math.round((width * 9) / 16);
+  // The clean hero leaves its left third for the logo; a capture gets a scrim and the logo low.
+  const clean = kit.heroClean !== null;
   return (
     <View style={styles.root}>
       <View style={styles.ambient} pointerEvents="none">
-        <Image source={{ uri: artUrl(kit.hero) }} style={styles.fill} blurRadius={40} />
+        <Image
+          source={{ uri: artUrl(kit.heroClean ?? kit.hero) }}
+          style={styles.fill}
+          blurRadius={40}
+        />
         <LinearGradient
           colors={["rgba(18,15,34,0.35)", colors.dusk0]}
           locations={[0, 0.95]}
@@ -43,31 +53,41 @@ export function LibraryHero({
       >
         {({ pressed }) => (
           <View style={[styles.card, pressed && styles.pressed]}>
-            <GameArt game={game} hero style={styles.art} />
-            <LinearGradient
-              colors={["rgba(18,15,34,0)", "rgba(18,15,34,0.85)"]}
-              locations={[0.4, 1]}
-              style={styles.scrim}
+            <KeyArt game={game} width={width} height={height} radius={22} />
+            {clean ? (
+              <LinearGradient
+                colors={["rgba(18,15,34,0.45)", "rgba(18,15,34,0)"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 0.55, y: 0.5 }}
+                style={styles.scrim}
+                pointerEvents="none"
+              />
+            ) : (
+              <LinearGradient
+                colors={["rgba(18,15,34,0)", "rgba(18,15,34,0.85)"]}
+                locations={[0.4, 1]}
+                style={styles.scrim}
+                pointerEvents="none"
+              />
+            )}
+            <View
+              style={[styles.caption, clean ? styles.captionClean : styles.captionLow]}
               pointerEvents="none"
-            />
-            <View style={styles.caption} pointerEvents="none">
-              {eyebrow ? (
+            >
+              <GameLogo
+                game={game}
+                width={clean ? width * 0.42 : width * 0.55}
+                height={clean ? height * 0.62 : height * 0.36}
+              />
+            </View>
+            {eyebrow ? (
+              <View style={styles.eyebrowPill} pointerEvents="none">
+                {hero.sitting?.live ? <View style={styles.liveDot} /> : null}
                 <Text style={styles.eyebrow} numberOfLines={1}>
                   {eyebrow}
                 </Text>
-              ) : null}
-              {kit.logo ? (
-                <Image
-                  source={{ uri: artUrl(kit.logo) }}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              ) : (
-                <Text style={styles.name} numberOfLines={2}>
-                  {game.name}
-                </Text>
-              )}
-            </View>
+              </View>
+            ) : null}
           </View>
         )}
       </Pressable>
@@ -93,9 +113,23 @@ const styles = StyleSheet.create({
   fill: { width: "100%", height: "100%", opacity: 0.55 },
   card: { borderRadius: 22, overflow: "hidden" },
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
-  art: { width: "100%", aspectRatio: 16 / 10, borderRadius: 22 },
   scrim: { ...StyleSheet.absoluteFillObject, borderRadius: 22 },
-  caption: { position: "absolute", left: 18, right: 18, bottom: 16, gap: 2 },
+  caption: { position: "absolute", left: 14 },
+  captionClean: { top: 0, bottom: 0, justifyContent: "center" },
+  captionLow: { bottom: 12 },
+  eyebrowPill: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: "rgba(18,15,34,0.72)",
+  },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.ember },
   eyebrow: {
     color: colors.lamp,
     fontSize: 13,
@@ -103,8 +137,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: "uppercase",
   },
-  name: { fontFamily: fonts.display, fontSize: 34, lineHeight: 38, color: colors.cream },
-  logo: { width: "60%", height: 64, alignSelf: "flex-start" },
   play: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,5 +1,5 @@
 import type { Instance, Manifest, SessionState } from "@open-game-system/ogs-protocol";
-import { playedAgo, type Sitting, sittingsFor } from "../../../services/sittings";
+import { type Sitting, sittingsFor } from "../../../services/sittings";
 
 /** The Library's big game: what you played last (or what's on the TV now), else your first game. */
 export interface LibraryHero {
@@ -10,10 +10,10 @@ export interface LibraryHero {
   playedAt: number | null;
 }
 
-/** The Library, Steam-style: one hero, then All Games (each once: played newest first, then the rest). */
+/** The Library, Steam-style: one hero, then the grid: every other game once, in library order. */
 export interface LibraryShelves {
   hero: LibraryHero | null;
-  all: Manifest[];
+  grid: Manifest[];
 }
 
 /** When `game` was last played: its newest instance (finished or not) or couch-session sitting. */
@@ -32,7 +32,7 @@ export function libraryShelves(
   session: SessionState | null,
   now: number,
 ): LibraryShelves {
-  if (library.length === 0) return { hero: null, all: [] };
+  if (library.length === 0) return { hero: null, grid: [] };
   const played = library
     .map((game) => ({ game, at: lastPlayed(game, instances, session) }))
     .filter((p): p is { game: Manifest; at: number } => p.at !== null)
@@ -41,20 +41,21 @@ export function libraryShelves(
   const ordered = live ? [live, ...played.filter((p) => p !== live)] : played;
   const top = ordered[0];
   const heroGame = top?.game ?? library[0];
-  const seen = new Set(ordered.map((p) => p.game));
   return {
     hero: {
       game: heroGame,
       sitting: sittingsFor(heroGame, instances, session, now)[0] ?? null,
       playedAt: top?.at ?? null,
     },
-    all: [...ordered.map((p) => p.game), ...library.filter((g) => !seen.has(g))],
+    grid: library.filter((g) => g !== heroGame),
   };
 }
 
-/** What the hero says above the name: on the TV now, its resume point, or when you last played. */
-export function heroEyebrow(hero: LibraryHero, now: number): string | null {
+/**
+ * What the hero says above the name: on the TV now, or the resume point its Rejoin goes back to.
+ * Nothing for a game merely played before: Library shows games, the Playing tab their state.
+ */
+export function heroEyebrow(hero: LibraryHero): string | null {
   if (hero.sitting?.live) return "On the TV now";
-  if (hero.sitting?.label) return hero.sitting.label;
-  return hero.playedAt === null ? null : `Played ${playedAgo(hero.playedAt, now).toLowerCase()}`;
+  return hero.sitting?.label || null;
 }
