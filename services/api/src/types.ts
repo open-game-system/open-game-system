@@ -17,10 +17,12 @@ export interface Env {
   APPLE_CLIENT_IDS?: string;
   GOOGLE_ISSUER?: string;
   GOOGLE_CLIENT_IDS?: string;
-  /** Email codes: Resend API (default https://api.resend.com), its key (secret) and sender. */
-  RESEND_BASE_URL?: string;
-  RESEND_API_KEY?: string;
-  EMAIL_FROM?: string;
+  /**
+   * Email codes: Cloudflare Email Service's `send_email` binding and the sender address (on a
+   * domain onboarded to Email Sending). Without the binding, email sign-in answers 503.
+   */
+  SEND_EMAIL?: SendEmail;
+  EMAIL_FROM: string;
   /** Game tokens (slice 3): the private ES256 JWK (secret) and where sticker art is served. */
   OGS_GAME_SIGNING_KEY?: string;
   AVATAR_BASE_URL?: string;

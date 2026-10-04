@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CODE_TTL_MS, checkCode, codeEmail, hashCode, MAX_ATTEMPTS, newEmailCode } from "../src/lib/email-code";
+import {
+  CODE_TTL_MS,
+  checkCode,
+  codeEmail,
+  hashCode,
+  MAX_ATTEMPTS,
+  newEmailCode,
+} from "../src/lib/email-code";
 
 describe("email sign-in codes", () => {
   it("makes 6-digit codes", () => {
@@ -37,5 +44,12 @@ describe("email sign-in codes", () => {
     expect(m.text).toContain("Your OGS code is 042133.");
     expect(m.text).toContain("https://opengame.org/signin?code=042133");
     expect(m.html).toContain(">042133<");
+  });
+  it("says in plain words that the code works for 10 minutes, in both parts", () => {
+    const m = codeEmail("042133");
+    expect(m.text).toContain("It works for 10 minutes.");
+    expect(m.html).toContain("It works for 10 minutes.");
+    expect(m.text).toContain("If you didn't ask for this, ignore this email.");
+    expect(m.text).not.toMatch(/<[a-z]/i);
   });
 });

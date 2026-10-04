@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Local sign-in providers for dev and e2e (vercel-labs/emulate): Google, Apple (OIDC, RS256 ID
-// tokens + JWKS) and Resend (email API + inbox at /inbox). Point the API at them with the values in
-// .dev.vars.example. Usage: pnpm emulate [--base 4100]
+// Local sign-in providers for dev and e2e (vercel-labs/emulate): Google and Apple (OIDC, RS256 ID
+// tokens + JWKS). Point the API at them with the values in .dev.vars.example. Email needs no
+// emulator: `wrangler dev` captures what the send_email binding sends (Local Explorer,
+// /cdn-cgi/local/explorer/api/local/email/sending). Usage: pnpm emulate [--base 4100]
 import { createEmulator } from "emulate";
 
 const i = process.argv.indexOf("--base");
@@ -18,7 +19,6 @@ const seed = {
 const running = await Promise.all([
   createEmulator({ service: "google", port: base + 2, seed }),
   createEmulator({ service: "apple", port: base + 4, seed }),
-  createEmulator({ service: "resend", port: base + 8 }),
 ]);
 for (const e of running) console.log(`emulate: ${e.url}`);
 const stop = async () => {

@@ -1,11 +1,10 @@
 /**
- * vercel-labs/emulate on fixed test ports: real OIDC (RS256 ID tokens + JWKS) for Apple and Google,
- * and a Resend API with an inbox. Started by global-setup.ts; the Worker's env points at these.
+ * vercel-labs/emulate on fixed test ports: real OIDC (RS256 ID tokens + JWKS) for Apple and Google.
+ * Started by global-setup.ts; the Worker's env points at these.
  */
 export const EMULATED = {
   google: "http://localhost:4202",
   apple: "http://localhost:4204",
-  resend: "http://localhost:4208",
 } as const;
 
 export const TEST_CLIENTS = { apple: "org.opengame.app", google: "ogs-test.apps.googleusercontent.com" };

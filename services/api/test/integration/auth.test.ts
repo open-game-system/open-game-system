@@ -1,4 +1,4 @@
-import { SELF } from "cloudflare:test";
+import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { EMULATED, TEST_CLIENTS } from "./emulators";
@@ -31,25 +31,40 @@ async function idToken(provider: Provider, email: string, clientId = TEST_CLIENT
   const picked = await fetch(`${base}${FLOW[provider].callback}`, {
     method: "POST",
     redirect: "manual",
-    body: new URLSearchParams({ email, redirect_uri: redirect, client_id: clientId, scope: "openid email" }),
+    body: new URLSearchParams({
+      email,
+      redirect_uri: redirect,
+      client_id: clientId,
+      scope: "openid email",
+    }),
   });
   const code = new URL(picked.headers.get("location") ?? "").searchParams.get("code") ?? "";
   const res = await fetch(`${base}${FLOW[provider].token}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ grant_type: "authorization_code", code, client_id: clientId, redirect_uri: redirect }),
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      client_id: clientId,
+      redirect_uri: redirect,
+    }),
   });
   return z.object({ id_token: z.string() }).parse(await res.json()).id_token;
 }
 
-const EmailsSchema = z.object({
-  data: z.array(z.object({ to: z.array(z.string()), subject: z.string(), text: z.string(), html: z.string() })),
-});
+const OutboxSchema = z.array(
+  z.object({
+    from: z.object({ email: z.string(), name: z.string() }),
+    to: z.array(z.string()),
+    subject: z.string(),
+    text: z.string(),
+    html: z.string(),
+  }),
+);
 
-/** The newest message the emulated Resend inbox holds for `to`. */
+/** The newest message SEND_EMAIL (Cloudflare Email Service binding) was given for `to`. */
 async function lastEmail(to: string) {
-  const res = await fetch(`${EMULATED.resend}/emails`, { headers: { Authorization: "Bearer re_test_key" } });
-  const mine = EmailsSchema.parse(await res.json()).data.filter((e) => e.to.includes(to));
+  const mine = OutboxSchema.parse(await env.EMAIL_OUTBOX.sent()).filter((e) => e.to.includes(to));
   return mine.at(-1);
 }
 async function emailedCode(to: string) {
@@ -73,11 +88,19 @@ describe.each([
 ] as const)("Sign in with %s (emulated OIDC)", (provider, first, second, third) => {
   it("backs up the profile: the login is linked and /me lists it", async () => {
     const p = await createProfile();
-    const res = await post(`/auth/${provider}`, { idToken: await idToken(provider, first) }, p.token);
+    const res = await post(
+      `/auth/${provider}`,
+      { idToken: await idToken(provider, first) },
+      p.token,
+    );
     expect(res.status).toBe(200);
     const me = MeSchema.parse(await res.json());
     expect(me).toEqual({ profile: p.profile, logins: [{ provider, email: first }] });
-    const again = await post(`/auth/${provider}`, { idToken: await idToken(provider, first) }, p.token);
+    const again = await post(
+      `/auth/${provider}`,
+      { idToken: await idToken(provider, first) },
+      p.token,
+    );
     expect(again.status).toBe(200);
     expect(MeSchema.parse(await again.json()).logins).toHaveLength(1);
   });
@@ -105,7 +128,11 @@ describe.each([
   it("a login belongs to one profile (409 login_in_use)", async () => {
     const [a, b] = [await createProfile(), await createProfile({ name: "B" })];
     await post(`/auth/${provider}`, { idToken: await idToken(provider, third) }, a.token);
-    const res = await post(`/auth/${provider}`, { idToken: await idToken(provider, third) }, b.token);
+    const res = await post(
+      `/auth/${provider}`,
+      { idToken: await idToken(provider, third) },
+      b.token,
+    );
     expect(res.status).toBe(409);
     expect(await errorOf(res)).toBe("login_in_use");
   });
@@ -153,7 +180,7 @@ describe.each([
   });
 });
 
-describe("Sign in with email (emulated Resend inbox)", () => {
+describe("Sign in with email (Cloudflare Email Service binding)", () => {
   async function backUp(p: CreatedProfile, email: string) {
     expect((await post("/auth/email/start", { email })).status).toBe(202);
     return post("/auth/email/verify", { email, code: await emailedCode(email) }, p.token);
@@ -165,6 +192,7 @@ describe("Sign in with email (emulated Resend inbox)", () => {
     expect(res.status).toBe(202);
     expect(await res.json()).toEqual({ sent: true });
     const mail = await lastEmail(email);
+    expect(mail?.from).toEqual({ email: "sign-in@opengame.org", name: "OGS" });
     expect(mail?.subject).toMatch(/OGS/);
     expect(mail?.text).toMatch(/\b\d{6}\b/);
     expect(mail?.html).toContain(await emailedCode(email));

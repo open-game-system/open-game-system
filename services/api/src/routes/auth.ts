@@ -2,6 +2,7 @@ import type { Claims } from "@open-game-system/ogs-protocol";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
 import { CODE_TTL_MS, checkCode, codeEmail, hashCode, newEmailCode } from "../lib/email-code";
+import { cloudflareEmailSender } from "../lib/email-sender";
 import { apiError, invalidBody, parseBody } from "../lib/http";
 import { type OidcProvider, type VerifiedLogin, verifyIdToken } from "../lib/oidc";
 import {
@@ -147,12 +148,15 @@ for (const provider of ["apple", "google"] as const) {
   });
 }
 
-/** POST /auth/email/start — emails a 6-digit code (Resend). A new start replaces the old code. */
+/**
+ * POST /auth/email/start — emails a 6-digit code with Cloudflare Email Service (SEND_EMAIL).
+ * A new start replaces the old code.
+ */
 auth.post("/email/start", async (c) => {
   const body = await parseBody(c, EmailStartSchema);
   if (!body) return invalidBody(c, "a valid email is required");
-  const key = c.env.RESEND_API_KEY;
-  if (!key) return apiError(c, 503, "email_unavailable", "Email sign-in is not configured");
+  const binding = c.env.SEND_EMAIL;
+  if (!binding) return apiError(c, 503, "email_unavailable", "Email sign-in is not configured");
   const code = newEmailCode();
   await c.env.DB.prepare(
     `INSERT INTO email_codes (email, code_hash, expires_at, attempts) VALUES (?, ?, ?, 0)
@@ -161,17 +165,12 @@ auth.post("/email/start", async (c) => {
   )
     .bind(body.email, await hashCode(body.email, code), Date.now() + CODE_TTL_MS)
     .run();
-  const base = (c.env.RESEND_BASE_URL ?? "https://api.resend.com").replace(/\/+$/, "");
-  const sent = await fetch(`${base}/emails`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: c.env.EMAIL_FROM ?? "OGS <hello@opengame.org>",
-      to: [body.email],
-      ...codeEmail(code),
-    }),
-  });
-  if (!sent.ok) return apiError(c, 502, "email_failed", "Couldn't send the email");
+  try {
+    await cloudflareEmailSender(binding, c.env.EMAIL_FROM).send(body.email, codeEmail(code));
+  } catch (error) {
+    console.error("email_failed", error);
+    return apiError(c, 502, "email_failed", "Couldn't send the email");
+  }
   return c.json({ sent: true }, 202);
 });
 

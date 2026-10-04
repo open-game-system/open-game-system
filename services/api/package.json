@@ -25,14 +25,14 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.13.2",
-    "@cloudflare/workers-types": "^4.20260317.1",
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20261004.1",
     "@open-game-system/profile-kit": "workspace:*",
     "@playwright/test": "^1.58.2",
     "@vitest/coverage-v8": "^4.1.0",
     "emulate": "0.12.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
-    "wrangler": "^4.75.0"
+    "wrangler": "^4.147.0"
   }
 }

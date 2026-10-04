@@ -6,7 +6,7 @@
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "account_id": "ccf4d9a0a3b76ffae0b6ee048de66f07",
 
-  // Sign-in providers (OGS profiles). Secrets (RESEND_API_KEY, OGS_JWT_SECRET, and
+  // Sign-in providers (OGS profiles). Secrets (OGS_JWT_SECRET and
   // OGS_GAME_SIGNING_KEY: `node scripts/game-key.mjs --print | wrangler secret put OGS_GAME_SIGNING_KEY`) are set with
   // `wrangler secret put`; local dev overrides these in .dev.vars (see .dev.vars.example).
   "vars": {
@@ -14,11 +14,22 @@
     "APPLE_CLIENT_IDS": "org.opengame.app",
     "GOOGLE_ISSUER": "https://accounts.google.com",
     "GOOGLE_CLIENT_IDS": "",
-    "RESEND_BASE_URL": "https://api.resend.com",
-    "EMAIL_FROM": "OGS <hello@opengame.org>",
+    // Email sign-in codes go out from this address through SEND_EMAIL (below).
+    "EMAIL_FROM": "sign-in@opengame.org",
     // Game tokens: avatars are the launcher's painted stickers (<base>/art/story-nook/char-<sticker>.webp).
     "AVATAR_BASE_URL": "https://tv.opengame.org"
   },
+
+  // Cloudflare Email Service (Email Sending): env.SEND_EMAIL.send({ from, to, subject, text, html }).
+  // Needs opengame.org onboarded under Compute > Email Service > Email Sending (SPF/DKIM/DMARC) on
+  // this account (Workers Paid). Locally (`wrangler dev`, vitest) nothing is delivered: wrangler dev
+  // captures each message and lists it at /cdn-cgi/local/explorer/api/local/email/sending.
+  "send_email": [
+    {
+      "name": "SEND_EMAIL",
+      "allowed_sender_addresses": ["sign-in@opengame.org"]
+    }
+  ],
 
   "triggers": {
     "crons": ["*/5 * * * *"]

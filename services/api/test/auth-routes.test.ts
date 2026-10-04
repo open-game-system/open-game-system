@@ -10,14 +10,21 @@ import { type FakeIssuer, fakeIssuer } from "./support/issuer";
 const SECRET = "auth-routes-secret";
 const APPLE = "https://apple.test";
 const GOOGLE = "https://accounts.google.com";
-const RESEND = "https://resend.test";
 const DEVICE = { deviceId: "new-ipad", kind: "tablet", name: "Juneau's iPad" };
 
 let d1: TestD1;
 let apple: FakeIssuer;
 let google: FakeIssuer;
-let resendStatus = 200;
-let sent: { url: string; auth: string | null; body: unknown }[] = [];
+let sendFails = false;
+let sent: unknown[] = [];
+/** The Cloudflare Email Service binding (SEND_EMAIL), recording what the route sends. */
+const sendEmail: SendEmail = {
+  async send(message: unknown) {
+    sent.push(message);
+    if (sendFails) throw new Error("E_SENDER_NOT_VERIFIED");
+    return { messageId: "<m@opengame.org>" };
+  },
+};
 
 beforeAll(async () => {
   d1 = await openTestD1();
@@ -35,20 +42,12 @@ beforeEach(async () => {
       "INSERT INTO profiles (id, handle, name, sticker) VALUES ('dad', 'dad', 'Dad', 'moon')",
     ),
   ]);
-  resendStatus = 200;
+  sendFails = false;
   sent = [];
-  vi.stubGlobal("fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+  vi.stubGlobal("fetch", async (input: RequestInfo | URL) => {
     const url = String(input);
     const issued = apple.handles(url) ?? google.handles(url);
     if (issued) return issued;
-    if (url.startsWith(RESEND)) {
-      sent.push({
-        url,
-        auth: new Headers(init?.headers).get("Authorization"),
-        body: JSON.parse(String(init?.body)),
-      });
-      return new Response("{}", { status: resendStatus });
-    }
     return new Response("not found", { status: 404 });
   });
 });
@@ -60,8 +59,8 @@ const baseEnv = () => ({
   APPLE_ISSUER: APPLE,
   APPLE_CLIENT_IDS: "org.opengame.app, other.app",
   GOOGLE_CLIENT_IDS: "g-client",
-  RESEND_BASE_URL: `${RESEND}/`,
-  RESEND_API_KEY: "re_key",
+  SEND_EMAIL: sendEmail,
+  EMAIL_FROM: "sign-in@opengame.org",
 });
 
 const tokenFor = (claims: Omit<Claims, "exp">) =>
@@ -235,36 +234,42 @@ describe("POST /auth/apple and /auth/google", () => {
 });
 
 describe("POST /auth/email/start", () => {
-  it("stores a hashed code and emails it through Resend", async () => {
+  it("stores a hashed code and emails it with Cloudflare Email Service", async () => {
     const r = await post("/email/start", { email: " Mom@Example.com " });
     expect(r).toEqual({ status: 202, json: { sent: true } });
     expect(sent).toHaveLength(1);
     const mail = z
-      .object({ from: z.string(), to: z.array(z.string()), text: z.string() })
-      .parse(sent[0].body);
-    expect(sent[0].url).toBe(`${RESEND}/emails`);
-    expect(sent[0].auth).toBe("Bearer re_key");
-    expect(mail.from).toBe("OGS <hello@opengame.org>");
-    expect(mail.to).toEqual(["mom@example.com"]);
+      .object({
+        from: z.object({ email: z.string(), name: z.string() }),
+        to: z.string(),
+        subject: z.string(),
+        text: z.string(),
+      })
+      .parse(sent[0]);
+    expect(mail.from).toEqual({ email: "sign-in@opengame.org", name: "OGS" });
+    expect(mail.to).toBe("mom@example.com");
     const code = /\b(\d{6})\b/.exec(mail.text)?.[1] ?? "";
+    expect(mail.subject).toBe(`${code} is your OGS code`);
     const row = await d1.db
       .prepare("SELECT code_hash, attempts FROM email_codes WHERE email = 'mom@example.com'")
       .first();
     expect(row).toEqual({ code_hash: await hashCode("mom@example.com", code), attempts: 0 });
   });
 
-  it("uses the configured sender and Resend's real base URL by default", async () => {
-    const env = { ...baseEnv(), RESEND_BASE_URL: undefined, EMAIL_FROM: "Test <t@example.com>" };
+  it("sends from the configured address", async () => {
+    const env = { ...baseEnv(), EMAIL_FROM: "codes@example.org" };
     await post("/email/start", { email: "a@example.com" }, { env });
-    expect(sent).toEqual([]); // went to api.resend.com, which the stub doesn't answer as Resend
+    expect(z.object({ from: z.object({ email: z.string() }) }).parse(sent[0]).from.email).toBe(
+      "codes@example.org",
+    );
   });
 
   it.each([
     ["an invalid email", { email: "nope" }, {}, 400, "invalid_body"],
     [
-      "no Resend key",
+      "no email binding",
       { email: "a@example.com" },
-      { RESEND_API_KEY: undefined },
+      { SEND_EMAIL: undefined },
       503,
       "email_unavailable",
     ],
@@ -272,10 +277,11 @@ describe("POST /auth/email/start", () => {
     const r = await post("/email/start", body, { env: { ...baseEnv(), ...envOver } });
     expect(r.status).toBe(status);
     expect(codeOf(r)).toBe(code);
+    expect(sent).toEqual([]);
   });
 
-  it("answers email_failed when Resend refuses", async () => {
-    resendStatus = 500;
+  it("answers email_failed when Email Service refuses the send", async () => {
+    sendFails = true;
     const r = await post("/email/start", { email: "a@example.com" });
     expect(r.status).toBe(502);
     expect(codeOf(r)).toBe("email_failed");

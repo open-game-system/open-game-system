@@ -66,7 +66,7 @@ Feature: OGS profiles
 
   Scenario: Email back-up uses a 6-digit code
     When Jonathan backs up with email "jonathan@example.com"
-    Then the emulated inbox gets a message with a 6-digit code and a sign-in link
+    Then a message with a 6-digit code and a sign-in link is sent to that address (Cloudflare Email Service; captured locally in tests)
     When he enters the code
     Then his profile is backed up with that email
     And a wrong code is refused, and a code stops working after 10 minutes

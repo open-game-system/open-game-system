@@ -2,21 +2,32 @@
 // Acceptance: docs/acceptance/2026-10-04-ogs-profiles.feature.
 import { describe, expect, test } from "e2e";
 import { z } from "zod";
-import { api, cast, couch, ErrorSchema, profile, ProfileSchema } from "./profile";
+import { API, api, cast, couch, ErrorSchema, ProfileSchema, profile } from "./profile";
 
 const codeOf = (json: unknown) => ErrorSchema.parse(json).error.code;
 const Me = z.object({ profile: ProfileSchema });
 const SignedIn = Me.extend({ token: z.string() });
-const Emails = z.object({ data: z.array(z.object({ to: z.array(z.string()), text: z.string() })) });
+const Sent = z.object({
+  result: z.array(z.object({ to: z.array(z.string()), subject: z.string(), sentAt: z.string() })),
+});
 
-const RESEND = process.env.OGS_RESEND ?? "http://localhost:4108";
+/**
+ * Sign-in codes: `wrangler dev` captures what the Cloudflare Email Service binding (SEND_EMAIL)
+ * sends and lists it in its Local Explorer. That API exists only in local dev and only answers a
+ * localhost Host, so it is read on localhost at the API's port.
+ */
+const sentEmails = () => {
+  const url = new URL("/cdn-cgi/local/explorer/api/local/email/sending?per_page=100", API);
+  url.hostname = "localhost";
+  return url;
+};
 
-/** The newest 6-digit code the emulated Resend inbox holds for `to`. */
+/** The 6-digit code in the newest email the local API sent to `to`. */
 async function emailedCode(to: string): Promise<string> {
-  const res = await fetch(`${RESEND}/emails`, { headers: { authorization: "Bearer e2e" } });
-  const { data } = Emails.parse(await res.json());
-  const mine = data.filter((e) => e.to.includes(to));
-  return /\b(\d{6})\b/.exec(mine.at(-1)?.text ?? "")?.[1] ?? "";
+  const res = await fetch(sentEmails());
+  const mine = Sent.parse(await res.json()).result.filter((e) => e.to.includes(to));
+  const newest = mine.sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
+  return /\b(\d{6})\b/.exec(newest?.subject ?? "")?.[1] ?? "";
 }
 
 describe("API identity", { tags: ["api"], requires: ["browser"] }, () => {
@@ -25,7 +36,11 @@ describe("API identity", { tags: ["api"], requires: ["browser"] }, () => {
     const tv = await cast(host);
     const read = await api("/api/v1/me/library", { token: tv.launcherToken });
     expect(read.status).toBe(200);
-    const write = await api("/api/v1/me/library", { method: "PUT", body: { appIds: ["rocket-crew"] }, token: tv.launcherToken });
+    const write = await api("/api/v1/me/library", {
+      method: "PUT",
+      body: { appIds: ["rocket-crew"] },
+      token: tv.launcherToken,
+    });
     expect(write.status).toBe(403);
     expect(codeOf(write.json)).toBe("profile_token_required");
   });
@@ -50,16 +65,23 @@ describe("API identity", { tags: ["api"], requires: ["browser"] }, () => {
     expect(res.json.error).toMatchObject({ code: "missing_auth", status: 401 });
   });
 
-  test("make profile → back up with email (emulated inbox) → wipe → sign in with email → same @id", async () => {
+  test("make profile → back up with email (code from local Email Service capture) → wipe → sign in with email → same @id", async () => {
     const me = await profile("Jonathan", "bear");
     const email = `e2e-${Date.now().toString(36)}@example.com`;
     expect((await api("/api/v1/auth/email/start", { body: { email } })).status).toBe(202);
-    const backedUp = await api("/api/v1/auth/email/verify", { body: { email, code: await emailedCode(email) }, token: me.token });
+    const backedUp = await api("/api/v1/auth/email/verify", {
+      body: { email, code: await emailedCode(email) },
+      token: me.token,
+    });
     expect(backedUp.status).toBe(200);
     // A wiped app has no token: it signs in with the email and gets a new device token.
     await api("/api/v1/auth/email/start", { body: { email } });
     const signedIn = await api("/api/v1/auth/email/verify", {
-      body: { email, code: await emailedCode(email), device: { deviceId: `e2e-new-${Date.now()}`, kind: "phone", name: "New phone" } },
+      body: {
+        email,
+        code: await emailedCode(email),
+        device: { deviceId: `e2e-new-${Date.now()}`, kind: "phone", name: "New phone" },
+      },
     });
     expect(signedIn.status).toBe(200);
     const back = SignedIn.parse(signedIn.json);
@@ -68,4 +90,3 @@ describe("API identity", { tags: ["api"], requires: ["browser"] }, () => {
     expect(Me.parse(again.json).profile.id).toBe(me.id);
   });
 });
-

@@ -142,7 +142,7 @@ route → 403 `profile_token_required`.
 | GET | `/api/v1/sessions/:sid` | its launcher, host or a member | → `{ sessionId, code, tvName, host }`; 403 `not_a_member`, 404 `session_not_found` |
 | POST | `/api/v1/sessions/join` | phone/tablet | `{ code }` (TV code; case, spaces, dashes ignored) → session view; 404 `session_not_found` |
 | POST | `/api/v1/auth/apple`, `/auth/google` | optional phone/tablet | `{ idToken, nonce?, device? }`: with a token links the login (back up) → `Me`; without signs in (`device` required) → `Me & { token }`. 401 `invalid_id_token`, 409 `login_in_use`, 404 `login_not_found` |
-| POST | `/api/v1/auth/email/start` | none | `{ email }` → 202 `{ sent: true }` (6-digit code, 10 min, 5 tries, via Resend); 503 `email_unavailable`, 502 `email_failed` |
+| POST | `/api/v1/auth/email/start` | none | `{ email }` → 202 `{ sent: true }` (6-digit code, 10 min, 5 tries, sent with Cloudflare Email Service); 503 `email_unavailable` (no `SEND_EMAIL` binding), 502 `email_failed` (the binding refused the send) |
 | POST | `/api/v1/auth/email/verify` | optional phone/tablet | `{ email, code, device? }` → like `/auth/apple`; 401 `invalid_code` |
 | POST | `/api/v1/sessions/:sid/join` | phone/tablet | Join a friend's cast (Join card) → session view; host's friends only (or already host/member): 403 `not_a_friend`, 404 `session_not_found` (unknown or older than 12 h) |
 | POST | `/api/v1/friends/invites` | phone/tablet | → 201 `FriendInvite { code: "KITE-42", link, qr, expiresAt }` (10 min, single use; link/qr = `<INVITE_BASE_URL>/<token>`, default `https://opengame.org/add`) |
@@ -160,11 +160,24 @@ route → 403 `profile_token_required`.
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 
 Sign-in config (wrangler `vars`, `.dev.vars.example`): `APPLE_ISSUER`, `APPLE_CLIENT_IDS`,
-`GOOGLE_ISSUER`, `GOOGLE_CLIENT_IDS`, `RESEND_BASE_URL`, `EMAIL_FROM`; secret `RESEND_API_KEY`.
-ID tokens are verified RS256 against the issuer's discovery document → JWKS, plus `iss`, `aud`
-(one of the client ids), `exp`, and `nonce` when sent. Tests and local dev point these at
-vercel-labs/emulate (`pnpm --filter @open-game-system/api emulate`; integration tests start it on
-4202/4204/4208 in `test/integration/global-setup.ts`).
+`GOOGLE_ISSUER`, `GOOGLE_CLIENT_IDS`, `EMAIL_FROM`. ID tokens are verified RS256 against the
+issuer's discovery document → JWKS, plus `iss`, `aud` (one of the client ids), `exp`, and `nonce`
+when sent. Tests and local dev point the issuers at vercel-labs/emulate
+(`pnpm --filter @open-game-system/api emulate`; integration tests start it on 4202/4204 in
+`test/integration/global-setup.ts`).
+
+**Email** goes out through [Cloudflare Email Service](https://developers.cloudflare.com/email-service/)
+(Email Sending): the `send_email` binding `SEND_EMAIL` in `wrangler.jsonc`
+(`allowed_sender_addresses: ["sign-in@opengame.org"]`), called through the one seam
+`src/lib/email-sender.ts` (`cloudflareEmailSender(binding, EMAIL_FROM).send(to, codeEmail(code))`,
+which is `env.SEND_EMAIL.send({ from: { email, name: "OGS" }, to, subject, text, html })`). The
+sender's domain must be onboarded to Email Sending on the account. Locally nothing is delivered:
+`wrangler dev` captures each message and lists it at
+`http://localhost:<port>/cdn-cgi/local/explorer/api/local/email/sending` (a miniflare Local Explorer
+route, localhost Host only, never part of the deployed Worker); e2e (tester.army, Detox) read codes
+there. vitest-pool-workers can't observe the local binding, so the integration config binds
+`SEND_EMAIL` to a recording outbox with the same contract (`test/integration/workers/email-outbox.mjs`,
+read through `EMAIL_OUTBOX`).
 
 ### Game tokens (slice 3: games know who you are)
 

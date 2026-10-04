@@ -467,17 +467,16 @@ export function NameGate({ onJoin, full }) {
 <section>
   <span class="kicker">How we test it</span>
   <h2>Sign-in is e2e-tested with no real accounts</h2>
-  <p class="sub"><a href="https://github.com/vercel-labs/emulate">vercel-labs/emulate</a> runs local Apple and Google OIDC (RS256 ID tokens) and Resend for email. The API points its issuers and mail sender at it in tests.</p>
+  <p class="sub"><a href="https://github.com/vercel-labs/emulate">vercel-labs/emulate</a> runs local Apple and Google OIDC (RS256 ID tokens); email goes through Cloudflare Email Service, which <code>wrangler dev</code> captures locally instead of delivering. The API points its issuers at the emulator in tests.</p>
   <div class="grid">
-<pre class="code"><span class="c"># one process, all three providers</span>
+<pre class="code"><span class="c"># one process, both providers</span>
 npx emulate
 
 <span class="c"># test env for services/api</span>
 APPLE_ISSUER=http://localhost:…/apple
-GOOGLE_ISSUER=http://localhost:…/google
-RESEND_BASE_URL=http://localhost:…/resend</pre>
+GOOGLE_ISSUER=http://localhost:…/google</pre>
     <div class="panel"><span class="tag">E2E path</span>
-      <p style="margin:6px 0 0;font-size:14px">Make profile → Back up with Apple (or Google, or email code read from the emulated inbox) → API verifies the ID token against the emulator's JWKS → wipe the app → sign in → same @id and friends.</p>
+      <p style="margin:6px 0 0;font-size:14px">Make profile → Back up with Apple (or Google, or email code read from wrangler dev's captured mail) → API verifies the ID token against the emulator's JWKS → wipe the app → sign in → same @id and friends.</p>
     </div>
   </div>
 </section>
