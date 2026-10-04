@@ -1,10 +1,19 @@
 import { by, device, element, waitFor } from "detox";
 
 /**
- * The emulated Resend inbox (vercel-labs/emulate) the e2e API sends sign-in codes to.
- * EXPO_PUBLIC_* are baked into the app at build time; the test reads the inbox from Node.
+ * Sign-in codes: the local API (`wrangler dev`) captures what the Cloudflare Email Service binding
+ * sends and lists it in its Local Explorer, which only answers on localhost. E2E_OGS_API is the API
+ * the app was built against (EXPO_PUBLIC_OGS_API is baked in at build time); the test reads the
+ * capture from Node at that API's port.
  */
-const INBOX = process.env.E2E_RESEND_INBOX ?? "http://localhost:4108/emails";
+const SENT_EMAILS = (() => {
+  const url = new URL(
+    "/cdn-cgi/local/explorer/api/local/email/sending?per_page=100",
+    process.env.E2E_OGS_API ?? "http://localhost:8788",
+  );
+  url.hostname = "localhost";
+  return url.href;
+})();
 
 /** A fresh address per run, so a backed-up login never collides with an earlier run's. */
 export const uniqueEmail = (tag: string) =>
@@ -13,20 +22,20 @@ export const uniqueEmail = (tag: string) =>
 /** The 6-digit code in the newest email to `email` sent at or after `since` (polls briefly). */
 export async function emailCode(email: string, since: number): Promise<string> {
   for (let i = 0; i < 20; i++) {
-    const res = await fetch(INBOX, { headers: { Authorization: "Bearer e2e" } });
+    const res = await fetch(SENT_EMAILS);
     const body: unknown = await res.json();
     const list: unknown[] =
-      typeof body === "object" && body !== null && "data" in body && Array.isArray(body.data)
-        ? body.data
+      typeof body === "object" && body !== null && "result" in body && Array.isArray(body.result)
+        ? body.result
         : [];
     let best: { at: number; code: string } | null = null;
     for (const mail of list) {
       if (typeof mail !== "object" || mail === null) continue;
       const to = "to" in mail ? mail.to : null;
       const subject = "subject" in mail ? mail.subject : null;
-      const created = "created_at" in mail ? mail.created_at : null;
+      const sent = "sentAt" in mail ? mail.sentAt : null;
       if (!Array.isArray(to) || !to.includes(email) || typeof subject !== "string") continue;
-      const at = typeof created === "string" ? Date.parse(created) : 0;
+      const at = typeof sent === "string" ? Date.parse(sent) : 0;
       const code = subject.match(/\b(\d{6})\b/)?.[1];
       if (code && at >= since - 2000 && (!best || at > best.at)) best = { at, code };
     }
@@ -81,7 +90,7 @@ export async function skipOnboarding(name = "Tester"): Promise<void> {
     .withTimeout(10000);
 }
 
-/** Back up / sign in with email: address, then the code from the emulated inbox. */
+/** Back up / sign in with email: address, then the code the local API's email binding sent. */
 export async function continueWithEmail(email: string): Promise<void> {
   await waitFor(element(by.id("signInScreen")))
     .toBeVisible()
