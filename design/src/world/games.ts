@@ -26,7 +26,14 @@ export interface GameManifest {
   tvUrl?: string;
   /** Art direction, from the game's own repo. Concepts must use these, not a house palette. */
   palette: { ground: string; ink: string; accent: string; accent2: string };
-  art: { tv: string; alt?: string; extra?: Record<string, string> };
+  art: {
+    tv: string;
+    alt?: string;
+    extra?: Record<string, string>;
+    /** HUD-safe crop of the key art: a zoom and its anchor (% of the image), so a host's chrome never
+     * meets the game's own HUD (score bars, corner buttons). Config, not app code. */
+    safe?: { scale: number; ox: number; oy: number };
+  };
   /** The game's own one-line art direction, for concept agents. */
   look: string;
 }
@@ -48,7 +55,7 @@ export const GAMES: GameManifest[] = [
     startUrl: "https://rocket-crew.jonathanrmumm.workers.dev/",
     tvUrl: "https://rocket-crew.jonathanrmumm.workers.dev/tv",
     palette: { ground: "#1b0f3a", ink: "#fff6e0", accent: "#ff5fa2", accent2: "#ffd23f" },
-    art: { tv: "/art/rocket-crew/tv.jpg", alt: "/art/rocket-crew/alt.jpg", extra: { launch: "/art/rocket-crew/launch.jpg" } },
+    art: { tv: "/art/rocket-crew/tv.jpg", alt: "/art/rocket-crew/alt.jpg", extra: { launch: "/art/rocket-crew/launch.jpg" }, safe: { scale: 1.17, ox: 50, oy: 100 } },
     look: "Violet nebula space, glossy toy rocket (white + bubblegum pink), chunky arcade display type, gold stars.",
   },
   {
@@ -68,7 +75,7 @@ export const GAMES: GameManifest[] = [
     startUrl: "https://bake-shop.jonathanrmumm.workers.dev/",
     tvUrl: "https://bake-shop.jonathanrmumm.workers.dev/tv",
     palette: { ground: "#fff1d6", ink: "#6b3a22", accent: "#f46a8e", accent2: "#8fddbe" },
-    art: { tv: "/art/bake-shop/tv.jpg", alt: "/art/bake-shop/alt.jpg", extra: { bunny: "/art/bake-shop/char-bunny.webp", bear: "/art/bake-shop/char-bear.webp" } },
+    art: { tv: "/art/bake-shop/tv.jpg", alt: "/art/bake-shop/alt.jpg", extra: { bunny: "/art/bake-shop/char-bunny.webp", bear: "/art/bake-shop/char-bear.webp" }, safe: { scale: 1.15, ox: 28, oy: 100 } },
     look: "Soft toy diorama bakery, late-afternoon window light, butter cream + strawberry + mint, plush customers.",
   },
   {
@@ -92,6 +99,8 @@ export const GAMES: GameManifest[] = [
       tv: "/art/story-nook/tv.jpg",
       alt: "/art/story-nook/alt.jpg",
       extra: { journey: "/art/story-nook/journey.jpg", dragon: "/art/story-nook/char-dragon.webp", dinosaur: "/art/story-nook/char-dinosaur.webp", dinoSleep: "/art/story-nook/char-dinosaur-sleep.webp", owl: "/art/story-nook/char-owl.webp", turtle: "/art/story-nook/char-turtle.webp", bear: "/art/story-nook/char-bear.webp" },
+      safe: { scale: 1.04, ox: 50, oy: 60 },
+
     },
     look: "Cut-paper pop-up storybook at dusk: indigo night, honey lamplight, white die-cut borders, serif storybook type.",
   },
@@ -112,7 +121,7 @@ export const GAMES: GameManifest[] = [
     startUrl: "https://peekaboo-garden.jonathanrmumm.workers.dev/",
     tvUrl: "https://peekaboo-garden.jonathanrmumm.workers.dev/tv",
     palette: { ground: "#3f7d2b", ink: "#fffbe8", accent: "#f3c94f", accent2: "#e0775a" },
-    art: { tv: "/art/peekaboo-garden/tv.jpg", alt: "/art/peekaboo-garden/alt.jpg", extra: { frog: "/art/peekaboo-garden/frog.jpg" } },
+    art: { tv: "/art/peekaboo-garden/tv.jpg", alt: "/art/peekaboo-garden/alt.jpg", extra: { frog: "/art/peekaboo-garden/frog.jpg" }, safe: { scale: 1.13, ox: 50, oy: 100 } },
     look: "Painted clay-toy garden diorama, late sun from upper left, lush greens, buttercup accents.",
   },
   {
@@ -131,7 +140,7 @@ export const GAMES: GameManifest[] = [
     startUrl: "https://night-flight.jonathanrmumm.workers.dev/",
     tvUrl: "https://night-flight.jonathanrmumm.workers.dev/tv",
     palette: { ground: "#211a3d", ink: "#fff4d8", accent: "#ffc94a", accent2: "#7b6ad6" },
-    art: { tv: "/art/night-flight/tv.jpg", alt: "/art/night-flight/alt.jpg", extra: { owl: "/art/night-flight/owl.jpg" } },
+    art: { tv: "/art/night-flight/tv.jpg", alt: "/art/night-flight/alt.jpg", extra: { owl: "/art/night-flight/owl.jpg" }, safe: { scale: 1.85, ox: 46, oy: 49 } },
     look: "Moonlit forest with a giant spiral tree, round felt owls, six colour+symbol stones, dawn creeping in.",
   },
   {
@@ -150,7 +159,7 @@ export const GAMES: GameManifest[] = [
     startUrl: "https://hearthisle.opengame.org/",
     tvUrl: "https://hearthisle.opengame.org/tv",
     palette: { ground: "#1f6f8b", ink: "#2b2118", accent: "#d9b44a", accent2: "#c8412f" },
-    art: { tv: "/art/hearthisle/tv.jpg", alt: "/art/hearthisle/wheat.jpg", extra: { night: "/art/hearthisle/night.jpg", dusk: "/art/hearthisle/dusk.jpg" } },
+    art: { tv: "/art/hearthisle/tv.jpg", alt: "/art/hearthisle/wheat.jpg", extra: { night: "/art/hearthisle/night.jpg", dusk: "/art/hearthisle/dusk.jpg" }, safe: { scale: 1.06, ox: 50, oy: 50 } },
     look: "Tilt-shift miniature island of painted resin, warm studio key, parchment + carved wood UI, serif display.",
   },
   {
