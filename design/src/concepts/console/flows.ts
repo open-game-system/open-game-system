@@ -8,7 +8,7 @@ export const flows: Flow[] = [
     start: "home.02-tv-console-home",
     steps: [
       { device: "phone", bot: "act-bake-shop", mark: "Tap Bake Shop on the phone: the TV home turns to it", wait: 1800 },
-      { device: "phone", bot: "play-on-tv", mark: "Play on TV: day 4 opens, Juneau's iPad drops into his seat", wait: 500 },
+      { device: "phone", bot: "play-on-tv", mark: "Play on TV: day 4 opens, Juneau's iPad drops into his seat", wait: 300 },
     ],
   },
   {
@@ -67,7 +67,7 @@ export const flows: Flow[] = [
     steps: [
       { device: "phone", bot: "night-resume", mark: "Every home is back: resume turn 14 on the TV. Nana & Pop roll", wait: 4200 },
       { device: "phone", bot: "night-pause", mark: "Our roll came round; bedtime. Pause: it resumes when everyone's back", wait: 1800 },
-      { device: "phone", bot: "night-back", mark: "Home: the night waits for next Friday", wait: 1000 },
+      { device: "phone", bot: "night-back", mark: "Home: the night waits for next Friday", wait: 100 },
     ],
   },
   {
@@ -129,7 +129,7 @@ export const flows: Flow[] = [
       { device: "phone", bot: "start-new", mark: "Continue would pick up day 4. New asks what happens to day 4 first", wait: 1800 },
       { device: "phone", bot: "fate-replace", mark: "Replace says plainly: day 4 is gone for good", wait: 1600 },
       { device: "phone", bot: "fate-keep", mark: "Keep it as a second save instead", wait: 1200 },
-      { device: "phone", bot: "new-confirm", mark: "A new bakery on the TV; day 4 is still there for Continue", wait: 2600 },
+      { device: "phone", bot: "new-confirm", mark: "A new bakery on the TV; day 4 is still there for Continue", wait: 400 },
     ],
   },
   {
@@ -139,7 +139,7 @@ export const flows: Flow[] = [
     start: "home.09-move-incoming",
     steps: [
       { device: "phone", bot: "turn-wd-3", mark: "Tunde played. His whale hops down the path onto his board; Your turn counts 3", wait: 1100 },
-      { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 300 },
+      { device: "phone", bot: "duel-back", mark: "Word Duel: his game is under Your turn, with JAZZ on his board", wait: 0 },
     ],
   },
 ];
