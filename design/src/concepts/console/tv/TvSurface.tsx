@@ -6,6 +6,7 @@ import { TvConnecting, TvOff } from "./TvCastState";
 import { TvCutover } from "./TvCutover";
 import { TvHome } from "./TvHome";
 import { TvPlaying } from "./TvPlaying";
+import { showsWelcome, TvWelcome } from "./TvWelcome";
 
 export function TvSurface({ store }: { store: Store<S> }) {
   const s = useStore(store);
@@ -20,7 +21,9 @@ export function TvSurface({ store }: { store: Store<S> }) {
   }
   return (
     <div className="tv">
-      {s.cast === "off" ? (
+      {showsWelcome(s) ? (
+        <TvWelcome s={s} />
+      ) : s.cast === "off" ? (
         <TvOff />
       ) : s.cast === "connecting" ? (
         <TvConnecting s={s} />

@@ -224,3 +224,15 @@
 /* Identity (pass 2): the shared display face on every TV title; people are their stickers (Portrait). */
 .ct-home__focus h1, .ct-band__title h1, .ct-cut__next h2, .ct-paused__info h2, .ct-clock b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); letter-spacing: -0.02em; }
 .ct-follow { color: var(--ogs-path); }
+
+/* ---- first run: the welcome that mirrors setup on the phone (TvWelcome) ---- */
+.ct-welcome { position: absolute; inset: 0; background: var(--ogs-dusk-0, #120f22); color: var(--ct-ink); overflow: hidden; animation: ct-fade 0.6s both; }
+.ct-welcome__glow { position: absolute; left: -10%; right: -10%; bottom: -46%; height: 90%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 180, 143, .30), rgba(255, 200, 97, .10) 55%, transparent); animation: ct-breathe 6s ease-in-out infinite alternate both; }
+@keyframes ct-breathe { from { opacity: 0.7; transform: scale(0.97); } }
+.ct-welcome__body { position: absolute; left: 0; right: 0; top: 270px; display: grid; justify-items: center; text-align: center; }
+.ct-welcome__who { gap: 96px; margin-top: 96px; align-items: flex-start; }
+.ct-welcome__sticker { display: block; animation: ct-pop 0.45s cubic-bezier(.3, 1.5, .5, 1) both; }
+.ct-welcome__device { position: relative; display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; color: var(--ct-ink2); border: 3px dashed rgba(244, 242, 238, .35); }
+.ct-welcome__device.is-waiting { color: var(--ct-warm); border-color: var(--ct-warm); animation: ct-wait 1.2s ease-in-out infinite alternate both; }
+.ct-welcome__device.is-paired { color: #10241a; background: var(--ogs-mint, #9fe3bf); border: 0; animation: ct-pop 0.4s cubic-bezier(.3, 1.6, .5, 1) both; }
+.ct-welcome__device i { position: absolute; right: -6px; bottom: -6px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #fff; color: #10241a; box-shadow: 0 0 0 4px var(--ogs-dusk-0, #120f22); }
