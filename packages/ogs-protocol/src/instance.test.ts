@@ -7,7 +7,7 @@ const D = 24 * H;
 const base = (over: Partial<Instance>): Instance => ({
   instanceId: "x",
   appId: "rocket-crew",
-  householdId: "hh",
+  profileId: "jonathan",
   status: "active",
   title: "Mission 6",
   detail: "",

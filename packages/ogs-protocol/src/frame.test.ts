@@ -12,7 +12,7 @@ const start = {
   type: "ogs:start",
   instanceId: "rc-1",
   mode: "continue",
-  roster: [{ personId: "juneau", roleId: "fixer" }],
+  roster: [{ profileId: "juneau", roleId: "fixer" }],
   token: "signed.jwt",
 };
 

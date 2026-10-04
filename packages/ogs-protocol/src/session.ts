@@ -5,21 +5,30 @@ export const ClientKindSchema = z.enum(["phone", "tablet", "launcher"]);
 export type ClientKind = z.infer<typeof ClientKindSchema>;
 
 export const RosterEntrySchema = z.object({
-  personId: z.string(),
+  profileId: z.string(),
   roleId: z.string(),
   deviceId: z.string().optional(),
 });
 export type RosterEntry = z.infer<typeof RosterEntrySchema>;
 
+/** A profile on the couch: whoever joined this cast (the TV shows them). */
+export const MemberSchema = z.object({
+  profileId: z.string(),
+  name: z.string(),
+  sticker: z.string(),
+});
+export type Member = z.infer<typeof MemberSchema>;
+
 export const DirectionSchema = z.enum(["up", "down", "left", "right"]);
 
-/** Messages any client sends to the household's couch session. */
+/** Messages any client sends to the couch session. */
 export const ClientMessageSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("hello"),
     deviceId: z.string(),
     kind: ClientKindSchema,
-    personId: z.string().optional(),
+    /** The profile on this phone or tablet (none for the launcher). */
+    profile: MemberSchema.optional(),
   }),
   z.object({ type: z.literal("bye"), deviceId: z.string() }),
   z.object({ type: z.literal("focus.set"), itemId: z.string() }),
@@ -67,7 +76,7 @@ export interface CurrentGame {
 export interface SessionDevice {
   deviceId: string;
   kind: ClientKind;
-  personId?: string;
+  profileId?: string;
   online: boolean;
 }
 
@@ -75,7 +84,9 @@ export type Screen = "home" | "game-page" | "game";
 
 /** Parses the session state a client receives (the reducer's output). */
 export const SessionStateSchema = z.object({
-  householdId: z.string(),
+  sessionId: z.string(),
+  hostProfileId: z.string(),
+  members: z.array(MemberSchema),
   cast: z.boolean(),
   screen: z.enum(["home", "game-page", "game"]),
   focus: z.string().nullable(),
@@ -100,7 +111,7 @@ export const SessionStateSchema = z.object({
     z.object({
       deviceId: z.string(),
       kind: ClientKindSchema,
-      personId: z.string().optional(),
+      profileId: z.string().optional(),
       online: z.boolean(),
     }),
   ),
@@ -109,7 +120,11 @@ export const SessionStateSchema = z.object({
 });
 
 export interface SessionState {
-  householdId: string;
+  sessionId: string;
+  /** The caster: the session shows their library. */
+  hostProfileId: string;
+  /** Everyone who joined this cast, in join order. */
+  members: Member[];
   /** True while a launcher (the TV) is connected. */
   cast: boolean;
   screen: Screen;
@@ -139,9 +154,11 @@ export type Outbound =
   | { to: { deviceId: string }; msg: { type: "follow"; target: FollowTarget } }
   | { to: { deviceId: string }; msg: { type: "remote.offer"; from: string } };
 
-export function initialSession(householdId: string): SessionState {
+export function initialSession(sessionId: string, hostProfileId: string): SessionState {
   return {
-    householdId,
+    sessionId,
+    hostProfileId,
+    members: [],
     cast: false,
     screen: "home",
     focus: null,
@@ -188,7 +205,7 @@ function followAll(s: SessionState, before: SessionState): Outbound[] {
   }
   for (const d of s.devices) {
     if (d.kind !== "tablet" || !d.online) continue;
-    const entry = s.current?.roster.find((r) => r.personId === d.personId);
+    const entry = s.current?.roster.find((r) => r.profileId === d.profileId);
     const target: FollowTarget =
       s.current && entry
         ? {
@@ -198,7 +215,7 @@ function followAll(s: SessionState, before: SessionState): Outbound[] {
             roleId: entry.roleId,
           }
         : { kind: "launcher" };
-    const was = before.current?.roster.find((r) => r.personId === d.personId);
+    const was = before.current?.roster.find((r) => r.profileId === d.profileId);
     const changed =
       before.current?.instanceId !== s.current?.instanceId ||
       was?.roleId !== entry?.roleId ||
@@ -227,9 +244,17 @@ export function reduceSession(
       );
       const devices = [
         ...s.devices.filter((d) => d.deviceId !== msg.deviceId),
-        { deviceId: msg.deviceId, kind: msg.kind, personId: msg.personId, online: true },
+        { deviceId: msg.deviceId, kind: msg.kind, profileId: msg.profile?.profileId, online: true },
       ];
       s = { ...s, devices };
+      const joined = msg.profile;
+      if (joined) {
+        const known = s.members.some((m) => m.profileId === joined.profileId);
+        const members = known
+          ? s.members.map((m) => (m.profileId === joined.profileId ? joined : m))
+          : [...s.members, joined];
+        s = { ...s, members };
+      }
       if (msg.kind === "launcher")
         s = { ...s, cast: true, casts: knownLauncher ? s.casts : s.casts + 1 };
       if (msg.kind === "phone" && !s.remote) s = { ...s, remote: msg.deviceId };

@@ -4,7 +4,7 @@ import { type Instance, InstanceReportSchema, InstanceSchema, playingView } from
 const instance = () => ({
   instanceId: "rocket-crew-abc",
   appId: "rocket-crew",
-  householdId: "hh-mumm",
+  profileId: "jonathan",
   status: "active",
   updatedAt: 1_000,
   source: "bridge",
@@ -32,7 +32,7 @@ describe("instance schema", () => {
   it.each([
     "instanceId",
     "appId",
-    "householdId",
+    "profileId",
     "status",
     "updatedAt",
     "source",
@@ -40,7 +40,7 @@ describe("instance schema", () => {
     expect(InstanceSchema.safeParse(omit(instance(), key)).success).toBe(false);
   });
 
-  it.each(["instanceId", "appId", "householdId"])("an empty %s is rejected", (key) => {
+  it.each(["instanceId", "appId", "profileId"])("an empty %s is rejected", (key) => {
     expect(InstanceSchema.safeParse({ ...instance(), [key]: "" }).success).toBe(false);
   });
 
@@ -88,15 +88,15 @@ describe("instance report (what a game sends)", () => {
     expect(InstanceReportSchema.parse(report)).toEqual(report);
   });
 
-  it("needs no household, time or source: those come from the token and receiver", () => {
+  it("needs no profile, time or source: those come from the token and receiver", () => {
     const r = { instanceId: "i", appId: "a", status: "active" };
     expect(InstanceReportSchema.parse(r)).toEqual({ ...r, title: "", detail: "" });
   });
 
-  it("drops a household, time or source the game tries to set", () => {
+  it("drops a profile, time or source the game tries to set", () => {
     const parsed = InstanceReportSchema.parse({
       ...report,
-      householdId: "someone-else",
+      profileId: "someone-else",
       updatedAt: 5,
       source: "server",
     });
@@ -114,7 +114,7 @@ const D = 24 * H;
 const inst = (over: Partial<Instance>): Instance => ({
   instanceId: "x",
   appId: "rocket-crew",
-  householdId: "hh",
+  profileId: "jonathan",
   status: "suspended",
   title: "",
   detail: "",

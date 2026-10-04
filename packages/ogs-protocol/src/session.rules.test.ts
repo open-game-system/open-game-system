@@ -9,8 +9,9 @@ import {
   SessionStateSchema,
 } from "./session";
 
+const member = (profileId: string) => ({ profileId, name: profileId, sticker: "bear" });
 const T = 5_000;
-function run(msgs: ClientMessage[], from: SessionState = initialSession("hh")) {
+function run(msgs: ClientMessage[], from: SessionState = initialSession("s-1", "dad")) {
   let s = from;
   let last: Outbound[] = [];
   for (const [i, m] of msgs.entries()) {
@@ -23,9 +24,11 @@ function run(msgs: ClientMessage[], from: SessionState = initialSession("hh")) {
 const hello = (
   deviceId: string,
   kind: "phone" | "tablet" | "launcher",
-  personId?: string,
+  profileId?: string,
 ): ClientMessage =>
-  personId ? { type: "hello", deviceId, kind, personId } : { type: "hello", deviceId, kind };
+  profileId
+    ? { type: "hello", deviceId, kind, profile: member(profileId) }
+    : { type: "hello", deviceId, kind };
 const living = (): ClientMessage[] => [
   hello("phone-dad", "phone", "dad"),
   hello("tv", "launcher"),
@@ -33,8 +36,8 @@ const living = (): ClientMessage[] => [
   hello("ipad-ava", "tablet", "ava"),
 ];
 const crew = [
-  { personId: "dad", roleId: "captain" },
-  { personId: "juneau", roleId: "fixer" },
+  { profileId: "dad", roleId: "captain" },
+  { profileId: "juneau", roleId: "fixer" },
 ];
 const startRc: ClientMessage = {
   type: "game.start",
@@ -47,8 +50,10 @@ const offers = (out: Outbound[]) => out.filter((o) => o.msg.type === "remote.off
 
 describe("couch session: every reply", () => {
   it("starts with no cast, nothing on screen and no devices", () => {
-    expect(initialSession("hh")).toEqual({
-      householdId: "hh",
+    expect(initialSession("s-1", "dad")).toEqual({
+      sessionId: "s-1",
+      hostProfileId: "dad",
+      members: [],
       cast: false,
       screen: "home",
       focus: null,
@@ -63,7 +68,7 @@ describe("couch session: every reply", () => {
   });
 
   it("broadcasts the new state to everyone first", () => {
-    const r = reduceSession(initialSession("hh"), hello("phone-dad", "phone"), T);
+    const r = reduceSession(initialSession("s-1", "dad"), hello("phone-dad", "phone"), T);
     expect(r.out[0]).toEqual({ to: "all", msg: { type: "state", state: r.state } });
   });
 });
@@ -72,7 +77,7 @@ describe("couch session: hello", () => {
   it("lists a device once however often it says hello", () => {
     const { s } = run([hello("phone-dad", "phone", "dad"), hello("phone-dad", "phone", "dad")]);
     expect(s.devices).toEqual([
-      { deviceId: "phone-dad", kind: "phone", personId: "dad", online: true },
+      { deviceId: "phone-dad", kind: "phone", profileId: "dad", online: true },
     ]);
   });
 
@@ -136,13 +141,44 @@ describe("couch session: hello", () => {
   });
 });
 
+describe("couch session: members", () => {
+  it("keeps the session's id and host", () => {
+    const { s } = run(living(), initialSession("s-9", "mom"));
+    expect([s.sessionId, s.hostProfileId]).toEqual(["s-9", "mom"]);
+  });
+
+  it("everyone who joined is a member, in the order they joined; the launcher is not", () => {
+    const { s } = run(living());
+    expect(s.members).toEqual([member("dad"), member("juneau"), member("ava")]);
+  });
+
+  it("a profile on two devices is one member, with its latest name and sticker", () => {
+    const renamed = { profileId: "dad", name: "Jon", sticker: "owl" };
+    const { s } = run([
+      hello("phone-dad", "phone", "dad"),
+      hello("ipad-juneau", "tablet", "juneau"),
+      { type: "hello", deviceId: "ipad-dad", kind: "tablet", profile: renamed },
+    ]);
+    expect(s.members).toEqual([renamed, member("juneau")]);
+  });
+
+  it("a member stays on the couch after their device leaves", () => {
+    const { s } = run([...living(), { type: "bye", deviceId: "ipad-ava" }]);
+    expect(s.members.map((m) => m.profileId)).toEqual(["dad", "juneau", "ava"]);
+  });
+
+  it("a hello without a profile adds no member", () => {
+    expect(run([hello("phone-x", "phone")]).s.members).toEqual([]);
+  });
+});
+
 describe("couch session: bye", () => {
   it("marks the device offline but remembers it", () => {
     const { s } = run([...living(), { type: "bye", deviceId: "ipad-ava" }]);
     expect(s.devices.find((d) => d.deviceId === "ipad-ava")).toEqual({
       deviceId: "ipad-ava",
       kind: "tablet",
-      personId: "ava",
+      profileId: "ava",
       online: false,
     });
     expect(s.devices.filter((d) => d.online)).toHaveLength(3);
@@ -549,7 +585,7 @@ describe("couch session: following the game", () => {
         type: "game.start",
         appId: "bake-shop",
         mode: "new",
-        roster: [{ personId: "ava", roleId: "baker" }],
+        roster: [{ profileId: "ava", roleId: "baker" }],
       },
     ]);
     expect(follows(last).map((o) => [o.to, o.msg])).toEqual([
@@ -622,7 +658,7 @@ describe("couch session: game reports", () => {
 
 describe("client message schema", () => {
   const messages: ClientMessage[] = [
-    { type: "hello", deviceId: "d", kind: "phone", personId: "dad" },
+    { type: "hello", deviceId: "d", kind: "phone", profile: member("dad") },
     { type: "hello", deviceId: "d", kind: "tablet" },
     { type: "hello", deviceId: "d", kind: "launcher" },
     { type: "bye", deviceId: "d" },
@@ -639,7 +675,7 @@ describe("client message schema", () => {
       type: "game.start",
       appId: "rc",
       mode: "new",
-      roster: [{ personId: "juneau", roleId: "fixer", deviceId: "ipad" }],
+      roster: [{ profileId: "juneau", roleId: "fixer", deviceId: "ipad" }],
       instanceId: "i",
       hostDeviceId: "phone",
     },
@@ -658,6 +694,10 @@ describe("client message schema", () => {
     ["an empty type", { type: "" }],
     ["hello from an unknown kind", { type: "hello", deviceId: "d", kind: "watch" }],
     ["hello without a device", { type: "hello", kind: "phone" }],
+    [
+      "hello with a profile without a name",
+      { type: "hello", deviceId: "d", kind: "phone", profile: { profileId: "p", sticker: "bear" } },
+    ],
     ["bye without a device", { type: "bye" }],
     ["focus.set without an item", { type: "focus.set" }],
     ["a diagonal focus.move", { type: "focus.move", dir: "up-left" }],
@@ -683,12 +723,12 @@ describe("session state schema", () => {
   });
 
   it.each(["home", "game-page", "game"])("accepts the screen %s", (screen) => {
-    const state = { ...initialSession("hh"), screen };
+    const state = { ...initialSession("s-1", "dad"), screen };
     expect(SessionStateSchema.parse(state).screen).toBe(screen);
   });
 
   it("rejects an unknown screen", () => {
-    expect(SessionStateSchema.safeParse({ ...initialSession("hh"), screen: "menu" }).success).toBe(
+    expect(SessionStateSchema.safeParse({ ...initialSession("s-1", "dad"), screen: "menu" }).success).toBe(
       false,
     );
   });

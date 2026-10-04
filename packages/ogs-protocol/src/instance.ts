@@ -10,15 +10,15 @@ export const InstanceStatusSchema = z.enum([
 ]);
 export type InstanceStatus = z.infer<typeof InstanceStatusSchema>;
 
-/** One sitting of one game for one household. Reported by the game (bridge or server) or recorded by OGS on visit. */
+/** One sitting of one game for one profile. Reported by the game (bridge or server) or recorded by OGS on visit. */
 export const InstanceSchema = z.object({
   instanceId: z.string().min(1),
   appId: z.string().min(1),
-  householdId: z.string().min(1),
+  profileId: z.string().min(1),
   status: InstanceStatusSchema,
   title: z.string().default(""),
   detail: z.string().default(""),
-  /** For async games: true when it's this household's move. */
+  /** For async games: true when it's this profile's move. */
   yourTurn: z.boolean().optional(),
   /** For scheduled sittings (a game night): when it starts, ms since epoch. */
   startsAt: z.number().optional(),
@@ -30,7 +30,7 @@ export const InstanceSchema = z.object({
 });
 export type Instance = z.infer<typeof InstanceSchema>;
 
-/** What a game reports (the household comes from its token, the time from the receiver). */
+/** What a game reports (the profile comes from its token, the time from the receiver). */
 export const InstanceReportSchema = InstanceSchema.pick({
   instanceId: true,
   appId: true,

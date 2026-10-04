@@ -7,8 +7,9 @@ import {
   SessionStateSchema,
 } from "./session";
 
+const member = (profileId: string) => ({ profileId, name: profileId, sticker: "bear" });
 const T = 1_000;
-function run(msgs: ClientMessage[], from: SessionState = initialSession("hh")) {
+function run(msgs: ClientMessage[], from: SessionState = initialSession("s-1", "dad")) {
   let s = from;
   const outs = [];
   for (const [i, m] of msgs.entries()) {
@@ -19,15 +20,15 @@ function run(msgs: ClientMessage[], from: SessionState = initialSession("hh")) {
   return { s, outs };
 }
 const living = (): ClientMessage[] => [
-  { type: "hello", deviceId: "phone-dad", kind: "phone", personId: "dad" },
+  { type: "hello", deviceId: "phone-dad", kind: "phone", profile: member("dad") },
   { type: "hello", deviceId: "tv", kind: "launcher" },
-  { type: "hello", deviceId: "ipad-juneau", kind: "tablet", personId: "juneau" },
-  { type: "hello", deviceId: "ipad-ava", kind: "tablet", personId: "ava" },
+  { type: "hello", deviceId: "ipad-juneau", kind: "tablet", profile: member("juneau") },
+  { type: "hello", deviceId: "ipad-ava", kind: "tablet", profile: member("ava") },
 ];
 const crew = [
-  { personId: "dad", roleId: "captain" },
-  { personId: "juneau", roleId: "fixer" },
-  { personId: "ava", roleId: "helper" },
+  { profileId: "dad", roleId: "captain" },
+  { profileId: "juneau", roleId: "fixer" },
+  { profileId: "ava", roleId: "helper" },
 ];
 
 describe("couch session", () => {
@@ -131,7 +132,7 @@ describe("couch session", () => {
   it("hands the remote to another grown-up phone when the remote goes dark", () => {
     const { s, outs } = run([
       ...living(),
-      { type: "hello", deviceId: "phone-mom", kind: "phone", personId: "mom" },
+      { type: "hello", deviceId: "phone-mom", kind: "phone", profile: member("mom") },
       { type: "bye", deviceId: "phone-dad" },
     ]);
     expect(s.remote).toBeNull();
@@ -243,6 +244,6 @@ describe("couch session", () => {
       { type: "home" },
     ]);
     expect(SessionStateSchema.parse(s)).toEqual(s);
-    expect(SessionStateSchema.parse(initialSession("hh"))).toEqual(initialSession("hh"));
+    expect(SessionStateSchema.parse(initialSession("s-1", "dad"))).toEqual(initialSession("s-1", "dad"));
   });
 });
