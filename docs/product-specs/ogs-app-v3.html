@@ -133,6 +133,46 @@ a { color: var(--ember) }
 </section>
 
 <section>
+  <span class="kicker">Instances</span>
+  <h2>Which games you're still playing: games say, OGS cleans up</h2>
+  <p class="sub">Today the app keeps the last 20 URLs, so finished games pile up. Each sitting becomes an instance with a status the game reports, owned by the household through the identity token.</p>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> lobby
+  lobby --> active: game starts
+  active --> suspended: swipe back / Home (resume point saved)
+  suspended --> active: Continue
+  active --> waiting: their turn (async)
+  waiting --> active: your turn
+  active --> completed: end screen
+  suspended --> expired: no activity for instanceTtl
+  waiting --> expired: no activity for instanceTtl
+  completed --> [*]
+  expired --> [*]
+  </pre>
+  <div class="grid">
+    <div class="panel"><span class="tag">Game page (bridge)</span><p style="margin:6px 0 0"><code>ogs.instance({ id, status, title, detail })</code> from the game's page in the app, the launcher or an iPad. Couch games need nothing else.</p></div>
+    <div class="panel"><span class="tag">Game server (Tier 2)</span><p style="margin:6px 0 0">One POST per change for games that move while closed: Word Duel turns, Hearthisle paused at turn 14, tonight 8:00.</p></div>
+    <div class="panel"><span class="tag">OGS (no report)</span><p style="margin:6px 0 0">A Tier 0 game keeps one "Continue" entry per game, never one per URL. Anything silent for <code>instanceTtl</code> (default 7 days) expires and disappears.</p></div>
+    <div class="panel"><span class="tag">Auth</span><p style="margin:6px 0 0">OGS hands every game a signed token (household, person, device). Bridge calls carry it; server POSTs add it to the game's key. That gives each instance an owner and lets OGS reject stale or forged updates.</p></div>
+  </div>
+  <div class="tbl panel" style="padding:0">
+    <table>
+      <thead><tr><th>Status</th><th>Playing shows</th></tr></thead>
+      <tbody>
+        <tr><td>active, on a screen now</td><td>Pinned "Now playing", Back in</td></tr>
+        <tr><td>waiting, your turn</td><td>Your turn (counts in the badge)</td></tr>
+        <tr><td>lobby or suspended with a time</td><td>Tonight</td></tr>
+        <tr><td>suspended</td><td>Paused, with its resume point</td></tr>
+        <tr><td>waiting, their turn</td><td>Waiting on them</td></tr>
+        <tr><td>completed</td><td>"Finished · Play again" for a day, then gone</td></tr>
+        <tr><td>expired, or a Tier 0 game's old URLs</td><td>Never shown</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
   <span class="kicker">Architecture</span>
   <h2>One long-lived cloud browser runs the launcher; games live inside it</h2>
   <pre class="mermaid">
@@ -206,7 +246,8 @@ stateDiagram-v2
   "roles": [{ "id": "captain", "audience": "grownup" }, { "id": "fixer", "audience": "kid" }],
   "art": { "tv": "/key.jpg", "safe": { "scale": 1.17, "ox": 50, "oy": 100 } },
   "shop": { "ages": "4+", "minutes": [8, 12], "players": "1 grown-up + 1–2 kids" },
-  "suspend": true                                       // optional: answers ogs:suspend with a resume point
+  "suspend": true,                                      // optional: answers ogs:suspend with a resume point
+  "instanceTtl": "7d"                                   // optional: how long a silent instance stays in Playing
 }</pre>
 </section>
 
@@ -218,6 +259,7 @@ stateDiagram-v2
       <thead><tr><th>Area</th><th>Today</th><th>After</th></tr></thead>
       <tbody>
         <tr><td><code>apps/mobile/app/</code></td><td>Stack: directory → game WebView (left-edge swipe back)</td><td>Tabs: TV (big Cast button, then the remote) · Playing · Library; games pushed on top; the swipe back stays (sends <code>home</code> when cast) and leaves a return pill</td></tr>
+        <tr><td><code>apps/mobile/services/game-history.ts</code></td><td>Last 20 URLs, never cleaned up</td><td>Replaced by instances (status reported by games, owned by the household, expired by OGS)</td></tr>
         <tr><td><code>apps/mobile/services/game-directory.ts</code></td><td>Static list compiled into the app</td><td>The family's library (synced) plus a browse catalogue behind "+ Add games", both from manifests</td></tr>
         <tr><td><code>apps/mobile/services/cast-store.ts</code></td><td>The game sets <code>viewUrl</code> over app-bridge; the cast lives in <code>app/game.tsx</code></td><td>App-level cast from the TV tab; <code>viewUrl</code> is always the launcher</td></tr>
         <tr><td><code>apps/web/public/receiver.html</code></td><td>Loads whatever <code>LOAD_VIEW</code> sends, per game</td><td>Same contract; gets the launcher URL once per evening</td></tr>
