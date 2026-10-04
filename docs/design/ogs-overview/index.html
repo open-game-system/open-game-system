@@ -1,0 +1,363 @@
+<title>OGS App Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a long night-room scroll — one column of prose at ~66ch, with wide "shelves" of real screens that scroll sideways inside their own track. */
+:root {
+  --night: #120f22;      /* app dusk0 */
+  --night-2: #1b1733;    /* card */
+  --night-3: #272148;    /* raised */
+  --line: #352c5e;
+  --cream: #fbf2e4;
+  --cream-dim: #bdb2c9;
+  --peach: #f4c49c;      /* app primary */
+  --lamp: #f6c35b;       /* Rejoin / live */
+  --ember: #f07a52;      /* live dot, stop */
+  --mint: #8fdcb0;
+  --lilac: #c3b2ff;
+  --display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --body: "Figtree", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --night: #f7f2ea; --night-2: #fffaf3; --night-3: #efe6f5; --line: #ddd2e6;
+    --cream: #1b1733; --cream-dim: #5b5170; --peach: #b9673a; --lamp: #9a6a00;
+    --ember: #c4472a; --mint: #1f7a4c; --lilac: #5b45c4; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --night: #f7f2ea; --night-2: #fffaf3; --night-3: #efe6f5; --line: #ddd2e6;
+  --cream: #1b1733; --cream-dim: #5b5170; --peach: #b9673a; --lamp: #9a6a00;
+  --ember: #c4472a; --mint: #1f7a4c; --lilac: #5b45c4; color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--night); color: var(--cream); font: 400 16px/1.6 var(--body); padding-inline: 20px; padding-block: 0 80px; }
+.wrap { max-width: 1080px; margin-inline: auto; display: grid; gap: 72px; }
+.prose { max-width: 66ch; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); line-height: 1.02; }
+h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.1; }
+h3 { font-size: 1.25rem; line-height: 1.2; }
+p { margin: 0; }
+.eyebrow { font: 600 12px/1 var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--lamp); }
+.muted { color: var(--cream-dim); }
+code, .id { font-family: var(--mono); font-size: 0.86em; background: var(--night-3); padding: 1px 6px; border-radius: 6px; }
+a { color: var(--peach); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--lamp); outline-offset: 3px; }
+section { display: grid; gap: 22px; }
+section > header { display: grid; gap: 10px; }
+
+/* hero */
+.hero { display: grid; gap: 26px; padding-top: 48px; }
+.hero .tv { border-radius: 18px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.hero .tv img { display: block; width: 100%; }
+.thesis { font-size: 1.2rem; max-width: 58ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 22px; color: var(--cream-dim); font-size: 0.92rem; }
+.facts b { color: var(--cream); font-weight: 600; }
+
+/* status chips */
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1 var(--body); padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.s-done { color: var(--mint); }
+.s-wip { color: var(--lamp); }
+.s-plan { color: var(--lilac); }
+.s-you { color: var(--ember); }
+
+/* surfaces diagram */
+.surfaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.surface { background: var(--night-2); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.surface h3 { font-size: 1.15rem; }
+.surface ul { margin: 0; padding-left: 18px; color: var(--cream-dim); font-size: 0.95rem; }
+
+/* shelves of phone screens */
+.shelf { overflow-x: auto; padding-bottom: 10px; scrollbar-color: var(--line) transparent; }
+.shelf .row { display: flex; gap: 18px; width: max-content; }
+figure { margin: 0; display: grid; gap: 8px; align-content: start; }
+.phone { width: 190px; }
+.phone img { width: 190px; border-radius: 22px; border: 1px solid var(--line); display: block; background: var(--night-2); }
+figcaption { font-size: 0.86rem; color: var(--cream-dim); max-width: 190px; line-height: 1.4; }
+figcaption b { color: var(--cream); font-weight: 600; display: block; }
+.tvshot { width: min(520px, 82vw); }
+.tvshot img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+.tvshot figcaption { max-width: none; }
+
+/* tabs strip */
+.tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.tab { background: var(--night-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.tab h3 { font-size: 1.05rem; }
+.tab p { font-size: 0.86rem; color: var(--cream-dim); line-height: 1.45; }
+@media (max-width: 760px) { .tabs { grid-template-columns: 1fr 1fr; } }
+
+/* flows */
+.flows { display: grid; gap: 12px; }
+.flow { display: grid; grid-template-columns: 180px 1fr auto; gap: 16px; align-items: start; padding: 16px 0; border-top: 1px solid var(--line); }
+.flow h3 { font-size: 1.05rem; }
+.flow ol { margin: 0; padding-left: 18px; color: var(--cream-dim); font-size: 0.95rem; }
+.flow .proof { font-size: 0.82rem; color: var(--cream-dim); max-width: 22ch; }
+@media (max-width: 760px) { .flow { grid-template-columns: 1fr; gap: 8px; } }
+
+/* words table */
+.words { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.words th, .words td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.words th { font: 600 12px/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--cream-dim); }
+.words s { color: var(--cream-dim); }
+.tablewrap { overflow-x: auto; }
+
+/* sees / never */
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.box { background: var(--night-2); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.box ul { margin: 0; padding-left: 18px; color: var(--cream-dim); }
+.box.yes h3 { color: var(--mint); }
+.box.no h3 { color: var(--ember); }
+
+/* status board */
+.board { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+.board td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.board td:first-child { font-weight: 600; width: 34%; }
+.board td:last-child { width: 1%; white-space: nowrap; }
+
+.asks { display: grid; gap: 10px; counter-reset: ask; }
+.ask { background: var(--night-2); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 4px; }
+.ask b { font-weight: 600; }
+
+.history { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.round { border-top: 2px solid var(--line); padding-top: 12px; display: grid; gap: 6px; }
+.round .n { font: 600 12px/1 var(--mono); color: var(--cream-dim); }
+.round .score { font: 700 1.6rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.round p { font-size: 0.92rem; color: var(--cream-dim); }
+
+video { width: 100%; border-radius: 14px; border: 1px solid var(--line); background: #000; display: block; }
+pre.mermaid { background: var(--night-2); border: 1px solid var(--line); border-radius: 16px; padding: 18px; overflow-x: auto; }
+.links { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+footer { color: var(--cream-dim); font-size: 0.88rem; }
+@media (prefers-reduced-motion: no-preference) { .hero .tv img { animation: rise .8s ease-out both; } @keyframes rise { from { transform: translateY(8px); opacity: .6 } to { transform: none; opacity: 1 } } }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Open Game System · design so far · 4 Oct 2026</p>
+  <h1>Cast once.<br>The TV is your console.</h1>
+  <p class="thesis">One cast at the start of the evening puts the OGS launcher on the TV. Every game after that opens inside the same stream. Phones are the remote and the controllers; nobody recasts, and nobody types their name twice.</p>
+  <div class="facts">
+    <span><b>5 tabs</b> Playing · TV · Library · Friends · Profile</span>
+    <span><b>1 cast</b> per evening, verified with a load counter</span>
+    <span><b>5 games</b> Rocket Crew, Bake Shop, Story Nook, Peekaboo Garden, Night Flight</span>
+  </div>
+  <figure class="tv"><img src="img/t-home.jpg" alt="The OGS launcher on the TV: Bake Shop hero, Continue, Tonight and Library rows, the family's stickers on a couch, and the remote holder chip"></figure>
+</header>
+
+<section>
+  <header>
+    <p class="eyebrow">How it fits together</p>
+    <h2>Three surfaces, one evening</h2>
+    <p class="prose muted">The phone app drives. The TV runs one page all night, the launcher, which puts each game's own TV page inside itself. Games don't change: they already tell OGS which page belongs on the TV, and OGS sends it to the launcher instead of recasting.</p>
+  </header>
+  <div class="surfaces">
+    <div class="surface"><h3>Phone app</h3><ul><li>Five tabs; games open full screen over them</li><li>TV tab: Cast once, then it's the remote</li><li>Swipe from the left edge leaves a game; Rejoin returns to the same room</li></ul></div>
+    <div class="surface"><h3>TV launcher</h3><ul><li>Rows: Continue · Tonight · Library</li><li>Focus ring follows the phone's d-pad</li><li>Frames the game's TV page; shrinks it back into its box on Home</li></ul></div>
+    <div class="surface"><h3>Games</h3><ul><li>Unchanged web games on their own hosts</li><li>Declare their TV page; OGS frames it</li><li>No cast buttons of their own inside OGS</li><li>Next: get your name and avatar from OGS</li></ul></div>
+  </div>
+<pre class="mermaid">
+flowchart LR
+  P[Phone app] -- "Cast (once)" --> C[Chromecast]
+  C -- "opens" --> L[TV launcher]
+  P <-- "couch session (WebSocket)" --> S[(OGS API · CouchSession)]
+  L <-- "couch session" --> S
+  P -- "opens game in WebView" --> G[Game phone page]
+  G -- "here is my TV page" --> P
+  P -- "game.view" --> S
+  S -- "frame this" --> L
+  L -- "frames" --> T[Game TV page]
+</pre>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">The phone app</p>
+    <h2>Five tabs</h2>
+    <p class="prose muted">The app opens on Playing only when a game you were playing is live; otherwise on Library. Profile switching (Netflix-style) comes later; for now it's one profile per device.</p>
+  </header>
+  <div class="tabs">
+    <div class="tab"><h3>Playing</h3><p>Every sitting you're in, each with Rejoin. Empty state suggests games and Cast to TV.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>TV</h3><p>A big Cast button, then the remote: what's on the TV, change TV, d-pad, Stop casting.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>Library</h3><p>Your games. A tap opens the game's page: its sittings and New game.</p><span class="chip s-done">Built</span></div>
+    <div class="tab"><h3>Friends</h3><p>Friends list, requests, Add a friend by QR, code, link or @id.</p><span class="chip s-wip">Empty state built</span></div>
+    <div class="tab"><h3>Profile</h3><p>Name, @id, sticker; back up with Apple, Google or email; notification switches.</p><span class="chip s-wip">Being built</span></div>
+  </div>
+  <div class="shelf"><div class="row">
+    <figure class="phone"><img src="img/p-library.jpg" alt="Library tab as a list of games"><figcaption><b>Library</b>Games only: art, name, tagline, Needs a TV.</figcaption></figure>
+    <figure class="phone"><img src="img/p-gamepage.jpg" alt="Rocket Crew game page with two in-progress sittings and New game"><figcaption><b>Game page</b>Two Rocket Crew sittings, each with Rejoin, then New game.</figcaption></figure>
+    <figure class="phone"><img src="img/p-playing.jpg" alt="Playing tab empty state"><figcaption><b>Playing, nothing on</b>Suggestions and Cast to TV (now the primary button).</figcaption></figure>
+    <figure class="phone"><img src="img/p-friends.jpg" alt="Friends tab empty state"><figcaption><b>Friends</b>Empty state with Share my profile, until the friends backend lands.</figcaption></figure>
+    <figure class="phone"><img src="img/p-profile.jpg" alt="Profile tab"><figcaption><b>Profile</b>Today's build still lists kids; the profiles work replaces that.</figcaption></figure>
+    <figure class="phone"><img src="img/p-game.jpg" alt="A game full screen in the app"><figcaption><b>In a game</b>Full screen, no OGS chrome. Swipe from the left edge to leave.</figcaption></figure>
+    <figure class="phone"><img src="img/p-rejoin.jpg" alt="Rocket Crew after Rejoin, same Captain seat"><figcaption><b>Rejoin</b>Back in the same room, same seat, no name prompt.</figcaption></figure>
+  </div></div>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">TV tab</p>
+    <h2>The remote</h2>
+    <p class="prose muted">Redesigned after "it looks kind of janky". The card on top says what's on the TV and what OK will do, in the TV's own words. The TV chip opens a picker to move the evening to another TV; the paused game keeps its place. Stop casting replaces "End for tonight" and asks first.</p>
+  </header>
+  <div class="shelf"><div class="row">
+    <figure class="phone"><img src="img/p-tv-notcast.jpg" alt="TV tab before casting: one big Cast button"><figcaption><b>Before casting</b>One big Cast button.</figcaption></figure>
+    <figure class="phone"><img src="img/p-remote.jpg" alt="Remote at the launcher home"><figcaption><b>Remote</b>On the TV: Home. "OK opens Rocket Crew".</figcaption></figure>
+    <figure class="phone"><img src="img/p-remote-game.jpg" alt="Remote with Rocket Crew paused and the Rejoin pill"><figcaption><b>With a game paused</b>"OK continues Rocket Crew", Rejoin pill above the tabs.</figcaption></figure>
+    <figure class="phone"><img src="img/p-picker.jpg" alt="Cast to sheet listing TVs"><figcaption><b>Change TV</b>Current TV first. Switching keeps the game's place.</figcaption></figure>
+    <figure class="phone"><img src="img/p-stop.jpg" alt="Stop casting confirm sheet"><figcaption><b>Stop casting</b>Asks first; the game keeps its place.</figcaption></figure>
+  </div></div>
+  <p class="prose muted">Critic scores went from a lowest row of 1 to 4 in one round; next round: the card should show the focused game like the TV does, one pressed style for every key, controls about 60pt lower, and the picker shown with several TVs.</p>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">The TV launcher</p>
+    <h2>A living room, not a console clone</h2>
+    <p class="prose muted">Picked from four launcher concepts: warm room, status-first rows. The text stays inside the TV's title-safe area, nothing smaller than 24px, and nothing covers the middle of a game.</p>
+  </header>
+  <div class="shelf"><div class="row">
+    <figure class="tvshot"><img src="img/t-gamepage.jpg" alt="Launcher game page for a paused game with Continue and New game"><figcaption><b>Game page</b>Continue at its resume point, or New game; who's here.</figcaption></figure>
+    <figure class="tvshot"><img src="img/t-starting.jpg" alt="Getting ready card while the host phone opens the game"><figcaption><b>Getting ready</b>While the host's phone opens the game.</figcaption></figure>
+    <figure class="tvshot"><img src="img/t-realgame.jpg" alt="Real Rocket Crew TV page framed inside the launcher"><figcaption><b>The real game, framed</b>Rocket Crew's own TV page inside the launcher. No recast.</figcaption></figure>
+    <figure class="tvshot"><img src="img/t-continue.jpg" alt="Home with the paused game in Continue"><figcaption><b>After swipe back</b>The game shrinks into its box in Continue.</figcaption></figure>
+    <figure class="tvshot"><img src="img/t-failed.jpg" alt="A game that did not open on the TV"><figcaption><b>Game didn't open</b>Calm card, names the phone to pick another.</figcaption></figure>
+    <figure class="tvshot"><img src="img/t-reconnect.jpg" alt="Reconnecting chip"><figcaption><b>Reconnecting</b>A corner chip, never a black screen.</figcaption></figure>
+  </div></div>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Flows</p>
+    <h2>What happens, step by step</h2>
+  </header>
+  <div class="flows">
+    <div class="flow"><h3>Cast once</h3><ol><li>TV tab → Cast</li><li>The launcher opens on the TV with your games</li><li>The tab turns into the remote</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Chromecast loads +1, once.</p></div>
+    <div class="flow"><h3>Start a game</h3><ol><li>Library → game page → New game (or OK on the TV)</li><li>TV: "Getting ready"; your phone opens the game</li><li>The game declares its TV page; the launcher frames it</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>With the real Rocket Crew.</p></div>
+    <div class="flow"><h3>Leave a game</h3><ol><li>Swipe from the left edge</li><li>TV goes Home with the game in Continue</li><li>Rejoin pill on every tab; Playing shows "In progress"</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Through the first-visit hint too.</p></div>
+    <div class="flow"><h3>Rejoin</h3><ol><li>Tap Rejoin (pill, Playing, or the game page)</li><li>Same room code, same seat, no name prompt</li><li>TV frames the same room</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Twice in a row, no recast.</p></div>
+    <div class="flow"><h3>Switch games</h3><ol><li>Start Bake Shop while Rocket Crew is paused</li><li>Bake Shop frames in the same stream</li><li>Rocket Crew keeps its place</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Casts stays 1.</p></div>
+    <div class="flow"><h3>Two of the same game</h3><ol><li>Start a second Rocket Crew from its page</li><li>Both show as separate sittings</li><li>Each Rejoin opens its own room</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Labels look alike until games report one.</p></div>
+    <div class="flow"><h3>Friend is casting</h3><ol><li>A push when a friend starts casting (if switched on)</li><li>Join card on top of Playing</li><li>Anyone else joins with the code on the TV</li></ol><p class="proof"><span class="chip s-plan">Designed</span><br>Slice 2.</p></div>
+  </div>
+  <figure>
+    <video src="media/phone-and-tv.mp4" controls muted playsinline preload="metadata"></video>
+    <figcaption style="max-width:none">Phone and TV side by side (from the overnight build, before Rejoin and the list Library): cast, launch Rocket Crew, the real game framed, swipe back, switch to Bake Shop.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Words</p>
+    <h2>Vocabulary we settled on</h2>
+  </header>
+  <div class="tablewrap"><table class="words">
+    <thead><tr><th>Where</th><th>Say</th><th>Not</th></tr></thead>
+    <tbody>
+      <tr><td>Going back to a game</td><td><b>Rejoin</b></td><td><s>Back in</s></td></tr>
+      <tr><td>A game you stepped out of (phone)</td><td><b>In progress</b> · Mission 6</td><td><s>Paused</s></td></tr>
+      <tr><td>The in-flight tab</td><td><b>Playing</b></td><td><s>Activity</s>, <s>Now Playing</s></td></tr>
+      <tr><td>Ending the cast</td><td><b>Stop casting</b> (asks first)</td><td><s>End for tonight</s></td></tr>
+      <tr><td>Who you play with</td><td><b>Friends</b>; Family later, for plans</td><td><s>Our family</s></td></tr>
+      <tr><td>Empty Playing button</td><td><b>Cast to TV</b></td><td><s>Cast to the TV</s></td></tr>
+      <tr><td>TV room title</td><td><b>Living room TV · Jonathan's games</b></td><td><s>Our family's living room</s></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Profiles and friends</p>
+    <h2>You have an OGS profile. Games know your name.</h2>
+    <p class="prose muted">Onboarding makes your profile once: name, @id, sticker. Every game you open gets a token with it, so Rocket Crew stops asking "Who's playing here?". Full spec: <code>docs/product-specs/ogs-profiles.html</code>.</p>
+  </header>
+  <div class="tablewrap"><table class="words">
+    <thead><tr><th>Decision</th><th>Chosen</th></tr></thead>
+    <tbody>
+      <tr><td>Profile id</td><td>A unique <span class="id">@id</span>, pre-filled from your name, editable</td></tr>
+      <tr><td>Kids</td><td>Full profiles for everyone, like Roblox, Minecraft and Steam. A grown-up types the name on a kid's iPad. Family (parental controls, plans) comes later.</td></tr>
+      <tr><td>Profiles per device</td><td>One for now; switching later</td></tr>
+      <tr><td>Joining a cast</td><td>No automatic joining. Friends tap Join; others use the TV code. Pushes when friends start casting or join your game, each with a switch.</td></tr>
+      <tr><td>What a game sees</td><td>Your profile id, @id, name and avatar</td></tr>
+      <tr><td>Age</td><td>Not shared with games</td></tr>
+      <tr><td>Losing a phone</td><td>Back up with Apple, Google or email, offered after onboarding. Tested end to end with local emulators.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="split">
+    <div class="box yes"><h3>A game sees</h3><ul><li>Profile id and <span class="id">@jonathan.m</span></li><li>Display name and sticker</li><li>On the TV: who's playing this game now</li></ul></div>
+    <div class="box no"><h3>A game never sees</h3><ul><li>Your friends list</li><li>Device ids or push tokens</li><li>The app's own OGS token</li><li>Your age</li></ul></div>
+  </div>
+  <p class="prose muted">Each game's token works only for that game and expires within the hour, so one game can't replay it to another.</p>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Games inside OGS</p>
+    <h2>Casting is OGS's job now</h2>
+    <p class="prose muted">Each game's "TV screen / Stop casting" box is gone inside the app (all five games, committed, not yet deployed). Games still tell OGS their TV page, so nothing else changes for them. Next, games read your profile and report a label for each sitting (room code or "Mission 6"), so two sittings look different.</p>
+  </header>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Where it stands</p>
+    <h2>Status</h2>
+  </header>
+  <div class="tablewrap"><table class="board"><tbody>
+    <tr><td>Couch session, launcher, cast once, swap, swipe back</td><td>Unit, seam and e2e tests on simulator + fake Chromecast</td><td><span class="chip s-done">Verified</span></td></tr>
+    <tr><td>Rejoin to the same room; sittings per game</td><td>iOS e2e, two sittings of Rocket Crew</td><td><span class="chip s-done">Verified</span></td></tr>
+    <tr><td>Library list + game page; Playing per sitting</td><td>Simulator</td><td><span class="chip s-done">Built</span></td></tr>
+    <tr><td>Remote redesign, TV picker, Stop casting</td><td>Round 1 of 3</td><td><span class="chip s-wip">Iterating</span></td></tr>
+    <tr><td>Five tabs; tab labels above the home indicator</td><td>Fix in progress</td><td><span class="chip s-wip">In progress</span></td></tr>
+    <tr><td>Profiles + sign-in (slice 1)</td><td>API, onboarding, Profile tab, emulator tests</td><td><span class="chip s-wip">In progress</span></td></tr>
+    <tr><td>Friends + pushes (slice 2)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
+    <tr><td>Games get your profile; sitting labels (slice 3)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
+    <tr><td>Real Chromecast + your phone, iPad, TV</td><td>Needs deploy</td><td><span class="chip s-you">Needs you</span></td></tr>
+  </tbody></table></div>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">Needs you</p>
+    <h2>Open decisions</h2>
+  </header>
+  <div class="asks">
+    <div class="ask"><b>Deploy the four games without in-game cast UI, and commit Bake Shop for the first time?</b><span class="muted">Rocket Crew, Story Nook, Peekaboo Garden, Night Flight are committed; Bake Shop has never been committed.</span></div>
+    <div class="ask"><b>Push the branch and deploy previews?</b><span class="muted">Needed for the real Chromecast (it renders through the cloud stream) and an HTTPS link + QR for your phone and the iPad.</span></div>
+    <div class="ask"><b>Cast to play on a game's page: start new or continue?</b><span class="muted">It starts a new game today; Rejoin continues a sitting.</span></div>
+    <div class="ask"><b>Drop "(simulated)" from the fake TV's name?</b><span class="muted">It shows in four places on the remote during testing.</span></div>
+  </div>
+</section>
+
+<section>
+  <header>
+    <p class="eyebrow">How we got here</p>
+    <h2>Design rounds</h2>
+    <p class="prose muted">Each round: screens and flows recorded, two fresh critics scored them, a fix pass, re-scored. The lowest row is the number that matters.</p>
+  </header>
+  <div class="history">
+    <div class="round"><span class="n">ROUND 00</span><span class="score">4</span><p>Five concepts: console, kitchen, channel, spine, people.</p></div>
+    <div class="round"><span class="n">ROUND 01</span><span class="score">3.75</span><p>Console + layers. Session model was the gap, not polish.</p></div>
+    <div class="round"><span class="n">ROUND 02</span><span class="score">6.25</span><p>Session model, failures, first run, identity tokens. Mean 7.25.</p></div>
+    <div class="round"><span class="n">VARIANTS</span><span class="score">15</span><p>Wide variants of key moments, reviewed as sheets and video.</p></div>
+    <div class="round"><span class="n">ROUND 03</span><span class="score">5.75</span><p>The pivot to cast-first: four TV launchers; the warm room won.</p></div>
+  </div>
+  <figure>
+    <img src="img/d-round03.jpg" alt="Round 03 comparison of four cast-first launcher concepts" style="width:100%;border-radius:14px;border:1px solid var(--line)">
+    <figcaption style="max-width:none">Round 03: four launcher concepts side by side.</figcaption>
+  </figure>
+</section>
+
+<footer class="links">
+  <span>Specs in the repo (branch <code>design/ogs-app-hillclimb</code>):</span>
+  <span><code>docs/product-specs/ogs-app-v3.html</code></span>
+  <span><code>docs/product-specs/ogs-profiles.html</code></span>
+  <span><code>docs/acceptance/2026-10-03-cast-first-app.feature</code></span>
+</footer>
+
+</div>
