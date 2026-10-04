@@ -12,7 +12,7 @@ import { frameFor } from "./frame";
 import { TvArt } from "./TvArt";
 import { TvPaused } from "./TvPaused";
 
-export function TvPlaying({ s, gameId }: { s: S; gameId: string }) {
+export function TvPlaying({ s, gameId, arrived = false }: { s: S; gameId: string; arrived?: boolean }) {
   const f = frameFor(gameId);
   const zoom: CSSProperties = f ? { transform: `scale(${f.scale})`, transformOrigin: `${f.ox}% ${f.oy}%` } : {};
   // Right after a cut the stream starts at the cut-over's HUD-safe zoom and eases out to the game's
@@ -28,22 +28,23 @@ export function TvPlaying({ s, gameId }: { s: S; gameId: string }) {
           <GameTvView gameId={gameId} />
         </div>
       </div>
-      {s.menu ? <TvPaused gameId={gameId} /> : <NowOverlay s={s} gameId={gameId} />}
+      {s.menu ? <TvPaused gameId={gameId} /> : <NowOverlay s={s} gameId={gameId} arrived={arrived} />}
     </div>
   );
 }
 
 /** Right after a switch the band holds for a beat, then settles into the corner chip (CSS timeline;
  * shots freeze at its end, the settled frame). Without a switch only the chip shows. */
-function NowOverlay({ s, gameId }: { s: S; gameId: string }) {
+function NowOverlay({ s, gameId, arrived }: { s: S; gameId: string; arrived: boolean }) {
   const game = gameById(gameId);
   if (game.shape === "live") return <NightChip s={s} />;
   const seats = seatViews(game, s.asleep, () => true);
   const left = s.left;
+  const band = left || arrived;
   return (
     <>
-      {left && <NowBand gameId={gameId} kicker={left.undone ? "Back to" : "Now playing"} seats={seats} settle />}
-      <NowChip gameId={gameId} seats={seats} delayed={!!left} />
+      {band && <NowBand gameId={gameId} kicker={left?.undone ? "Back to" : "Now playing"} seats={seats} settle />}
+      <NowChip gameId={gameId} seats={seats} delayed={!!band} />
     </>
   );
 }

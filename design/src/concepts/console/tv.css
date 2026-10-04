@@ -195,8 +195,22 @@
 
 /* Cast off / connecting (main-loop integration, pass 1). */
 .ct-off { position: absolute; inset: 0; background: #050506; }
-.ct-connecting { position: absolute; inset: 0; background: #0b0b0d; color: #f4efe6; display: grid; place-content: center; justify-items: center; gap: 18px; }
-.ct-connecting__mark { animation: ct-connect-pulse 1.6s ease-in-out infinite both; }
-.ct-connecting__line { margin: 24px 0 0; font-size: 56px; font-weight: 700; letter-spacing: -0.01em; }
-.ct-connecting__sub { margin: 0; font-size: 30px; opacity: 0.72; }
-@keyframes ct-connect-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: 0.8; } }
+/* Casting: the console's first moment on the TV. The game's art is up at once (no black), dimmed
+   behind the room, the game and the people joining; each sticker gets its check as its device lands. */
+.ct-connecting { position: absolute; inset: 0; background: var(--ogs-dusk-0, #120f22); color: var(--ct-ink); overflow: hidden; }
+.ct-connecting__bg { position: absolute; inset: -60px; filter: blur(36px) brightness(0.42) saturate(1.15); animation: ct-fade 0.3s both, ct-drift 12s ease-in-out infinite alternate both; }
+.ct-connecting__shade { position: absolute; inset: 0; background: radial-gradient(70% 60% at 50% 55%, transparent, rgba(10, 8, 20, .55)); }
+.ct-connecting__top { position: absolute; left: 80px; top: 56px; display: inline-flex; align-items: center; gap: 18px; font-size: 32px; font-weight: 700; animation: ct-fade 0.3s both; }
+.ct-connecting__body { position: absolute; left: 0; right: 0; top: 250px; display: grid; justify-items: center; text-align: center; }
+.ct-connecting__line { font-family: var(--ogs-display, inherit); font-variation-settings: var(--ogs-display-axes, normal); font-weight: var(--ogs-display-weight, 800); font-size: 104px; line-height: 1; letter-spacing: -0.02em; text-shadow: 0 6px 40px rgba(0, 0, 0, .45); animation: ct-rise 0.5s 0.05s var(--ct-ease) both; }
+.ct-connecting__sub { margin-top: 18px; font-size: 36px; font-weight: 600; color: var(--ct-ink2); animation: ct-rise 0.5s 0.12s var(--ct-ease) both; }
+.ct-connecting__who { display: flex; gap: 72px; list-style: none; padding: 0; margin: 64px 0 0; }
+.ct-connecting__who li { display: grid; justify-items: center; gap: 14px; animation: ct-rise 0.5s var(--ct-ease) both; }
+.ct-connecting__who b { font-size: 32px; font-weight: 800; }
+.ct-connecting__sticker { position: relative; display: block; animation: ct-join 0.4s ease-out both; }
+.ct-connecting__sticker i { position: absolute; right: -8px; bottom: -4px; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--ogs-mint, #9fe3bf); color: #10241a; box-shadow: 0 0 0 5px var(--ogs-dusk-0, #120f22); animation: ct-pop 0.4s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes ct-join { from { opacity: 0.4; filter: saturate(0.3); } }
+
+/* Identity (pass 2): the shared display face on every TV title; people are their stickers (Portrait). */
+.ct-home__focus h1, .ct-band__title h1, .ct-cut__next h2, .ct-paused__info h2, .ct-clock b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); letter-spacing: -0.02em; }
+.ct-follow { color: var(--ogs-path); }

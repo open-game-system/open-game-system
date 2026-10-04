@@ -49,12 +49,16 @@ export function useNightClock(s: S, store: Store<S>, shot: boolean) {
   }, [rolling, shot, store]);
 }
 
+/** Play on TV → the stream is up. The TV's casting moment checks each sticker in by ~1.5 s (CSS), so
+ * the game arrives right after the last person does. */
+export const CAST_MS = 2200;
+
 /** The cast connects a beat after Play on TV (frozen in shots). */
 export function useCastClock(s: S, store: Store<S>, shot: boolean) {
   const connecting = s.cast === "connecting";
   useEffect(() => {
     if (shot || !connecting) return;
-    const t = setTimeout(() => store.update((x) => ({ ...x, cast: "on" })), 2600);
+    const t = setTimeout(() => store.update((x) => ({ ...x, cast: "on" })), CAST_MS);
     return () => clearTimeout(t);
   }, [connecting, shot, store]);
 }
