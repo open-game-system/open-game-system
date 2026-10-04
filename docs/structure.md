@@ -23,6 +23,7 @@
 | `packages/cast-kit-core` | `@open-game-system/cast-kit-core` | Cast store types, Zod schemas, app-bridge helpers | `app-bridge-web` |
 | `packages/cast-kit-react` | `@open-game-system/cast-kit-react` | React hooks for cast state and dispatch | `app-bridge-react`, `cast-kit-core` |
 | `packages/ogs-protocol` | `@open-game-system/ogs-protocol` | The OGS app v3 contract: game manifest, identity claims, instances + `playingView`, couch-session reducer, launcher↔game frame messages (zod) | None |
+| `packages/profile-kit` | `@open-game-system/profile-kit` | Games know who you are: `useOgsProfile()` (the `profile` bridge store in the app WebView), `useOgsSession()` (players + game token from the launcher's `ogs:start`), `reportOgsSitting()`, server `verifyOgsToken()` (ES256 against `/.well-known/jwks.json`). Bundles ogs-protocol + app-bridge-web into its dist; games install its packed tarball from `vendor/` like cast-kit | `ogs-protocol`, `app-bridge-web` (bundled) |
 
 ### Services (`services/`)
 
@@ -78,7 +79,7 @@ Layer 1:
 Layer 2:
   app-bridge-react, app-bridge-react-native
   stream-kit-react, stream-kit-testing
-  cast-kit-core
+  cast-kit-core, profile-kit
 
 Layer 3:
   cast-kit-react

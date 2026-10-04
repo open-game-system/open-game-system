@@ -12,6 +12,7 @@
   - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream shows all evening; frames each game's TV page
   - `packages/app-bridge-*/` — WebView-to-native two-way communication (6 packages)
   - `packages/cast-kit/` — TV casting SDK for web games (Google Cast via native bridge)
+  - `packages/profile-kit/` — Games know who you are: OGS profile + couch players for games, `verifyOgsToken` for game servers
   - `packages/notification-kit-*/` — Push notification SDK (core, react, server)
   - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
   - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
