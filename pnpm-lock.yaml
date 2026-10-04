@@ -53,6 +53,9 @@ importers:
       '@open-game-system/app-bridge-types':
         specifier: workspace:*
         version: link:../../packages/app-bridge-types
+      '@open-game-system/ogs-protocol':
+        specifier: workspace:*
+        version: link:../../packages/ogs-protocol
       '@react-native-async-storage/async-storage':
         specifier: ^3.0.1
         version: 3.0.1(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)
