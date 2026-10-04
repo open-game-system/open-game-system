@@ -86,4 +86,15 @@ export const flows: Flow[] = [
       { device: "phone", bot: "duel-back", mark: "Back to the list", wait: 1200 },
     ],
   },
+  {
+    id: "tonight",
+    flow: "tonight",
+    label: "Friday night: who's here, Play on TV, devices join by name",
+    start: "tonight.01-open-app",
+    steps: [
+      { device: "phone", bot: "couch-who", mark: "Who's on the couch tonight? Mom's out; Juneau and Ava are in", wait: 1600 },
+      { device: "phone", bot: "who-done", mark: "Three on the couch", wait: 1000 },
+      { device: "phone", bot: "play-on-tv", mark: "Play on TV: the living room TV connects, the iPads join by name", wait: 4600 },
+    ],
+  },
 ];

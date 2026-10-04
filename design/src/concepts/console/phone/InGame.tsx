@@ -3,18 +3,19 @@
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
 import { GamePhoneView } from "../games/registry";
-import { openMenu, resumePoint, seatPlan, type S } from "../state";
+import { hereTonight, openMenu, resumePoint, seatPlan, type S } from "../state";
 import { Mark, Portrait, StatusBar } from "../ui/Brand";
 import { ConsoleMenu } from "./ConsoleMenu";
 import { Strips } from "./Strips";
 import { Switching } from "./Switching";
+import { Casting } from "./Casting";
 
 export function InGame({ s, store }: { s: S; store: Store<S> }) {
   const sw = s.switching;
   const gameId = sw ? sw.from : s.onTv;
   if (!gameId) return null;
   const g = gameById(gameId);
-  const seats = seatPlan(g);
+  const seats = seatPlan(g, hereTonight(s));
   return (
     <div className={`cx-ingame ${s.menu && !sw ? "has-menu" : ""}`}>
       <StatusBar dark />
@@ -23,7 +24,7 @@ export function InGame({ s, store }: { s: S; store: Store<S> }) {
           <Mark size={26} />
         </button>
         <div className="cx-bar__what">
-          <b>{sw ? "Switching games" : g.name}</b>
+          <b>{s.cast === "connecting" ? "Starting tonight" : sw ? "Switching games" : g.name}</b>
           <span>
             <span className="cx-live-dot" /> Living room TV{sw ? "" : ` · ${resumePoint(g.id)}`}
           </span>
@@ -34,7 +35,9 @@ export function InGame({ s, store }: { s: S; store: Store<S> }) {
           ))}
         </div>
       </div>
-      {sw ? (
+      {s.cast === "connecting" ? (
+        <Casting s={s} gameId={gameId} />
+      ) : sw ? (
         <Switching sw={sw} asleep={s.asleep} store={store} />
       ) : (
         <>

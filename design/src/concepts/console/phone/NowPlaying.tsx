@@ -5,7 +5,7 @@
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
 import { activities, couchShelf } from "../activities";
-import { PRESENT, pickActivity, resumePoint, type S } from "../state";
+import { castAndPlay, hereTonight, pickActivity, resumePoint, type S } from "../state";
 import { nightLine } from "../nights";
 import { LIVE, st } from "../status";
 import { Portrait } from "../ui/Brand";
@@ -19,10 +19,13 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
   const game = gameById(focusId);
   const focusAct = activities(s).find((a) => a.gameId === focusId);
   const canPlay = game.shape === "couch";
-  const act = () => store.update((x) => (x.onTv ? { ...x, phone: "controller" } : canPlay ? { ...x, onTv: x.tvFocus, phone: "controller" } : x));
+  const act = () =>
+    store.update((x) => (x.onTv ? { ...x, phone: "controller" } : !canPlay ? x : x.cast === "off" ? castAndPlay(x, x.tvFocus) : { ...x, onTv: x.tvFocus, phone: "controller" }));
+  const off = s.cast === "off";
+  const here = hereTonight(s);
   const liveNight = s.nights.list.find((n) => n.status === "live" && n.gameId === playing);
   const point = liveNight ? nightLine(liveNight) : resumePoint(focusId);
-  const status = playing ? LIVE : (focusAct?.status ?? st("ready", "Ready"));
+  const status = playing ? LIVE : off ? st("ready", "Ready") : (focusAct?.status ?? st("ready", "Ready"));
   return (
     <section className={`cx-now ${playing ? "" : "cx-now--idle"}`}>
       <div className="cx-now__art" key={focusId}>
@@ -32,18 +35,18 @@ export function NowPlaying({ s, store }: { s: S; store: Store<S> }) {
         <div className="cx-now__where">
           <Chip status={status} />
           <span>
-            <TvIcon size={15} /> {playing ? "Living room TV" : "Showing on the TV"}
+            <TvIcon size={15} /> {playing ? "Living room TV" : off ? "Living room TV · off" : "Showing on the TV"}
           </span>
         </div>
         <div className="cx-now__game">{game.name}</div>
         <div className="cx-now__point">{playing ? point : (focusAct?.title ?? game.tagline)}</div>
         <div className="cx-now__foot">
-          <div className="cx-now__who" aria-label="Here tonight">
-            {PRESENT.map((p) => (
+          <button className="cx-now__who" data-bot="couch-who" aria-label={`${here.length} here tonight. Change who's here`} onClick={() => store.update((x) => ({ ...x, who: true }))}>
+            {here.map((p) => (
               <Portrait key={p.id} person={p} size={28} />
             ))}
-            <span>{PRESENT.length} here</span>
-          </div>
+            <span>{here.length} here</span>
+          </button>
           {(playing || canPlay) && (
             <button className="cx-btn cx-btn--light cx-now__cta" data-bot={playing ? "open-controller" : "play-on-tv"} onClick={act}>
               {playing ? <Gamepad size={20} /> : <TvIcon size={20} />}

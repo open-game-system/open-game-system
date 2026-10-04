@@ -50,6 +50,12 @@ export interface S {
   duel: DuelView;
   /** Game nights across homes (Hearthisle), and where the phone is in setting one up. */
   nights: Nights;
+  /** The living room TV's cast: "off" before tonight starts, "connecting" while the stream comes up. */
+  cast: "on" | "connecting" | "off";
+  /** Who is on the couch tonight (person ids). PRESENT is the default; the phone can change it. */
+  here: string[];
+  /** The "who's here tonight" sheet is open. */
+  who: boolean;
   /** The push showing on the lock screen (grown-up phones only), when phone = "lock". */
   push: Push | null;
 }
@@ -85,6 +91,9 @@ export function base(): S {
     duel: { open: null, placed: [], result: null },
     nights: baseNights(),
     push: null,
+    cast: "on",
+    here: PRESENT.map((p) => p.id),
+    who: false,
   };
 }
 
@@ -224,3 +233,11 @@ export const pauseNightS = (s: S, id: string): S => {
   if (!n) return s;
   return { ...s, nights: pauseNight(s.nights, id), onTv: s.onTv === n.gameId ? null : s.onTv };
 };
+
+/** The people on the couch tonight, in household order. */
+export const hereTonight = (s: S): Person[] => HOME.people.filter((p) => s.here.includes(p.id));
+
+export const toggleHere = (s: S, id: string): S => ({ ...s, here: s.here.includes(id) ? s.here.filter((x) => x !== id) : [...s.here, id] });
+
+/** Play on TV with no cast yet: connect the living room TV, then the game comes up and devices join. */
+export const castAndPlay = (s: S, gameId: string): S => ({ ...s, who: false, cast: "connecting", onTv: gameId, tvFocus: gameId, phone: "controller" });

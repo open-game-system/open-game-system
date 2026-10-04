@@ -61,6 +61,13 @@ export const scenarios: Scenario<S>[] = [
   { id: "word-duel.07-not-a-word", label: "Not a word: nothing played", flow: "word-duel", state: "error", devices: ["phone"], build: at({ phone: "duel", duel: { open: "wd-1", placed: ["D", "R", "A", "N"], result: "invalid" } }) },
   { id: "word-duel.08-empty", label: "No duels yet", flow: "word-duel", state: "empty", devices: ["phone"], build: at({ phone: "duels", duels: [] }) },
 
+  // Tonight (flow 2): open the app, who's on the couch, start a game, the TV connects, devices join by name
+  { id: "tonight.01-open-app", label: "7:00 pm: TV not on yet; Rocket Crew picks up at mission 6", flow: "tonight", state: "default", devices: ["phone"], build: at({ cast: "off", onTv: null, tvFocus: "rocket-crew" }) },
+  { id: "tonight.02-whos-here", label: "Who's on the couch: Jonathan, Juneau, Ava (Mom's out)", flow: "tonight", state: "default", devices: ["phone"], build: at({ cast: "off", onTv: null, who: true }) },
+  { id: "tonight.03-mom-joins", label: "Mom sits down: four on the couch", flow: "tonight", state: "partial", devices: ["phone"], build: at({ cast: "off", onTv: null, who: true, here: ["dad", "mom", "juneau", "ava"] }) },
+  { id: "tonight.04-casting", label: "TV connects; iPads join their seats by name", flow: "tonight", state: "loading", devices: ["phone", "tv", "ipad"], build: at({ cast: "connecting", onTv: "rocket-crew", phone: "controller" }) },
+  { id: "tonight.05-playing", label: "Mission 6 on the TV, everyone in", flow: "tonight", state: "success", devices: ["phone", "tv", "ipad"], build: at({ phone: "controller" }) },
+
   // Your turn, across games (flow 6): the push, the inbox, chaining moves
   { id: "world-clock.01-push-duel", label: "Lock screen: Nana played QUILT (Jonathan's phone only, never a kid's iPad)", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "lock", onTv: null, push: PUSH_DUEL }) },
   { id: "world-clock.02-push-our-roll", label: "Lock screen: your roll in Hearthisle, two homes waiting", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "lock", onTv: null, nights: nightsWith(liveOurRoll), push: PUSH_ROLL }) },

@@ -745,3 +745,12 @@
 .wd-people li { grid-template-columns: 12px 1fr auto !important; }
 .cx-ingame .cx-next__seats .cx-chip { margin-right: 8px; height: 22px; font-size: 12px; }
 .cx-lock { background: #1b1e27; }
+
+/* Tonight: who's on the couch, first cast */
+.cx-phone .cx-now__who { min-height: 44px; padding-right: 6px; border-radius: 22px; }
+.cx-who__h { font-size: 24px; font-weight: 900; letter-spacing: -0.025em; margin: 2px 2px 4px; }
+.cx-who__sub { font-size: 15px; line-height: 1.4; color: #c9c6bf; margin: 0 2px 14px; }
+.cx-sheet .cx-who { margin: 0; background: #1f2026; }
+.cx-who__row { grid-template-columns: 40px 1fr 26px !important; }
+.cx-who__done { width: 100%; margin-top: 14px; }
+.cx-cast__tv { height: 74px; border-radius: 12px; display: grid; place-items: center; align-content: center; gap: 2px; background: #1f2026; color: #f4f2ee; font-size: 12px; font-weight: 700; }
