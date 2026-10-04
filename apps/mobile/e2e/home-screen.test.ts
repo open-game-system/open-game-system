@@ -58,8 +58,12 @@ describe("Tabs", () => {
     await waitFor(element(by.id("friendsScreen")))
       .toExist()
       .withTimeout(3000);
-    await expect(element(by.id("friendsEmpty"))).toBeVisible();
+    // The empty state is a transparent container (Detox's pixel visibility can't see it): check
+    // that it exists and that its heading and button show.
+    await expect(element(by.id("friendsEmpty"))).toExist();
+    await expect(element(by.text("Play with friends"))).toBeVisible();
     await expect(element(by.id("shareProfile"))).toBeVisible();
+    await expect(element(by.text("Add a friend"))).not.toExist();
   });
 
   it("Profile shows you, and opens settings", async () => {

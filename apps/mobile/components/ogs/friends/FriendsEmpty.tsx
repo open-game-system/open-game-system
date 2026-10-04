@@ -3,18 +3,18 @@ import { Button } from "../Button";
 import { Sticker } from "../Sticker";
 import { colors, fonts } from "../theme";
 
-/** Three Story Nook characters gathered together: friends, before you have any. */
+/** Three Story Nook characters gathered together (whale behind): friends, before you have any. */
 function Gathering() {
   return (
     <View style={styles.gathering} accessibilityElementsHidden importantForAccessibility="no">
-      <View style={[styles.spot, { left: 4, top: 30 }]}>
-        <Sticker id="owl" size={92} seed="friends-owl" />
-      </View>
-      <View style={[styles.spot, { left: 82, top: 0 }]}>
+      <View style={[styles.spot, { left: 78, top: 0 }]}>
         <Sticker id="whale" size={112} seed="friends-whale" />
       </View>
-      <View style={[styles.spot, { left: 178, top: 34 }]}>
-        <Sticker id="firefly" size={86} seed="friends-firefly" />
+      <View style={[styles.spot, { left: 0, top: 34 }]}>
+        <Sticker id="owl" size={92} seed="friends-owl" />
+      </View>
+      <View style={[styles.spot, { left: 186, top: 40 }]}>
+        <Sticker id="firefly" size={84} seed="friends-firefly" />
       </View>
     </View>
   );
@@ -45,8 +45,8 @@ export function FriendsEmpty({ onShare }: { onShare: (() => void) | null }) {
 }
 
 const styles = StyleSheet.create({
-  root: { alignItems: "center", paddingTop: 24, gap: 14 },
-  gathering: { width: 268, height: 140, marginBottom: 10 },
+  root: { alignItems: "center", paddingTop: 48, gap: 14 },
+  gathering: { width: 270, height: 140, marginBottom: 10 },
   spot: { position: "absolute" },
   heading: { fontFamily: fonts.display, fontSize: 26, color: colors.cream, textAlign: "center" },
   body: {

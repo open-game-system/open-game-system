@@ -27,10 +27,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const { remoteOffer } = useCouch();
   const cast = useOgsCast();
   const { badge } = usePlaying();
-  const me = profileView(identity).me;
+  const sticker = profileView(identity)?.sticker ?? "bear";
 
   return (
-    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+    // Icons and labels sit wholly above the home indicator; with no indicator (SE), a small margin.
+    <View
+      testID="tabBarWrap"
+      style={[styles.wrap, { paddingBottom: insets.bottom > 0 ? insets.bottom + 2 : 10 }]}
+    >
       {remoteOffer ? (
         <View style={styles.offer} testID="remoteOffer">
           <Text style={styles.offerText}>The remote phone went quiet.</Text>
@@ -100,7 +104,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                   />
                 ) : (
                   <View style={[styles.me, focused && styles.meOn]}>
-                    <Sticker id={me?.sticker ?? "bear"} size={ICON} />
+                    <Sticker id={sticker} size={ICON} />
                   </View>
                 )}
                 {meta.route === "playing" && badge > 0 ? (
@@ -112,7 +116,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
                   <View style={styles.live} testID="tvLiveDot" />
                 ) : null}
               </View>
-              <Text style={[styles.label, focused && styles.labelOn]} numberOfLines={1}>
+              <Text
+                testID={`${meta.testID}Label`}
+                style={[styles.label, focused && styles.labelOn]}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.3}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+              >
                 {meta.label}
               </Text>
               <View style={[styles.underline, focused && styles.underlineOn]} />
@@ -131,7 +142,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.hair,
     paddingTop: 8,
   },
-  bar: { flexDirection: "row" },
+  // Side padding keeps the outer tabs clear of the screen's rounded corners.
+  bar: { flexDirection: "row", paddingHorizontal: 10 },
   tab: { flex: 1, minHeight: TARGET + 6, alignItems: "center", justifyContent: "center", gap: 3 },
   icon: { width: 34, height: ICON + 4, alignItems: "center", justifyContent: "center" },
   symbol: { width: ICON + 4, height: ICON },

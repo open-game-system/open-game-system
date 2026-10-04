@@ -1,24 +1,22 @@
 import { SymbolView } from "expo-symbols";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { SectionTitle } from "../Screen";
 import { colors, TARGET } from "../theme";
 
 /** The old household button's job: one row into the Settings screen (app/settings.tsx). */
 export function SettingsLink({ onPress }: { onPress: () => void }) {
   return (
-    <View>
-      <SectionTitle>Settings</SectionTitle>
+    <View style={styles.wrap}>
       <Pressable
         testID="profileSettings"
         accessibilityRole="button"
-        accessibilityLabel="Settings: notifications, sounds, developer, about"
+        accessibilityLabel="Settings: notifications, developer, about"
         onPress={onPress}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
         <SymbolView name="gearshape.fill" size={22} tintColor={colors.cream2} style={styles.icon} />
         <View style={styles.text}>
           <Text style={styles.label}>Settings</Text>
-          <Text style={styles.hint}>Notifications, sounds, developer, about</Text>
+          <Text style={styles.hint}>Notifications, developer, about</Text>
         </View>
         <SymbolView name="chevron.right" size={15} tintColor={colors.cream3} style={styles.chev} />
       </Pressable>
@@ -27,6 +25,7 @@ export function SettingsLink({ onPress }: { onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  wrap: { marginTop: 28 },
   row: {
     minHeight: TARGET + 20,
     flexDirection: "row",

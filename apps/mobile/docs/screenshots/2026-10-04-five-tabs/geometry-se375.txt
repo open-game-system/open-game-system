@@ -1,0 +1,7 @@
+{"wrap":{"y":596,"x":0,"width":375,"height":71,"insets":{"right":0,"top":0,"left":0,"bottom":0}}}
+{"id":"tabPlaying","tab":{"y":604.5,"x":10,"width":71,"height":52.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}},"label":{"y":635.5,"x":22.5,"width":45.5,"height":14.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}}}
+{"id":"tabTV","tab":{"y":604.5,"x":81,"width":71,"height":52.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}},"label":{"y":635.5,"x":108,"width":17,"height":14.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}}}
+{"id":"tabLibrary","tab":{"y":604.5,"x":152,"width":71,"height":52.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}},"label":{"y":635.5,"x":165.5,"width":44,"height":14.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}}}
+{"id":"tabFriends","tab":{"y":604.5,"x":223,"width":71,"height":52.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}},"label":{"y":635.5,"x":235.5,"width":46,"height":14.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}}}
+{"id":"tabProfile","tab":{"y":604.5,"x":294,"width":71,"height":52.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}},"label":{"y":635.5,"x":309,"width":40.5,"height":14.5,"insets":{"right":0,"top":0,"left":0,"bottom":0}}}
+problems: []

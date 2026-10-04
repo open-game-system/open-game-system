@@ -31,7 +31,7 @@ Feature: Cast-first OGS app with games inside one stream
     And it lists no friends
     And there is no "Add a friend" button
     When Jonathan taps "Share my profile"
-    Then the share sheet offers "Jonathan wants to be friends on OGS: https://opengame.org/add/<his person id>"
+    Then the share sheet offers "Jonathan wants to be friends on OGS: https://opengame.org/add/<his profile id>"
 
   Scenario: The app opens on Playing when a game is live
     Given Rocket Crew is live on the living room TV

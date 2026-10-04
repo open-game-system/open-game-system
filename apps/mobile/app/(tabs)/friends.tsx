@@ -7,8 +7,8 @@ import { useApp } from "../../services/runtime";
 
 /** Friends tab: empty until the profiles backend exists; "Share my profile" works today. */
 export default function FriendsScreen() {
-  const { me } = profileView(useApp().identity);
-  const link = inviteLink(me?.personId ?? null);
+  const me = profileView(useApp().identity);
+  const link = inviteLink(me?.id ?? null);
   const share =
     me && link ? () => void Share.share({ message: inviteMessage(me.name, link) }) : null;
   return (
