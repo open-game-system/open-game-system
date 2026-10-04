@@ -90,7 +90,9 @@ try {
   const kid2 = client("ava", avaT);
   await Promise.all([phone.open, momPhone.open, kid1.open, kid2.open]);
 
-  // Cast once: the fake Chromecast opens the launcher URL in its TV browser.
+  // Cast once: the fake Chromecast opens the launcher URL in its TV browser. Its load counter lives
+  // as long as the server, so this run counts from here.
+  const loadsBefore = (await (await fetch(`${CAST}/status`)).json()).loads;
   await fetch(`${CAST}/load`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ viewUrl: `${TV}/?api=${encodeURIComponent(API)}&token=${encodeURIComponent(launcherT)}` }) });
   await until(() => phone.state?.cast, "launcher to connect", 20000);
   check("cast from the TV tab: launcher connected, exactly 1 cast", phone.state.casts === 1, `casts=${phone.state.casts}`);
@@ -136,7 +138,8 @@ try {
   phone.send({ type: "game.view", appId: "bake-shop", url: tv("Bake Shop", "Day 4") });
   await until(() => phone.state.current?.appId === "bake-shop" && phone.state.current.viewUrl, "Bake Shop framed");
   const status = await (await fetch(`${CAST}/status`)).json();
-  check("swap: zero recasts (session casts=1, Chromecast loads=1)", phone.state.casts === 1 && status.loads === 1, `casts=${phone.state.casts} loads=${status.loads}`);
+  const loads = status.loads - loadsBefore;
+  check("swap: zero recasts (session casts=1, Chromecast loads=1)", phone.state.casts === 1 && loads === 1, `casts=${phone.state.casts} loads=${loads}`);
   await sleep(1500);
   await screenshot("05-bake-shop-framed");
 
