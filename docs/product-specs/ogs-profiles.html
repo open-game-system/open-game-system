@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OGS Profiles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Same tokens as ogs-app-v3.html. One column; each section = kicker, headline, one line, a picture. */
+:root {
+  --bg: #f3f2ee; --paper: #ffffff; --ink: #17161a; --ink-2: #57545e; --line: #d9d6cf; --ember: #d9482b; --ember-soft: #fbe3dc; --dusk: #2c2742; --ok: #2f7d4f; --ok-soft: #e1f0e6;
+  --wire: #8d8a93; --wire-fill: #f1efea; --screen: #fbfaf7;
+  --s-bear: #b9774a; --s-owl: #7b6bb0; --s-dragon: #3f9a6b; --s-dinosaur: #d39a2c; --s-whale: #3d7fb8; --s-firefly: #c9b23a;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --ok-soft: #1c3226; --wire: #8a8696; --wire-fill: #26242d; --screen: #18171d; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --ok-soft: #1c3226; --wire: #8a8696; --wire-fill: #26242d; --screen: #18171d; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--display); margin: 0; padding: 32px 16px 64px }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px }
+h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.02; margin: 0; letter-spacing: -0.02em; font-weight: 800; text-wrap: balance }
+h2 { font-size: 26px; margin: 0; letter-spacing: -0.01em; font-weight: 800; text-wrap: balance }
+.kicker { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ember) }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 }
+section { display: flex; flex-direction: column; gap: 16px }
+.sub { color: var(--ink-2); margin: 0; max-width: 70ch }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0 }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+.lane { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.chip { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; padding: 6px 12px; font-size: 14px }
+.chip.bad { border-color: var(--ember); color: var(--ember); background: var(--ember-soft); text-decoration: line-through }
+.chip.good { border-color: var(--ok); color: var(--ok); background: var(--ok-soft) }
+.arrow { color: var(--ink-2) }
+a { color: var(--ember) }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--wire-fill); padding: 1px 5px; border-radius: 4px }
+pre.code { font: 12.5px/1.55 var(--mono); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0 }
+pre.code .c { color: var(--ink-2) } pre.code .add { color: var(--ok) } pre.code .del { color: var(--ember) }
+
+/* Phone mockups */
+.screens { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(214px, 1fr)); align-items: start }
+.shot { display: flex; flex-direction: column; gap: 10px; align-items: center; min-width: 0 }
+.shot .cap { font-size: 13px; line-height: 1.4; color: var(--ink-2); text-align: center; max-width: 230px }
+.shot .n { font: 600 11px var(--mono); color: var(--ember) }
+.phone { width: 200px; min-height: 410px; border: 2.5px solid var(--ink); border-radius: 30px; background: var(--screen); padding: 26px 14px 14px; display: flex; flex-direction: column; gap: 9px; position: relative; flex: none }
+.phone::before { content: ""; position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 54px; height: 9px; border-radius: 9px; background: var(--ink) }
+.ipad { width: 100%; max-width: 300px; min-height: 210px; border: 2.5px solid var(--ink); border-radius: 18px; background: var(--screen); padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: none }
+.ttl { font: 800 17px/1.15 var(--display); letter-spacing: -0.01em }
+.t { font: 400 12px/1.35 var(--display); color: var(--ink-2) }
+.lbl { font: 600 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+.field { border: 1.5px solid var(--line); border-radius: 9px; background: var(--paper); padding: 7px 9px; font: 600 13px/1.2 var(--display); display: flex; justify-content: space-between; align-items: center; gap: 6px }
+.field.on { border-color: var(--ink) }
+.field small { font: 400 10px var(--display); color: var(--ok) }
+.btn { border-radius: 11px; padding: 9px; text-align: center; font: 700 13px/1 var(--display); border: 1.5px solid var(--ink); color: var(--ink) }
+.btn.hot { background: var(--ember); border-color: var(--ember); color: #fff }
+.btn.ghost { border-color: transparent; color: var(--ink-2); padding: 4px }
+.grow { flex: 1 }
+.av { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; color: #fff; font: 700 8.5px/1 var(--mono); letter-spacing: .02em; text-transform: lowercase; position: relative }
+.av::after { content: ""; position: absolute; width: 38%; height: 38%; border-radius: 50%; background: rgba(255,255,255,.28); top: 14%; right: 12% }
+.av.lg { width: 64px; height: 64px; font-size: 10px }
+.av.sm { width: 24px; height: 24px; font-size: 0 }
+.av.bear { background: var(--s-bear) } .av.owl { background: var(--s-owl) } .av.dragon { background: var(--s-dragon) } .av.dinosaur { background: var(--s-dinosaur) } .av.whale { background: var(--s-whale) } .av.firefly { background: var(--s-firefly) }
+.av.sel { outline: 3px solid var(--ember); outline-offset: 2px }
+.avs { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center }
+.person { display: flex; gap: 8px; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); padding: 6px 8px; font: 600 12.5px/1.2 var(--display) }
+.person .meta { font: 400 10.5px var(--display); color: var(--ink-2) }
+.person .end { margin-left: auto; font: 600 10.5px var(--display); color: var(--ink-2) }
+.person .end.ok { color: var(--ok) }
+.person.dash { border-style: dashed; color: var(--ink-2) }
+.qr { width: 92px; height: 92px; margin: 0 auto; border-radius: 8px; background:
+  conic-gradient(from 90deg at 30% 30%, var(--ink) 25%, transparent 0) 0 0/18px 18px,
+  repeating-linear-gradient(45deg, var(--ink) 0 3px, transparent 3px 7px); border: 6px solid var(--paper); outline: 1.5px solid var(--line) }
+.code6 { font: 800 22px/1 var(--mono); letter-spacing: .14em; text-align: center }
+.banner { border: 1.5px solid var(--ok); background: var(--ok-soft); color: var(--ok); border-radius: 11px; padding: 8px; font: 600 12px/1.3 var(--display); display: flex; gap: 8px; align-items: center }
+.banner .btn { margin-left: auto; padding: 6px 9px; font-size: 11.5px; background: var(--ok); border-color: var(--ok); color: #fff }
+.hdr { display: flex; justify-content: space-between; align-items: center }
+.tabs { display: flex; border-top: 1.5px solid var(--line); padding-top: 6px }
+.tabs span { flex: 1; text-align: center; font: 600 10.5px/1 var(--display); color: var(--ink-2) }
+.tabs span.on { color: var(--ember) }
+.toast { border-radius: 10px; background: var(--ink); color: var(--bg); padding: 8px 10px; font: 600 12px/1.3 var(--display); display: flex; gap: 8px; align-items: center }
+
+/* TV mockup */
+.tvwrap { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; width: 100% }
+.tv { width: 100%; max-width: 560px; aspect-ratio: 16/9; border: 3px solid var(--ink); border-radius: 10px; background: #1b1830; color: #f1efe9; padding: 4%; display: flex; flex-direction: column; gap: 4%; position: relative; overflow: hidden }
+.tv .stand { }
+.tvtop { display: flex; justify-content: space-between; align-items: center; font: 600 clamp(9px, 1.8vw, 13px)/1.2 var(--display); color: #cfc6f2 }
+.tvgames { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3% }
+.tvgames div { aspect-ratio: 3/4; border-radius: 6px; background: #2f2a4d; border: 2px solid #3d3762; font: 700 clamp(7px, 1.4vw, 11px)/1.1 var(--display); padding: 6%; display: flex; align-items: flex-end }
+.tvgames div.f { border-color: #f0704f; box-shadow: 0 0 0 2px #f0704f }
+.couch { margin-top: auto; display: flex; gap: 2.5%; align-items: flex-end; border-top: 1px solid #3d3762; padding-top: 2.5% }
+.couch .p { display: flex; flex-direction: column; align-items: center; gap: 3px; font: 600 clamp(7px, 1.3vw, 10px)/1 var(--display); color: #f1efe9 }
+.couch .tvq { margin-left: auto; display: flex; align-items: center; gap: 6px; font: 600 clamp(7px, 1.3vw, 10px)/1.25 var(--display); color: #aeaab6 }
+.couch .tvq .qr { width: clamp(28px, 6vw, 44px); height: clamp(28px, 6vw, 44px); border-width: 3px; margin: 0; outline: none }
+
+/* Diagram */
+.flow { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; overflow-x: auto }
+.flow svg { display: block; min-width: 720px; width: 100% }
+.flow .box { fill: var(--wire-fill); stroke: var(--wire); stroke-width: 1.5 }
+.flow .box.hot { fill: var(--ember-soft); stroke: var(--ember) }
+.flow .box.ok { fill: var(--ok-soft); stroke: var(--ok) }
+.flow text { fill: var(--ink); font: 600 13px var(--display) }
+.flow text.s { fill: var(--ink-2); font: 400 11.5px var(--mono) }
+.flow .ln { stroke: var(--ink-2); stroke-width: 1.5; fill: none }
+.flow .ln.dash { stroke-dasharray: 4 4 }
+.flow .ah { fill: var(--ink-2) }
+
+/* Two-column see / never */
+.seenot { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+.seenot ul { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px }
+.seenot li { display: flex; gap: 8px; align-items: baseline; font-size: 15px }
+.seenot li::before { font: 700 13px var(--mono); flex: none; width: 14px }
+.yes li::before { content: "+"; color: var(--ok) } .no li::before { content: "x"; color: var(--ember) }
+
+/* Tables */
+.tbl { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 14px }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 720px }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+tr:last-child td { border-bottom: 0 }
+th { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+td.area { font-weight: 700; white-space: nowrap }
+.del { color: var(--ember) } .new { color: var(--ok) }
+
+/* Decision cards */
+.decisions { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+.dc { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px }
+.dc .qn { font: 600 11px var(--mono); color: var(--ember) }
+.dc b { font-size: 17px; line-height: 1.25 }
+.opt { border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; line-height: 1.35; display: flex; gap: 8px }
+.opt .k { font: 700 12px var(--mono); color: var(--ink-2); flex: none; padding-top: 1px }
+.opt.rec { border-color: var(--ok); background: var(--ok-soft) }
+.opt.rec .k { color: var(--ok) }
+.opt .r { margin-left: auto; font: 600 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ok); flex: none }
+.why { font-size: 13px; color: var(--ink-2) }
+@media (max-width: 480px) { .phone { width: 190px } .ipad { width: 100%; max-width: 300px } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="kicker">OGS app · spec proposal · profiles &amp; friends · Oct 2026</span>
+  <h1>You have an OGS profile. Games already know your name.</h1>
+  <p class="lede">Onboarding makes your profile once. Every game you join gets a signed token with your name and avatar, so no game asks "Who's playing here?" again. Families become friends; the TV session is whoever joined this cast.</p>
+</header>
+
+<section>
+  <span class="kicker">What changes</span>
+  <h2>Household out. Profile, friends and "who joined this cast" in</h2>
+  <div class="panel" style="display:flex;flex-direction:column;gap:14px">
+    <span class="tag">Today</span>
+    <div class="lane">
+      <span class="chip bad">Who's in your family?</span><span class="arrow">→</span><span class="chip bad">"Our family's living room"</span><span class="arrow">→</span><span class="chip">Open Rocket Crew</span><span class="arrow">→</span><span class="chip bad">Type your name again</span><span class="arrow">→</span><span class="chip">Join</span>
+    </div>
+    <span class="tag">Proposed</span>
+    <div class="lane">
+      <span class="chip good">Make your profile (name, @id, avatar)</span><span class="arrow">→</span><span class="chip">Cast</span><span class="arrow">→</span><span class="chip good">Friends and kids tap Join</span><span class="arrow">→</span><span class="chip">Open Rocket Crew</span><span class="arrow">→</span><span class="chip good">In as "Juneau", no form</span>
+    </div>
+  </div>
+</section>
+
+<!-- 1 · ONBOARDING -->
+<section>
+  <span class="kicker">1 · Onboarding</span>
+  <h2>One step makes your profile; kids are added by a grown-up</h2>
+  <p class="sub">Replaces "Who's in your family?" in the same slot (after notifications). Only the name is typed. The @id is pre-filled from the name. Kids never type: a grown-up adds them, and a kid's iPad is signed in by scanning the grown-up's phone.</p>
+  <div class="screens">
+    <div class="shot"><span class="n">01 · Your profile</span>
+      <div class="phone">
+        <div class="ttl">Make your OGS profile</div>
+        <div class="t">Games use this name when you join.</div>
+        <div class="avs" style="margin:4px 0"><span class="av lg bear sel">bear</span></div>
+        <div class="lbl">Name</div>
+        <div class="field on">Jonathan</div>
+        <div class="lbl">Profile id</div>
+        <div class="field">@jonathan.m <small>free</small></div>
+        <div class="avs"><span class="av sm bear sel"></span><span class="av sm owl"></span><span class="av sm dragon"></span><span class="av sm dinosaur"></span><span class="av sm whale"></span><span class="av sm firefly"></span></div>
+        <div class="grow"></div>
+        <div class="btn hot">Next</div>
+      </div>
+      <span class="cap">Required: name. Pre-filled, editable: @id and sticker. No email or password in this step.</span>
+    </div>
+    <div class="shot"><span class="n">02 · Kids (optional)</span>
+      <div class="phone">
+        <div class="ttl">Do kids play with you?</div>
+        <div class="t">They get their own profile. You manage it; they never type.</div>
+        <div class="person"><span class="av dragon">dragon</span><div>Juneau<div class="meta">Kid · managed by you</div></div></div>
+        <div class="person"><span class="av dinosaur">dino</span><div>Ava<div class="meta">Little · managed by you</div></div></div>
+        <div class="person dash">+ Add a kid</div>
+        <div class="grow"></div>
+        <div class="btn hot">Next</div>
+        <div class="btn ghost">Skip, no kids</div>
+      </div>
+      <span class="cap">Kid profiles: name, sticker, age band. No @id, no friends of their own, no sign-in of their own.</span>
+    </div>
+    <div class="shot"><span class="n">03 · Kid's iPad</span>
+      <div class="ipad">
+        <div class="ttl">Who plays on this iPad?</div>
+        <div class="t">Scan from a grown-up's OGS app: You → Kids → Set up a device.</div>
+        <div style="display:flex;gap:12px;align-items:center;flex:1;flex-wrap:wrap">
+          <div class="qr" style="width:80px;height:80px;margin:0"></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="person"><span class="av dragon">dragon</span><div>Juneau<div class="meta">Tap to be Juneau</div></div></div>
+            <div class="person"><span class="av dinosaur">dino</span><div>Ava</div></div>
+          </div>
+        </div>
+      </div>
+      <span class="cap">After the scan, the iPad shows that grown-up's kids as big stickers. One tap: this iPad is Juneau's.</span>
+    </div>
+    <div class="shot"><span class="n">04 · Done</span>
+      <div class="phone">
+        <div class="avs" style="margin-top:30px"><span class="av lg bear">bear</span></div>
+        <div class="ttl" style="text-align:center">Hi, Jonathan</div>
+        <div class="t" style="text-align:center">@jonathan.m</div>
+        <div class="t" style="text-align:center">Games you join will see your name and sticker. Never your friends or your other games.</div>
+        <div class="grow"></div>
+        <div class="btn hot">Let's go</div>
+        <div class="btn ghost">Add friends</div>
+      </div>
+      <span class="cap">The existing completion page, now naming you and the privacy promise.</span>
+    </div>
+  </div>
+</section>
+
+<!-- 2 · FRIENDS -->
+<section>
+  <span class="kicker">2 · Friends</span>
+  <h2>Friends replace the family. Add them by QR, link, or @id</h2>
+  <p class="sub">The three tabs stay. Your sticker, top right of every tab, opens You: profile, kids, friends. A friend sees your name, sticker, @id, and when you're casting. Your kids count as your friends automatically.</p>
+  <div class="screens">
+    <div class="shot"><span class="n">01 · You</span>
+      <div class="phone">
+        <div class="hdr"><div class="ttl">You</div><span class="av sm bear"></span></div>
+        <div class="person"><span class="av bear">bear</span><div>Jonathan<div class="meta">@jonathan.m · Edit</div></div></div>
+        <div class="lbl">Kids</div>
+        <div class="person"><span class="av dragon">dragon</span><div>Juneau<div class="meta">On "Juneau's iPad"</div></div></div>
+        <div class="lbl">Friends</div>
+        <div class="person"><span class="av owl">owl</span><div>Mom<div class="meta">@sarah.m</div></div></div>
+        <div class="person"><span class="av whale">whale</span><div>Nana<div class="meta">@nana.jo</div></div></div>
+        <div class="person dash">+ Add a friend</div>
+      </div>
+      <span class="cap">Profile, kids and friends in one sheet, opened from your sticker.</span>
+    </div>
+    <div class="shot"><span class="n">02 · Add a friend</span>
+      <div class="phone">
+        <div class="ttl">Add a friend</div>
+        <div class="t">Face to face: they scan this.</div>
+        <div class="qr"></div>
+        <div class="code6">KITE-42</div>
+        <div class="t" style="text-align:center">Or they type the code. Expires in 10 min.</div>
+        <div class="grow"></div>
+        <div class="btn">Share an invite link</div>
+        <div class="btn">Scan their code</div>
+        <div class="btn ghost">Find by @id</div>
+      </div>
+      <span class="cap">QR in the room, link over Messages, @id when you know it. No contacts upload.</span>
+    </div>
+    <div class="shot"><span class="n">03 · They accept</span>
+      <div class="phone">
+        <div class="avs" style="margin-top:22px"><span class="av lg bear">bear</span></div>
+        <div class="ttl" style="text-align:center">Jonathan wants to be friends</div>
+        <div class="t" style="text-align:center">@jonathan.m</div>
+        <div class="t" style="text-align:center">You'll see when each other is casting and can join each other's TV.</div>
+        <div class="grow"></div>
+        <div class="btn hot">Accept</div>
+        <div class="btn ghost">Not now</div>
+      </div>
+      <span class="cap">Mutual: both sides confirm. Scanning in person accepts on the spot.</span>
+    </div>
+    <div class="shot"><span class="n">04 · Friend is casting</span>
+      <div class="phone">
+        <div class="hdr"><div class="ttl">Playing</div><span class="av sm owl"></span></div>
+        <div class="banner"><span class="av sm bear"></span><span>Jonathan is on Living room TV</span><span class="btn">Join</span></div>
+        <div class="lbl">Your turn</div>
+        <div class="person"><span class="av sm whale"></span><div>Word Duel · Nana</div></div>
+        <div class="lbl">Paused</div>
+        <div class="person"><div>Bake Shop · day 4</div></div>
+        <div class="grow"></div>
+        <div class="tabs"><span class="on">Playing</span><span>TV</span><span>Library</span></div>
+      </div>
+      <span class="cap">Mom's phone. A friend's cast shows as a Join card on top of Playing. Join puts her on that couch.</span>
+    </div>
+  </div>
+</section>
+
+<!-- 2b · TV SESSION -->
+<section>
+  <span class="kicker">2 · The couch</span>
+  <h2>The TV session is whoever joined this cast</h2>
+  <p class="sub">Casting starts a session owned by the caster. It shows the caster's library. People join three ways: the caster's kid devices join on their own, friends tap Join, anyone else scans the code on the TV. It ends with "End for tonight", as today.</p>
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start">
+    <div class="tvwrap">
+      <div class="tv">
+        <div class="tvtop"><span>Living room TV · Jonathan's games</span><span>OGS</span></div>
+        <div class="tvgames"><div class="f">Rocket Crew</div><div>Bake Shop</div><div>Night Flight</div><div>Hearthisle</div></div>
+        <div class="couch">
+          <div class="p"><span class="av sm bear" style="width:30px;height:30px"></span>Jonathan</div>
+          <div class="p"><span class="av sm owl" style="width:30px;height:30px"></span>Mom</div>
+          <div class="p"><span class="av sm dragon" style="width:30px;height:30px"></span>Juneau</div>
+          <div class="p"><span class="av sm dinosaur" style="width:30px;height:30px"></span>Ava</div>
+          <div class="tvq"><span>Join from<br>your phone</span><span class="qr"></span></div>
+        </div>
+      </div>
+      <span class="tag">TV launcher · was "Our family's living room"</span>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+      <span class="tag">Who's on the couch</span>
+      <div class="person"><span class="av bear">bear</span><div>Jonathan<div class="meta">Cast it · holds the remote</div></div><span class="end ok">Host</span></div>
+      <div class="person"><span class="av dragon">dragon</span><div>Juneau<div class="meta">His iPad, managed by Jonathan</div></div><span class="end ok">Joined itself</span></div>
+      <div class="person"><span class="av owl">owl</span><div>Mom<div class="meta">Friend · tapped Join</div></div><span class="end ok">Joined</span></div>
+      <div class="person dash"><span class="av" style="background:var(--wire)">?</span><div>Cousin Max<div class="meta">Not a friend · scans the TV code</div></div><span class="end">Guest</span></div>
+      <p class="why" style="margin:0">Guests without OGS open the game in the browser and type a name, exactly as Rocket Crew works today.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3 · IDENTITY TO GAMES -->
+<section>
+  <span class="kicker">3 · Games know who you are</span>
+  <h2>A signed, per-game profile token, delivered two ways</h2>
+  <p class="sub">The app asks OGS for a token for this game only. In the phone's WebView it arrives in a new <code>profile</code> bridge store. On the TV, <code>ogs:start.token</code> (empty today) carries a session token naming every player. Game servers verify with OGS's public key.</p>
+  <div class="flow">
+    <svg viewBox="0 0 900 300" role="img" aria-label="Identity flow: the OGS API mints per-game tokens; the phone app passes one to the game WebView via the profile bridge store; the TV launcher passes a session token in ogs:start; the game server verifies with the public key.">
+      <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      <rect class="box hot" x="20" y="115" width="170" height="70" rx="10"/>
+      <text x="105" y="145" text-anchor="middle">OGS API</text>
+      <text class="s" x="105" y="165" text-anchor="middle">signs ES256 tokens</text>
+
+      <rect class="box" x="290" y="30" width="190" height="70" rx="10"/>
+      <text x="385" y="60" text-anchor="middle">OGS app (phone/iPad)</text>
+      <text class="s" x="385" y="80" text-anchor="middle">POST /games/:appId/token</text>
+
+      <rect class="box" x="290" y="200" width="190" height="70" rx="10"/>
+      <text x="385" y="230" text-anchor="middle">TV launcher</text>
+      <text class="s" x="385" y="250" text-anchor="middle">POST /sessions/:sid/token</text>
+
+      <rect class="box ok" x="580" y="30" width="190" height="70" rx="10"/>
+      <text x="675" y="60" text-anchor="middle">Game phone page</text>
+      <text class="s" x="675" y="80" text-anchor="middle">bridge store "profile"</text>
+
+      <rect class="box ok" x="580" y="200" width="190" height="70" rx="10"/>
+      <text x="675" y="230" text-anchor="middle">Game TV page</text>
+      <text class="s" x="675" y="250" text-anchor="middle">ogs:start { token, roster }</text>
+
+      <rect class="box" x="800" y="115" width="90" height="70" rx="10"/>
+      <text x="845" y="145" text-anchor="middle">Game</text>
+      <text x="845" y="163" text-anchor="middle">server</text>
+
+      <path class="ln" d="M190,140 C240,140 240,65 290,65" marker-end="url(#a)"/>
+      <path class="ln" d="M190,160 C240,160 240,235 290,235" marker-end="url(#a)"/>
+      <path class="ln" d="M480,65 L580,65" marker-end="url(#a)"/>
+      <path class="ln" d="M480,235 L580,235" marker-end="url(#a)"/>
+      <path class="ln" d="M770,65 C800,65 815,90 830,115" marker-end="url(#a)"/>
+      <path class="ln" d="M770,235 C800,235 815,210 830,185" marker-end="url(#a)"/>
+      <path class="ln dash" d="M800,150 C600,150 400,150 192,150" marker-end="url(#a)"/>
+      <text class="s" x="500" y="142" text-anchor="middle">verify: GET /.well-known/jwks.json</text>
+    </svg>
+  </div>
+
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="tag">Game side: one hook</span>
+<pre class="code"><span class="c">// @open-game-system/profile-kit (new, tiny: core + react)</span>
+const me = useOgsProfile();
+<span class="c">// undefined  → still asking the app (≤300 ms)</span>
+<span class="c">// null       → plain browser, no OGS: ask for a name</span>
+<span class="c">// { id, name, avatar, kid, token }</span>
+<span class="c">//   id:     per-game, stable ("pg_7Hq2…")</span>
+<span class="c">//   avatar: https URL of the sticker</span>
+<span class="c">//   token:  JWT, aud = this game, 1 h</span>
+
+<span class="c">// TV page</span>
+const { players, token } = useOgsSession();
+<span class="c">// players: [{ id, name, avatar, kid }]</span></pre>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span class="tag">Rocket Crew: NameGate skips itself</span>
+<pre class="code"><span class="c">// src/client/screens/NameGate.tsx</span>
+export function NameGate({ onJoin, full }) {
+<span class="add">+  const me = useOgsProfile();</span>
+<span class="add">+  useEffect(() => { if (me) onJoin(me.name, me.token) }, [me]);</span>
+<span class="add">+  if (me !== null) return &lt;Joining name={me?.name} /&gt;;</span>
+   const [name, setName] = useState(remembered);
+   ...
+   &lt;h2&gt;Who's playing here?&lt;/h2&gt;  <span class="c">// browser guests only</span></pre>
+    </div>
+  </div>
+
+  <div class="screens">
+    <div class="shot"><span class="n">Today · in OGS</span>
+      <div class="phone">
+        <div class="grow"></div>
+        <div class="ttl" style="text-align:center">Who's playing here?</div>
+        <div class="field on">Juneau</div>
+        <div class="btn hot">Join</div>
+        <div class="grow"></div>
+      </div>
+      <span class="cap">A grown-up types the kid's name on every device, every game.</span>
+    </div>
+    <div class="shot"><span class="n">Proposed · in OGS</span>
+      <div class="phone">
+        <div class="toast"><span class="av sm dragon"></span>Joined as Juneau</div>
+        <div class="ttl" style="margin-top:6px">Rocket Crew</div>
+        <div class="t">You're the Lookout.</div>
+        <div style="flex:1;border-radius:12px;background:var(--wire-fill);border:1.5px solid var(--line)"></div>
+      </div>
+      <span class="cap">Straight into the game with name and sticker. Nothing to type.</span>
+    </div>
+    <div class="shot"><span class="n">Proposed · plain browser</span>
+      <div class="phone">
+        <div class="grow"></div>
+        <div class="ttl" style="text-align:center">Who's playing here?</div>
+        <div class="field on">Max</div>
+        <div class="btn hot">Join</div>
+        <div class="t" style="text-align:center">Have OGS? Open in the app to skip this.</div>
+        <div class="grow"></div>
+      </div>
+      <span class="cap">Unchanged for guests. Games keep working without OGS.</span>
+    </div>
+  </div>
+
+  <div class="seenot">
+    <div class="panel yes"><span class="tag">A game sees</span>
+      <ul>
+        <li>A per-game id: same you in Rocket Crew every time, different in Bake Shop</li>
+        <li>Display name and sticker image URL</li>
+        <li>Kid or grown-up (decision 5)</li>
+        <li>On the TV: who's playing this game in this session</li>
+      </ul>
+    </div>
+    <div class="panel no"><span class="tag">A game never sees</span>
+      <ul>
+        <li>Your @id or your OGS profile id</li>
+        <li>Your friends list or who else is on the couch but not in the game</li>
+        <li>What other games you play</li>
+        <li>Device ids, push tokens, or the app's own OGS token</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 · CHANGES -->
+<section>
+  <span class="kicker">4 · What changes</span>
+  <h2>Protocol, API, app, launcher</h2>
+  <p class="sub">Greenfield: no migration. Household tables, routes and screens are deleted, not shimmed.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Area</th><th>Today</th><th>Proposed</th></tr></thead>
+    <tbody>
+      <tr><td class="area">ogs-protocol · token.ts</td><td><code>{ hid, did, pid?, kind, exp }</code> HS256</td><td>App token <code>{ sub: profileId, did, kind, exp }</code>. New <code>GameTokenSchema { aud: appId, sub: per-game id, name, avatar, kid, sid?, exp }</code>. ES256 so games can verify.</td></tr>
+      <tr><td class="area">ogs-protocol · session.ts</td><td><code>householdId</code>, <code>personId</code> on hello and roster</td><td><code>sessionId</code> + <code>hostProfileId</code>; <code>profileId</code> on hello and roster; new <code>members[{ profileId, name, avatar, deviceId }]</code>. Reducer rules unchanged.</td></tr>
+      <tr><td class="area">ogs-protocol · frame.ts</td><td><code>ogs:start.token: ""</code></td><td>Session game token (aud = appId, lists players). Roster entries carry per-game id, name, avatar.</td></tr>
+      <tr><td class="area">app bridge</td><td><code>ogs</code> store (instance reports)</td><td>New <code>profile</code> store: <code>{ id, name, avatar, kid, token }</code>, refreshed before expiry. New <code>@open-game-system/profile-kit</code> reads it or <code>ogs:start</code>.</td></tr>
+      <tr><td class="area">API routes</td><td class="del"><code>/households</code>, <code>/:hid/devices</code>, <code>/:hid/launcher-token</code>, <code>/:hid/library</code>, <code>/:hid/instances</code></td><td class="new"><code>POST /profiles</code>, <code>GET /me</code>, <code>POST /me/kids</code>, <code>POST /me/devices</code> (kid iPad pairing), <code>/friends</code> (invite, accept, list, remove), <code>POST /sessions</code> (cast → launcher token), <code>POST /sessions/:sid/join</code>, <code>POST /games/:appId/token</code>, <code>/me/library</code>, <code>/me/instances</code>, <code>/.well-known/jwks.json</code></td></tr>
+      <tr><td class="area">schema.sql</td><td class="del"><code>households</code>, <code>household_people</code>, <code>household_devices</code></td><td class="new"><code>profiles(id, handle, name, sticker, band, managed_by)</code>, <code>profile_devices</code>, <code>friendships</code>, <code>friend_invites</code>; library and instances keyed by profile</td></tr>
+      <tr><td class="area">CouchSession DO</td><td><code>idFromName(hid)</code></td><td><code>idFromName(sessionId)</code>; joins checked: host, host's kids, host's friends, or holder of the TV code</td></tr>
+      <tr><td class="area">Mobile app</td><td class="del"><code>FamilyStep</code>, <code>DEFAULT_FAMILY</code>, "Our family" chip, <code>Identity.householdName/people</code></td><td class="new"><code>ProfileStep</code>, <code>KidsStep</code>, You sheet (profile, kids, friends), Add friend (QR, code, link, @id), Join card in Playing, kid-device pairing; <code>Identity = { profile, kids, token }</code></td></tr>
+      <tr><td class="area">TV launcher</td><td>"&lt;household&gt;'s living room", household people on the couch</td><td>"&lt;TV name&gt; · &lt;host&gt;'s games", members who joined, join QR in the couch corner (out of the focal area)</td></tr>
+      <tr><td class="area">Rocket Crew</td><td>NameGate always</td><td>NameGate only when <code>useOgsProfile()</code> is null; server trusts the verified token's name</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="grid">
+    <div class="panel"><span class="tag">Acceptance: changes</span>
+      <p style="margin:8px 0 0;font-size:14px"><code>2026-10-03-cast-first-app.feature</code>: Background becomes "Jonathan's profile with kids Juneau and Ava, friend Mom"; "valid household token" → "valid profile token"; "the household's games" → "the host's games".</p>
+      <p style="margin:8px 0 0;font-size:14px"><code>2026-03-15-ogs-app-onboarding.feature</code>: new profile and kids pages between page 2 and page 3; Skip still allowed but asks for a name first.</p>
+    </div>
+    <div class="panel"><span class="tag">Acceptance: new file</span>
+      <p style="margin:8px 0 0;font-size:14px"><code>2026-10-xx-ogs-profiles.feature</code>: create a profile · @id taken suggests another · add a kid · pair a kid iPad by scan · add a friend by QR / link / @id · friend sees Join while you cast · non-friend joins by TV code · game in the app gets the name, no form · TV page gets players in <code>ogs:start</code> · token for game A is rejected by game B · token carries no friends · plain browser falls back to NameGate.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 · DECISIONS -->
+<section>
+  <span class="kicker">5 · Decide</span>
+  <h2>Six choices, each with a recommendation</h2>
+  <div class="decisions">
+    <div class="dc"><span class="qn">Q1 · Profile id</span><b>What is your OGS Profile Id?</b>
+      <div class="opt rec"><span class="k">A</span><span>A unique @id, pre-filled from your name, editable</span><span class="r">Rec</span></div>
+      <div class="opt"><span class="k">B</span><span>No @id: friends add you only by QR or link</span></div>
+      <div class="opt"><span class="k">C</span><span>A random code (e.g. KITE-4821), not editable</span></div>
+      <span class="why">A matches "you create your OGS Profile Id" and makes "find by @id" possible; pre-fill keeps it one tap.</span></div>
+    <div class="dc"><span class="qn">Q2 · Kids</span><b>How do kids get a profile?</b>
+      <div class="opt rec"><span class="k">A</span><span>Managed kid profiles under a grown-up: no @id, no own friends, iPad paired by scan</span><span class="r">Rec</span></div>
+      <div class="opt"><span class="k">B</span><span>Kids get full profiles like grown-ups</span></div>
+      <div class="opt"><span class="k">C</span><span>No kid profiles: kids are names typed per game</span></div>
+      <span class="why">A keeps kids out of social features and still skips the name form on Juneau's iPad.</span></div>
+    <div class="dc"><span class="qn">Q3 · Joining a TV session</span><b>Who can join your cast?</b>
+      <div class="opt rec"><span class="k">A</span><span>Your kids automatically, friends by a Join card, anyone else by the code on the TV</span><span class="r">Rec</span></div>
+      <div class="opt"><span class="k">B</span><span>Only by scanning the code on the TV</span></div>
+      <div class="opt"><span class="k">C</span><span>Anyone on the same Wi-Fi</span></div>
+      <span class="why">A uses the friends list for something, and the TV code still covers guests.</span></div>
+    <div class="dc"><span class="qn">Q4 · Id a game sees</span><b>Which id does a game get?</b>
+      <div class="opt rec"><span class="k">A</span><span>A per-game id (stable in one game, unlinkable across games)</span><span class="r">Rec</span></div>
+      <div class="opt"><span class="k">B</span><span>Your real OGS profile id everywhere</span></div>
+      <span class="why">A stops games from joining their data on you; each game still recognises you every time.</span></div>
+    <div class="dc"><span class="qn">Q5 · Age to games</span><b>Does a game learn kid or grown-up?</b>
+      <div class="opt rec"><span class="k">A</span><span>Yes, one flag: <code>kid: true | false</code></span><span class="r">Rec</span></div>
+      <div class="opt"><span class="k">B</span><span>The full band: grown-up / kid / little</span></div>
+      <div class="opt"><span class="k">C</span><span>No: name and avatar only</span></div>
+      <span class="why">Games can pick easier roles or hide chat for kids without learning an age.</span></div>
+    <div class="dc"><span class="qn">Q6 · Losing a phone</span><b>How does a profile survive a new phone?</b>
+      <div class="opt rec"><span class="k">A</span><span>Sign in with Apple or Google, offered after onboarding ("Back up your profile")</span><span class="r">Rec</span></div>
+      <div class="opt"><span class="k">B</span><span>Sign in with Apple or Google required to make a profile</span></div>
+      <div class="opt"><span class="k">C</span><span>Device-only for now; a lost phone loses the profile</span></div>
+      <span class="why">A keeps onboarding to one typed name; friends and kids are worth backing up once you have them.</span></div>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
