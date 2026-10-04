@@ -846,3 +846,26 @@ describe("session state schema", () => {
     expect(SessionStateSchema.parse(s).current?.mode).toBe("new");
   });
 });
+
+describe("session edges found by mutation testing", () => {
+  it("Rejoin of a named paused sitting takes that sitting's own label", () => {
+    const { s: paused } = run([
+      ...living(),
+      startRc,
+      { type: "game.resume-point", appId: "rocket-crew", label: "Mission 6" },
+      { type: "home" },
+    ]);
+    const named = paused.suspended[0]?.instanceId;
+    const { s } = run(
+      [{ type: "game.start", appId: "rocket-crew", mode: "continue", instanceId: named }],
+      paused,
+    );
+    expect(s.current).toMatchObject({ instanceId: named, label: "Mission 6" });
+  });
+
+  it("OK while a game is playing starts nothing", () => {
+    const { s: playing } = run([...living(), startRc]);
+    const r = reduceSession(playing, { type: "select", deviceId: "phone-dad" }, T + 99);
+    expect(r.state).toEqual(playing);
+  });
+});
