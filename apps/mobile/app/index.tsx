@@ -1,375 +1,49 @@
-import { useNavigation } from "@react-navigation/native";
-import { useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useState } from "react";
-import {
-  Platform,
-  StatusBar as RNStatusBar,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SwipeableRow } from "../components/SwipeableRow";
-import { findGameByUrl, GAME_DIRECTORY, type GameDirectoryEntry } from "../services/game-directory";
-import { type GameHistoryEntry, getRecentGames, removeRecentGame } from "../services/game-history";
-import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
+import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { colors } from "../components/ogs/theme";
+import { isOnboardingComplete } from "../services/onboarding";
+import { decideOpeningTab, type TabName } from "../services/opening-tab";
+import { appState, couchHub, deviceId } from "../services/runtime";
 
-function formatRelativeTime(isoDate: string): string {
-  const diff = Date.now() - new Date(isoDate).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days}d ago`;
-}
+const SESSION_WAIT_MS = 1500;
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const [recentGames, setRecentGames] = useState<GameHistoryEntry[]>([]);
+/**
+ * Cold start (spec v3, App structure): first run → onboarding; otherwise open Playing only when a
+ * game this phone was playing is still live, else Library. Coming back from the background never
+ * lands here, so the place is kept.
+ */
+export default function Index() {
+  const [target, setTarget] = useState<"onboarding" | TabName | null>(null);
 
-  const loadRecentGames = useCallback(async () => {
-    const games = await getRecentGames();
-    setRecentGames(games);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!(await isOnboardingComplete())) {
+        if (!cancelled) setTarget("onboarding");
+        return;
+      }
+      await appState.init();
+      void appState.refresh();
+      const tab = appState.getSnapshot().identity
+        ? await decideOpeningTab(couchHub, deviceId(), SESSION_WAIT_MS)
+        : "library";
+      if (!cancelled) setTarget(tab);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const navigation = useNavigation();
-
-  // Reload games whenever home screen becomes focused
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      loadRecentGames();
-    });
-    return unsubscribe;
-  }, [navigation, loadRecentGames]);
-
-  // Handle pending game URLs from deep links (cold start)
-  useEffect(() => {
-    const pending = consumePendingGameUrl();
-    if (pending) {
-      router.push({ pathname: "/game", params: { url: pending } });
-      return;
-    }
-
-    const unsubscribe = subscribeToGameUrl((gameUrl) => {
-      router.push({ pathname: "/game", params: { url: gameUrl } });
-    });
-
-    return unsubscribe;
-  }, [router]);
-
-  const openGameDetail = useCallback(
-    (gameId: string) => {
-      router.push({ pathname: "/game-detail", params: { id: gameId } });
-    },
-    [router],
-  );
-
-  const openContinueGame = (entry: GameHistoryEntry) => {
-    router.push({
-      pathname: "/game",
-      params: { url: entry.url, name: entry.name },
-    });
-  };
-
-  const closeContinueGame = useCallback(
-    async (url: string) => {
-      await removeRecentGame(url);
-      loadRecentGames();
-    },
-    [loadRecentGames],
-  );
-
-  const openSettings = useCallback(() => {
-    router.push("/settings");
-  }, [router]);
-
-  const hasContinueGames = recentGames.length > 0;
-
+  if (target === "onboarding") return <Redirect href="/onboarding" />;
+  if (target) return <Redirect href={`/${target}`} />;
   return (
-    <View style={styles.container} testID="homeScreen">
-      <StatusBar style="light" />
-      <ScrollView
-        testID="homeScrollView"
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft} testID="headerLogo">
-            <View style={styles.ogsIcon}>
-              <Text style={styles.ogsIconText}>OGS</Text>
-            </View>
-            {hasContinueGames ? <Text style={styles.headerTitle}>Your Games</Text> : null}
-          </View>
-          <TouchableOpacity testID="hamburgerMenu" style={styles.menuButton} onPress={openSettings}>
-            <View style={styles.menuLine} />
-            <View style={styles.menuLine} />
-            <View style={styles.menuLine} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Empty State / Welcome */}
-        {!hasContinueGames && (
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Welcome to OGS</Text>
-            <Text style={styles.welcomeBody}>
-              Play web games with native superpowers. Pick a game below to get started.
-            </Text>
-          </View>
-        )}
-
-        {/* Continue Section */}
-        {hasContinueGames && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Continue</Text>
-            {recentGames.map((game) => {
-              const directoryEntry = findGameByUrl(game.url);
-              const entryId = directoryEntry?.id ?? "unknown";
-              return (
-                <SwipeableRow
-                  key={game.url}
-                  testID={`continueSwipeable-${entryId}`}
-                  onClose={() => closeContinueGame(game.url)}
-                >
-                  <TouchableOpacity
-                    testID={`continueGame-${entryId}`}
-                    style={styles.continueRow}
-                    onPress={() => openContinueGame(game)}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.dotIndicator,
-                        {
-                          backgroundColor: directoryEntry?.iconColor ?? "#A855F6",
-                        },
-                      ]}
-                    />
-                    <View style={styles.continueInfo}>
-                      <Text style={styles.continueName}>{game.name}</Text>
-                      <Text style={styles.continueTime}>{formatRelativeTime(game.lastPlayed)}</Text>
-                    </View>
-                    <Text style={styles.chevron}>›</Text>
-                  </TouchableOpacity>
-                </SwipeableRow>
-              );
-            })}
-          </View>
-        )}
-
-        {/* Game Directory */}
-        <View style={styles.section}>
-          <Text style={hasContinueGames ? styles.discoverTitle : styles.sectionLabel}>
-            {hasContinueGames ? "Discover" : "Game Directory"}
-          </Text>
-          {GAME_DIRECTORY.map((game) => (
-            <DirectoryRow key={game.id} game={game} onPress={() => openGameDetail(game.id)} />
-          ))}
-        </View>
-      </ScrollView>
+    <View style={styles.root} testID="launching">
+      <ActivityIndicator color={colors.cream3} />
     </View>
   );
 }
 
-const DirectoryRow = React.memo(function DirectoryRow({
-  game,
-  onPress,
-}: {
-  game: GameDirectoryEntry;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      testID={`directoryGame-${game.id}`}
-      style={styles.directoryRow}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.directoryIcon, { backgroundColor: game.iconBgColor }]}>
-        <Text style={[styles.directoryIconText, { color: game.iconColor }]}>
-          {game.iconInitials}
-        </Text>
-      </View>
-      <View style={styles.directoryInfo}>
-        <Text style={styles.directoryName}>{game.name}</Text>
-        <Text style={styles.directoryDescription}>{game.description}</Text>
-      </View>
-      <TouchableOpacity
-        testID={`directoryPlayButton-${game.id}`}
-        style={styles.playButton}
-        onPress={onPress}
-      >
-        <Text style={styles.playButtonText}>Play</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-});
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0A0A0F",
-    paddingTop: Platform.OS === "android" ? RNStatusBar.currentHeight : 50,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  headerLeft: {
-    gap: 4,
-  },
-  ogsIcon: {
-    marginBottom: 4,
-  },
-  ogsIconText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#A855F6",
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#E8E8ED",
-    letterSpacing: -1.5,
-  },
-  menuButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 5,
-  },
-  menuLine: {
-    width: 20,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: "#8888A0",
-  },
-  welcomeSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    gap: 8,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#E8E8ED",
-    letterSpacing: -0.5,
-  },
-  welcomeBody: {
-    fontSize: 15,
-    color: "#8888A0",
-    lineHeight: 22,
-  },
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 28,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#8888A0",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    marginBottom: 14,
-  },
-  discoverTitle: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: "#E8E8ED",
-    letterSpacing: -0.5,
-    marginBottom: 16,
-  },
-  continueRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 18,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#1C1C2E",
-  },
-  dotIndicator: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  continueInfo: {
-    flex: 1,
-    paddingLeft: 16,
-    gap: 2,
-  },
-  continueName: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#E8E8ED",
-    letterSpacing: -0.3,
-  },
-  continueTime: {
-    fontSize: 13,
-    color: "#8888A0",
-  },
-  chevron: {
-    fontSize: 22,
-    color: "#8888A0",
-    fontWeight: "300",
-  },
-  directoryRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#1C1C2E",
-    gap: 16,
-  },
-  directoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  directoryIconText: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  directoryInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  directoryName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#E8E8ED",
-    letterSpacing: -0.2,
-  },
-  directoryDescription: {
-    fontSize: 14,
-    color: "#8888A0",
-    lineHeight: 20,
-  },
-  playButton: {
-    backgroundColor: "#A855F6",
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    alignSelf: "center",
-  },
-  playButtonText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  root: { flex: 1, backgroundColor: colors.dusk0, alignItems: "center", justifyContent: "center" },
 });

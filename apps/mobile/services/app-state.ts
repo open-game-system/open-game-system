@@ -75,7 +75,15 @@ export function createAppState(opts: {
     }
   }
 
-  async function createFrom(draft: Draft) {
+  let creating: Promise<void> | null = null;
+  function createFrom(draft: Draft): Promise<void> {
+    creating ??= create(draft).finally(() => {
+      creating = null;
+    });
+    return creating;
+  }
+
+  async function create(draft: Draft) {
     try {
       const created = await opts.api.createHousehold({
         ...draft,

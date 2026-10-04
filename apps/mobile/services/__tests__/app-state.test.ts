@@ -198,3 +198,13 @@ describe("app state: library, catalogue, instances", () => {
     off();
   });
 });
+
+describe("app state: one household even when setup races the app's start", () => {
+  it("init while onboarding is still creating the household doesn't create a second one", async () => {
+    const { app, api } = setup();
+    const a = app.ensureHousehold("H", family);
+    const b = app.init();
+    await Promise.all([a, b]);
+    expect(api.createHousehold).toHaveBeenCalledTimes(1);
+  });
+});

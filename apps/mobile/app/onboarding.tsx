@@ -15,7 +15,10 @@ import {
   View,
   type ViewToken,
 } from "react-native";
+import { FamilyStep, familyDraft } from "../components/ogs/FamilyStep";
+import { Sticker } from "../components/ogs/Sticker";
 import { markOnboardingComplete } from "../services/onboarding";
+import { appState } from "../services/runtime";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -71,7 +74,7 @@ function Page2({ onNext }: { onNext: () => void }) {
     <View style={styles.page}>
       <View style={styles.heroArea}>
         <View style={styles.iconContainer}>
-          <Text style={styles.iconEmoji}>🔔</Text>
+          <Sticker id="owl" size={72} />
         </View>
       </View>
       <View style={styles.textArea}>
@@ -130,8 +133,8 @@ function Page3({ onNext }: { onNext: () => void }) {
       <View style={styles.textArea}>
         <Text style={styles.heading}>You're all set</Text>
         <Text style={styles.body}>
-          Pick a game from the directory to start playing. Swipe from the left edge anytime to come
-          back here.
+          Your games are in Library. Cast once from the TV tab and the TV becomes your console for
+          the evening. Swipe from the left edge of a game to come back.
         </Text>
       </View>
       <View style={styles.actionArea}>
@@ -152,7 +155,7 @@ function Page3({ onNext }: { onNext: () => void }) {
 function PageDots({ currentPage }: { currentPage: number }) {
   return (
     <View style={styles.dotsContainer}>
-      {[0, 1, 2].map((i) => (
+      {PAGES.map((p) => p.index).map((i) => (
         <View
           key={i}
           testID={`pageDot-${i}-${i === currentPage ? "active" : "inactive"}`}
@@ -168,7 +171,8 @@ function PageDots({ currentPage }: { currentPage: number }) {
 const PAGES: OnboardingPage[] = [
   { key: "page1", index: 0, component: Page1 },
   { key: "page2", index: 1, component: Page2 },
-  { key: "page3", index: 2, component: Page3 },
+  { key: "family", index: 2, component: FamilyStep },
+  { key: "page3", index: 3, component: Page3 },
 ];
 
 export default function OnboardingScreen() {
@@ -186,6 +190,14 @@ export default function OnboardingScreen() {
 
   const handleComplete = useCallback(async () => {
     await markOnboardingComplete();
+    // Create the household (kept as a draft and retried later if OGS can't be reached).
+    const people = familyDraft.people
+      .map((p) => ({ ...p, name: p.name.trim() }))
+      .filter((p) => p.name);
+    await appState.ensureHousehold(
+      familyDraft.name.trim() || "Our family",
+      people.length ? people : [{ name: "Me", band: "grownup", sticker: "bear" }],
+    );
     router.replace("/");
   }, [router]);
 

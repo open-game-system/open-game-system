@@ -7,160 +7,100 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  PanResponder,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import GoogleCast, { useDevices } from "react-native-google-cast";
+import { Animated, Dimensions, PanResponder, StyleSheet, Text, View } from "react-native";
 import { GameErrorScreen } from "../components/GameErrorScreen";
-import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
+import { GameArt } from "../components/ogs/GameArt";
+import { colors, fonts } from "../components/ogs/theme";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
-import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
-import { castCommands, startCastSync } from "../services/cast-sync";
-import { OGS_STREAM_SERVER_URL } from "../services/cast-view";
-// TODO: Re-enable when auth model for companion app is figured out
-// import { createCastSession, deleteCastSession } from "../services/cast-api";
-import { findGameByUrl } from "../services/game-directory";
-import { addRecentGame } from "../services/game-history";
+import type { CastStores } from "../services/cast-store";
+import { exitGame } from "../services/game-exit";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
+import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
+import { appState, couchHub, gameCastStoreFor, ogsCastNow, useApp } from "../services/runtime";
 import { swipeBackHandlers } from "../services/swipe-back";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
 const EDGE_WIDTH = 30;
 
-// Module-level singletons for bridge + cast
-const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
-// One cast store and one Google Cast sync for the app's lifetime (not per screen), so no session
-// event is missed while the game screen is closed, and the app never drifts from the real cast.
-const castCommandsForStore = castCommands();
-const castStore = createCastStore(castCommandsForStore);
-bridge.setStore("cast", castStore);
-startCastSync(
-  castStore,
-  GoogleCast.getSessionManager(),
-  castCommandsForStore,
-  OGS_STREAM_SERVER_URL,
+type Stores = CastStores & OgsStores;
+
+// One bridge for the app's lifetime. The game sees the app-level cast through a store that routes
+// its TV page to the couch session while cast through OGS (game.view, never a recast), and reports
+// its instance through the `ogs` store.
+let currentAppId: string | null = null;
+const bridge: NativeBridge<Stores> = createNativeBridge<Stores>();
+bridge.setStore(
+  "cast",
+  gameCastStoreFor(() => currentAppId),
 );
-const BridgeContext = createNativeBridgeContext<CastStores>();
+const ogsStore = createOgsBridgeStore((report, source) => appState.report(report, source));
+bridge.setStore("ogs", ogsStore);
+const BridgeContext = createNativeBridgeContext<Stores>();
 const CastContext = BridgeContext.createNativeStoreContext("cast");
 
+/** A game, full screen over the tabs. Swiping from the left edge returns (and pauses it on the TV). */
 export default function GameScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ url?: string; name?: string }>();
+  const params = useLocalSearchParams<{ url?: string; name?: string; appId?: string }>();
+  const app = useApp();
   const translateX = useRef(new Animated.Value(0)).current;
-  const devices = useDevices();
   const [showSwipeHint, dismissSwipeHint] = useSwipeHint();
 
-  // --- Source resolution ---
-  const defaultSource = useMemo(
-    () =>
-      Platform.select({
-        ios: { uri: "http://192.168.68.125:3000" },
-        android: { uri: "http://10.0.2.2:8787" },
-        default: { uri: "http://localhost:8787" },
-      }),
-    [],
+  const initialUri = useMemo(
+    () => params.url ?? consumePendingGameUrl() ?? "about:blank",
+    [params.url],
   );
-
-  const initialSource = useMemo(() => {
-    if (params.url) return { uri: params.url };
-    const pending = consumePendingGameUrl();
-    if (pending) return { uri: pending };
-    return defaultSource;
-  }, [params.url, defaultSource]);
-
-  const [webviewSource, setWebviewSource] = useState(initialSource);
-
-  // Sync when initialSource changes (no useEffect — direct render-phase check)
-  const prevInitialUri = useRef(initialSource.uri);
-  if (initialSource.uri !== prevInitialUri.current) {
-    prevInitialUri.current = initialSource.uri;
-    setWebviewSource(initialSource);
+  const [uri, setUri] = useState(initialUri);
+  const prevInitial = useRef(initialUri);
+  if (initialUri !== prevInitial.current) {
+    prevInitial.current = initialUri;
+    setUri(initialUri);
   }
 
-  // --- Derived values ---
-  const gameName = params.name || "Game";
+  const games = [...app.library, ...app.catalogue];
+  const game =
+    games.find((g) => g.appId === params.appId) ?? games.find((g) => uri.startsWith(g.startUrl));
+  const appId = game?.appId ?? params.appId ?? null;
+  const name = game?.name ?? params.name ?? "Game";
+  currentAppId = appId;
+
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const gameInfo = useMemo(() => findGameByUrl(webviewSource.uri), [webviewSource.uri]);
   const originDomain = useMemo(() => {
     try {
-      return new URL(webviewSource.uri).hostname;
+      return new URL(uri).hostname;
     } catch {
-      return webviewSource.uri;
+      return uri;
     }
-  }, [webviewSource.uri]);
+  }, [uri]);
 
-  // --- Handlers ---
-  const handleLoadEnd = useCallback(() => {
-    setIsLoading(false);
-    setHasError(false);
-  }, []);
-
-  const handleError = useCallback(() => {
-    setIsLoading(false);
-    setHasError(true);
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    setIsLoading(true);
-    setHasError(false);
-    setWebviewSource((prev) => ({ uri: prev.uri }));
-  }, []);
-
-  const handleGoHome = useCallback(() => {
-    router.back();
-  }, [router]);
-
-  // --- Side effects (legitimate: subscriptions + external sync) ---
-
+  // A new game screen: nothing reported yet.
   useEffect(() => {
-    const url = webviewSource.uri;
-    const isLocalDev =
-      url.includes("localhost") || url.includes("10.0.2.2") || url.includes(".local:");
-    if (url && !isLocalDev) {
-      addRecentGame(url, gameName);
-    }
-  }, [webviewSource.uri, gameName]);
+    ogsStore.reset();
+  }, []);
 
-  useEffect(() => {
-    const unsubscribe = subscribeToGameUrl((gameUrl) => {
-      setWebviewSource({ uri: gameUrl });
+  // Deep links and push taps while a game is open replace it (event subscription).
+  useEffect(() => subscribeToGameUrl((url) => setUri(url)), []);
+
+  const leave = useCallback(() => {
+    exitGame({
+      appId,
+      name,
+      url: uri,
+      ogsCast: ogsCastNow(),
+      reported: appId !== null && ogsStore.getSnapshot().reported.includes(appId),
+      now: Date.now(),
+      send: couchHub.send,
+      report: (r, s) => appState.report(r, s),
+      setPill: (p) => appState.setPill(p),
+      goBack: () => (router.canGoBack() ? router.back() : router.replace("/library")),
     });
-    return unsubscribe;
-  }, []);
+  }, [appId, name, uri, router]);
+  const leaveRef = useRef(leave);
+  leaveRef.current = leave;
 
-  useEffect(() => {
-    GoogleCast.showIntroductoryOverlay().catch(() => {});
-    // Log all cast state changes
-    const unsub = castStore.subscribe((state) => {
-      console.log("[Cast Store] State changed:", JSON.stringify(state.session));
-    });
-    return unsub;
-  }, []);
-
-  useEffect(() => {
-    const castDevices: CastDevice[] = devices.map((d) => ({
-      id: d.deviceId,
-      name: d.friendlyName,
-      type: "chromecast" as const,
-    }));
-    const current = castStore.getSnapshot().devices;
-    const changed =
-      castDevices.length !== current.length || castDevices.some((d, i) => d.id !== current[i]?.id);
-    if (changed) {
-      castStore.dispatch({ type: "DEVICES_UPDATED", devices: castDevices });
-    }
-  }, [devices]);
-
-  // --- Swipe-back gesture ---
+  // --- Swipe-back gesture (a cancelled swipe never calls onBack) ---
   const swipe = swipeBackHandlers({
     edge: EDGE_WIDTH,
     threshold: SWIPE_THRESHOLD,
@@ -173,20 +113,20 @@ export default function GameScreen() {
           : Animated.timing(translateX, { toValue, duration: 200, useNativeDriver: true });
       anim.start(() => done?.());
     },
-    onBack: () => router.back(),
+    onBack: () => leaveRef.current(),
   });
+  const swipeRef = useRef(swipe);
+  swipeRef.current = swipe;
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: (evt) => swipe.startsAt(evt.nativeEvent.pageX),
+      onStartShouldSetPanResponder: (evt) => swipeRef.current.startsAt(evt.nativeEvent.pageX),
       onMoveShouldSetPanResponder: (evt, gs) =>
         evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
-      onPanResponderMove: (_, gs) => swipe.move(gs.dx),
-      onPanResponderRelease: (_, gs) => swipe.release(gs.dx),
-      onPanResponderTerminate: () => swipe.terminate(),
+      onPanResponderMove: (_, gs) => swipeRef.current.move(gs.dx),
+      onPanResponderRelease: (_, gs) => swipeRef.current.release(gs.dx),
+      onPanResponderTerminate: () => swipeRef.current.terminate(),
     }),
   ).current;
-
-  // --- Render ---
 
   if (hasError) {
     return (
@@ -194,8 +134,12 @@ export default function GameScreen() {
         <StatusBar style="light" />
         <GameErrorScreen
           originDomain={originDomain}
-          onRetry={handleRetry}
-          onGoHome={handleGoHome}
+          onRetry={() => {
+            setIsLoading(true);
+            setHasError(false);
+            setUri((u) => `${u}`);
+          }}
+          onGoHome={leave}
         />
       </View>
     );
@@ -213,15 +157,23 @@ export default function GameScreen() {
             <View style={styles.webviewContainer} testID="gameWebView">
               <BridgedWebView
                 bridge={bridge}
-                source={webviewSource}
+                source={{ uri }}
                 style={styles.webview}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 startInLoadingState={false}
                 scalesPageToFit={true}
                 webviewDebuggingEnabled={true}
-                onLoadEnd={handleLoadEnd}
-                onError={handleError}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                onLoadEnd={() => {
+                  setIsLoading(false);
+                  setHasError(false);
+                }}
+                onError={() => {
+                  setIsLoading(false);
+                  setHasError(true);
+                }}
               />
             </View>
           </CastContext.StoreProvider>
@@ -231,13 +183,11 @@ export default function GameScreen() {
           )}
 
           {isLoading && (
-            <GameLoadingOverlay
-              gameName={gameName}
-              originDomain={originDomain}
-              iconInitials={gameInfo?.iconInitials ?? gameName.substring(0, 2).toUpperCase()}
-              iconColor={gameInfo?.iconColor ?? "#A855F6"}
-              iconBgColor={gameInfo?.iconBgColor ?? "#2D1B69"}
-            />
+            <View style={styles.loading} testID="gameLoading">
+              {game ? <GameArt game={game} style={styles.loadingArt} /> : null}
+              <Text style={styles.loadingName}>{name}</Text>
+              <Text style={styles.loadingOrigin}>{originDomain}</Text>
+            </View>
           )}
         </Animated.View>
       </View>
@@ -246,8 +196,19 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0A0A0F" },
+  container: { flex: 1, backgroundColor: colors.dusk0 },
   fullScreen: { flex: 1 },
   webviewContainer: { flex: 1 },
   webview: { flex: 1 },
+  loading: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.dusk0,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: 32,
+  },
+  loadingArt: { width: "80%", aspectRatio: 16 / 10 },
+  loadingName: { fontFamily: fonts.display, fontSize: 30, color: colors.cream, marginTop: 8 },
+  loadingOrigin: { color: colors.cream3, fontSize: 14 },
 });
