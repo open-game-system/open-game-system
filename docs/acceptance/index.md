@@ -33,3 +33,4 @@ When requirements change:
 2. Update or create the `.feature` file (the contract)
 3. Failing acceptance tests drive the implementation change
 | 2026-10-03 | [cast-first-app.feature](2026-10-03-cast-first-app.feature) | Cast-first app: Playing · TV · Library, instances, launcher, games in one stream, swipe back, swap with 0 recasts (17 scenarios); supersedes the 2026-03-15 home screen |
+| 2026-10-04 | [ogs-profiles.feature](2026-10-04-ogs-profiles.feature) | OGS profiles slice 1: make your profile (name, @id, sticker), back up and sign in (Apple, Google, email code, emulated), Profile tab, couch sessions owned by the caster, join with the TV code; friends and game tokens listed @later |
