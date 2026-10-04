@@ -116,3 +116,17 @@ not restarted. The new tables need `pnpm --filter @open-game-system/api db:local
 | Friends agent (this plan) | `packages/ogs-protocol/src/friends*.ts`, `services/api/src/routes/friends.ts`, `services/api/src/lib/friends*.ts`, `services/api/src/lib/presence.ts`, friends tests, `schema.sql` (append), `docs/**` friends files, mobile files above |
 | Shared touch points (small, additive) | `services/api/src/index.ts` (mount), `routes/sessions.ts` (`/:sid/join`), `middleware/profile-auth.ts` (last seen), `couch-session.ts` (live), `routes/couch.ts` (last seen) |
 | Playing agent | `app/(tabs)/playing.tsx` |
+
+## Status (2026-10-04)
+
+- Phase A (protocol + API): done. Protocol 297 tests, Stryker 98.69% (friends.ts 100%). API
+  integration 201/201 (40 new), unit 190/190. tester.army api `e2e/tests/friends.e2e.ts` 4/4 on 8796.
+- Phase B (mobile): Friends tab, Add a friend (QR, code, share link, type a code, find by @id),
+  `opengame://add/<token>` deep link, `FriendCastingCards` + `useFriendCasts`. Jest 592/592; Detox
+  Release (sim `friends-s2`) `e2e/friends.test.ts` 3/3 + `home-screen.test.ts` 8/8; tester.army ios
+  `e2e/tests/friends-app.e2e.ts` 1/1. Screenshots: `apps/mobile/docs/screenshots/2026-10-04-friends/`.
+- Left: place `<FriendCastingCards />` at the top of `app/(tabs)/playing.tsx` once the Playing
+  hill-climb lands; an in-app camera scanner (needs expo-camera + prebuild; today the iPhone Camera
+  opens the QR's `opengame://add/<token>`); `opengame.org/add/<token>` on the website (open the app
+  or the App Store) so shared links open OGS; the cast-first-app.feature scenario "Friends is
+  honestly empty until the profiles backend exists" is superseded by ogs-friends.feature.
