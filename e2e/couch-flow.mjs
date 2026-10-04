@@ -1,10 +1,12 @@
 // Cross-surface flow against the real local API + the real TV launcher (via the fake Chromecast):
-// the phone, Mom's phone and both kid iPads are WebSocket clients; the TV is a recorded browser.
-// Proves the acceptance scenarios that span devices: cast once, launch, game.view framed, kids
-// follow by name, swipe back (home) suspends with the resume point, swap with 0 recasts, Continue
+// Jonathan's phone, Mom's phone and both kid iPads are WebSocket clients (each its own OGS profile);
+// the TV is a recorded browser. Proves the acceptance scenarios that span devices: casting starts a
+// session owned by Jonathan, the others join with the TV code, cast once, launch, game.view framed,
+// kids follow by profile, swipe back (home) suspends with the resume point, swap with 0 recasts, Continue
 // resumes the same sitting, remote handoff.
 //
-// Needs running: API (8787), launcher (5180), fake Chromecast (5181), fixture game (5190).
+// Needs running: API (OGS_API, 8788), launcher (OGS_TV, 5180), fake Chromecast (FAKE_CAST, 5181),
+// fixture game (5190).
 //   node couch-flow.mjs
 import { writeFileSync } from "node:fs";
 import WebSocket from "ws";
@@ -31,8 +33,10 @@ async function post(path, body, token) {
   return json;
 }
 
-function client(name, token) {
-  const ws = new WebSocket(`${API.replace(/^http/, "ws")}/api/v1/couch/ws?token=${encodeURIComponent(token)}`);
+function client(name, token, session) {
+  const ws = new WebSocket(
+    `${API.replace(/^http/, "ws")}/api/v1/couch/ws?token=${encodeURIComponent(token)}&session=${encodeURIComponent(session)}`,
+  );
   const c = { name, ws, msgs: [], state: null };
   ws.on("message", (raw) => {
     const m = JSON.parse(String(raw));
@@ -65,30 +69,29 @@ async function screenshot(name) {
 const tv = (game, label) => `${GAME}/tv?game=${encodeURIComponent(game)}&label=${encodeURIComponent(label)}`;
 
 try {
-  const hh = await post("/api/v1/households", {
-    name: "The Mumms",
-    people: [
-      { name: "Jonathan", band: "grownup", sticker: "bear" },
-      { name: "Mom", band: "grownup", sticker: "owl" },
-      { name: "Juneau", band: "kid", sticker: "dragon" },
-      { name: "Ava", band: "little", sticker: "dinosaur" },
-    ],
-    device: { deviceId: "e2e-phone-dad", kind: "phone", name: "Jonathan's iPhone", personIndex: 0 },
-  });
-  const [dad, mom, juneau, ava] = hh.people;
-  check("household created with 4 people", hh.householdId && hh.people.length === 4);
-  const hid = hh.householdId;
-  const pair = (deviceId, kind, personId, name) => post(`/api/v1/households/${hid}/devices`, { deviceId, kind, personId, name }, hh.token);
-  const momT = (await pair("e2e-phone-mom", "phone", mom.id, "Mom's iPhone")).token;
-  const juneauT = (await pair("e2e-ipad-juneau", "tablet", juneau.id, "Juneau's iPad")).token;
-  const avaT = (await pair("e2e-ipad-ava", "tablet", ava.id, "Ava's iPad")).token;
-  const launcherT = (await post(`/api/v1/households/${hid}/launcher-token`, {}, hh.token)).token;
+  const run = Date.now().toString(36);
+  const make = async (name, sticker, kind, deviceId) =>
+    post("/api/v1/profiles", { name, handle: `${name.toLowerCase()}.${run}`.slice(0, 24), sticker, device: { deviceId, kind, name: `${name}'s ${kind}` } });
+  const dadP = await make("Jonathan", "bear", "phone", "e2e-phone-dad");
+  const momP = await make("Mom", "owl", "phone", "e2e-phone-mom");
+  const juneauP = await make("Juneau", "dragon", "tablet", "e2e-ipad-juneau");
+  const avaP = await make("Ava", "dinosaur", "tablet", "e2e-ipad-ava");
+  const [dad, juneau, ava] = [dadP.profile, juneauP.profile, avaP.profile];
+  check("four profiles made, one per device", [dadP, momP, juneauP, avaP].every((p) => p.token));
 
-  const phone = client("phone", hh.token);
-  const momPhone = client("mom", momT);
-  const kid1 = client("juneau", juneauT);
-  const kid2 = client("ava", avaT);
+  // Jonathan casts: a session he hosts, with a TV code; the others join with it.
+  const session = await post("/api/v1/sessions", { tvName: "Living room TV" }, dadP.token);
+  for (const p of [momP, juneauP, avaP]) await post("/api/v1/sessions/join", { code: session.code }, p.token);
+  check("cast starts a session owned by Jonathan; the others join with the TV code", session.host.id === dad.id && /^[A-Z2-9]{6}$/.test(session.code));
+  const launcherT = session.token;
+
+  const phone = client("phone", dadP.token, session.sessionId);
+  const momPhone = client("mom", momP.token, session.sessionId);
+  const kid1 = client("juneau", juneauP.token, session.sessionId);
+  const kid2 = client("ava", avaP.token, session.sessionId);
   await Promise.all([phone.open, momPhone.open, kid1.open, kid2.open]);
+  await until(() => phone.state?.members?.length === 4, "everyone on the couch");
+  check("the couch is who joined", phone.state.members.map((m) => m.name).join(",") === "Jonathan,Mom,Juneau,Ava", phone.state.members.map((m) => m.name).join(","));
 
   // Cast once: the fake Chromecast opens the launcher URL in its TV browser. Its load counter lives
   // as long as the server, so this run counts from here.
@@ -108,9 +111,9 @@ try {
 
   // Launch Rocket Crew from the phone; the game's phone page asks for its TV view.
   const roster = [
-    { personId: dad.id, roleId: "captain" },
-    { personId: juneau.id, roleId: "fixer" },
-    { personId: ava.id, roleId: "helper" },
+    { profileId: dad.id, roleId: "captain" },
+    { profileId: juneau.id, roleId: "fixer" },
+    { profileId: ava.id, roleId: "helper" },
   ];
   phone.send({ type: "game.start", appId: "rocket-crew", mode: "continue", roster, hostDeviceId: "e2e-phone-dad" });
   await until(() => phone.state.screen === "game", "game screen");
@@ -118,7 +121,7 @@ try {
   await until(() => phone.state.current?.viewUrl, "game view");
   const followJ = await until(() => kid1.msgs.find((m) => m.type === "follow" && m.target.kind === "game"), "Juneau's follow");
   const followA = await until(() => kid2.msgs.find((m) => m.type === "follow" && m.target.kind === "game"), "Ava's follow");
-  check("kid iPads follow by name with their roles", followJ.target.roleId === "fixer" && followA.target.roleId === "helper");
+  check("kid iPads follow by profile with their roles", followJ.target.roleId === "fixer" && followA.target.roleId === "helper");
   await until(() => phone.state.current?.label === "Mission 6", "resume point from the framed game", 10000)
     .then(() => check("launcher framed the game and forwarded its resume point", true, "Mission 6"))
     .catch((e) => check("launcher framed the game and forwarded its resume point", false, e.message));

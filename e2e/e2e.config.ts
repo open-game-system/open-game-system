@@ -10,7 +10,8 @@ export default {
     {
       name: "launcher",
       engine: web({ viewport: { width: 1920, height: 1080 } }),
-      app: { url: "http://localhost:5180" },
+      // OGS_LAUNCHER / OGS_API let a second stack run beside the shared one (5180 / 8788).
+      app: { url: process.env.OGS_LAUNCHER ?? "http://localhost:5180" },
     },
     {
       name: "ios",

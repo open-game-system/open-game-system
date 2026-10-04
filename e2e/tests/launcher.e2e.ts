@@ -1,18 +1,30 @@
 // The TV launcher against the real local API and couch session (acceptance:
-// docs/acceptance/2026-10-03-cast-first-app.feature). The phone is a WebSocket client; the
+// docs/acceptance/2026-10-03-cast-first-app.feature, 2026-10-04-ogs-profiles.feature). The phone is a WebSocket client; the
 // launcher is the surface under test. Deterministic: no model.
 import { test } from "@e2e-dev/web";
 import { describe, expect } from "e2e";
-import { couch, household, tvPage } from "./household";
+import { cast, couch, profile, tvPage } from "./profile";
+
+/** Jonathan casts; Juneau's iPad joins with the TV code. */
+async function livingRoom() {
+  const jonathan = await profile("Jonathan", "bear");
+  const juneau = await profile("Juneau", "dragon", "tablet");
+  const tv = await cast(jonathan);
+  await tv.join(juneau);
+  const phone = await couch(jonathan.token, tv.sessionId);
+  const pad = await couch(juneau.token, tv.sessionId);
+  return { tv, phone, pad, launcherPath: tv.launcherPath };
+}
 
 const focused = '[data-focused]';
 
 describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"] }, () => {
-  test("cast: the launcher joins the household's couch, once", async ({ app, screen, browser }) => {
-    const hh = await household();
-    const phone = await couch(hh.phoneToken);
-    await app.open(hh.launcherPath);
+  test("cast: the launcher joins the host's session, once, titled with the TV and host", async ({ app, screen, browser }) => {
+    const { phone, pad, launcherPath, tv } = await livingRoom();
+    await app.open(launcherPath);
     await expect(screen.getByTestId("home")).toBeVisible();
+    await expect(screen.getByText("Living room TV · Jonathan's games")).toBeVisible();
+    await expect(screen.getByText(tv.code)).toBeVisible();
     await expect(screen.getByTestId("couch")).toContainText(["Jonathan"]);
     await expect(screen.getByTestId("couch")).toContainText("Juneau");
     await expect(screen.getByTestId("remote-chip")).toContainText("Jonathan has the remote");
@@ -21,12 +33,12 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
     await expect(browser.locator('[data-row="library"]')).toBeVisible();
     await app.screenshot("home-live");
     phone.close();
+    pad.close();
   });
 
   test("remote: a move on the phone moves the TV focus ring", async ({ app, screen, browser }) => {
-    const hh = await household();
-    const phone = await couch(hh.phoneToken);
-    await app.open(hh.launcherPath);
+    const { phone, launcherPath } = await livingRoom();
+    await app.open(launcherPath);
     await expect(screen.getByTestId("home")).toBeVisible();
     const first = await phone.until(() => phone.state()?.focus, "initial focus");
     const before = await browser.locator(focused).getAttribute("data-item");
@@ -39,9 +51,8 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
   });
 
   test("select opens the game page; back returns home", async ({ app, screen }) => {
-    const hh = await household();
-    const phone = await couch(hh.phoneToken);
-    await app.open(hh.launcherPath);
+    const { phone, launcherPath } = await livingRoom();
+    await app.open(launcherPath);
     await expect(screen.getByTestId("home")).toBeVisible();
     await phone.until(() => phone.state()?.focus, "initial focus");
     phone.send({ type: "select", deviceId: "phone" });
@@ -54,9 +65,8 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
   });
 
   test("a game launched from the phone is framed; swipe back parks it with its resume point; a swap never recasts", async ({ app, screen, browser }) => {
-    const hh = await household();
-    const phone = await couch(hh.phoneToken);
-    await app.open(hh.launcherPath);
+    const { phone, launcherPath } = await livingRoom();
+    await app.open(launcherPath);
     await expect(screen.getByTestId("home")).toBeVisible();
     await phone.until(() => phone.state()?.cast, "launcher connected");
 
