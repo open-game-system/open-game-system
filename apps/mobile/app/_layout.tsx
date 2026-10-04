@@ -68,7 +68,6 @@ export default function RootLayout() {
         name="game"
         options={{ gestureEnabled: false, animation: "slide_from_right" }}
       />
-      <Stack.Screen name="game-page" />
       <Stack.Screen name="game-detail" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="sign-in" options={{ presentation: "modal" }} />

@@ -41,44 +41,72 @@ Feature: Cast-first OGS app with games inside one stream
 
   # Owner, 2026-10-04: Library is the games you have, not their state; a game's sittings live on
   # its page ("you might have say multiple games of catan going"). "+ Add games" is gone for now.
-  Scenario: Library shows the games you have
+  # Owner, 2026-10-04: no "Needs a TV" (every game uses the TV), less text, "more like a steam
+  # library page": one hero, then All Games as art. The game page keeps the tab bar.
+  Scenario: Library shows the games you have, art first
     When Jonathan opens the Library tab
-    Then each game is one row with its art, name and tagline
-    And Rocket Crew's row says "Needs a TV"
-    And no row shows a status or a Rejoin button
+    Then the first game is a hero: its art with its name set on it and one button
+    And below it "All Games" shows every game once as art with its name, and no tagline
+    And nothing reads "Needs a TV"
     And there is no "+ Add games" row and no household chip
 
-  Scenario: A tap in Library opens the game's page
+  Scenario: First run: the hero is the first game, ready to start
+    Given Jonathan has never played anything
+    When Jonathan opens the Library tab
+    Then the hero is the first game in his library and its button reads "Start game"
+    And All Games lists the games in library order
+
+  Scenario: The hero is the game you played last, one tap to rejoin
+    Given Jonathan played Rocket Crew, then Bake Shop, then Night Flight
+    When Jonathan opens the Library tab
+    Then the hero is Night Flight, reading when he last played it
+    And its button reads "Rejoin" and rejoins Night Flight's newest sitting
+    And All Games lists Night Flight, Bake Shop, Rocket Crew first, then the games he hasn't played
+
+  Scenario: The game on the TV is the hero
+    Given Story Nook is on the TV now
+    When Jonathan opens the Library tab
+    Then the hero is Story Nook reading "On the TV now"
+
+  Scenario: A tap in Library opens the game's page, with the tabs still there
     Given Jonathan has never played Bake Shop
     When Jonathan taps Bake Shop in Library
-    Then Bake Shop's page shows its art, name and tagline
+    Then Bake Shop's page shows its art with its name, its players, minutes and ages, and its tagline
+    And the tab bar is still there
     And it lists no sittings
-    And it offers "New game"
+    And "Start game" is pinned at the bottom of the page
+    And tapping the Library tab returns to the Library list
 
-  Scenario: The game's page lists your sittings, each with Rejoin
+  Scenario: The game's page lists your sittings as cards, each with Rejoin
     Given Rocket Crew is paused at "Mission 6"
     When Jonathan opens Rocket Crew's page
-    Then it lists one sitting reading "Mission 6" with when it was last played and "Rejoin"
-    And "New game" sits below it
+    Then it lists one sitting under "In progress" headed "Mission 6" with when it was last played and "Rejoin"
+    And "Start game" stays pinned at the bottom
     And Rejoin opens that sitting's own room
+
+  Scenario: A sitting with no resume point is named by when it started
+    Given Rocket Crew reported no resume point for a sitting started at 7:42 PM
+    When Jonathan opens Rocket Crew's page
+    Then that sitting is headed "Started 7:42 PM", never "In progress" again
+    And its second line says when it was last played, or "On the TV now"
 
   Scenario: Several sittings of one game
     Given Jonathan started Rocket Crew and swiped back
-    When he starts a New game of Rocket Crew from its page and swipes back
+    When he starts a new game of Rocket Crew from its page and swipes back
     Then he is back on Rocket Crew's page
     And it lists two sittings, most recent first, each with its own Rejoin
     And Playing lists both, each as its own row with Rejoin
 
   Scenario: Play a game without a TV
     Given the TV is not cast
-    When Jonathan starts a New game of a game whose manifest says tv "none" or "optional"
+    When Jonathan starts a game whose manifest says tv "none" or "optional"
     Then the game opens on the phone in full screen
     And swiping from the left edge returns to the game's page
 
   Scenario: A TV-required game offers casting when not cast
     Given the TV is not cast
     When Jonathan opens Rocket Crew's page from Library
-    Then he sees "Cast to play" instead of "New game"
+    Then he sees "Cast to play" instead of "Start game"
     And a Rejoin on that page casts first, then opens the sitting
 
   Scenario: Finished and old games leave Playing on their own
@@ -136,7 +164,7 @@ Feature: Cast-first OGS app with games inside one stream
 
   Scenario: Launch from the phone while cast
     Given the launcher is on the TV
-    When Jonathan starts a New game of Rocket Crew from its page
+    When Jonathan starts a new game of Rocket Crew from its page
     Then the phone opens Rocket Crew's start page as the controller
     And when the game asks for its TV view, the launcher frames it
     And the session still counts exactly 1 cast

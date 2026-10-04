@@ -226,7 +226,7 @@ export function openGame(
       pushGame(game, plan.url, sitting);
       break;
     case "needs-tv":
-      router.push({ pathname: "/game-page", params: { appId: game.appId } });
+      router.push({ pathname: "/library/[appId]", params: { appId: game.appId } });
       break;
   }
 }

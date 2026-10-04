@@ -1,25 +1,41 @@
+import type { Manifest } from "@open-game-system/ogs-protocol";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { ErrorLine } from "../../components/ogs/ErrorLine";
-import { LibraryRow } from "../../components/ogs/library/LibraryRow";
-import { needsTv } from "../../components/ogs/library/needs-tv";
-import { Screen } from "../../components/ogs/Screen";
-import { colors } from "../../components/ogs/theme";
-import { appState, useApp } from "../../services/runtime";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ErrorLine } from "../../../components/ogs/ErrorLine";
+import { shelfShape } from "../../../components/ogs/library/art-kit";
+import { GameCapsule } from "../../../components/ogs/library/GameCapsule";
+import { LibraryHero } from "../../../components/ogs/library/LibraryHero";
+import { libraryShelves } from "../../../components/ogs/library/shelves";
+import { Screen, SectionTitle } from "../../../components/ogs/Screen";
+import { colors } from "../../../components/ogs/theme";
+import { appState, useApp, useCouch } from "../../../services/runtime";
+
+const GUTTER = 20;
+const GAP = 14;
 
 /**
- * Library is the games you have, one per row (art, name, tagline, "Needs a TV"). A tap opens the
- * game's page, which lists your sittings of it and starts a new one.
+ * Library, Steam-style: the game you played last (or the one on the TV) as a big hero with one
+ * action (Rejoin, else Start game), then All Games as a grid of art, played newest first. A tap on
+ * any art opens the game's page in this tab's stack (its sittings, Start game).
  */
 export default function LibraryScreen() {
   const router = useRouter();
   const app = useApp();
+  const { state } = useCouch();
+  const { width } = useWindowDimensions();
   useFocusEffect(
     useCallback(() => {
       void appState.refresh();
     }, []),
   );
+
+  const open = (game: Manifest) =>
+    router.push({ pathname: "/library/[appId]", params: { appId: game.appId } });
+  const { hero, all } = libraryShelves(app.library, app.instances, state, Date.now());
+  const content = width - GUTTER * 2;
+  const gridWidth = (content - GAP) / 2;
+  const shape = shelfShape(all);
 
   return (
     <Screen title="Library" testID="libraryScreen">
@@ -32,26 +48,39 @@ export default function LibraryScreen() {
           />
         </View>
       ) : null}
-      <View style={styles.list}>
-        {app.library.map((game) => (
-          <LibraryRow
-            key={game.appId}
-            testID={`libraryGame-${game.appId}`}
-            game={game}
-            needsTv={needsTv(game)}
-            onPress={() => router.push({ pathname: "/game-page", params: { appId: game.appId } })}
-          />
-        ))}
-        {app.library.length === 0 && app.status === "ready" ? (
-          <Text style={styles.empty}>No games yet.</Text>
-        ) : null}
-      </View>
+      {hero ? (
+        <View style={styles.heroLayer}>
+          <LibraryHero hero={hero} testID="libraryHero" onOpen={() => open(hero.game)} />
+        </View>
+      ) : null}
+      {all.length > 0 ? (
+        <View testID="libraryAll">
+          <SectionTitle>All Games</SectionTitle>
+          <View style={styles.grid}>
+            {all.map((game) => (
+              <GameCapsule
+                key={game.appId}
+                testID={`libraryGame-${game.appId}`}
+                game={game}
+                shape={shape}
+                width={gridWidth}
+                onPress={() => open(game)}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+      {app.library.length === 0 && app.status === "ready" ? (
+        <Text style={styles.empty}>No games yet.</Text>
+      ) : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 10 },
+  // The hero's blurred art tints the page behind the title.
+  heroLayer: { zIndex: -1 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP, rowGap: 18 },
   empty: { color: colors.cream2, fontSize: 16, marginBottom: 8 },
   notice: {
     backgroundColor: colors.dusk2,
@@ -60,5 +89,4 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 18,
   },
-  noticeText: { color: colors.cream2, fontSize: 15, lineHeight: 21 },
 });
