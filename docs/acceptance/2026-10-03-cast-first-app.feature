@@ -39,27 +39,54 @@ Feature: Cast-first OGS app with games inside one stream
     Then the Playing tab is selected
     And the first card reads "Now playing" with "Rocket Crew"
 
+  # Owner, 2026-10-04: Library is the games you have, not their state; a game's sittings live on
+  # its page ("you might have say multiple games of catan going"). "+ Add games" is gone for now.
+  Scenario: Library shows the games you have
+    When Jonathan opens the Library tab
+    Then each game is one row with its art, name and tagline
+    And Rocket Crew's row says "Needs a TV"
+    And no row shows a status or a Rejoin button
+    And there is no "+ Add games" row and no household chip
+
+  Scenario: A tap in Library opens the game's page
+    Given Jonathan has never played Bake Shop
+    When Jonathan taps Bake Shop in Library
+    Then Bake Shop's page shows its art, name and tagline
+    And it lists no sittings
+    And it offers "New game"
+
+  Scenario: The game's page lists your sittings, each with Rejoin
+    Given Rocket Crew is paused at "Mission 6"
+    When Jonathan opens Rocket Crew's page
+    Then it lists one sitting reading "Mission 6" with when it was last played and "Rejoin"
+    And "New game" sits below it
+    And Rejoin opens that sitting's own room
+
+  Scenario: Several sittings of one game
+    Given Jonathan started Rocket Crew and swiped back
+    When he starts a New game of Rocket Crew from its page and swipes back
+    Then he is back on Rocket Crew's page
+    And it lists two sittings, most recent first, each with its own Rejoin
+    And Playing lists both, each as its own row with Rejoin
+
   Scenario: Play a game without a TV
     Given the TV is not cast
-    When Jonathan taps a game whose manifest says tv "none" or "optional" in Library
+    When Jonathan starts a New game of a game whose manifest says tv "none" or "optional"
     Then the game opens on the phone in full screen
-    And swiping from the left edge returns to Library
+    And swiping from the left edge returns to the game's page
 
   Scenario: A TV-required game offers casting when not cast
     Given the TV is not cast
-    When Jonathan taps Rocket Crew in Library
-    Then he sees "Cast to play" instead of the game
-
-  Scenario: Add a game from the catalogue
-    When Jonathan taps "+ Add games" in Library and adds Night Flight
-    Then Night Flight appears in Library
+    When Jonathan opens Rocket Crew's page from Library
+    Then he sees "Cast to play" instead of "New game"
+    And a Rejoin on that page casts first, then opens the sitting
 
   Scenario: Finished and old games leave Playing on their own
     Given an instance reported "completed" two days ago
     And an instance silent for longer than its game's instanceTtl
-    And three visits to a game that reports nothing
+    And three visits to the same sitting of a game that reports nothing
     Then Playing shows neither of the first two
-    And the unreported game appears once, not three times
+    And the unreported sitting appears once, not three times
 
   Scenario: A game reports its instance over the bridge
     When the game page calls the OGS bridge with status "suspended" and title "Day 4"
@@ -109,7 +136,7 @@ Feature: Cast-first OGS app with games inside one stream
 
   Scenario: Launch from the phone while cast
     Given the launcher is on the TV
-    When Jonathan taps Rocket Crew in Library
+    When Jonathan starts a New game of Rocket Crew from its page
     Then the phone opens Rocket Crew's start page as the controller
     And when the game asks for its TV view, the launcher frames it
     And the session still counts exactly 1 cast
@@ -125,7 +152,7 @@ Feature: Cast-first OGS app with games inside one stream
     When Jonathan swipes back from the left edge of the game screen
     Then the TV shows the launcher with Rocket Crew paused at "Mission 6"
     And a "Rejoin" pill shows on every tab
-    And the Library row for Rocket Crew says "In progress · Mission 6"
+    And Rocket Crew's page lists that sitting as "Mission 6" with Rejoin
 
   Scenario: Rejoin returns to the same room
     Given Jonathan hosted Rocket Crew in room "PQWS" and swiped back

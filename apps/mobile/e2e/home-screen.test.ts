@@ -35,12 +35,22 @@ describe("Tabs", () => {
       .withTimeout(3000);
   });
 
-  it("Library offers + Add games", async () => {
+  // Owner, 2026-10-04: Library is the games you have; "+ Add games" is gone (a developer setting
+  // will add your own game later). A tap opens the game's page.
+  it("Library lists games, with no + Add games; a tap opens the game's page", async () => {
     await element(by.id("tabLibrary")).tap();
-    await waitFor(element(by.id("addGames")))
+    await waitFor(element(by.id("libraryGame-rocket-crew")))
       .toBeVisible()
-      .whileElement(by.id("libraryScreen"))
-      .scroll(300, "down");
+      .withTimeout(10000);
+    await expect(element(by.id("addGames"))).not.toExist();
+    await element(by.id("libraryGame-rocket-crew")).tap();
+    await waitFor(element(by.id("gamePage")))
+      .toExist()
+      .withTimeout(3000);
+    await element(by.id("gamePageBack")).tap();
+    await waitFor(element(by.id("libraryScreen")))
+      .toExist()
+      .withTimeout(3000);
   });
 
   it("Friends is honestly empty, with Share my profile", async () => {

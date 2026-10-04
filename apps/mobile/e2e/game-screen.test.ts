@@ -27,6 +27,11 @@ describe("Game Screen", () => {
       .toBeVisible()
       .withTimeout(10000);
     await element(by.id("libraryGame-rocket-crew")).tap();
+    // A tap opens the game's page; New game starts it.
+    await waitFor(element(by.id("gameNew")))
+      .toBeVisible()
+      .withTimeout(5000);
+    await element(by.id("gameNew")).tap();
     await waitFor(element(by.id("gameScreen")))
       .toExist()
       .withTimeout(5000);
@@ -37,12 +42,19 @@ describe("Game Screen", () => {
     await expect(element(by.id("tabLibrary"))).not.toBeVisible();
   });
 
-  it("swipes back from the left edge to the tabs and leaves a Rejoin pill", async () => {
+  it("swipes back to the game's page, which lists the sitting; the tabs show a Rejoin pill", async () => {
     // The first-visit hint covers the game and teaches the swipe; swiping on it must work.
     await waitFor(element(by.id("swipeHintOverlay")))
       .toBeVisible()
       .withTimeout(15000);
     await element(by.id("swipeHintOverlay")).swipe("right", "fast", 0.8, 0.02, 0.5);
+    await waitFor(element(by.id("gamePage")))
+      .toExist()
+      .withTimeout(5000);
+    await waitFor(element(by.id("gameSittings")))
+      .toExist()
+      .withTimeout(5000);
+    await element(by.id("gamePageBack")).tap();
     await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);

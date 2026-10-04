@@ -48,7 +48,10 @@ describe("OGS app, cast-first", { tags: ["ios"], serial: true, requires: ["nativ
   test("a game from Library: the TV waits, then frames the game once its page declares a TV view", async ({ app, screen }) => {
     const loads = (await tv()).loads;
     await screen.getByTestId("tabLibrary").tap();
+    // A Library tap opens the game's page; New game starts it.
     await screen.getByTestId("libraryGame-rocket-crew").tap();
+    await expect(screen.getByTestId("gamePage")).toBeVisible();
+    await screen.getByTestId("gameNew").tap();
     await expect(screen.getByTestId("gameScreen")).toBeVisible();
     await expect.poll(async () => (await tv()).dom?.starting, { timeout: 20_000 }).toBe(true);
     // Rocket Crew declares its TV page once the host has a crew name.
@@ -62,6 +65,10 @@ describe("OGS app, cast-first", { tags: ["ios"], serial: true, requires: ["nativ
 
   test("swipe back from the left edge: home on the TV with Rocket Crew paused", async ({ app, screen }) => {
     await screen.swipe({ from: { x: 10, y: 450 }, to: { x: 340, y: 450 } });
+    // Back on the game's page, which now lists the sitting with its Rejoin.
+    await expect(screen.getByTestId("gamePage")).toBeVisible();
+    await expect(screen.getByTestId(/^gameSittingRejoin-/)).toHaveCount(1);
+    await screen.getByTestId("gamePageBack").tap();
     await expect(screen.getByTestId("libraryScreen")).toBeVisible();
     await expect.poll(async () => (await tv()).dom?.screen, { timeout: 15_000 }).toBe("home");
     await expect.poll(async () => (await tv()).dom?.continueApps ?? [], { timeout: 15_000 }).toContain("game:rocket-crew");
@@ -96,9 +103,27 @@ describe("OGS app, cast-first", { tags: ["ios"], serial: true, requires: ["nativ
     await backOut();
   });
 
+  test("a New game of Rocket Crew from its page: the page lists two sittings, each with Rejoin", async ({ app, screen }) => {
+    await screen.getByTestId("tabLibrary").tap();
+    await screen.getByTestId("libraryGame-rocket-crew").tap();
+    await expect(screen.getByTestId("gamePage")).toBeVisible();
+    await expect(screen.getByTestId(/^gameSittingRejoin-/)).toHaveCount(1);
+    await screen.getByTestId("gameNew").tap();
+    await expect(screen.getByTestId("gameScreen")).toBeVisible();
+    await expect.poll(async () => (await tv()).dom?.screen, { timeout: 20_000 }).toBe("game");
+    await screen.swipe({ from: { x: 10, y: 450 }, to: { x: 340, y: 450 } });
+    await expect(screen.getByTestId("gamePage")).toBeVisible();
+    await expect(screen.getByTestId(/^gameSittingRejoin-/)).toHaveCount(2, { timeout: 15_000 });
+    await app.screenshot("game-page-two-sittings");
+    await screen.getByTestId("gamePageBack").tap();
+    await expect(screen.getByTestId("libraryScreen")).toBeVisible();
+  });
+
   test("swap to Bake Shop: no recast", async ({ screen }) => {
     const loads = (await tv()).loads;
     await screen.getByTestId("libraryGame-bake-shop").tap();
+    await expect(screen.getByTestId("gamePage")).toBeVisible();
+    await screen.getByTestId("gameNew").tap();
     await expect(screen.getByTestId("gameScreen")).toBeVisible();
     await expect.poll(async () => (await tv()).dom?.screen, { timeout: 20_000 }).toBe("game");
     expect((await tv()).loads).toBe(loads);
