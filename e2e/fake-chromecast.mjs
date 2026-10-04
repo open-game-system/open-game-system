@@ -63,7 +63,7 @@ const server = createServer(async (req, res) => {
         state.loads += 1;
         state.viewUrl = parsed.data.viewUrl;
         state.startedAt ??= Date.now();
-        console.log(`[cast] load #${state.loads}: ${state.viewUrl}`);
+        console.log(`[cast] load #${state.loads} at=${Date.now()}: ${state.viewUrl.replace(/token=[^&]+/, "token=…")}`);
         await p.goto(state.viewUrl);
       }
       return res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(state));
