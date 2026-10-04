@@ -82,3 +82,32 @@ describe("waiting briefly for the session before choosing", () => {
     expect(s.listeners.size).toBe(0);
   });
 });
+
+describe("opening tab edges", () => {
+  it("someone else's roster seat isn't this phone's", () => {
+    const s = live({
+      hostDeviceId: "phone-2",
+      roster: [{ profileId: "p", roleId: "fixer", deviceId: "phone-3" }],
+    });
+    expect(openingTab(s, "phone-1")).toBe("library");
+  });
+
+  it("keeps waiting through a change that brings no state yet", async () => {
+    jest.useFakeTimers();
+    let state: SessionState | null = null;
+    const listeners = new Set<() => void>();
+    const src = {
+      getSnapshot: () => ({ state }),
+      subscribe: (l: () => void) => {
+        listeners.add(l);
+        return () => listeners.delete(l);
+      },
+    };
+    const p = decideOpeningTab(src, "phone-1", 1500);
+    for (const l of listeners) l();
+    state = live();
+    for (const l of listeners) l();
+    await expect(p).resolves.toBe("playing");
+    jest.useRealTimers();
+  });
+});

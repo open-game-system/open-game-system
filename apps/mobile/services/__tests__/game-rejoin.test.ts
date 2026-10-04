@@ -162,3 +162,16 @@ describe("latestGameUrl edges", () => {
     );
   });
 });
+
+describe("rejoin picks this game's paused sitting", () => {
+  const remembered = { appId: "rocket-crew", url: ROOM, instanceId: "i-1" };
+  it("not another game's paused sitting listed first", () => {
+    const s = session({
+      suspended: [
+        { appId: "bake-shop", instanceId: "bs-1", label: "", at: 1 },
+        { appId: "rocket-crew", instanceId: "i-1", label: "", at: 2 },
+      ],
+    });
+    expect(rejoinUrl("rocket-crew", { remembered, session: s, pill: null })).toBe(ROOM);
+  });
+});

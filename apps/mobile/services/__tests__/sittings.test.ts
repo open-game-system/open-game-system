@@ -232,3 +232,12 @@ describe("sittingToOpen: which sitting a game screen opens", () => {
     expect(sittingToOpen("catan", { resumeUrl: "https://x/r" }, 1000)).toBeUndefined();
   });
 });
+
+describe("a couch sitting with no label", () => {
+  it("has no label when its instance isn't recorded either", () => {
+    const s = session({
+      suspended: [{ appId: "catan", instanceId: "c-p", label: "", at: NOW - MIN }],
+    });
+    expect(sittingsFor(game(), [], s, NOW)[0]?.label).toBe("");
+  });
+});

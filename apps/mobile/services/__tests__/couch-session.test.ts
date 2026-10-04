@@ -323,3 +323,18 @@ describe("couch session lifecycle edges", () => {
     expect(session.getSnapshot().error).toEqual({ code: "ERROR", message: "Something broke" });
   });
 });
+
+describe("couch session notifications", () => {
+  it("a follow for the phone changes nothing on screen, so tells no listener", () => {
+    const { session } = setup();
+    last().open();
+    const listener = jest.fn();
+    session.subscribe(listener);
+    last().receive({
+      type: "follow",
+      target: { kind: "game", appId: "rocket-crew", instanceId: "rc-1", roleId: "host" },
+    });
+    last().receive({ type: "follow", target: { kind: "launcher" } });
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
