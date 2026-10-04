@@ -46,7 +46,7 @@ export function playingSuggestions(
   const first = library.find((g) => g.appId === lastPlayed?.appId);
   const rest = library.filter((g) => g !== first);
   const fits = (g: Manifest) => (ogsCast ? g.tv !== "none" : g.tv !== "required");
-  // What fits the moment first; TV games still show when not cast (they offer Cast to play).
+  // What fits the moment first; TV games still show when not cast (their Play asks to cast first).
   const ordered = [...rest.filter(fits), ...rest.filter((g) => !fits(g))];
   return [...(first ? [first] : []), ...ordered].slice(0, 3);
 }

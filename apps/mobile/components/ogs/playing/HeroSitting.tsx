@@ -11,7 +11,7 @@ import { StatusTag } from "./StatusTag";
 /**
  * The sitting Playing leads with: the game live on the TV (`sitting` null), else your turn or the
  * one you played last. Its key art and logo, the resume point as the headline, one Rejoin (a TV
- * game while not cast casts first).
+ * game while not cast asks to cast first: usePlay).
  */
 export function HeroSitting({
   game,
@@ -63,12 +63,10 @@ export function HeroSitting({
         {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         <Button
           testID={buttonTestID}
-          label={play.busy ? "Casting…" : verb}
-          disabled={play.busy}
+          label={verb}
           onPress={() => (sitting ? play.rejoin(sitting) : openGame(game))}
           style={styles.button}
         />
-        {play.note ? <Text style={styles.note}>{play.note}</Text> : null}
       </View>
     </View>
   );
@@ -94,5 +92,4 @@ const styles = StyleSheet.create({
   headlineTime: { color: colors.cream, fontSize: 20, fontWeight: "700" },
   meta: { color: colors.cream3, fontSize: 15 },
   button: { marginTop: 12 },
-  note: { color: colors.peach, fontSize: 14, marginTop: 6 },
 });

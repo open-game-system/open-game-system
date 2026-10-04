@@ -50,7 +50,7 @@ Feature: Cast-first OGS app with games inside one stream
   Scenario: First run: the hero is the first game, ready to start
     Given Jonathan has never played anything
     When Jonathan opens the Library tab
-    Then the hero is the first game in his library and its button reads "Start game" (cast) or "Cast to play" (not cast)
+    Then the hero is the first game in his library and its button reads "Play", cast or not
     And All Games lists every game in library order
 
   Scenario: The hero is the game you played last, one tap to rejoin
@@ -63,7 +63,7 @@ Feature: Cast-first OGS app with games inside one stream
   Scenario: The hero's button uses the game page's verb
     Given the TV is not cast and Jonathan has never played anything
     When Jonathan opens the Library tab
-    Then the hero's button reads "Cast to play", as the game's page does
+    Then the hero's button reads "Play", as the game's page does, never "Cast to play"
     And once a game was played the hero reads "Last played" and its button reads "Rejoin"
     And tapping the hero's art opens its game's page
 
@@ -78,7 +78,7 @@ Feature: Cast-first OGS app with games inside one stream
     Then Bake Shop's page shows its key art with its logo, its players, minutes and ages, and its tagline
     And the tab bar is still there
     And it lists no sittings
-    And "Start game" is pinned at the bottom of the page
+    And "Play" is pinned at the bottom of the page
     And tapping the Library tab returns to the Library list
 
   Scenario: The game's page lists your sittings as cards, each with Rejoin
@@ -104,15 +104,52 @@ Feature: Cast-first OGS app with games inside one stream
 
   Scenario: Play a game without a TV
     Given the TV is not cast
-    When Jonathan starts a game whose manifest says tv "none" or "optional"
-    Then the game opens on the phone in full screen
+    When Jonathan taps Play on a game whose manifest says tv "none"
+    Then the game opens on the phone in full screen, with no cast prompt
+    And a tv "optional" game opens on the phone the same way once he picks "Play on this phone"
     And swiping from the left edge returns to the game's page
 
-  Scenario: A TV-required game offers casting when not cast
+  # Owner, 2026-10-04: "I don't like how 'Cast to play' is the CTA... it should just be Play, and
+  # then if they are not already casting, we prompt them to cast." Owner copy rule, 2026-10-04: a
+  # button says Play or Cast, never both ("Cast and play" is out).
+  Scenario: Play, then cast if not casting
     Given the TV is not cast
     When Jonathan opens Rocket Crew's page from Library
-    Then he sees "Cast to play" instead of "Start game"
-    And a Rejoin on that page casts first, then opens the sitting
+    Then its button reads "Play", never "Cast to play"
+    When he taps Play
+    Then a sheet asks "Play Rocket Crew on the TV" and lists the TVs it finds, the first one chosen
+    When he picks "Living room TV" and taps "Cast"
+    Then the sheet shows it is connecting to Living room TV
+    And once the TV shows the launcher, Rocket Crew starts by itself and the launcher frames it
+    And the session counts exactly 1 cast
+
+  Scenario: Not now closes the cast prompt
+    Given the TV is not cast
+    When Jonathan taps Play on Rocket Crew's page, then "Not now"
+    Then the sheet closes on Rocket Crew's page and nothing is cast
+
+  Scenario: Rejoin asks to cast the same way
+    Given the TV is not cast and Rocket Crew is paused at "Mission 6"
+    When Jonathan taps Rejoin on that sitting, in Library, on its page or in Playing
+    Then the same sheet asks to cast, and once cast it opens that sitting's own room
+    And no row in Playing reads "Casts to the TV first": a TV game's row reads "On the TV"
+
+  Scenario: Already casting, Play starts at once
+    Given the launcher is on the TV
+    When Jonathan taps Play on Bake Shop's page
+    Then Bake Shop starts on the TV with no sheet, and the TV is not recast
+
+  Scenario: The cast prompt finds no TV
+    Given the TV is not cast and no Chromecast is visible
+    When Jonathan taps Play on Rocket Crew's page
+    Then the sheet says "Looking for TVs…", then "No TV found" with the likely causes, Try again and Open Settings
+
+  Scenario: A game that also plays on the phone offers it
+    Given the TV is not cast and a game's manifest says tv "optional"
+    When Jonathan taps Play on its page
+    Then the sheet offers "Cast" and "Play on this phone"
+    When he taps "Play on this phone"
+    Then the game opens on the phone in full screen
 
   Scenario: Finished and old games leave Playing on their own
     Given an instance reported "completed" two days ago

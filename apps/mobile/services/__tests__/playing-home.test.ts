@@ -107,7 +107,8 @@ describe("Playing with nothing in progress", () => {
     if (view.kind !== "suggest") throw new Error(view.kind);
     const why = Object.fromEntries(view.picks.map((p) => [p.game.appId, p.why]));
     expect(why).toEqual({
-      "rocket-crew": "Casts to the TV first",
+      // Owner, 2026-10-04: no "Casts to the TV first"; Play asks to cast when it must.
+      "rocket-crew": "Plays on the TV",
       "word-duel": "Plays on this phone",
       hearthisle: "TV or this phone",
     });
@@ -188,7 +189,7 @@ describe("a sitting's card in Playing", () => {
       headline: "Mission 6",
       meta: "Played 5 min ago",
       playsOn: "tv",
-      where: "Casts to the TV first",
+      where: "On the TV",
       asks: false,
       named: true,
     });
@@ -237,12 +238,14 @@ describe("a sitting's card in Playing", () => {
     });
   });
 
-  it("says where Rejoin will land: the TV once cast, this phone for phone games", () => {
+  // Owner, 2026-10-04: Rejoin asks to cast when it must, so a row says where the game plays, not
+  // "Casts to the TV first"; a game that plays either way is offered both by the cast prompt.
+  it("says where Rejoin will land: the TV for TV games, this phone for phone games", () => {
     const where = (g: Manifest, cast: boolean) => sittingRow(inst(g.appId), g, NOW, cast).where;
-    expect(where(rc, false)).toBe("Casts to the TV first");
+    expect(where(rc, false)).toBe("On the TV");
     expect(where(rc, true)).toBe("On the TV");
     expect(where(game("hearthisle", "optional"), true)).toBe("On the TV");
-    expect(where(game("hearthisle", "optional"), false)).toBe("On this phone");
+    expect(where(game("hearthisle", "optional"), false)).toBe("TV or this phone");
     expect(where(game("word-duel", "none"), true)).toBe("On this phone");
   });
 

@@ -81,7 +81,7 @@ describe("libraryShelves: the Library's hero and All Games (every game, in a sta
     expect(ids(shelves.grid)).toEqual(["a", "b", "c", "d", "e"]);
   });
 
-  it("a finished game still counts as played (hero without a sitting: Start game)", () => {
+  it("a finished game still counts as played (hero without a sitting: Play)", () => {
     const shelves = libraryShelves(library, [inst("d", H, { status: "completed" })], null, NOW);
     expect(shelves.hero?.game.appId).toBe("d");
     expect(shelves.hero?.sitting).toBeNull();
@@ -174,14 +174,11 @@ describe("heroAction: the hero's one button, the same verb the game's page uses"
     playedAt: sitting ? NOW - H : null,
   });
 
-  it("Start game when there's nothing to rejoin and the TV is ready", () => {
-    expect(heroAction(hero(false), false)).toBe("start");
+  // Owner, 2026-10-04: the CTA is Play, never "Cast to play"; Play asks to cast when it must.
+  it("Play when there's nothing to rejoin, cast or not (Play asks to cast when it must)", () => {
+    expect(heroAction(hero(false))).toBe("play");
   });
-  it("Rejoin when there's a sitting, cast or not (a Rejoin casts first)", () => {
-    expect(heroAction(hero(true), false)).toBe("rejoin");
-    expect(heroAction(hero(true), true)).toBe("rejoin");
-  });
-  it("Cast to play when a TV game has nothing to rejoin and the TV isn't cast", () => {
-    expect(heroAction(hero(false), true)).toBe("cast");
+  it("Rejoin when there's a sitting, cast or not (the prompt casts first when it must)", () => {
+    expect(heroAction(hero(true))).toBe("rejoin");
   });
 });

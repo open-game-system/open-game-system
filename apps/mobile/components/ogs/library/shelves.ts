@@ -62,11 +62,9 @@ export function heroEyebrow(hero: LibraryHero): string | null {
 }
 
 /**
- * The hero's one button, with the verb the game's page uses: Rejoin its newest sitting (a Rejoin
- * casts first when it must), else Cast to play when the game needs a TV that isn't cast, else
- * Start game.
+ * The hero's one button, with the verb the game's page uses: Rejoin its newest sitting, else Play.
+ * Either one asks to cast first when the game needs the TV and it isn't cast (see play-action).
  */
-export function heroAction(hero: LibraryHero, needsCast: boolean): "rejoin" | "start" | "cast" {
-  if (hero.sitting) return "rejoin";
-  return needsCast ? "cast" : "start";
+export function heroAction(hero: LibraryHero): "rejoin" | "play" {
+  return hero.sitting ? "rejoin" : "play";
 }

@@ -7,7 +7,7 @@ export type LaunchPlan =
   | { kind: "tv"; start: GameStart; url: string }
   /** Open the game on this phone. */
   | { kind: "phone"; url: string }
-  /** Not cast and the game needs a TV: show its page with "Cast to play". */
+  /** Not cast and the game needs a TV: show its page, whose Play asks to cast first. */
   | { kind: "needs-tv" };
 
 /**

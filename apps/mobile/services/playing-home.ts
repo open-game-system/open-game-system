@@ -29,7 +29,7 @@ const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 function whyFor(game: Manifest, cast: boolean, liveName: string | null): string {
   if (game.tv === "none") return "Plays on this phone";
   if (cast) return liveName ? `Pauses ${liveName}` : "Starts on the TV";
-  return game.tv === "required" ? "Casts to the TV first" : "TV or this phone";
+  return game.tv === "required" ? "Plays on the TV" : "TV or this phone";
 }
 
 /**
@@ -95,7 +95,7 @@ export interface SittingRow {
   /** When it was last played ("Played 5 min ago"). */
   meta: string;
   playsOn: PlaysOn;
-  /** Where Rejoin lands: "On the TV", "On this phone", "Casts to the TV first", or "Pauses <live game>". */
+  /** Where Rejoin lands: "On the TV", "On this phone", "TV or this phone", or "Pauses <live game>". */
   where: string;
   /** Rejoin asks first: it would pause the game live on the TV for everyone. */
   asks: boolean;
@@ -165,7 +165,7 @@ const row = (
   };
 };
 
-/** A line every card in a group would repeat ("Casts to the TV first"), said once; else null. */
+/** A line every card in a group would repeat ("On the TV"), said once; else null. */
 export function sharedLine(lines: string[]): string | null {
   return lines.length > 1 && lines.every((l) => l === lines[0]) ? lines[0] : null;
 }
@@ -215,9 +215,10 @@ export function sittingRows(
   return rows;
 }
 
+/** Not cast, Play/Rejoin asks to cast first (play-action), so a row never says how it gets there. */
 function whereItPlays(on: PlaysOn, cast: boolean, liveName: string | null): string {
-  if (on === "phone" || (on === "either" && !cast)) return "On this phone";
-  if (!cast) return "Casts to the TV first";
+  if (on === "phone") return "On this phone";
+  if (!cast) return on === "either" ? "TV or this phone" : "On the TV";
   return liveName ? `Pauses ${liveName}` : "On the TV";
 }
 

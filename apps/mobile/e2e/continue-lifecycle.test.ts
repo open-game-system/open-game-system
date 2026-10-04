@@ -19,12 +19,14 @@ describe("Rejoin", () => {
     await freshLaunchWithOnboardingDone();
   });
 
-  it("a TV game's page offers Cast to play (not New game) while not cast", async () => {
+  // Owner, 2026-10-04: the CTA is Play, never "Cast to play"; Play asks to cast (play-cta.test.ts).
+  it("a TV game's page offers Play (not Start game, not Cast to play) while not cast", async () => {
     await openRocketCrewPage();
-    await waitFor(element(by.id("castToPlay")))
+    await waitFor(element(by.id("gamePlay")))
       .toBeVisible()
       .withTimeout(5000);
     await expect(element(by.id("gameNew"))).not.toExist();
+    await expect(element(by.text("Cast to play"))).not.toExist();
     await element(by.id("gamePageBack")).tap();
   });
 

@@ -27,10 +27,10 @@ describe("Games know who you are", () => {
       .toBeVisible()
       .withTimeout(10000);
     await element(by.id("libraryGame-rocket-crew")).tap();
-    await waitFor(element(by.id("gameNew")))
+    await waitFor(element(by.id("gamePlay")))
       .toBeVisible()
       .withTimeout(5000);
-    await element(by.id("gameNew")).tap();
+    await element(by.id("gamePlay")).tap();
     await waitFor(element(by.id("swipeHintOverlay")))
       .toBeVisible()
       .withTimeout(20000);

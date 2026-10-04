@@ -1,5 +1,6 @@
 import { Tabs, useRouter } from "expo-router";
 import { useEffect } from "react";
+import { CastPromptHost } from "../../components/ogs/library/CastPrompt";
 import { TabBar } from "../../components/ogs/TabBar";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../../services/game-url-store";
 
@@ -14,13 +15,17 @@ export default function TabsLayout() {
     return subscribeToGameUrl((url) => router.push({ pathname: "/game", params: { url } }));
   }, [router]);
 
+  // Play on any tab asks to cast first when it must: one cast prompt over them all.
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
-      <Tabs.Screen name="playing" />
-      <Tabs.Screen name="tv" />
-      <Tabs.Screen name="library" />
-      <Tabs.Screen name="friends" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <>
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
+        <Tabs.Screen name="playing" />
+        <Tabs.Screen name="tv" />
+        <Tabs.Screen name="library" />
+        <Tabs.Screen name="friends" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      <CastPromptHost />
+    </>
   );
 }

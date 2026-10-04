@@ -1,5 +1,5 @@
 import { by, element, expect, waitFor } from "detox";
-import { freshLaunchWithOnboardingDone } from "./helpers";
+import { freshLaunchWithOnboardingDone, startFromGamePage } from "./helpers";
 
 // Spec v3, In a game: full screen, no tabs; swiping back from the left edge returns to the tab
 // and leaves the return pill. Games open from Library (the Game Directory is gone). Cast with
@@ -27,11 +27,8 @@ describe("Game Screen", () => {
       .toBeVisible()
       .withTimeout(10000);
     await element(by.id("libraryGame-rocket-crew")).tap();
-    // A tap opens the game's page; New game starts it.
-    await waitFor(element(by.id("gameNew")))
-      .toBeVisible()
-      .withTimeout(5000);
-    await element(by.id("gameNew")).tap();
+    // A tap opens the game's page: Play starts it, or Start game once a sitting is listed.
+    await startFromGamePage();
     await waitFor(element(by.id("gameScreen")))
       .toExist()
       .withTimeout(5000);

@@ -50,7 +50,6 @@ export function SittingCard({
       accessibilityLabel={[row.name, row.headline, row.meta, row.where, "Rejoin"]
         .filter(Boolean)
         .join(", ")}
-      disabled={play.busy}
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
@@ -72,7 +71,7 @@ export function SittingCard({
           {row.headline}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {play.note ?? row.meta}
+          {row.meta}
         </Text>
         {showWhere ? (
           <Text style={styles.where} numberOfLines={2}>
@@ -81,7 +80,7 @@ export function SittingCard({
         ) : null}
       </View>
       <View style={styles.rejoin}>
-        <Text style={styles.rejoinText}>{play.busy ? "Casting…" : "Rejoin"}</Text>
+        <Text style={styles.rejoinText}>Rejoin</Text>
       </View>
     </Pressable>
   );

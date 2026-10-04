@@ -10,6 +10,7 @@ import { padSize, RemotePad } from "../../components/ogs/RemotePad";
 import { JoinTv } from "../../components/ogs/remote/JoinTv";
 import { castTarget, lastStop } from "../../components/ogs/remote/last-stop";
 import { HolderLine, NowOnTv } from "../../components/ogs/remote/NowOnTv";
+import { NO_TV_CAUSES } from "../../components/ogs/remote/no-tv";
 import {
   castControls,
   type OnTv,
@@ -218,14 +219,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
       <Screen title="TV" testID="tvNoTv">
         <Text style={styles.headline}>No TV found</Text>
         <Text style={styles.lead}>Usually it's one of these:</Text>
-        {[
-          [
-            "Local Network is off for OGS",
-            "Settings › OGS › Local Network lets OGS see your Chromecast.",
-          ],
-          ["Different Wi-Fi", "Your phone and the TV need to be on the same Wi-Fi."],
-          ["The TV is asleep", "Turn the TV on and switch to the Chromecast's input."],
-        ].map(([title, body]) => (
+        {NO_TV_CAUSES.map(([title, body]) => (
           <View key={title} style={styles.cause}>
             <Text style={styles.causeTitle}>{title}</Text>
             <Text style={styles.causeBody}>{body}</Text>

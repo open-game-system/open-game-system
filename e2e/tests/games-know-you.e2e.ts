@@ -60,7 +60,7 @@ describe("Games know who you are", {
     await screen.getByTestId("tabLibrary").tap();
     await screen.getByTestId("libraryGame-rocket-crew").tap();
     await expect(screen.getByTestId("gamePage")).toBeVisible();
-    await screen.getByTestId("gameNew").tap();
+    await screen.getByTestId("gamePlay").tap();
     await expect(screen.getByTestId("gameScreen")).toBeVisible();
     // The page joins with the profile's name from the OGS app (verified by the game's server).
     await expect(screen.getByText("Juneau", { exact: false }).first()).toBeVisible({

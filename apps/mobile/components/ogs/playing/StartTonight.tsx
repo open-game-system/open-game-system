@@ -17,8 +17,8 @@ import { colors, fonts } from "../theme";
 import { ArtTitle } from "./ArtTitle";
 
 /**
- * What to start: the first pick large with Start game (the empty state), the rest as covers you
- * can swipe. A cover opens the game's page; Start game starts it (a TV game casts first).
+ * What to start: the first pick large with Play (the empty state), the rest as covers you can
+ * swipe. A cover opens the game's page; Play starts it (asking to cast first when it must).
  */
 export function StartTonight({
   title,
@@ -30,7 +30,7 @@ export function StartTonight({
   picks: Pick[];
   /** Lead with one large pick (the empty state); else every pick is a cover. */
   big: boolean;
-  /** Start game is the screen's one primary action (nothing else competes, e.g. once cast). */
+  /** Play is the screen's one primary action (nothing else competes, e.g. once cast). */
   startPrimary?: boolean;
 }) {
   const router = useRouter();
@@ -117,13 +117,11 @@ function BigPick({ pick, primary, onOpen }: { pick: Pick; primary: boolean; onOp
         </Text>
         <Button
           testID="playingStartGame"
-          label={play.busy ? "Casting…" : "Start game"}
+          label="Play"
           kind={primary ? "primary" : "ghost"}
-          disabled={play.busy}
           onPress={play.startNew}
           style={styles.startButton}
         />
-        {play.note ? <Text style={styles.note}>{play.note}</Text> : null}
       </View>
     </View>
   );
@@ -136,7 +134,6 @@ const styles = StyleSheet.create({
   bigBody: { padding: 16, paddingTop: 12, gap: 6 },
   tagline: { color: colors.cream2, fontSize: 16, lineHeight: 22 },
   why: { color: colors.cream3, fontSize: 14, fontWeight: "600", marginTop: 6 },
-  note: { color: colors.peach, fontSize: 14 },
   pressed: { opacity: 0.85 },
   startButton: { marginTop: 10 },
   sharedWhy: { color: colors.cream3, fontSize: 14, fontWeight: "600", marginTop: -4 },

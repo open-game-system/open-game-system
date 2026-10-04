@@ -127,7 +127,7 @@ describe("Playing's empty state suggests what to start", () => {
     ]);
   });
 
-  it("not cast with only TV games still suggests them (they offer Cast to play)", () => {
+  it("not cast with only TV games still suggests them (their Play asks to cast first)", () => {
     const tvOnly = [game("rocket-crew"), game("bake-shop")];
     expect(playingSuggestions(tvOnly, [], false).map((g) => g.appId)).toEqual([
       "rocket-crew",

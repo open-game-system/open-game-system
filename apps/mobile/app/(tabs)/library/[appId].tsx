@@ -25,9 +25,9 @@ import { type Sitting, sittingsFor } from "../../../services/sittings";
 /**
  * A game's page, in the Library tab's stack (the tab bar stays): its key art with the logo, the
  * page tinted by the art, and your in-progress sittings as cards, each with its own Rejoin (two
- * games of Catan are two cards; the newest one's Rejoin is the page's primary). Start game sits in
- * a footer in thumb reach: the primary when there's nothing to rejoin, else secondary. Spec v3,
- * tv: required and not cast: the footer is Cast to play, and a Rejoin casts first.
+ * games of Catan are two cards; the newest one's Rejoin is the page's primary). The footer, in
+ * thumb reach, is Play when there's nothing to rejoin, else Start game as the secondary. Owner,
+ * 2026-10-04: Play (and Rejoin) ask to cast first when the game needs the TV (usePlay).
  */
 export default function GamePage() {
   const { appId } = useLocalSearchParams<{ appId?: string }>();
@@ -43,7 +43,7 @@ function GamePageBody({ game }: { game: Manifest }) {
   const insets = useSafeAreaInsets();
   const app = useApp();
   const { state } = useCouch();
-  const { busy, note, needsCast, rejoin, startNew } = usePlay(game);
+  const { rejoin, startNew } = usePlay(game);
   const { width, height } = useWindowDimensions();
   const now = Date.now();
   const sittings = sittingsFor(game, app.instances, state, now);
@@ -52,8 +52,8 @@ function GamePageBody({ game }: { game: Manifest }) {
   const facts = gameFacts(game.shop);
   // The art fills the page when there's nothing to list; sittings get the room when there are.
   const artHeight = Math.round(height * (sittings.length > 0 ? (height < 850 ? 0.32 : 0.4) : 0.54));
-  // One filled action per page: the newest sitting's Rejoin, else the footer.
-  const footerPrimary = sittings.length === 0 || needsCast;
+  // One filled action per page: the newest sitting's Rejoin, else the footer's Play.
+  const footerPrimary = sittings.length === 0;
 
   return (
     <View style={styles.root} testID="gamePage">
@@ -105,8 +105,7 @@ function GamePageBody({ game }: { game: Manifest }) {
                   sitting={s}
                   title={titles[i]}
                   game={game}
-                  primary={i === 0 && !needsCast}
-                  disabled={busy}
+                  primary={i === 0}
                   onRejoin={() => rejoin(s)}
                 />
               ))}
@@ -131,22 +130,20 @@ function GamePageBody({ game }: { game: Manifest }) {
       </Pressable>
 
       <View style={styles.footer}>
-        {note ? <Text style={styles.note}>{note}</Text> : null}
         <Pressable
-          testID={needsCast ? "castToPlay" : "gameNew"}
+          testID={footerPrimary ? "gamePlay" : "gameNew"}
           accessibilityRole="button"
-          accessibilityLabel={needsCast ? "Cast to play" : "Start game"}
-          disabled={busy}
+          accessibilityLabel={footerPrimary ? `Play ${game.name}` : "Start game"}
           onPress={startNew}
           style={({ pressed }) => [
             styles.action,
             footerPrimary ? styles.actionPrimary : styles.actionQuiet,
-            (pressed || busy) && styles.pressed,
+            pressed && styles.pressed,
           ]}
         >
           {footerPrimary ? <View style={styles.triangle} /> : null}
           <Text style={[styles.actionText, !footerPrimary && styles.actionTextQuiet]}>
-            {needsCast ? (busy ? "Casting…" : "Cast to play") : "Start game"}
+            {footerPrimary ? "Play" : "Start game"}
           </Text>
         </Pressable>
       </View>
@@ -159,14 +156,12 @@ function SittingCard({
   title,
   game,
   primary,
-  disabled,
   onRejoin,
 }: {
   sitting: Sitting;
   title: { headline: string; detail: string };
   game: Manifest;
   primary: boolean;
-  disabled: boolean;
   onRejoin: () => void;
 }) {
   const { headline, detail } = title;
@@ -194,12 +189,11 @@ function SittingCard({
         testID={`gameSittingRejoin-${sitting.instanceId}`}
         accessibilityRole="button"
         accessibilityLabel={`Rejoin ${game.name}, ${headline}, ${detail}`}
-        disabled={disabled}
         onPress={onRejoin}
         style={({ pressed }) => [
           styles.rejoin,
           primary ? styles.rejoinPrimary : styles.rejoinQuiet,
-          (pressed || disabled) && styles.pressed,
+          pressed && styles.pressed,
         ]}
       >
         <Text style={[styles.rejoinText, !primary && styles.rejoinTextQuiet]}>Rejoin</Text>
@@ -280,7 +274,6 @@ const styles = StyleSheet.create({
   },
   // In the layout, under the scroll, so nothing ever hides behind it.
   footer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 12, gap: 6 },
-  note: { color: colors.peach, fontSize: 15, textAlign: "center" },
   action: {
     flexDirection: "row",
     alignItems: "center",

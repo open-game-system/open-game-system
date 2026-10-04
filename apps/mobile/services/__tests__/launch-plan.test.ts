@@ -50,7 +50,7 @@ describe("tapping a game in Library (spec v3, Where a game plays)", () => {
       });
   });
 
-  it("not cast: a TV-required game offers Cast to play instead", () => {
+  it("not cast: a TV-required game opens its page instead (its Play asks to cast)", () => {
     expect(launchPlan({ manifest: game("required"), ogsCast: false, deviceId: "p" })).toEqual({
       kind: "needs-tv",
     });
