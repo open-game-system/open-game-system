@@ -108,7 +108,7 @@ a { color: var(--ember) }
     <div class="step"><span class="n">In a game</span><div class="devs"><div class="ph lg" style="border-left:4px solid var(--ember)"><div class="w">Captain</div><div class="tile" style="flex:1"></div><div class="w" style="color:var(--ember)">← swipe back</div></div></div><span class="cap">Full screen, no tabs. Swiping back pauses the game on the TV; the return pill brings you back.</span></div>
   </div>
   <div class="grid">
-    <div class="panel"><span class="tag">Opens on</span><p style="margin:6px 0 0">Always Playing, the leftmost tab: when nothing is going, its empty state suggests what to start. The TV sits in the middle, next to Playing, for "pick a game, then drive the TV".</p></div>
+    <div class="panel"><span class="tag">Opens on</span><p style="margin:6px 0 0">Playing if a game you were playing is still live (on the TV or this phone). Otherwise Library, where paused games show their resume point. A push opens its game; coming back from the background keeps your place.</p></div>
     <div class="panel"><span class="tag">Getting back in</span><p style="margin:6px 0 0">Three doors to the same place: the pinned card in Playing, the return pill on any tab, or a push. A push is a shortcut, never the only way.</p></div>
     <div class="panel"><span class="tag">When nothing's going</span><p style="margin:6px 0 0">Playing is always there. Empty, it suggests what to start now (couch games for the TV, Hearthisle on phones, a duel to start) and what you played last. Cast with nothing running: "On the TV · your games", and a tap sends a pick to the TV.</p></div>
     <div class="panel"><span class="tag">Adding games</span><p style="margin:6px 0 0">Games are free web games, so there is no Shop tab: "+ Add games" in Library browses the catalogue, and Add by link takes any OGS game URL.</p></div>
@@ -298,8 +298,7 @@ const castTab=()=>ph(`<div class="ctr" style="flex:1;flex-direction:column;gap:5
 const remote=()=>ph(`${w('On TV')}${pad}${tabs('t',true)}`);
 const F=[
 ['1 · Open OGS and just play (no TV)',[
-['Open OGS: it always opens on Playing; Nana and Mom are waiting on you. The TV is off and that’s fine.',off('TV off'),act('')],
-['Library: tap Hearthisle.',off('TV off'),lib(false)],
+['Open OGS: nothing is live, so it opens on Library. The TV is off and that’s fine. Tap Hearthisle.',off('TV off'),lib(false)],
 ['Hearthisle works without a TV: Play here.',off('TV off'),ph(`${w('Hearthisle')}<div class="tile" style="height:34px"></div>${w('Turn 14')}<div style="flex:1"></div>${btn('Play here',1)}${btn('Cast')}`)],
 ['The board on the phone; swipe back to the library.',off('TV off'),ph(`${w('Hearthisle')}<div class="tile" style="flex:1"></div>${w('← swipe back')}`)]]],
 ['2 · Add a game (inside Library)',[
