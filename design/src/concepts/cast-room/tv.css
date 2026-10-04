@@ -269,3 +269,7 @@
 .cr-idle { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 30%, #2b3440, #0e1116 70%); }
 .cr-idle-name { position: absolute; left: 96px; bottom: 120px; font: 600 44px/1 var(--ui); color: #e8edf2; }
 .cr-idle-line { position: absolute; left: 96px; bottom: 72px; font: 500 28px/1 var(--ui); color: #b9c3cc; }
+
+/* Home: the running game shrinks back into its box on the shelf */
+.cr-box.is-fold .cr-box-art img { animation: cr-fold 0.8s cubic-bezier(.3, .8, .3, 1) both; transform-origin: 50% 60%; }
+@keyframes cr-fold { from { transform: scale(2.6); filter: brightness(1.4); } to { transform: none; filter: none; } }

@@ -111,7 +111,7 @@ export function Box({ g, s }: { g: GameManifest; s: S }) {
   const focused = s.view.kind === "room" && s.focus === `g:${g.id}`;
   const paused = saved?.when.startsWith("Paused") ?? false;
   return (
-    <div className={`cr-box ${focused ? "is-focus" : ""}`} style={gameVars(g)}>
+    <div className={`cr-box ${focused ? "is-focus" : ""} ${saved?.when === "Paused just now" ? "is-fold" : ""}`} style={gameVars(g)}>
       <div className="cr-box-art">
         <img src={g.art.tv} alt="" />
       </div>
