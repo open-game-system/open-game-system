@@ -21,6 +21,7 @@ import {
 } from "./couch-session";
 import { createFakeCastBackend } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
+import { createGamePresence } from "./game-presence";
 import { createGoogleCastBackend } from "./google-cast-backend";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
@@ -118,7 +119,7 @@ function startCouch() {
     // A game started from the TV with the remote: this phone hosts it, so open its start page.
     onFollowHost: ({ appId }) => {
       const game = appState.getSnapshot().library.find((g) => g.appId === appId);
-      if (game) pushGame(game, game.startUrl);
+      if (game) gamePresence.followHost(appId, () => pushGame(game, game.startUrl));
     },
   });
   couch.subscribe(notifyCouch);
@@ -140,7 +141,10 @@ export function ogsCastNow(): boolean {
 
 export const deviceId = () => appState.getSnapshot().identity?.deviceId ?? "this-phone";
 
+export const gamePresence = createGamePresence();
+
 function pushGame(game: Pick<Manifest, "appId" | "name">, url: string) {
+  gamePresence.opening(game.appId);
   router.push({ pathname: "/game", params: { url, name: game.name, appId: game.appId } });
 }
 

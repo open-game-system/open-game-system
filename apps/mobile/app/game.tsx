@@ -16,7 +16,14 @@ import type { CastStores } from "../services/cast-store";
 import { exitGame } from "../services/game-exit";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
-import { appState, couchHub, gameCastStoreFor, ogsCastNow, useApp } from "../services/runtime";
+import {
+  appState,
+  couchHub,
+  gameCastStoreFor,
+  gamePresence,
+  ogsCastNow,
+  useApp,
+} from "../services/runtime";
 import { swipeBackHandlers } from "../services/swipe-back";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -80,6 +87,13 @@ export default function GameScreen() {
     ogsStore.reset();
   }, []);
 
+  // While this screen is up the phone has the game open (a host follow for it opens nothing).
+  useEffect(() => {
+    if (!appId) return;
+    gamePresence.opening(appId);
+    return () => gamePresence.closed(appId);
+  }, [appId]);
+
   // Deep links and push taps while a game is open replace it (event subscription).
   useEffect(() => subscribeToGameUrl((url) => setUri(url)), []);
 
@@ -120,6 +134,10 @@ export default function GameScreen() {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: (evt) => swipeRef.current.startsAt(evt.nativeEvent.pageX),
+      // Capture edge touches too, or the swipe hint (a Pressable that says "Swipe to go home")
+      // takes the touch and the swipe it teaches does nothing.
+      onStartShouldSetPanResponderCapture: (evt) =>
+        swipeRef.current.startsAt(evt.nativeEvent.pageX),
       onMoveShouldSetPanResponder: (evt, gs) =>
         evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
       onPanResponderMove: (_, gs) => swipeRef.current.move(gs.dx),
