@@ -1,0 +1,163 @@
+/* "Buddy" (kid iPads): the child's own character fills the screen and is the interface.
+   1180×820 landscape. The TV window sits in the top corner the buddy faces (--side: -1 left, 1 right). */
+
+.bd { position: absolute; inset: 0; overflow: hidden; --side: -1; --tvw: 236px; --tvh: 142px;
+  background:
+    radial-gradient(110% 85% at var(--bx) 112%, color-mix(in srgb, var(--me) 70%, #fff2dc) 0%, color-mix(in srgb, var(--me) 48%, var(--room)) 48%, color-mix(in srgb, var(--me) 18%, var(--room)) 100%);
+  transition: background 0.8s ease; }
+.bd--faces-right { --side: 1; }
+
+/* the room: soft concentric halos behind the buddy's chest */
+.bd__room { position: absolute; inset: 0; pointer-events: none; }
+.bd__ring { position: absolute; left: var(--bx); top: 520px; border-radius: 50%; background: color-mix(in srgb, #fff6e8 13%, transparent); transform: translate(-50%, -50%); animation: bd-ring 4.8s ease-in-out infinite alternate both; }
+.bd__ring--1 { width: 620px; height: 620px; }
+.bd__ring--2 { width: 900px; height: 900px; animation-delay: -1.6s; }
+.bd__ring--3 { width: 1220px; height: 1220px; animation-delay: -3.2s; }
+@keyframes bd-ring { from { transform: translate(-50%, -50%) scale(0.97); } to { transform: translate(-50%, -50%) scale(1.03); } }
+
+/* the TV's light falling on the buddy whenever something is happening there */
+.bd__beam { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.6s ease;
+  background: radial-gradient(70% 80% at 6% 4%, color-mix(in srgb, var(--glow) 60%, transparent), transparent 72%); }
+.bd--faces-right .bd__beam { background: radial-gradient(70% 80% at 94% 4%, color-mix(in srgb, var(--glow) 60%, transparent), transparent 72%); }
+.bd--paused .bd__beam, .bd--cutover .bd__beam, .bd--saving .bd__beam { opacity: 1; }
+
+/* the little window onto the TV */
+.bd__tv { position: absolute; top: 24px; left: 24px; z-index: 30; width: var(--tvw); display: flex; flex-direction: column; align-items: center; transition: width 0.6s cubic-bezier(.3,1.3,.5,1); }
+.bd--faces-right .bd__tv { left: auto; right: 24px; }
+.bd--paused, .bd--saving, .bd--cutover { --tvw: 340px; }
+.bd__screen { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9.4; border-radius: 22px; overflow: hidden; background: #1d2030; border: 8px solid #f4f2ee; box-shadow: 0 14px 30px rgba(0,0,0,.35), 0 0 0 0 var(--glow); }
+.bd--paused .bd__screen, .bd--cutover .bd__screen { box-shadow: 0 14px 30px rgba(0,0,0,.35), 0 0 60px 6px color-mix(in srgb, var(--glow) 70%, transparent); }
+.bd__stand { width: 34%; height: 9px; margin-top: 8px; border-radius: 6px; background: #f4f2ee; opacity: 0.85; }
+.bd__show { position: absolute; inset: 0; display: grid; place-items: center; }
+.bd__show img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bd__show--home { background: radial-gradient(closest-side, #34327a, #1d2030); }
+.bd__show--home svg { animation: bd-home 2.4s ease-in-out infinite alternate both; }
+@keyframes bd-home { from { opacity: 0.55; transform: scale(0.94); } to { opacity: 1; transform: scale(1.04); } }
+.bd--paused .bd__show--from img { filter: saturate(0.6) brightness(0.8); }
+.bd__pause { position: absolute; left: 50%; top: 50%; width: 96px; height: 96px; margin: -48px; border-radius: 50%; display: grid; place-items: center; background: #fff6e0; box-shadow: 0 6px 18px rgba(0,0,0,.35); animation: bd-pulse 1.4s ease-in-out infinite alternate both; }
+@keyframes bd-pulse { from { transform: scale(0.92); } to { transform: scale(1.06); } }
+.bd__show--to { clip-path: inset(0 0 0 100%); }
+.bd--faces-right .bd__show--to { clip-path: inset(0 100% 0 0); }
+.bd--cutover .bd__show--to { animation: bd-wipe 0.7s 0.15s cubic-bezier(.5,0,.2,1) both; }
+.bd--faces-right.bd--cutover .bd__show--to { animation-name: bd-wipe-r; }
+.bd--following .bd__show--to { clip-path: none; }
+@keyframes bd-wipe { to { clip-path: inset(0 0 0 0); } }
+@keyframes bd-wipe-r { to { clip-path: inset(0 0 0 0); } }
+
+/* the buddy: posture (turns toward the TV) > look (leans toward a finger) > glance (idle peeks at
+   the TV, waves goodbye) > react (one poke = one reaction) > the art (breathing) */
+.bd__posture { position: absolute; z-index: 10; top: var(--bt); height: var(--bh); width: calc(var(--bh) * 0.86); left: calc(var(--bx) - var(--bh) * 0.43); transform-origin: 50% 70%; transition: transform 0.7s cubic-bezier(.3,1.3,.5,1); pointer-events: none; }
+.bd--paused .bd__posture, .bd--cutover .bd__posture, .bd--saving .bd__posture { transform: perspective(1600px) rotateY(calc(var(--side) * -16deg)) rotate(calc(var(--side) * 3deg)) translateX(calc(var(--side) * 18px)); }
+.bd__look, .bd__glance, .bd__react { position: absolute; inset: 0; transform-origin: 50% 85%; }
+.bd__look { transform: rotate(var(--look)) translateX(var(--look-x)); transition: transform 0.45s cubic-bezier(.3,1.6,.5,1); }
+.bd--idle .bd__glance { animation: bd-glance 7s 2s ease-in-out infinite both; }
+@keyframes bd-glance { 0%, 76%, 100% { transform: none; } 82%, 92% { transform: perspective(1600px) rotateY(calc(var(--side) * -14deg)) rotate(calc(var(--side) * 4deg)); } }
+.bd--saving .bd__glance { animation: bd-bye 0.42s ease-in-out 3 alternate both; }
+@keyframes bd-bye { from { transform: rotate(calc(var(--side) * 6deg)); } to { transform: rotate(calc(var(--side) * -4deg)); } }
+.bd--cutover .bd__glance { animation: bd-bounce 0.5s cubic-bezier(.3,1.5,.5,1) 0.6s 3 alternate both; }
+@keyframes bd-bounce { from { transform: translateY(0); } to { transform: translateY(-34px) scale(1.02, 0.99); } }
+.bd--following .bd__glance { animation: bd-catch 0.7s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes bd-catch { 0% { transform: translateY(0); } 40% { transform: translateY(26px) scale(1.03, 0.96); } 100% { transform: none; } }
+
+.bd__art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: 50% 0; filter: drop-shadow(0 26px 34px rgba(0,0,0,.35)); transform-origin: 50% 90%; animation: bd-breathe 2.8s ease-in-out infinite alternate both; }
+@keyframes bd-breathe { from { transform: scale(1, 1); } to { transform: scale(1.012, 1.022); } }
+.bd--paused .bd__art, .bd--cutover .bd__art { filter: drop-shadow(0 26px 34px rgba(0,0,0,.35)) drop-shadow(calc(var(--side) * 14px) -6px 22px color-mix(in srgb, var(--glow) 75%, transparent)); }
+
+.bd__react.is-giggle { animation: bd-giggle 0.7s ease-in-out both; }
+@keyframes bd-giggle { 0%, 100% { transform: none; } 15% { transform: rotate(-4deg) scale(1.02); } 30% { transform: rotate(4deg) scale(1.03); } 45% { transform: rotate(-3deg); } 60% { transform: rotate(3deg); } 80% { transform: rotate(-1deg); } }
+.bd__react.is-hop { animation: bd-hop 0.7s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes bd-hop { 0% { transform: scale(1.05, 0.93); } 40% { transform: translateY(-110px) scale(0.97, 1.04); } 75% { transform: translateY(0) scale(1.06, 0.94); } 100% { transform: none; } }
+.bd__react.is-wiggle { animation: bd-wiggle 0.75s ease-in-out both; }
+@keyframes bd-wiggle { 0%, 100% { transform: none; } 20% { transform: skewX(-6deg); } 40% { transform: skewX(6deg); } 60% { transform: skewX(-4deg); } 80% { transform: skewX(2deg); } }
+.bd__react.is-squish { animation: bd-squish 0.6s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes bd-squish { 0% { transform: scale(1.12, 0.86); } 50% { transform: scale(0.95, 1.06); } 100% { transform: none; } }
+.bd.is-giggle .bd__react { animation: bd-giggle 0.5s ease-in-out infinite both; }
+
+/* saving: the old game floats away with its gold check while the buddy waves */
+.bd__bye { position: absolute; z-index: 35; top: 24px; left: 24px; width: 340px; aspect-ratio: 16 / 9.4; border-radius: 22px; overflow: hidden; border: 8px solid #ffd23f; box-shadow: 0 14px 30px rgba(0,0,0,.35); animation: bd-bye-card 1.3s cubic-bezier(.5,0,.3,1) both; }
+.bd--faces-right .bd__bye { left: auto; right: 24px; animation-name: bd-bye-card-r; }
+.bd__bye img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bd__check { position: absolute; right: 10px; top: 10px; width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; background: #ffd23f; box-shadow: 0 4px 12px rgba(0,0,0,.3); animation: bd-stamp 0.4s 0.15s cubic-bezier(.3,1.7,.5,1) both; }
+@keyframes bd-stamp { from { transform: scale(2.2); opacity: 0; } }
+@keyframes bd-bye-card { 0%, 35% { transform: none; opacity: 1; } 100% { transform: translate(-120px, -260px) rotate(-14deg) scale(0.4); opacity: 0; } }
+@keyframes bd-bye-card-r { 0%, 35% { transform: none; opacity: 1; } 100% { transform: translate(120px, -260px) rotate(14deg) scale(0.4); opacity: 0; } }
+.bd__wave { position: absolute; z-index: 20; top: 400px; left: calc(var(--bx) - 520px); fill: none; stroke: #fff6e0; stroke-width: 14; stroke-linecap: round; pointer-events: none; }
+.bd--faces-right .bd__wave { left: calc(var(--bx) - 330px); top: 230px; }
+.bd__wave path { animation: bd-wave-line 0.42s ease-in-out infinite alternate both; }
+.bd__wave path:nth-child(2) { animation-delay: 0.1s; }
+.bd__wave path:nth-child(3) { animation-delay: 0.2s; }
+@keyframes bd-wave-line { from { opacity: 0.25; } to { opacity: 1; } }
+
+/* cutover: sparkles stream from the TV down into the buddy's hands */
+.bd__stream { position: absolute; inset: 0; z-index: 25; pointer-events: none; }
+.bd__stream i { position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -13px; border-radius: 50%; box-shadow: 0 0 18px 4px color-mix(in srgb, var(--glow) 60%, transparent); offset-path: path("M300 210 C 330 440, 470 600, 640 650"); offset-rotate: 0deg; animation: bd-stream 1.1s ease-in infinite both; }
+.bd--faces-right .bd__stream i { offset-path: path("M960 230 C 930 450, 760 600, 560 650"); }
+@keyframes bd-stream { from { offset-distance: 0%; opacity: 0; transform: scale(0.6); } 15% { opacity: 1; } to { offset-distance: 100%; opacity: 0.2; transform: scale(1.1); } }
+
+/* following: the next game lands in the buddy's hands, glowing */
+.bd__held { position: absolute; z-index: 30; left: calc(var(--bx) - 250px); top: 470px; width: 500px; height: 300px; pointer-events: none; animation: bd-held 0.8s cubic-bezier(.3,1.4,.5,1) both; }
+.bd--faces-right .bd__held { left: calc(var(--bx) - 190px); }
+.bd__held-glow { position: absolute; inset: -90px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 70%, transparent), transparent); animation: bd-pulse 1s ease-in-out infinite alternate both; }
+.bd__held-card { position: absolute; inset: 0; border-radius: 30px; overflow: hidden; border: 10px solid #fff6e0; box-shadow: 0 24px 50px rgba(0,0,0,.4); transform: rotate(-3deg); }
+.bd__held-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes bd-held { from { transform: translate(calc(var(--side) * 380px), -420px) scale(0.35) rotate(calc(var(--side) * 20deg)); opacity: 0.4; } }
+
+/* the whole screen is the buddy: one giant thing to poke */
+.bd__poke { position: absolute; inset: 0; z-index: 40; background: transparent; border: 0; padding: 0; margin: 0; cursor: pointer; }
+
+/* the first paired moment: the buddy pops up from below to fill the screen */
+.kd-paired .bd__posture { animation: bd-pop 0.9s 0.15s cubic-bezier(.3,1.35,.5,1) both; }
+@keyframes bd-pop { from { transform: translateY(700px) scale(0.7); } }
+
+/* ---------- asleep: the buddy curled up, filling the dark ---------- */
+.bd-sleep { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(80% 80% at 45% 75%, color-mix(in srgb, var(--me) 34%, #0b0912), #060509 75%); }
+.bd-sleep__moon { position: absolute; left: 64px; top: 50px; width: 120px; height: 120px; border-radius: 50%; box-shadow: inset -28px 10px 0 0 #f3e7c4; opacity: 0.6; }
+.bd-sleep__body { position: absolute; left: 120px; top: 40px; width: 900px; height: 792px; pointer-events: none; }
+.bd-sleep__body > div { position: absolute; inset: 0; transform-origin: 50% 70%; }
+.bd-sleep__body img { width: 100%; height: 100%; object-fit: contain; object-position: 50% 0; filter: saturate(0.8) brightness(0.92) drop-shadow(0 30px 40px rgba(0,0,0,.5)); transform-origin: 50% 80%; animation: bd-snooze 3.6s ease-in-out infinite alternate both; }
+.bd-sleep__body img.is-dim { filter: saturate(0.5) brightness(0.55) drop-shadow(0 30px 40px rgba(0,0,0,.5)); }
+@keyframes bd-snooze { from { transform: scale(1, 1); } to { transform: scale(1.015, 1.035); } }
+.bd-sleep__body .is-stir { animation: bd-stir 0.9s ease-in-out both; }
+@keyframes bd-stir { 0%, 100% { transform: none; } 30% { transform: rotate(-2deg) translateY(-14px); } 60% { transform: rotate(1.5deg); } }
+.bd-sleep__bubbles { position: absolute; left: 820px; top: 150px; width: 220px; height: 260px; }
+.bd-sleep__bubbles i { position: absolute; left: 0; bottom: 0; border-radius: 50%; box-shadow: inset 0 0 0 5px rgba(233, 221, 255, 0.6); animation: bd-zz 2.7s ease-in infinite both; }
+@keyframes bd-zz { from { transform: translate(0, 0) scale(0.4); opacity: 0; } 25% { opacity: 1; } to { transform: translate(110px, -220px) scale(1); opacity: 0; } }
+.bd-sleep__charge { position: absolute; right: 40px; top: 44px; display: flex; align-items: center; gap: 4px; opacity: 0.9; }
+.bd-sleep__plug { animation: bd-plug 1.4s ease-in-out infinite alternate both; }
+@keyframes bd-plug { from { transform: translateX(-16px); } to { transform: translateX(4px); } }
+.bd-sleep__cell { animation: bd-blink 1.1s ease-in-out infinite alternate both; }
+@keyframes bd-blink { from { opacity: 0.45; } to { opacity: 1; } }
+
+/* ---------- unpaired: an empty sticker spot waiting for a buddy ---------- */
+.bd-empty { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(60% 70% at 50% 60%, #1f2347, #0b0d1e 70%, #06070f); }
+.bd-empty__spot { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: bd-spot 3.6s ease-in-out infinite alternate both; transform-origin: 50% 70%; }
+@keyframes bd-spot { from { transform: scale(0.98); } to { transform: scale(1.02); } }
+.bd-empty__fill { fill: rgba(244, 242, 238, 0.05); }
+.bd-empty__dots { fill: none; stroke: #f4f2ee; stroke-opacity: 0.75; stroke-width: 14; stroke-linecap: round; stroke-dasharray: 0.1 40; }
+.bd-empty.is-waiting .bd-empty__dots { stroke: #ffd9a0; stroke-opacity: 1; animation: bd-march 1.2s linear infinite; }
+@keyframes bd-march { to { stroke-dashoffset: -80; } }
+.bd-empty__halo { fill: none; stroke: #ffd9a0; stroke-width: 6; opacity: 0; transform-origin: 590px 520px; }
+.bd-empty.is-waiting .bd-empty__halo--a { animation: bd-halo 2.4s ease-out infinite both; }
+.bd-empty.is-waiting .bd-empty__halo--b { animation: bd-halo 2.4s 1.2s ease-out infinite both; }
+@keyframes bd-halo { from { transform: scale(1); opacity: 0.7; } to { transform: scale(1.35); opacity: 0; } }
+.bd-empty__mark { position: absolute; left: 590px; top: 420px; transform: translate(-50%, -50%); opacity: 0.6; }
+.bd-empty.is-waiting .bd-empty__mark { opacity: 0.95; }
+
+/* ---------- frozen shots: the telling frame of each moment ---------- */
+html.shot .bd *, html.shot .bd-sleep *, html.shot .bd-empty * { animation-play-state: paused; }
+html.shot .bd__glance, html.shot .bd__ring, html.shot .bd__art, html.shot .bd__pause, html.shot .bd__held-glow, html.shot .bd__wave path, html.shot .bd-sleep__body img, html.shot .bd-empty__spot { animation: none !important; }
+html.shot .bd--saving .bd__glance { transform: rotate(calc(var(--side) * 6deg)); }
+html.shot .bd--saving .bd__bye { animation: none !important; transform: translate(calc(var(--side) * 50px), -40px) rotate(calc(var(--side) * 6deg)) scale(0.82); opacity: 0.95; }
+html.shot .bd--saving .bd__check { animation: none !important; }
+html.shot .bd__stream i { animation: none !important; opacity: 1; }
+html.shot .bd__stream i:nth-child(1) { offset-distance: 12%; transform: scale(0.6); }
+html.shot .bd__stream i:nth-child(2) { offset-distance: 25%; transform: scale(0.7); }
+html.shot .bd__stream i:nth-child(3) { offset-distance: 38%; transform: scale(0.8); }
+html.shot .bd__stream i:nth-child(4) { offset-distance: 52%; transform: scale(0.9); }
+html.shot .bd__stream i:nth-child(5) { offset-distance: 66%; }
+html.shot .bd__stream i:nth-child(6) { offset-distance: 80%; transform: scale(1.1); }
+html.shot .bd__stream i:nth-child(7) { offset-distance: 93%; transform: scale(1.2); }
+html.shot .bd.is-giggle .bd__react { animation: none !important; transform: rotate(-4deg) scale(1.02); }
+html.shot .bd-empty.is-waiting .bd-empty__halo--a { animation: none !important; transform: scale(1.12); opacity: 0.45; }
+html.shot .bd-empty.is-waiting .bd-empty__halo--b { animation: none !important; transform: scale(1.26); opacity: 0.2; }
+.bd .kd-mash { z-index: 45; }

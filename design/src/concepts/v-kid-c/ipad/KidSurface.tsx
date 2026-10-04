@@ -1,6 +1,6 @@
 // A paired kid iPad. It has no menus and no way out: it shows whatever tonight's game gives this
-// child, and follows the TV by itself. Every screen here is wordless and landscape (two hands,
-// thumbs at the bottom edge); the child's own character always stands at the bottom centre.
+// child, and follows the TV by itself. Every screen OGS owns here is the child's buddy (Buddy.tsx),
+// huge and close up; the game's own screens keep the little name tag.
 import { useRef } from "react";
 import type { Store } from "../../../harness/store";
 import { useStore } from "../../../harness/store";
@@ -9,10 +9,9 @@ import { GameKidView } from "../games/registry";
 import { seatPlan, type S } from "../state";
 import { KidArrive } from "./KidArrive";
 import { KidAsleep } from "./KidAsleep";
-import { KidIdle } from "./KidIdle";
+import { Buddy } from "./Buddy";
 import { KidTag } from "./KidTag";
 import { mashing } from "./mash";
-import { KidTravel } from "./KidTravel";
 import { isUnpaired, KidUnpaired } from "./KidUnpaired";
 
 /** `seat` is whose iPad this is (from the harness stage); scenarios without one use `s.ipad`. */
@@ -35,7 +34,7 @@ export function KidSurface({ store, seat }: { store: Store<S>; seat?: string }) 
         <KidScreen s={s} who={who} />
       </div>
       {paired.current > 0 && <KidArrive key={paired.current} who={who} />}
-      <KidTag who={who} />
+      {inGame(s, who) && <KidTag who={who} />}
     </>
   );
 }
@@ -45,10 +44,12 @@ function KidScreen({ s, who }: { s: S; who: Person }) {
   if (device && s.asleep.includes(device.id)) return <KidAsleep who={who} battery={device.battery ?? 0} />;
   // Menu (TV paused) and the switch are one continuous journey: same component, keyed by the game
   // being left, so the character keeps walking from "paused" through "following" without a cut.
-  if (s.switching) return <KidTravel key={s.switching.from} from={s.switching.from} to={s.switching.to} phase={s.switching.phase} who={who} mashDemo={mashing.has(s)} />;
-  if (s.menu && s.onTv) return <KidTravel key={s.onTv} from={s.onTv} to={null} phase="paused" who={who} />;
+  // The menu (TV paused) and the switch are one continuous buddy: same component, keyed by the
+  // game being left, so it turns, waves and catches without a cut.
+  if (s.switching) return <Buddy key={s.switching.from} who={who} mood={s.switching.phase} from={s.switching.from} to={s.switching.to} mashDemo={mashing.has(s)} />;
+  if (s.menu && s.onTv) return <Buddy key={s.onTv} who={who} mood="paused" from={s.onTv} />;
   if (s.onTv) {
-    const place = seatPlan(gameById(s.onTv)).find((x) => x.person.id === who.id);
+    const place = seatOf(s.onTv, who);
     if (place) {
       const late = !!device && s.lateJoin === device.id;
       return (
@@ -59,5 +60,15 @@ function KidScreen({ s, who }: { s: S; who: Person }) {
       );
     }
   }
-  return <KidIdle who={who} />;
+  return <Buddy who={who} mood="idle" />;
+}
+
+const seatOf = (gameId: string, who: Person) => seatPlan(gameById(gameId)).find((x) => x.person.id === who.id);
+
+/** The game's own screen is up (not a buddy screen): only then does the little name tag hang. */
+function inGame(s: S, who: Person): boolean {
+  const device = HOME.devices.find((d) => d.personId === who.id && d.kind === "ipad");
+  if (device && s.asleep.includes(device.id)) return false;
+  if (s.switching || (s.menu && s.onTv)) return false;
+  return !!s.onTv && !!seatOf(s.onTv, who);
 }

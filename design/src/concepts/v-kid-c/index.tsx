@@ -4,6 +4,7 @@ import { defineConcept, type SurfaceProps } from "../../harness/types";
 import css from "./concept.css?raw";
 import devCss from "./dev.css?raw";
 import kidCss from "./kid.css?raw";
+import buddyCss from "./buddy.css?raw";
 import tvCss from "./tv.css?raw";
 import { flows } from "./flows";
 import { fontFaces } from "./fonts";
@@ -36,7 +37,7 @@ export const concept = defineConcept<S>({
   name: "Kid C · Buddy",
   brief: "OGS is the family's console: one library for every game, TV-first. When a TV is cast it is the home screen; the phone is the remote and controller; paired kid iPads follow by name.",
   // concept.css is the phone/model owner's; tv.css and kid.css load after it and belong to those owners.
-  css: fontFaces + css + tvCss + kidCss + devCss + edgeCss,
+  css: fontFaces + css + tvCss + kidCss + buddyCss + devCss + edgeCss,
   Surface,
   // One scenario file per owner (phone/model, TV, kid) so parallel fix passes never collide.
   scenarios: [...scenarios, ...tvScenarios, ...kidScenarios, ...devScenarios, ...edgeScenarios],
