@@ -257,9 +257,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
       {stopped ? (
         <View testID="castStopped">
           <Text style={styles.headline}>Stopped casting on {stopped.name}</Text>
-          <Text style={styles.lead}>
-            Your games keep their place. Cast again to pick them back up.
-          </Text>
+          <Text style={styles.lead}>Your games keep their place: one tap casts them back.</Text>
         </View>
       ) : (
         <Text style={styles.lead}>
@@ -318,11 +316,11 @@ function NotCast({ connecting }: { connecting: boolean }) {
   );
 }
 
-const CAST = 168;
+const CAST = 152;
 const styles = StyleSheet.create({
   lead: { color: colors.cream2, fontSize: 17, lineHeight: 24 },
   headline: { fontFamily: fonts.display, fontSize: 26, color: colors.cream, marginBottom: 6 },
-  center: { alignItems: "center", marginTop: 48, gap: 18 },
+  center: { alignItems: "center", marginTop: 28, gap: 14 },
   cast: {
     width: CAST,
     height: CAST,
@@ -336,7 +334,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   castText: { fontFamily: fonts.display, fontSize: 40, color: colors.ink },
-  castAgain: { fontSize: 30, textAlign: "center" },
+  castAgain: { fontSize: 28, textAlign: "center" },
   root: { flex: 1, backgroundColor: colors.dusk0, paddingHorizontal: 20 },
   header: {
     flexDirection: "row",

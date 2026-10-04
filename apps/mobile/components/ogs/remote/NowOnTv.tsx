@@ -10,7 +10,7 @@ import { colors, fonts } from "../theme";
 import type { Holder } from "./remote-view";
 import type { TvMirror } from "./tv-mirror";
 
-const ART_H = 184;
+const ART_H = 204;
 const ICON = 46;
 
 /** The room art the TV fills with: the clean hero, else the capture cropped HUD-free. */
@@ -208,7 +208,7 @@ export function HolderLine({ holder }: { holder: Holder }) {
     <View style={styles.holder} testID="remoteHolder">
       <View style={[styles.holderSticker, holder.kind === "me" && styles.holderStickerMe]}>
         {sticker ? (
-          <Sticker id={sticker} size={26} />
+          <Sticker id={sticker} size={34} />
         ) : (
           <SymbolView
             name="iphone"
@@ -287,9 +287,9 @@ const styles = StyleSheet.create({
   chev: { width: 14, height: 14 },
   holder: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
   holderSticker: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: colors.dusk2,
     alignItems: "center",
     justifyContent: "center",

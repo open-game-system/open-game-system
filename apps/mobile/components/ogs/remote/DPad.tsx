@@ -101,6 +101,7 @@ function Arrow({ dir, geo, onPress }: { dir: Dir; geo: Geo; onPress: (b: RemoteB
               ]}
             />
           ) : null}
+          {pressed ? <View pointerEvents="none" style={styles.glow} /> : null}
           <SymbolView
             name={SYMBOL[dir]}
             size={26}
@@ -175,9 +176,16 @@ const styles = StyleSheet.create({
   seam: { position: "absolute", height: 1, backgroundColor: colors.padSeam },
   arrow: { position: "absolute", alignItems: "center", justifyContent: "center" },
   wedge: { position: "absolute", backgroundColor: colors.keyLit, transform: [{ rotate: "45deg" }] },
+  glow: {
+    position: "absolute",
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.keyGlow,
+  },
   symbol: { width: 26, height: 26 },
   groove: { backgroundColor: colors.groove, alignItems: "center", justifyContent: "center" },
   ok: { backgroundColor: colors.peach, alignItems: "center", justifyContent: "center" },
-  okOn: { backgroundColor: colors.peachPressed, transform: [{ scale: 0.94 }] },
+  okOn: { backgroundColor: colors.peachDeep, transform: [{ scale: 0.92 }] },
   okText: { fontFamily: fonts.display, fontSize: 30, color: colors.ink },
 });

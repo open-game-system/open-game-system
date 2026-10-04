@@ -29,6 +29,8 @@ export const colors = {
   keyLit: "rgba(255, 200, 97, 0.2)",
   keyLitSolid: "#4e3e47",
   keyLitEdge: "rgba(255, 200, 97, 0.45)",
+  keyGlow: "rgba(255, 200, 97, 0.22)",
+  peachDeep: "#d9946c",
 } as const;
 
 export const fonts = {

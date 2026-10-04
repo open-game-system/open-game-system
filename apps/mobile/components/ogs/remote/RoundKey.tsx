@@ -4,7 +4,7 @@ import type { RemoteButton } from "../../../services/remote";
 import { colors } from "../theme";
 import { feel, IDS } from "./press";
 
-const KEY = 60;
+const KEY = 62;
 const META = {
   back: { label: "Back", symbol: "arrow.uturn.backward" },
   home: { label: "Home", symbol: "house" },

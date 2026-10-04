@@ -35,3 +35,5 @@ Judges: Codex `gpt-5.6-sol` (reasoning medium) and a fresh Claude Opus critic su
 | r10 (before) | Claude | 6 | 6 | 5 | 6 | 6 | 6 | 3 | 5 | 6 | 3 | |
 | r11 | Codex | 9 | 8 | 8 | 9 | 8 | 8 | 8 | 9 | 8 | 8 | B (r11) decisively better; kept |
 | r11 | Claude | 8 | 7 | 7 | 7 | 7 | 6 | 8 | 8 | 7 | 6 | B (r11) clearly better; kept |
+| r12 vs r11 | Codex | 9 | 8 | 8 | 9 | 8 | 8 | 9 | 8 | 7 | 7 | A (r12) better (pressed model, vertical fit); kept |
+| r12 vs r11 | Claude | 8 | 7.5 | 7 | 7.5 | 7 | 7.5 | 8 | 8 | 7.5 | 7 | A (r12) better (tighter composition, progressive picker); kept |
