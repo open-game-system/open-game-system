@@ -175,7 +175,12 @@ function SittingCard({
     <View style={styles.card} testID={`gameSitting-${sitting.instanceId}`}>
       {icon ? <Image source={{ uri: artUrl(icon) }} style={styles.icon} /> : null}
       <View style={styles.cardText}>
-        <Text style={styles.cardHeadline} numberOfLines={1}>
+        <Text
+          style={styles.cardHeadline}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+        >
           {headline}
         </Text>
         <View style={styles.cardDetailRow}>
@@ -244,7 +249,7 @@ const styles = StyleSheet.create({
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ember },
   rejoin: {
     minHeight: TARGET,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     borderRadius: TARGET / 2,
     alignItems: "center",
     justifyContent: "center",
