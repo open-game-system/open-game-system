@@ -69,7 +69,9 @@ export function createProfileSource(opts: ProfileSourceOptions): Source<ProfileS
     if (!store) return noStoreTimedOut ? null : undefined;
     const raw = store.getSnapshot();
     const last = cache;
-    const fresh = last && last.raw === raw && last.asking === askingTimedOut ? last : null;
+    // The ask timer only changes a still-asking (undefined) answer; a ready/none one stays as is.
+    const askingSettled = last?.asking === askingTimedOut || last?.value !== undefined;
+    const fresh = last && last.raw === raw && askingSettled ? last : null;
     const next = fresh ?? { raw, asking: askingTimedOut, value: compute(raw) };
     cache = next;
     return next.value;

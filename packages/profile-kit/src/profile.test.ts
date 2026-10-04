@@ -115,6 +115,20 @@ describe("the OGS profile in a game page", () => {
     expect(source.getSnapshot()).toBe(source.getSnapshot());
   });
 
+  it("a ready profile stays the same object, with no extra notification, when the 5 s ask timer fires", () => {
+    const bridge = inApp({ status: "asking" });
+    const source = createProfileSource({ bridge });
+    const listener = vi.fn();
+    source.subscribe(listener);
+    bridge.setState("profile", { status: "ready", profile: juneau });
+    const ready = source.getSnapshot();
+    expect(ready).toEqual(juneau);
+    expect(listener).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(5001);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(source.getSnapshot()).toBe(ready);
+  });
+
   it("a malformed store is no profile", () => {
     const bridge = createMockBridge<{ profile: { state: { status: string }; events: never } }>({
       isSupported: true,
