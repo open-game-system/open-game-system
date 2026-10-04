@@ -69,11 +69,11 @@ export function RocketFixer({ who }: { who: Person }) {
         <RouteDots done={3} total={10} size={20} />
       </div>
       <div key={`b${boost}-w${wobble}`} className={`gk-rocket__ship ${boost ? "is-boost" : ""} ${wobble ? "is-wobble" : ""}`} aria-hidden>
-        <Rocket size={230} fault flame={boost > 0 ? 1.8 : 1} />
+        <Rocket size={210} fault flame={boost > 0 ? 1.8 : 1} />
       </div>
       {want && (
         <div key={hot} className="gk-rocket__need" style={{ background: want.color }} aria-hidden>
-          <svg width="96" height="96" viewBox="0 0 24 24"><path d={want.path} fill="#1b0f3a" fillOpacity=".85" /></svg>
+          <svg width="86" height="86" viewBox="0 0 24 24"><path d={want.path} fill="#1b0f3a" fillOpacity=".85" /></svg>
         </div>
       )}
       {KID_CELLS.map((c, i) => (
@@ -95,7 +95,7 @@ export function RocketHelper({ who }: { who: Person }) {
   return (
     <Space host={host} onDown={(e) => fire(e, host.current, "spark", ["#fff6e0", "#ffd23f"])}>
       <div key={`b${boost}-t${twinkle}`} className={`gk-rocket__ship gk-rocket__ship--little ${boost ? "is-boost" : ""} ${twinkle ? "is-twinkle" : ""}`} aria-hidden>
-        <Rocket size={230} flame={boost > 0 ? 2 : 1} />
+        <Rocket size={210} flame={boost > 0 ? 2 : 1} />
       </div>
       <button
         className="gk-giant gk-giant--left gk-giant--star"

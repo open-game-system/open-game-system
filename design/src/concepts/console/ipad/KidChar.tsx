@@ -4,6 +4,13 @@
 import { useState, type PointerEvent } from "react";
 import type { Person } from "../../../world";
 
+/**
+ * Equal presence for every child's character: art that covers less of its frame (the dinosaur's
+ * long neck and tail leave half of it empty; the dragon's wings fill two thirds) is drawn larger,
+ * by the square root of the coverage ratio, so Ava's dinosaur stands as big as Juneau's dragon.
+ */
+const PRESENCE: Record<string, number> = { "/art/story-nook/char-dinosaur.webp": 1.14 };
+
 export function KidChar({
   who,
   size,
@@ -34,7 +41,7 @@ export function KidChar({
       }}
     >
       <span className="kd-char__pad" aria-hidden />
-      {src && <img key={`${hop}-${cheer}`} className={`kd-char__art ${hop + cheer ? (sleeping ? "is-stir" : "is-hop") : ""}`} src={src} alt="" draggable={false} />}
+      {src && <img key={`${hop}-${cheer}`} style={{ "--w": `${88 * (PRESENCE[src] ?? 1)}%`, "--h": `${92 * (PRESENCE[src] ?? 1)}%` }} className={`kd-char__art ${hop + cheer ? (sleeping ? "is-stir" : "is-hop") : ""}`} src={src} alt="" draggable={false} />}
     </button>
   );
 }
