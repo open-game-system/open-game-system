@@ -1,8 +1,10 @@
 import type { FriendRequest } from "@open-game-system/ogs-protocol";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../Button";
 import { Sticker } from "../Sticker";
 import { rowStyles as styles } from "./FriendRow";
+
+const compact = StyleSheet.create({ button: { paddingHorizontal: 14 } }).button;
 
 /** A request to you (Accept / Decline), or one you sent (Cancel). */
 export function RequestRow({
@@ -30,11 +32,17 @@ export function RequestRow({
       </View>
       {incoming ? (
         <>
-          <Button label="Accept" testID={`accept-${who.handle}`} onPress={onAccept} />
+          <Button
+            label="Accept"
+            testID={`accept-${who.handle}`}
+            onPress={onAccept}
+            style={compact}
+          />
           <Button
             label="Decline"
             kind="ghost"
             testID={`decline-${who.handle}`}
+            style={compact}
             onPress={onDecline}
           />
         </>

@@ -1,12 +1,13 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ogs/Button";
 import { ErrorLine } from "../../components/ogs/ErrorLine";
 import { FriendRow } from "../../components/ogs/friends/FriendRow";
 import { FriendsEmpty } from "../../components/ogs/friends/FriendsEmpty";
 import { RequestRow } from "../../components/ogs/friends/RequestRow";
 import { Screen, SectionTitle } from "../../components/ogs/Screen";
+import { colors } from "../../components/ogs/theme";
 import { friendsStore, useFriends } from "../../services/friends-runtime";
 import { useApp } from "../../services/runtime";
 import type { ErrorAction } from "../../services/user-message";
@@ -71,6 +72,9 @@ export default function FriendsScreen() {
           ) : null}
           <View testID="friendList">
             <SectionTitle>Friends</SectionTitle>
+            {data.friends.length === 0 ? (
+              <Text style={styles.none}>No friends yet. Accept a request or add someone.</Text>
+            ) : null}
             {data.friends.map((f) => {
               const live =
                 f.presence.kind === "casting" && f.presence.sessionId !== mySession
@@ -109,4 +113,7 @@ export default function FriendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({ add: { marginTop: 24 } });
+const styles = StyleSheet.create({
+  add: { marginTop: 24 },
+  none: { color: colors.cream3, fontSize: 15 },
+});
