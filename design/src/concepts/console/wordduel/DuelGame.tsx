@@ -6,6 +6,7 @@ import { StatusBar } from "../ui/Brand";
 import { Chevron } from "../ui/Icons";
 import { BOARD, POINTS, PREMIUM, SIZE, SLOTS } from "./board";
 import { DuelPlayed } from "./DuelPlayed";
+import { OpponentMark } from "./Opponent";
 
 export function DuelGameView({ s, store }: { s: S; store: Store<S> }) {
   const d = s.duels.find((x) => x.id === s.duel.open);
@@ -38,7 +39,7 @@ export function DuelGameView({ s, store }: { s: S; store: Store<S> }) {
         </button>
         <span className="wd-vs">
           <b>
-            <i style={{ background: d.color }} />
+            <OpponentMark d={d} size={30} />
             {d.opponent}
           </b>
           <span>{d.opponentHome}</span>

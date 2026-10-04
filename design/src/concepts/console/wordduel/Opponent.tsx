@@ -1,6 +1,6 @@
 // A duel row's face: the opponent's sticker standing on a tiny board of that game, so every duel
-// looks like itself (not the same crop five times). People outside the family's homes have no
-// sticker here, so they show as a Word Duel tile with their initial, in the game's own look.
+// looks like itself (not the same crop five times). Every opponent has a sticker (the world data
+// carries it), so people outside the family's homes are characters too, never an initial.
 import { HOUSEHOLDS, type DuelGame, type Person } from "../../../world";
 import { Sticker } from "../ui/Sticker";
 
@@ -47,13 +47,7 @@ export function MiniBoard({ d, size = 52 }: { d: DuelGame; size?: number }) {
 }
 
 export function OpponentMark({ d, size = 30 }: { d: DuelGame; size?: number }) {
-  const p = opponentOf(d);
-  if (p) return <Sticker person={p} size={size} />;
-  return (
-    <span className="wd-initial" style={{ width: size * 0.82, height: size * 0.82, fontSize: size * 0.46 }} aria-hidden>
-      {d.opponent.charAt(0)}
-    </span>
-  );
+  return <Sticker person={opponentOf(d) ?? { id: d.id, sticker: d.sticker }} size={size} />;
 }
 
 /** Sticker on its tiny board: the row art for a duel. */

@@ -10,7 +10,10 @@ export function tiltOf(id: string): number {
   return (h % 11) - 5;
 }
 
-export function Sticker({ person, size = 40, dim = false, tilt = true, className = "" }: { person: Person; size?: number; dim?: boolean; tilt?: boolean; className?: string }) {
+/** Anyone with a sticker: a person in one of the homes, or someone further away (a duel opponent). */
+export type StickerOwner = Pick<Person, "id" | "sticker">;
+
+export function Sticker({ person, size = 40, dim = false, tilt = true, className = "" }: { person: StickerOwner; size?: number; dim?: boolean; tilt?: boolean; className?: string }) {
   return (
     <span
       className={`ogs-sticker ${dim ? "is-dim" : ""} ${className}`}

@@ -1,5 +1,6 @@
 // What the games' servers report (Tier 2) or what OGS-hosted saves hold (Tier 1).
 // Status vocabulary from the brief: lobby → active ⇄ suspended → completed | expired, plus waiting.
+import { person } from "./family";
 
 export type InstanceStatus = "lobby" | "active" | "suspended" | "waiting" | "completed" | "expired";
 
@@ -122,6 +123,9 @@ export interface DuelGame {
   opponent: string;
   opponentHome: string;
   color: string;
+  /** The opponent's sticker: family members reuse their own (family.ts); people outside the three
+   * homes picked one of Bake Shop's plush customers. Never an initial in a square. */
+  sticker: string;
   status: "waiting" | "yourTurn" | "completed" | "expired" | "invite";
   you: number;
   them: number;
@@ -132,13 +136,13 @@ export interface DuelGame {
 
 /** Five open Word Duel games (two your turn), one finished, one expiring. */
 export const DUELS: DuelGame[] = [
-  { id: "wd-1", opponent: "Nana", opponentHome: "Boise", color: "#b5623c", status: "yourTurn", you: 212, them: 238, lastMove: "Nana played QUILT for 34", lastWord: "QUILT", updatedAt: "2026-10-03T18:47:00-07:00" },
-  { id: "wd-2", opponent: "Mom", opponentHome: "Home", color: "#c8412f", status: "yourTurn", you: 140, them: 121, lastMove: "Mom played FERN for 18", lastWord: "FERN", updatedAt: "2026-10-03T12:05:00-07:00" },
-  { id: "wd-3", opponent: "Tunde", opponentHome: "Seattle", color: "#1f8a5b", status: "waiting", you: 301, them: 287, lastMove: "You played ZEBRA for 41", lastWord: "ZEBRA", updatedAt: "2026-10-03T08:30:00-07:00" },
-  { id: "wd-4", opponent: "Uncle Rob", opponentHome: "Denver", color: "#5a6b7d", status: "waiting", you: 88, them: 95, lastMove: "You played OAK for 12", lastWord: "OAK", updatedAt: "2026-10-01T21:14:00-07:00" },
-  { id: "wd-5", opponent: "Priya", opponentHome: "Austin", color: "#7b6ad6", status: "waiting", you: 176, them: 160, lastMove: "You played GLOW for 22 · her move for 2 days", lastWord: "GLOW", updatedAt: "2026-09-30T19:40:00-07:00" },
-  { id: "wd-6", opponent: "Ada", opponentHome: "Seattle", color: "#d14d72", status: "completed", you: 402, them: 377, lastMove: "You won by 25 · final word JINX", lastWord: "JINX", updatedAt: "2026-09-29T22:02:00-07:00" },
-  { id: "wd-7", opponent: "Marcus", opponentHome: "Chicago", color: "#1f6f8b", status: "expired", you: 60, them: 44, lastMove: "No move in 14 days · game closed", updatedAt: "2026-09-21T10:00:00-07:00" },
+  { id: "wd-1", opponent: "Nana", opponentHome: "Boise", color: "#b5623c", sticker: person("nana").sticker, status: "yourTurn", you: 212, them: 238, lastMove: "Nana played QUILT for 34", lastWord: "QUILT", updatedAt: "2026-10-03T18:47:00-07:00" },
+  { id: "wd-2", opponent: "Mom", opponentHome: "Home", color: "#c8412f", sticker: person("mom").sticker, status: "yourTurn", you: 140, them: 121, lastMove: "Mom played FERN for 18", lastWord: "FERN", updatedAt: "2026-10-03T12:05:00-07:00" },
+  { id: "wd-3", opponent: "Tunde", opponentHome: "Seattle", color: "#1f8a5b", sticker: person("tunde").sticker, status: "waiting", you: 301, them: 287, lastMove: "You played ZEBRA for 41", lastWord: "ZEBRA", updatedAt: "2026-10-03T08:30:00-07:00" },
+  { id: "wd-4", opponent: "Uncle Rob", opponentHome: "Denver", color: "#5a6b7d", sticker: "/art/bake-shop/char-duck.webp", status: "waiting", you: 88, them: 95, lastMove: "You played OAK for 12", lastWord: "OAK", updatedAt: "2026-10-01T21:14:00-07:00" },
+  { id: "wd-5", opponent: "Priya", opponentHome: "Austin", color: "#7b6ad6", sticker: "/art/bake-shop/char-cat.webp", status: "waiting", you: 176, them: 160, lastMove: "You played GLOW for 22 · her move for 2 days", lastWord: "GLOW", updatedAt: "2026-09-30T19:40:00-07:00" },
+  { id: "wd-6", opponent: "Ada", opponentHome: "Seattle", color: "#d14d72", sticker: person("ada").sticker, status: "completed", you: 402, them: 377, lastMove: "You won by 25 · final word JINX", lastWord: "JINX", updatedAt: "2026-09-29T22:02:00-07:00" },
+  { id: "wd-7", opponent: "Marcus", opponentHome: "Chicago", color: "#1f6f8b", sticker: "/art/bake-shop/char-fox.webp", status: "expired", you: 60, them: 44, lastMove: "No move in 14 days · game closed", updatedAt: "2026-09-21T10:00:00-07:00" },
 ];
 
 /** World clock: things that happened between sittings. Grown-up phones only, never kid devices. */
