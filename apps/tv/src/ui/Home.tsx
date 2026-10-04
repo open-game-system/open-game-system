@@ -4,6 +4,7 @@ import type { Household } from "../session/data";
 import { safeStyle } from "./art";
 import { Box } from "./Box";
 import { Couch } from "./Couch";
+import { roomName } from "./copy";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 /** Boxes that fit across the shelf before it scrolls (pitches live in styles.css). */
@@ -22,7 +23,7 @@ export function Home(props: {
   return (
     <div className="screen home" data-testid="home">
       <header className="topbar">
-        <h1 className="room-name">{household.name}' living room</h1>
+        <h1 className="room-name">{roomName(household.name)}</h1>
         <div className="clock">
           <span className="clock-time">{clock(now)}</span>
           <span className="clock-day">{WEEKDAYS[new Date(now).getDay()]}</span>

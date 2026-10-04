@@ -1,12 +1,13 @@
 import type { Household } from "../session/data";
 import { stickerUrl } from "../session/data";
+import { roomName } from "./copy";
 
 /** Connecting: the living room assembling (furniture first, then the boxes), never a black card. */
 export function Assembling({ household }: { household?: Household }) {
   return (
     <div className="screen home assembling" data-testid="assembling">
       <header className="topbar">
-        <h1 className="room-name">{household ? `${household.name}' living room` : "OGS"}</h1>
+        <h1 className="room-name">{household ? roomName(household.name) : "OGS"}</h1>
       </header>
       <div className="assembling-hero">
         <p className="eyebrow">Connecting</p>
