@@ -1,20 +1,21 @@
 import { SELF } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
 import { signJwt } from "../../src/lib/jwt";
-import { CouchClient, isGameFollow } from "./couch-client";
+import { CouchClient, couchUrl, isGameFollow } from "./couch-client";
 import {
   BASE,
-  type CreatedHousehold,
+  type CreatedProfile,
+  type CreatedSession,
   claimsOf,
-  createHousehold,
+  createProfile,
+  createSession,
   ErrorSchema,
-  launcherToken,
-  pairDevice,
+  joinSession,
 } from "./helpers";
 
 const open: CouchClient[] = [];
-async function connect(token: string) {
-  const c = await CouchClient.connect(token);
+async function connect(token: string, session?: string) {
+  const c = await CouchClient.connect(token, session);
   open.push(c);
   return c;
 }
@@ -22,87 +23,153 @@ afterEach(async () => {
   for (const c of open.splice(0)) await c.close();
 });
 
-/** Jonathan's phone, the TV launcher, Juneau's and Ava's iPads, all connected. */
-async function livingRoom() {
-  const h = await createHousehold();
-  const [juneau, ava] = [h.people[1], h.people[2]];
-  const phone = await connect(h.token);
-  await phone.state((s) => s.devices.length === 1);
-  const tv = await connect(await launcherToken(h));
-  const juneauPad = await connect(
-    await pairDevice(h, { kind: "tablet", personId: juneau.id, name: "Juneau's iPad" }),
-  );
-  const avaPad = await connect(
-    await pairDevice(h, { kind: "tablet", personId: ava.id, name: "Ava's iPad" }),
-  );
-  await phone.state((s) => s.devices.filter((d) => d.online).length === 4);
-  return { h, phone, tv, juneauPad, avaPad, phoneId: claimsOf(h.token).did, juneau, ava };
+/** Join the session with its TV code, then open the couch socket. */
+async function joinAndConnect(who: CreatedProfile, session: CreatedSession) {
+  const res = await joinSession(who, session.code);
+  if (res.status !== 200) throw new Error(`join: ${res.status} ${await res.text()}`);
+  return connect(who.token, session.sessionId);
 }
 
-const roster = (h: CreatedHousehold) => [
-  { personId: h.people[0].id, roleId: "captain" },
-  { personId: h.people[1].id, roleId: "fixer" },
-  { personId: h.people[2].id, roleId: "helper" },
+/** Jonathan casts from his phone; Juneau's and Ava's iPads join with the TV code. */
+async function livingRoom() {
+  const jonathan = await createProfile({ name: "Jonathan", sticker: "bear" });
+  const juneau = await createProfile({ name: "Juneau", sticker: "dragon", kind: "tablet" });
+  const ava = await createProfile({ name: "Ava", sticker: "whale", kind: "tablet" });
+  const session = await createSession(jonathan);
+  const phone = await connect(jonathan.token, session.sessionId);
+  await phone.state((s) => s.devices.length === 1);
+  const tv = await connect(session.token);
+  const juneauPad = await joinAndConnect(juneau, session);
+  const avaPad = await joinAndConnect(ava, session);
+  await phone.state((s) => s.devices.filter((d) => d.online).length === 4);
+  return {
+    session,
+    jonathan,
+    juneau,
+    ava,
+    phone,
+    tv,
+    juneauPad,
+    avaPad,
+    phoneId: claimsOf(jonathan.token).did,
+  };
+}
+
+const roster = (r: Awaited<ReturnType<typeof livingRoom>>) => [
+  { profileId: r.jonathan.profile.id, roleId: "captain" },
+  { profileId: r.juneau.profile.id, roleId: "fixer" },
+  { profileId: r.ava.profile.id, roleId: "helper" },
 ];
+
+const upgrade = { Upgrade: "websocket" };
+const errorOf = async (res: Response) => ErrorSchema.parse(await res.json()).error.code;
 
 describe("GET /couch/ws — connecting", () => {
   it("rejects a missing token (401 missing_auth)", async () => {
-    const res = await SELF.fetch(`${BASE}/couch/ws`, { headers: { Upgrade: "websocket" } });
+    const res = await SELF.fetch(`${BASE}/couch/ws`, { headers: upgrade });
     expect(res.status).toBe(401);
-    expect(ErrorSchema.parse(await res.json()).error.code).toBe("missing_auth");
+    expect(await errorOf(res)).toBe("missing_auth");
   });
 
   it("rejects a forged or expired token (401 invalid_token)", async () => {
-    const h = await createHousehold();
-    const forged = await signJwt({ ...claimsOf(h.token) }, "wrong-secret");
-    const expired = await signJwt({ ...claimsOf(h.token), exp: 1 }, "test-jwt-secret");
+    const p = await createProfile();
+    const s = await createSession(p);
+    const forged = await signJwt({ ...claimsOf(p.token) }, "wrong-secret");
+    const expired = await signJwt({ ...claimsOf(p.token), exp: 1 }, "test-jwt-secret");
     for (const token of [forged, expired, "garbage"]) {
-      const res = await SELF.fetch(`${BASE}/couch/ws?token=${token}`, {
-        headers: { Upgrade: "websocket" },
-      });
+      const res = await SELF.fetch(couchUrl(token, s.sessionId), { headers: upgrade });
       expect(res.status).toBe(401);
-      expect(ErrorSchema.parse(await res.json()).error.code).toBe("invalid_token");
+      expect(await errorOf(res)).toBe("invalid_token");
     }
   });
 
   it("asks for a WebSocket upgrade (426 upgrade_required)", async () => {
-    const h = await createHousehold();
-    const res = await SELF.fetch(`${BASE}/couch/ws?token=${h.token}`);
+    const p = await createProfile();
+    const s = await createSession(p);
+    const res = await SELF.fetch(couchUrl(p.token, s.sessionId));
     expect(res.status).toBe(426);
-    expect(ErrorSchema.parse(await res.json()).error.code).toBe("upgrade_required");
+    expect(await errorOf(res)).toBe("upgrade_required");
   });
 
-  it("a token of another household joins only its own session", async () => {
-    const mine = await createHousehold();
-    const theirs = await createHousehold("The Neighbours");
-    const myPhone = await connect(mine.token);
+  it("a phone must name the session (400 missing_session)", async () => {
+    const p = await createProfile();
+    const res = await SELF.fetch(couchUrl(p.token), { headers: upgrade });
+    expect(res.status).toBe(400);
+    expect(await errorOf(res)).toBe("missing_session");
+  });
+
+  it("an unknown session is 404 session_not_found", async () => {
+    const p = await createProfile();
+    const res = await SELF.fetch(couchUrl(p.token, "no-such-session"), { headers: upgrade });
+    expect(res.status).toBe(404);
+    expect(await errorOf(res)).toBe("session_not_found");
+  });
+
+  it("nobody joins automatically: a profile that hasn't joined is refused (403 not_a_member)", async () => {
+    const host = await createProfile();
+    const mom = await createProfile({ name: "Mom" });
+    const s = await createSession(host);
+    const res = await SELF.fetch(couchUrl(mom.token, s.sessionId), { headers: upgrade });
+    expect(res.status).toBe(403);
+    expect(await errorOf(res)).toBe("not_a_member");
+  });
+
+  it("a launcher token opens only its own session", async () => {
+    const host = await createProfile();
+    const [a, b] = [await createSession(host), await createSession(host, "Kitchen TV")];
+    const res = await SELF.fetch(couchUrl(a.token, b.sessionId), { headers: upgrade });
+    expect(res.status).toBe(403);
+    expect(await errorOf(res)).toBe("not_a_member");
+    const tv = await connect(a.token);
+    expect((await tv.state()).sessionId).toBe(a.sessionId);
+  });
+
+  it("sessions are apart: another cast's devices never show up", async () => {
+    const mine = await createProfile();
+    const theirs = await createProfile({ name: "Neighbour" });
+    const [ms, ts] = [await createSession(mine), await createSession(theirs)];
+    const myPhone = await connect(mine.token, ms.sessionId);
     await myPhone.state((s) => s.devices.length === 1);
-    const theirPhone = await connect(theirs.token);
+    const theirPhone = await connect(theirs.token, ts.sessionId);
     const theirState = await theirPhone.state();
-    expect(theirState.householdId).toBe(theirs.householdId);
+    expect(theirState.sessionId).toBe(ts.sessionId);
     expect(theirState.devices.map((d) => d.deviceId)).toEqual([claimsOf(theirs.token).did]);
     await new Promise((r) => setTimeout(r, 50));
     expect(myPhone.latest?.devices.map((d) => d.deviceId)).toEqual([claimsOf(mine.token).did]);
   });
 
-  it("identity comes from the token: the connecting phone says hello and holds the remote", async () => {
-    const h = await createHousehold();
-    const phone = await connect(h.token);
+  it("identity comes from the token: the host's phone says hello, is a member and holds the remote", async () => {
+    const p = await createProfile({ name: "Jonathan", sticker: "bear" });
+    const session = await createSession(p);
+    const phone = await connect(p.token, session.sessionId);
     const s = await phone.state();
-    expect(s.householdId).toBe(h.householdId);
+    expect(s.sessionId).toBe(session.sessionId);
+    expect(s.hostProfileId).toBe(p.profile.id);
     expect(s.devices).toEqual([
-      { deviceId: claimsOf(h.token).did, kind: "phone", personId: h.people[0].id, online: true },
+      { deviceId: claimsOf(p.token).did, kind: "phone", profileId: p.profile.id, online: true },
     ]);
-    expect(s.remote).toBe(claimsOf(h.token).did);
+    expect(s.members).toEqual([{ profileId: p.profile.id, name: "Jonathan", sticker: "bear" }]);
+    expect(s.remote).toBe(claimsOf(p.token).did);
+  });
+
+  it("the TV shows who joined: members with their names and stickers, not the launcher", async () => {
+    const r = await livingRoom();
+    const s = await r.tv.state((x) => x.members.length === 3);
+    expect(s.members).toEqual([
+      { profileId: r.jonathan.profile.id, name: "Jonathan", sticker: "bear" },
+      { profileId: r.juneau.profile.id, name: "Juneau", sticker: "dragon" },
+      { profileId: r.ava.profile.id, name: "Ava", sticker: "whale" },
+    ]);
   });
 
   it("refuses a client-sent hello or bye, and survives junk", async () => {
-    const h = await createHousehold();
-    const phone = await connect(h.token);
+    const p = await createProfile();
+    const session = await createSession(p);
+    const phone = await connect(p.token, session.sessionId);
     await phone.state();
     for (const junk of [
       { type: "hello", deviceId: "spoof", kind: "launcher" },
-      { type: "bye", deviceId: claimsOf(h.token).did },
+      { type: "bye", deviceId: claimsOf(p.token).did },
       { type: "nope" },
       "not json",
     ]) {
@@ -116,7 +183,7 @@ describe("GET /couch/ws — connecting", () => {
     phone.send({ type: "focus.set", itemId: "game:bake-shop" });
     const s = await phone.state((x) => x.focus === "game:bake-shop", from);
     expect(s.cast).toBe(false);
-    expect(s.devices.map((d) => d.deviceId)).toEqual([claimsOf(h.token).did]);
+    expect(s.devices.map((d) => d.deviceId)).toEqual([claimsOf(p.token).did]);
   });
 });
 
@@ -129,9 +196,10 @@ describe("couch session over real WebSockets", () => {
   });
 
   it("game.start from the phone: launcher shows the game, tablets follow into their roles, the host phone follows host", async () => {
-    const { h, phone, tv, juneauPad, avaPad, phoneId } = await livingRoom();
+    const room = await livingRoom();
+    const { phone, tv, juneauPad, avaPad, phoneId } = room;
     const marks = [tv.mark(), juneauPad.mark(), avaPad.mark(), phone.mark()];
-    phone.send({ type: "game.start", appId: "rocket-crew", mode: "new", roster: roster(h) });
+    phone.send({ type: "game.start", appId: "rocket-crew", mode: "new", roster: roster(room) });
     const s = await tv.state((x) => x.screen === "game", marks[0]);
     expect(s.current).toMatchObject({ appId: "rocket-crew", hostDeviceId: phoneId, viewUrl: null });
     const instanceId = s.current?.instanceId;
@@ -233,11 +301,12 @@ describe("couch session over real WebSockets", () => {
   });
 
   it("when the remote phone disconnects, the other phone is offered the remote", async () => {
-    const h = await createHousehold();
-    const jonathan = await connect(h.token);
+    const h = await createProfile();
+    const session = await createSession(h);
+    const jonathan = await connect(h.token, session.sessionId);
     const jonathanId = claimsOf(h.token).did;
     await jonathan.state((s) => s.remote === jonathanId);
-    const mom = await connect(await pairDevice(h, { kind: "phone", name: "Mom's phone" }));
+    const mom = await joinAndConnect(await createProfile({ name: "Mom" }), session);
     const m = mom.mark();
     await jonathan.close();
     expect(await mom.next((f) => f.type === "remote.offer", m)).toEqual({
@@ -249,11 +318,13 @@ describe("couch session over real WebSockets", () => {
   });
 
   it("remote.take hands the remote to the sender, whatever deviceId it names", async () => {
-    const h = await createHousehold();
-    const jonathan = await connect(h.token);
+    const h = await createProfile();
+    const session = await createSession(h);
+    const jonathan = await connect(h.token, session.sessionId);
     await jonathan.state();
-    const momToken = await pairDevice(h, { kind: "phone", name: "Mom's phone" });
-    const mom = await connect(momToken);
+    const momProfile = await createProfile({ name: "Mom" });
+    const momToken = momProfile.token;
+    const mom = await joinAndConnect(momProfile, session);
     await mom.state();
     mom.send({ type: "remote.take", deviceId: claimsOf(h.token).did });
     const s = await jonathan.state((x) => x.remote === claimsOf(momToken).did);
@@ -261,7 +332,7 @@ describe("couch session over real WebSockets", () => {
   });
 
   it("a launcher leaving ends the cast; the session state survives reconnects", async () => {
-    const { h, phone, tv } = await livingRoom();
+    const { jonathan, session, phone, tv } = await livingRoom();
     phone.send({ type: "game.start", appId: "story-nook", mode: "new" });
     phone.send({ type: "home" });
     await phone.state((x) => x.suspended.length === 1);
@@ -270,17 +341,18 @@ describe("couch session over real WebSockets", () => {
     await phone.state((x) => !x.cast, m);
     await phone.close();
 
-    const again = await connect(h.token);
+    const again = await connect(jonathan.token, session.sessionId);
     const s = await again.state();
     expect(s.suspended.map((g) => g.appId)).toEqual(["story-nook"]);
     expect(s.casts).toBe(1);
   });
 
   it("a second socket of the same device keeps it online when one closes", async () => {
-    const h = await createHousehold();
+    const h = await createProfile();
+    const session = await createSession(h);
     const did = claimsOf(h.token).did;
-    const a = await connect(h.token);
-    const b = await connect(h.token);
+    const a = await connect(h.token, session.sessionId);
+    const b = await connect(h.token, session.sessionId);
     await b.state();
     const m = b.mark();
     await a.close();

@@ -1,0 +1,9 @@
+# Copy to .dev.vars for `pnpm dev:local`. Never commit .dev.vars.
+OGS_JWT_SECRET=local-dev-secret
+# Sign-in against vercel-labs/emulate (`pnpm emulate`), not the real providers:
+APPLE_ISSUER=http://localhost:4104
+APPLE_CLIENT_IDS=org.opengame.app
+GOOGLE_ISSUER=http://localhost:4102
+GOOGLE_CLIENT_IDS=ogs-test.apps.googleusercontent.com
+RESEND_BASE_URL=http://localhost:4108
+RESEND_API_KEY=re_local_emulated

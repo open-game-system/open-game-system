@@ -1,34 +1,37 @@
 import { DurableObject } from "cloudflare:workers";
 import {
-  type Claims,
-  ClaimsSchema,
   type ClientMessage,
   ClientMessageSchema,
   initialSession,
   type Outbound,
   reduceSession,
   type SessionState,
+  SessionStateSchema,
 } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
-import { type Peer, recipients } from "./couch/route";
+import { type Peer as Recipient, recipients } from "./couch/route";
 import type { Env } from "./types";
 
-/** Header the Worker uses to hand verified claims to the DO (reachable only through the binding). */
-export const CLAIMS_HEADER = "X-OGS-Claims";
+/** Header the Worker uses to hand the verified peer to the DO (reachable only through the binding). */
+export const PEER_HEADER = "X-OGS-Peer";
 
+/** Who is connecting, from the verified token and D1: the session, the device and its profile. */
 const PeerSchema = z.object({
+  sessionId: z.string(),
+  hostProfileId: z.string(),
   deviceId: z.string(),
   kind: z.enum(["phone", "tablet", "launcher"]),
-  personId: z.string().optional(),
+  profile: z.object({ profileId: z.string(), name: z.string(), sticker: z.string() }).optional(),
 });
+export type Peer = z.infer<typeof PeerSchema>;
 
 const STATE_KEY = "state";
 
 type ErrorCode = "invalid_json" | "invalid_message" | "identity_from_token";
 
 /**
- * One couch session per household (`idFromName(householdId)`): every phone, tablet and the TV
- * launcher of the household on WebSockets (hibernation API). Identity comes only from the token:
+ * One couch session per cast (`idFromName(sessionId)`): the host's phone, the TV launcher and
+ * every phone or tablet that joined, on WebSockets (hibernation API). Identity comes only from the token:
  * the DO says `hello` on connect and `bye` when a device's last socket closes. Every other frame
  * is parsed with ClientMessageSchema and applied with the protocol's pure `reduceSession`.
  */
@@ -36,20 +39,20 @@ export class CouchSession extends DurableObject<Env> {
   private state: SessionState | null = null;
 
   async fetch(request: Request): Promise<Response> {
-    const claims = ClaimsSchema.safeParse(JSON.parse(request.headers.get(CLAIMS_HEADER) ?? "null"));
-    if (!claims.success || request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
+    const parsed = PeerSchema.safeParse(JSON.parse(request.headers.get(PEER_HEADER) ?? "null"));
+    if (!parsed.success || request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
       return new Response("couch session expects a verified WebSocket upgrade", { status: 400 });
 
     const pair = new WebSocketPair();
     const [client, server] = [pair[0], pair[1]];
-    const peer = peerOf(claims.data);
+    const peer = parsed.data;
     this.ctx.acceptWebSocket(server, [`device:${peer.deviceId}`]);
     server.serializeAttachment(peer);
-    await this.apply(claims.data.hid, {
+    await this.apply(peer, {
       type: "hello",
       deviceId: peer.deviceId,
       kind: peer.kind,
-      personId: peer.personId,
+      profile: peer.profile,
     });
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -72,7 +75,7 @@ export class CouchSession extends DurableObject<Env> {
         "identity_from_token",
         "hello and bye come from the token, not the client",
       );
-    await this.apply(null, msg);
+    await this.apply(peer, msg);
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
@@ -96,18 +99,18 @@ export class CouchSession extends DurableObject<Env> {
     const stillOpen = this.ctx
       .getWebSockets(`device:${peer.deviceId}`)
       .some((other) => other !== ws && other.readyState === WebSocket.OPEN && attachment(other));
-    if (!stillOpen) await this.apply(null, { type: "bye", deviceId: peer.deviceId });
+    if (!stillOpen) await this.apply(peer, { type: "bye", deviceId: peer.deviceId });
   }
 
-  private async load(householdId: string | null): Promise<SessionState> {
+  private async load(peer: Peer): Promise<SessionState> {
     if (this.state) return this.state;
-    const stored = await this.ctx.storage.get<SessionState>(STATE_KEY);
-    this.state = stored ?? initialSession(householdId ?? "");
+    const stored = SessionStateSchema.safeParse(await this.ctx.storage.get(STATE_KEY));
+    this.state = stored.success ? stored.data : initialSession(peer.sessionId, peer.hostProfileId);
     return this.state;
   }
 
-  private async apply(householdId: string | null, msg: ClientMessage): Promise<void> {
-    const before = await this.load(householdId);
+  private async apply(peer: Peer, msg: ClientMessage): Promise<void> {
+    const before = await this.load(peer);
     const { state, out } = reduceSession(before, msg, Date.now());
     this.state = state;
     await this.ctx.storage.put(STATE_KEY, state);
@@ -119,7 +122,7 @@ export class CouchSession extends DurableObject<Env> {
       const peer = attachment(ws);
       return peer ? [{ ws, peer }] : [];
     });
-    const peers: Peer[] = sockets.map((s) => s.peer);
+    const peers: Recipient[] = sockets.map((s) => s.peer);
     for (const o of out) {
       const frame = JSON.stringify(o.msg);
       for (const i of recipients(o, peers)) {
@@ -133,17 +136,13 @@ export class CouchSession extends DurableObject<Env> {
   }
 }
 
-function peerOf(claims: Claims): z.infer<typeof PeerSchema> {
-  return { deviceId: claims.did, kind: claims.kind, personId: claims.pid };
-}
-
-function attachment(ws: WebSocket): z.infer<typeof PeerSchema> | null {
+function attachment(ws: WebSocket): Peer | null {
   const parsed = PeerSchema.safeParse(ws.deserializeAttachment());
   return parsed.success ? parsed.data : null;
 }
 
 /** Messages naming a device act as the sender; hello/bye are the DO's alone. */
-function fromSender(msg: ClientMessage, peer: z.infer<typeof PeerSchema>): ClientMessage | null {
+function fromSender(msg: ClientMessage, peer: Peer): ClientMessage | null {
   switch (msg.type) {
     case "hello":
     case "bye":

@@ -12,6 +12,15 @@ export interface Env {
   CLOUDFLARE_REALTIME_APP_SECRET: string;
   DEBUG_STATE_TOKEN?: string;
   STREAM_SERVER_URL?: string;
+  /** Sign in with Apple / Google: OIDC issuers (default: the real ones) and accepted client ids (CSV). */
+  APPLE_ISSUER?: string;
+  APPLE_CLIENT_IDS?: string;
+  GOOGLE_ISSUER?: string;
+  GOOGLE_CLIENT_IDS?: string;
+  /** Email codes: Resend API (default https://api.resend.com), its key (secret) and sender. */
+  RESEND_BASE_URL?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
 }
 
 export interface DeviceRow {

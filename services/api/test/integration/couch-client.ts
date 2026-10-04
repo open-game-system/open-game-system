@@ -9,7 +9,9 @@ export type Frame = z.infer<typeof FrameSchema>;
 const StateFrameSchema = z.object({
   type: z.literal("state"),
   state: z.looseObject({
-    householdId: z.string(),
+    sessionId: z.string(),
+    hostProfileId: z.string(),
+    members: z.array(z.object({ profileId: z.string(), name: z.string(), sticker: z.string() })),
     cast: z.boolean(),
     casts: z.number(),
     screen: z.enum(["home", "game-page", "game"]),
@@ -36,6 +38,11 @@ const StateFrameSchema = z.object({
 export type StateFrame = z.infer<typeof StateFrameSchema>;
 export type SessionView = StateFrame["state"];
 
+export const couchUrl = (token: string, session?: string) =>
+  `${BASE}/couch/ws?token=${encodeURIComponent(token)}${
+    session ? `&session=${encodeURIComponent(session)}` : ""
+  }`;
+
 /** A real WebSocket to the couch session, buffering every frame it receives. */
 export class CouchClient {
   readonly frames: Frame[] = [];
@@ -54,8 +61,8 @@ export class CouchClient {
     });
   }
 
-  static async connect(token: string): Promise<CouchClient> {
-    const res = await SELF.fetch(`${BASE}/couch/ws?token=${encodeURIComponent(token)}`, {
+  static async connect(token: string, session?: string): Promise<CouchClient> {
+    const res = await SELF.fetch(couchUrl(token, session), {
       headers: { Upgrade: "websocket" },
     });
     const ws = res.webSocket;

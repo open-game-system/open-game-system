@@ -1,29 +1,29 @@
 import { SELF } from "cloudflare:test";
 import { InstanceSchema } from "@open-game-system/ogs-protocol";
 import { describe, expect, it } from "vitest";
-import { BASE, bearer, createHousehold, ErrorSchema, launcherToken, pairDevice } from "./helpers";
+import { BASE, bearer, createProfile, createSession, ErrorSchema } from "./helpers";
 
-const instancesUrl = (hid: string) => `${BASE}/households/${hid}/instances`;
+const instancesUrl = `${BASE}/me/instances`;
 
-async function report(hid: string, token: string, body: Record<string, unknown>) {
-  return SELF.fetch(instancesUrl(hid), {
+async function report(token: string, body: Record<string, unknown>) {
+  return SELF.fetch(instancesUrl, {
     method: "POST",
     headers: bearer(token),
     body: JSON.stringify(body),
   });
 }
 
-async function list(hid: string, token: string) {
-  const res = await SELF.fetch(instancesUrl(hid), { headers: bearer(token) });
+async function list(token: string) {
+  const res = await SELF.fetch(instancesUrl, { headers: bearer(token) });
   expect(res.status).toBe(200);
   return InstanceSchema.array().parse(await res.json());
 }
 
-describe("/households/:hid/instances", () => {
+describe("/me/instances", () => {
   it("records a bridge report (the game calls the OGS bridge with suspended, Day 4)", async () => {
-    const h = await createHousehold();
+    const h = await createProfile();
     const before = Date.now();
-    const res = await report(h.householdId, h.token, {
+    const res = await report(h.token, {
       instanceId: "bake-1",
       appId: "bake-shop",
       status: "suspended",
@@ -37,25 +37,25 @@ describe("/households/:hid/instances", () => {
     expect(saved).toMatchObject({
       instanceId: "bake-1",
       appId: "bake-shop",
-      householdId: h.householdId,
+      profileId: h.profile.id,
       status: "suspended",
       title: "Day 4",
       detail: "Bear is waiting",
       source: "bridge",
     });
     expect(saved.updatedAt).toBeGreaterThanOrEqual(before);
-    expect(await list(h.householdId, h.token)).toEqual([saved]);
+    expect(await list(h.token)).toEqual([saved]);
   });
 
   it("upserts by instanceId and keeps optional fields", async () => {
-    const h = await createHousehold();
-    await report(h.householdId, h.token, {
+    const h = await createProfile();
+    await report(h.token, {
       instanceId: "rc-1",
       appId: "rocket-crew",
       status: "active",
       source: "visit",
     });
-    const res = await report(h.householdId, h.token, {
+    const res = await report(h.token, {
       instanceId: "rc-1",
       appId: "rocket-crew",
       status: "waiting",
@@ -65,7 +65,7 @@ describe("/households/:hid/instances", () => {
       source: "bridge",
     });
     expect(res.status).toBe(200);
-    const all = await list(h.householdId, h.token);
+    const all = await list(h.token);
     expect(all).toHaveLength(1);
     expect(all[0]).toMatchObject({
       status: "waiting",
@@ -78,48 +78,47 @@ describe("/households/:hid/instances", () => {
     expect(all[0].resumeUrl).toBeUndefined();
   });
 
-  it("lists newest first and accepts reports from tablets and the launcher", async () => {
-    const h = await createHousehold();
-    const tablet = await pairDevice(h, { kind: "tablet", personId: h.people[1].id, name: "iPad" });
-    const launcher = await launcherToken(h);
-    await report(h.householdId, tablet, {
+  it("lists newest first and accepts reports from the host's TV launcher", async () => {
+    const h = await createProfile({ kind: "tablet" });
+    const launcher = (await createSession(h)).token;
+    await report(h.token, {
       instanceId: "a",
       appId: "story-nook",
       status: "active",
       source: "visit",
     });
     await new Promise((r) => setTimeout(r, 5));
-    await report(h.householdId, launcher, {
+    await report(launcher, {
       instanceId: "b",
       appId: "night-flight",
       status: "lobby",
       source: "bridge",
     });
-    expect((await list(h.householdId, h.token)).map((i) => i.instanceId)).toEqual(["b", "a"]);
+    expect((await list(h.token)).map((i) => i.instanceId)).toEqual(["b", "a"]);
   });
 
-  it("keeps households apart", async () => {
-    const a = await createHousehold();
-    const b = await createHousehold("Other");
-    await report(a.householdId, a.token, {
+  it("keeps profiles apart", async () => {
+    const a = await createProfile();
+    const b = await createProfile();
+    await report(a.token, {
       instanceId: "same-id",
       appId: "bake-shop",
       status: "active",
       source: "visit",
     });
-    await report(b.householdId, b.token, {
+    await report(b.token, {
       instanceId: "same-id",
       appId: "story-nook",
       status: "active",
       source: "visit",
     });
-    expect((await list(a.householdId, a.token)).map((i) => i.appId)).toEqual(["bake-shop"]);
-    expect((await list(b.householdId, b.token)).map((i) => i.appId)).toEqual(["story-nook"]);
+    expect((await list(a.token)).map((i) => i.appId)).toEqual(["bake-shop"]);
+    expect((await list(b.token)).map((i) => i.appId)).toEqual(["story-nook"]);
   });
 
   it("rejects a game outside the catalogue (400 unknown_app)", async () => {
-    const h = await createHousehold();
-    const res = await report(h.householdId, h.token, {
+    const h = await createProfile();
+    const res = await report(h.token, {
       instanceId: "x",
       appId: "word-duel",
       status: "active",
@@ -147,24 +146,22 @@ describe("/households/:hid/instances", () => {
       },
     ],
   ])("rejects %s (400 invalid_body)", async (_label, body) => {
-    const h = await createHousehold();
-    const res = await report(h.householdId, h.token, body);
+    const h = await createProfile();
+    const res = await report(h.token, body);
     expect(res.status).toBe(400);
     expect(ErrorSchema.parse(await res.json()).error.code).toBe("invalid_body");
   });
 
-  it("rejects an update without a valid household token", async () => {
-    const h = await createHousehold();
-    const other = await createHousehold("Other");
+  it("rejects an update without a valid profile token", async () => {
+    const h = await createProfile();
     const body = { instanceId: "x", appId: "bake-shop", status: "active", source: "bridge" };
-    const anon = await SELF.fetch(instancesUrl(h.householdId), {
+    const anon = await SELF.fetch(instancesUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     expect(anon.status).toBe(401);
-    expect((await report(h.householdId, "garbage", body)).status).toBe(401);
-    expect((await report(h.householdId, other.token, body)).status).toBe(403);
-    expect(await list(h.householdId, h.token)).toEqual([]);
+    expect((await report("garbage", body)).status).toBe(401);
+    expect(await list(h.token)).toEqual([]);
   });
 });

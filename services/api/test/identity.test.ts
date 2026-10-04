@@ -6,34 +6,33 @@ import { signJwt } from "../src/lib/jwt";
 const SECRET = "unit-secret";
 const NOW = 1_800_000_000_000;
 
-describe("identity tokens", () => {
-  it("issues a token whose claims match ClaimsSchema and expire after the ttl", async () => {
-    const token = await issueToken({ hid: "h1", did: "d1", pid: "p1", kind: "phone" }, SECRET, {
+describe("profile tokens", () => {
+  it("issues a device token whose claims match ClaimsSchema and expire after the ttl", async () => {
+    const token = await issueToken({ sub: "p1", did: "d1", kind: "phone" }, SECRET, {
       now: NOW,
       ttlSeconds: 60,
     });
     const claims = await readClaims(token, SECRET, NOW);
-    expect(ClaimsSchema.parse(claims)).toEqual({
-      hid: "h1",
-      did: "d1",
-      pid: "p1",
-      kind: "phone",
+    expect(ClaimsSchema.parse(claims)).toEqual({ sub: "p1", did: "d1", kind: "phone", exp: NOW / 1000 + 60 });
+    expect(claims && "sid" in claims).toBe(false);
+  });
+
+  it("issues a launcher token naming its session", async () => {
+    const token = await issueToken({ sub: "host", did: "l1", kind: "launcher", sid: "s1" }, SECRET, {
+      now: NOW,
+      ttlSeconds: 60,
+    });
+    expect(await readClaims(token, SECRET, NOW)).toEqual({
+      sub: "host",
+      did: "l1",
+      kind: "launcher",
+      sid: "s1",
       exp: NOW / 1000 + 60,
     });
   });
 
-  it("omits pid when the device has no person", async () => {
-    const token = await issueToken({ hid: "h1", did: "l1", kind: "launcher" }, SECRET, {
-      now: NOW,
-      ttlSeconds: 60,
-    });
-    const claims = await readClaims(token, SECRET, NOW);
-    expect(claims).not.toBeNull();
-    expect(claims && "pid" in claims).toBe(false);
-  });
-
   it("rejects a token signed with another secret", async () => {
-    const token = await issueToken({ hid: "h1", did: "d1", kind: "phone" }, "other", {
+    const token = await issueToken({ sub: "p1", did: "d1", kind: "phone" }, "other", {
       now: NOW,
       ttlSeconds: 60,
     });
@@ -41,7 +40,7 @@ describe("identity tokens", () => {
   });
 
   it("rejects an expired token (exp is exclusive)", async () => {
-    const token = await issueToken({ hid: "h1", did: "d1", kind: "phone" }, SECRET, {
+    const token = await issueToken({ sub: "p1", did: "d1", kind: "phone" }, SECRET, {
       now: NOW,
       ttlSeconds: 60,
     });
@@ -49,13 +48,13 @@ describe("identity tokens", () => {
     expect(await readClaims(token, SECRET, NOW + 60_000)).toBeNull();
   });
 
-  it("rejects a signed token whose payload is not household claims", async () => {
-    const legacy = await signJwt({ sub: "device-1", iss: "ogs-api" }, SECRET);
-    expect(await readClaims(legacy, SECRET, NOW)).toBeNull();
+  it("rejects a well-signed token whose claims aren't profile claims (an old household token)", async () => {
+    const token = await signJwt({ hid: "h1", did: "d1", kind: "phone", exp: NOW / 1000 + 60 }, SECRET);
+    expect(await readClaims(token, SECRET, NOW)).toBeNull();
   });
 
-  it("rejects garbage", async () => {
-    expect(await readClaims("not-a-jwt", SECRET, NOW)).toBeNull();
-    expect(await readClaims("a.b.c", SECRET, NOW)).toBeNull();
+  it("rejects junk", async () => {
+    expect(await readClaims("a.b", SECRET, NOW)).toBeNull();
+    expect(await readClaims("x.y.z", SECRET, NOW)).toBeNull();
   });
 });

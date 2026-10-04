@@ -1,7 +1,7 @@
 import { SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { BASE, bearer, createHousehold, ErrorSchema, launcherToken, pairDevice } from "./helpers";
+import { BASE, bearer, createProfile, createSession, ErrorSchema } from "./helpers";
 
 const ALL = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight"];
 const LibrarySchema = z.object({ appIds: z.array(z.string()) });
@@ -33,10 +33,10 @@ describe("GET /catalogue", () => {
   });
 });
 
-describe("/households/:hid/library", () => {
+describe("/me/library — the games you have", () => {
   it("defaults to every catalogue game", async () => {
-    const h = await createHousehold();
-    const res = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+    const h = await createProfile();
+    const res = await SELF.fetch(`${BASE}/me/library`, {
       headers: bearer(h.token),
     });
     expect(res.status).toBe(200);
@@ -44,9 +44,9 @@ describe("/households/:hid/library", () => {
   });
 
   it("keeps what a phone puts, in order, including an empty library", async () => {
-    const h = await createHousehold();
+    const h = await createProfile();
     const put = (appIds: string[]) =>
-      SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+      SELF.fetch(`${BASE}/me/library`, {
         method: "PUT",
         headers: bearer(h.token),
         body: JSON.stringify({ appIds }),
@@ -57,24 +57,25 @@ describe("/households/:hid/library", () => {
       appIds: ["night-flight", "rocket-crew"],
     });
 
-    const tablet = await pairDevice(h, { kind: "tablet", personId: h.people[1].id, name: "iPad" });
-    const read = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
-      headers: bearer(tablet),
+    // The TV launcher of a session this profile hosts shows the host's library.
+    const launcher = (await createSession(h)).token;
+    const read = await SELF.fetch(`${BASE}/me/library`, {
+      headers: bearer(launcher),
     });
     expect(LibrarySchema.parse(await read.json())).toEqual({
       appIds: ["night-flight", "rocket-crew"],
     });
 
     await put([]);
-    const empty = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+    const empty = await SELF.fetch(`${BASE}/me/library`, {
       headers: bearer(h.token),
     });
     expect(LibrarySchema.parse(await empty.json())).toEqual({ appIds: [] });
   });
 
   it("drops duplicate ids", async () => {
-    const h = await createHousehold();
-    const res = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+    const h = await createProfile();
+    const res = await SELF.fetch(`${BASE}/me/library`, {
       method: "PUT",
       headers: bearer(h.token),
       body: JSON.stringify({ appIds: ["bake-shop", "bake-shop", "story-nook"] }),
@@ -83,8 +84,8 @@ describe("/households/:hid/library", () => {
   });
 
   it("rejects a game that is not in the catalogue (400 unknown_app)", async () => {
-    const h = await createHousehold();
-    const res = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+    const h = await createProfile();
+    const res = await SELF.fetch(`${BASE}/me/library`, {
       method: "PUT",
       headers: bearer(h.token),
       body: JSON.stringify({ appIds: ["rocket-crew", "word-duel"] }),
@@ -94,8 +95,8 @@ describe("/households/:hid/library", () => {
   });
 
   it("rejects a malformed body (400 invalid_body)", async () => {
-    const h = await createHousehold();
-    const res = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+    const h = await createProfile();
+    const res = await SELF.fetch(`${BASE}/me/library`, {
       method: "PUT",
       headers: bearer(h.token),
       body: JSON.stringify({ apps: [] }),
@@ -104,24 +105,28 @@ describe("/households/:hid/library", () => {
     expect(ErrorSchema.parse(await res.json()).error.code).toBe("invalid_body");
   });
 
-  it("only a phone changes the library (403 phone_required for the launcher)", async () => {
-    const h = await createHousehold();
-    const res = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
+  it("only the profile's own device changes it (403 profile_token_required for the launcher)", async () => {
+    const h = await createProfile();
+    const res = await SELF.fetch(`${BASE}/me/library`, {
       method: "PUT",
-      headers: bearer(await launcherToken(h)),
+      headers: bearer((await createSession(h)).token),
       body: JSON.stringify({ appIds: [] }),
     });
     expect(res.status).toBe(403);
+    expect(ErrorSchema.parse(await res.json()).error.code).toBe("profile_token_required");
   });
 
-  it("rejects requests without a token or from another household", async () => {
-    const h = await createHousehold();
-    const other = await createHousehold("Other");
-    const anon = await SELF.fetch(`${BASE}/households/${h.householdId}/library`);
+  it("rejects requests without a token, and keeps profiles apart", async () => {
+    const h = await createProfile();
+    const other = await createProfile();
+    const anon = await SELF.fetch(`${BASE}/me/library`);
     expect(anon.status).toBe(401);
-    const foreign = await SELF.fetch(`${BASE}/households/${h.householdId}/library`, {
-      headers: bearer(other.token),
+    await SELF.fetch(`${BASE}/me/library`, {
+      method: "PUT",
+      headers: bearer(h.token),
+      body: JSON.stringify({ appIds: ["bake-shop"] }),
     });
-    expect(foreign.status).toBe(403);
+    const theirs = await SELF.fetch(`${BASE}/me/library`, { headers: bearer(other.token) });
+    expect(LibrarySchema.parse(await theirs.json()).appIds).toEqual(ALL);
   });
 });

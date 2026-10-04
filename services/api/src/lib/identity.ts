@@ -3,19 +3,18 @@ import { signJwt, verifyJwt } from "./jwt";
 
 export type ClaimsInput = Omit<Claims, "exp">;
 
-export const PHONE_TOKEN_TTL_S = 365 * 24 * 60 * 60;
+export const DEVICE_TOKEN_TTL_S = 365 * 24 * 60 * 60;
 export const LAUNCHER_TOKEN_TTL_S = 12 * 60 * 60;
 
-/** Signs household claims (ogs-protocol ClaimsSchema) with an expiry `ttlSeconds` after `now`. */
+/** Signs profile claims (ogs-protocol ClaimsSchema) with an expiry `ttlSeconds` after `now`. */
 export async function issueToken(
   claims: ClaimsInput,
   secret: string,
   opts: { now: number; ttlSeconds: number },
 ): Promise<string> {
   const exp = Math.floor(opts.now / 1000) + opts.ttlSeconds;
-  const payload: Claims = { ...claims, exp };
-  if (payload.pid === undefined) delete payload.pid;
-  return signJwt(payload, secret);
+  const { sid, ...rest } = claims;
+  return signJwt(sid === undefined ? { ...rest, exp } : { ...rest, sid, exp }, secret);
 }
 
 /** Verifies the signature, parses the claims and checks expiry. Null when any of those fail. */
