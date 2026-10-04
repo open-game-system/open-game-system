@@ -1,0 +1,248 @@
+/* ---------------------------------------------------------------- kid iPad (1180×820, no words) */
+.kk {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #11121b;
+}
+.kk img {
+  display: block;
+}
+
+/* resting: my sticker, a sleepy TV that wakes when the cast is on */
+.kk-rest {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(70% 70% at 50% 40%, #222540, #0e0f18 75%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.kk-rest-art {
+  position: absolute;
+  inset: -40px;
+  opacity: 0.32;
+  filter: blur(24px) saturate(1.2);
+  animation: cp-fade 0.8s both;
+}
+.kk-tv {
+  position: relative;
+  color: rgba(244, 241, 234, 0.25);
+  margin-bottom: 18px;
+}
+.kk-tv.is-on {
+  color: #ffe7a8;
+  filter: drop-shadow(0 0 22px rgba(255, 210, 120, 0.7));
+}
+.kk-tv.is-waking {
+  animation: cp-pulse 1s infinite;
+}
+.kk-me {
+  position: relative;
+  height: 430px;
+  animation: kk-bob 3.2s ease-in-out infinite;
+}
+.kk-me img {
+  height: 100%;
+  width: auto;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.45));
+}
+.kk-shadow {
+  width: 240px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  filter: blur(8px);
+  margin-top: 6px;
+}
+.kk-rest:not(.is-on) .kk-me {
+  filter: saturate(0.6) brightness(0.8);
+}
+@keyframes kk-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* called to play: lit up in the game's colours */
+.kk-called {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.kk-called-art {
+  position: absolute;
+  inset: -40px;
+  filter: blur(14px) brightness(0.55);
+}
+.kk-called-ring {
+  position: relative;
+  width: 440px;
+  height: 440px;
+  border-radius: 50%;
+  border: 16px solid transparent;
+  background: radial-gradient(circle at 50% 35%, #fbf6ea, #e1d6bf);
+  overflow: hidden;
+  filter: grayscale(1) brightness(0.45);
+  transition: filter 0.4s;
+}
+.kk-called-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 6%;
+  transform: scale(1.15);
+  transform-origin: 50% 0;
+}
+.kk-called.is-lit .kk-called-ring {
+  filter: none;
+  animation: kk-pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.kk-called:not(.is-lit) .kk-called-art {
+  filter: blur(14px) brightness(0.25) grayscale(0.8);
+}
+@keyframes kk-pop {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+
+/* following into the next game */
+.kk-follow {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.kk-follow-out,
+.kk-follow-in {
+  position: absolute;
+  inset: 0;
+}
+.kk-follow-out {
+  animation: kk-out 1s cubic-bezier(0.6, 0, 0.4, 1) both;
+}
+.kk-follow-in {
+  animation: kk-in 1.1s 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes kk-out {
+  to { transform: translateX(-100%); opacity: 0.2; }
+}
+@keyframes kk-in {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+.kk-follow-me {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  border: 14px solid;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #fbf6ea, #e1d6bf);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+  animation: kk-pop 0.7s 0.2s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.kk-follow-me img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 6%;
+  transform: scale(1.15);
+  transform-origin: 50% 0;
+}
+
+/* the game's kid controls */
+.kk-ctrl {
+  position: absolute;
+  inset: 0;
+  animation: cp-fade 0.6s both;
+}
+.kk-ctrl-art {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+}
+.kk-ctrl-pads {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 56px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 64px;
+}
+.kk-btn {
+  width: 250px;
+  height: 250px;
+  border-radius: 72px;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 -16px 0 rgba(0, 0, 0, 0.2), 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+.kk-btn:active {
+  transform: translateY(8px);
+}
+.kk-btn.is-giant {
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  margin-bottom: 30px;
+  animation: kk-breathe 2.4s ease-in-out infinite;
+}
+.kk-btn.is-giant svg {
+  width: 240px;
+  height: 240px;
+}
+@keyframes kk-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.kk-ctrl.is-paused .kk-ctrl-pads,
+.kk-ctrl.is-paused .kk-ctrl-art {
+  filter: grayscale(0.7) brightness(0.45);
+}
+.kk-pause {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 44px;
+}
+.kk-pause span {
+  width: 72px;
+  height: 230px;
+  border-radius: 24px;
+  background: #f4f1ea;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.kk-batt {
+  position: absolute;
+  right: 36px;
+  top: 30px;
+  width: 64px;
+  height: 30px;
+  border-radius: 8px;
+  border: 4px solid rgba(244, 241, 234, 0.75);
+  padding: 3px;
+}
+.kk-batt::after {
+  content: "";
+  position: absolute;
+  right: -11px;
+  top: 7px;
+  width: 6px;
+  height: 10px;
+  border-radius: 0 3px 3px 0;
+  background: rgba(244, 241, 234, 0.75);
+}
+.kk-batt-fill {
+  display: block;
+  width: 14%;
+  height: 100%;
+  border-radius: 3px;
+  background: #ff5a4e;
+}
