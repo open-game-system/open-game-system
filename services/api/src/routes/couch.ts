@@ -1,7 +1,8 @@
 import { Hono } from "hono";
-import { type Peer, PEER_HEADER } from "../couch-session";
+import { PEER_HEADER, type Peer } from "../couch-session";
 import { apiError } from "../lib/http";
 import { readClaims } from "../lib/identity";
+import { markSeen } from "../lib/presence";
 import { getProfile } from "../lib/profiles";
 import { getSession, mayEnter } from "../lib/sessions";
 import type { Env } from "../types";
@@ -29,6 +30,7 @@ couch.get("/ws", async (c) => {
   if (!(await mayEnter(db, claims, session)))
     return apiError(c, 403, "not_a_member", "Join this TV with its code first");
   const profile = claims.kind === "launcher" ? null : await getProfile(db, claims.sub);
+  if (profile) await markSeen(db, profile.id, Date.now());
   const peer: Peer = {
     sessionId: session.id,
     hostProfileId: session.host_profile_id,

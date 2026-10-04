@@ -10,6 +10,7 @@ import {
 } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
 import { type Peer as Recipient, recipients } from "./couch/route";
+import { recordLive } from "./lib/presence";
 import type { Env } from "./types";
 
 /** Header the Worker uses to hand the verified peer to the DO (reachable only through the binding). */
@@ -114,7 +115,20 @@ export class CouchSession extends DurableObject<Env> {
     const { state, out } = reduceSession(before, msg, Date.now());
     this.state = state;
     await this.ctx.storage.put(STATE_KEY, state);
+    await this.publishLive(before, state);
     this.route(out);
+  }
+
+  /** Friends' presence and Join cards read D1: whether the TV is connected and which game runs. */
+  private async publishLive(before: SessionState, after: SessionState): Promise<void> {
+    const appId = (s: SessionState) => s.current?.appId ?? null;
+    if (before.cast === after.cast && appId(before) === appId(after)) return;
+    await recordLive(
+      this.env.DB,
+      after.sessionId,
+      after.cast ? { appId: appId(after) } : null,
+      Date.now(),
+    );
   }
 
   private route(out: Outbound[]): void {

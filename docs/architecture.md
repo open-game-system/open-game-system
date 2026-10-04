@@ -144,6 +144,15 @@ route → 403 `profile_token_required`.
 | POST | `/api/v1/auth/apple`, `/auth/google` | optional phone/tablet | `{ idToken, nonce?, device? }`: with a token links the login (back up) → `Me`; without signs in (`device` required) → `Me & { token }`. 401 `invalid_id_token`, 409 `login_in_use`, 404 `login_not_found` |
 | POST | `/api/v1/auth/email/start` | none | `{ email }` → 202 `{ sent: true }` (6-digit code, 10 min, 5 tries, via Resend); 503 `email_unavailable`, 502 `email_failed` |
 | POST | `/api/v1/auth/email/verify` | optional phone/tablet | `{ email, code, device? }` → like `/auth/apple`; 401 `invalid_code` |
+| POST | `/api/v1/sessions/:sid/join` | phone/tablet | Join a friend's cast (Join card) → session view; host's friends only (or already host/member): 403 `not_a_friend`, 404 `session_not_found` (unknown or older than 12 h) |
+| POST | `/api/v1/friends/invites` | phone/tablet | → 201 `FriendInvite { code: "KITE-42", link, qr, expiresAt }` (10 min, single use; link/qr = `<INVITE_BASE_URL>/<token>`, default `https://opengame.org/add`) |
+| POST | `/api/v1/friends/invites/redeem` | phone/tablet | `{ code }` or `{ token }` → QR token: 200 `{ status: "friends", friend }`; code/link: 201 `{ status: "requested", request }` (200 friends if they had asked you or you are friends). 404 `invite_not_found`, 410 `invite_used` / `invite_expired`, 409 `cannot_friend_self` |
+| POST | `/api/v1/friends/requests` | phone/tablet | `{ handle }` (`@` optional, any case) → 201 requested / 200 friends (they had asked you); 404 `handle_not_found`, 409 `cannot_friend_self` / `already_friends` |
+| GET | `/api/v1/friends/requests` | phone/tablet | → `{ incoming, outgoing }` (`FriendRequest { id, from, to, via: code\|link\|handle, createdAt }`), newest first |
+| POST | `/api/v1/friends/requests/:id/accept` · `/decline` | phone/tablet | accept (recipient) → 200 friends; decline (recipient, or sender withdraws) → 204; 404 `request_not_found` |
+| GET | `/api/v1/friends` | phone/tablet | → `Friend[]` = `{ id, handle, name, sticker, presence, since }`; presence `casting{sessionId,tvName,game}` · `playing{sessionId,tvName,game}` · `online` (seen < 5 min) · `offline{lastSeenAt}`; sorted by presence then name |
+| DELETE | `/api/v1/friends/:profileId` | phone/tablet | → 204 (mutual); 404 `friend_not_found` |
+| GET | `/api/v1/friends/casting` | phone/tablet | → `CastingFriend[] { sessionId, tvName, host, game, joined }`: friends hosting a session whose TV is connected, newest first |
 | GET | `/api/v1/catalogue` | none | → `Manifest[]` (the five deployed games, `services/api/src/catalogue.ts`) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 
@@ -190,6 +199,11 @@ Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `in
 | `email_codes` | `email` | code_hash (SHA-256), expires_at (ms), attempts | Pending email sign-in codes |
 | `couch_sessions` | `id` | host_profile_id, code (unique TV code), tv_name, created_at (ms) | One per cast, 12 h |
 | `session_members` | `(session_id, profile_id)` | joined_at (ms) | Who joined with the TV code |
+| `friendships` | `(profile_a, profile_b)` | created_at (ms); `profile_a < profile_b` | Mutual friends, one row per pair |
+| `friend_requests` | `id` | from_profile_id, to_profile_id (unique pair), via (code/link/handle), created_at (ms) | Pending until accepted or declined |
+| `friend_invites` | `id` | profile_id, code, link_token, qr_token (each unique), expires_at, used_at, used_by | 10 min, single use; QR accepts at once |
+| `profile_seen` | `profile_id` | last_seen_at (ms) | Presence "online": written by `anyToken` and the couch WS (≤ 1/min) |
+| `session_live` | `session_id` | app_id, since (ms) | Row while the session's TV launcher is connected; written by the CouchSession DO |
 | `instances` | `(profile_id, instance_id)` | app_id, status, title, detail, your_turn, starts_at, resume_url, source, updated_at (ms) | ogs-protocol `InstanceSchema` |
 
 Canonical schema: `services/api/schema.sql`

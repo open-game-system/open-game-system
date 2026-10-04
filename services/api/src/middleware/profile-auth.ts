@@ -2,6 +2,7 @@ import type { Claims } from "@open-game-system/ogs-protocol";
 import type { Context, Next } from "hono";
 import { apiError } from "../lib/http";
 import { readClaims } from "../lib/identity";
+import { markSeen } from "../lib/presence";
 import type { Env } from "../types";
 
 export type ProfileEnv = { Bindings: Env; Variables: { claims: Claims } };
@@ -31,6 +32,8 @@ export async function anyToken(c: Context<ProfileEnv>, next: Next) {
     .bind(result.claims.sub)
     .first();
   if (!exists) return apiError(c, 404, "profile_not_found", "Profile not found");
+  // Presence: a phone or tablet reaching the API is online (a TV launcher is not its host).
+  if (result.claims.kind !== "launcher") await markSeen(c.env.DB, result.claims.sub, Date.now());
   c.set("claims", result.claims);
   await next();
 }

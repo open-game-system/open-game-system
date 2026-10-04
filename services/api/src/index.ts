@@ -7,6 +7,7 @@ import cast from "./routes/cast";
 import catalogue from "./routes/catalogue";
 import couch from "./routes/couch";
 import devices from "./routes/devices";
+import friends from "./routes/friends";
 import instances from "./routes/instances";
 import library from "./routes/library";
 import me from "./routes/me";
@@ -55,6 +56,9 @@ app.route("/api/v1/auth", auth);
 
 // Couch sessions: one per cast, joined with the TV code
 app.route("/api/v1/sessions", sessions);
+
+// Friends (slice 2): invites, requests, the list with presence, friends' casts
+app.route("/api/v1/friends", friends);
 
 // Couch session WebSocket (profile or launcher token in ?token=, session in ?session=)
 app.route("/api/v1/couch", couch);

@@ -104,3 +104,53 @@ CREATE TABLE IF NOT EXISTS instances (
 
 CREATE INDEX IF NOT EXISTS idx_profile_devices_profile ON profile_devices(profile_id);
 CREATE INDEX IF NOT EXISTS idx_profile_logins_profile ON profile_logins(profile_id);
+
+-- Friends (slice 2). Mutual: one row per pair, profile_a < profile_b. created_at: ms.
+CREATE TABLE IF NOT EXISTS friendships (
+  profile_a TEXT NOT NULL REFERENCES profiles(id),
+  profile_b TEXT NOT NULL REFERENCES profiles(id),
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (profile_a, profile_b),
+  CHECK (profile_a < profile_b)
+);
+
+-- Pending requests: from asked to by typing a code, opening a link, or finding the @id.
+CREATE TABLE IF NOT EXISTS friend_requests (
+  id TEXT PRIMARY KEY,
+  from_profile_id TEXT NOT NULL REFERENCES profiles(id),
+  to_profile_id TEXT NOT NULL REFERENCES profiles(id),
+  via TEXT NOT NULL CHECK (via IN ('code', 'link', 'handle')),
+  created_at INTEGER NOT NULL,
+  UNIQUE (from_profile_id, to_profile_id)
+);
+
+-- Add a friend: one invite = a short code, a link token and a QR token; 10 min, single use.
+CREATE TABLE IF NOT EXISTS friend_invites (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL REFERENCES profiles(id),
+  code TEXT NOT NULL UNIQUE,
+  link_token TEXT NOT NULL UNIQUE,
+  qr_token TEXT NOT NULL UNIQUE,
+  expires_at INTEGER NOT NULL,
+  used_at INTEGER,
+  used_by TEXT REFERENCES profiles(id)
+);
+
+-- Presence: when a profile's phone or tablet last reached the API (ms).
+CREATE TABLE IF NOT EXISTS profile_seen (
+  profile_id TEXT PRIMARY KEY REFERENCES profiles(id),
+  last_seen_at INTEGER NOT NULL
+);
+
+-- Presence: a row while the session's TV launcher is connected (written by the CouchSession DO).
+-- app_id: the game running on the TV, if any. since: ms the TV connected.
+CREATE TABLE IF NOT EXISTS session_live (
+  session_id TEXT PRIMARY KEY REFERENCES couch_sessions(id),
+  app_id TEXT,
+  since INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_friendships_b ON friendships(profile_b);
+CREATE INDEX IF NOT EXISTS idx_friend_requests_to ON friend_requests(to_profile_id);
+CREATE INDEX IF NOT EXISTS idx_session_members_profile ON session_members(profile_id);
+CREATE INDEX IF NOT EXISTS idx_couch_sessions_host ON couch_sessions(host_profile_id);

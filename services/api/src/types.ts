@@ -21,6 +21,8 @@ export interface Env {
   RESEND_BASE_URL?: string;
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
+  /** Friend invite links and QR codes: `<base>/<token>` (default https://opengame.org/add). */
+  INVITE_BASE_URL?: string;
 }
 
 export interface DeviceRow {

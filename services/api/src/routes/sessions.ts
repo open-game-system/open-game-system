@@ -1,13 +1,24 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { areFriends } from "../lib/friends";
 import { apiError, invalidBody, parseBody } from "../lib/http";
 import { issueToken, LAUNCHER_TOKEN_TTL_S } from "../lib/identity";
 import { getProfile, isUniqueViolation } from "../lib/profiles";
-import { findByCode, getSession, mayEnter, newCode, normaliseCode, viewOf } from "../lib/sessions";
+import {
+  findByCode,
+  getSession,
+  mayEnter,
+  newCode,
+  normaliseCode,
+  SESSION_TTL_MS,
+  viewOf,
+} from "../lib/sessions";
 import { anyToken, deviceOnly, type ProfileEnv } from "../middleware/profile-auth";
 
 const CreateSchema = z.object({ tvName: z.string().trim().min(1).max(60) });
-const JoinSchema = z.object({ code: z.string().transform(normaliseCode).pipe(z.string().length(6)) });
+const JoinSchema = z.object({
+  code: z.string().transform(normaliseCode).pipe(z.string().length(6)),
+});
 
 /** Couch sessions: one per cast, owned by the caster. Mounted at /api/v1/sessions. */
 const sessions = new Hono<ProfileEnv>();
@@ -59,6 +70,33 @@ sessions.post("/join", deviceOnly, async (c) => {
     )
     .bind(row.id, c.get("claims").sub, Date.now())
     .run();
+  return c.json(view);
+});
+
+/** POST /sessions/:sid/join — Join a friend's cast (the Join card): the host's friends only. */
+sessions.use("/:sid/join", deviceOnly);
+sessions.post("/:sid/join", async (c) => {
+  const db = c.env.DB;
+  const me = c.get("claims").sub;
+  const now = Date.now();
+  const row = await getSession(db, c.req.param("sid"));
+  const view = row && row.created_at > now - SESSION_TTL_MS ? await viewOf(db, row) : null;
+  if (!row || !view) return apiError(c, 404, "session_not_found", "Session not found");
+  if (!(await mayEnter(db, c.get("claims"), row))) {
+    if (!(await areFriends(db, me, row.host_profile_id)))
+      return apiError(
+        c,
+        403,
+        "not_a_friend",
+        "Only the host's friends can join without the TV code",
+      );
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO session_members (session_id, profile_id, joined_at) VALUES (?, ?, ?)",
+      )
+      .bind(row.id, me, now)
+      .run();
+  }
   return c.json(view);
 });
 
