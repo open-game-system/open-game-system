@@ -40,13 +40,12 @@ export class CouchSession extends DurableObject<Env> {
   private state: SessionState | null = null;
 
   async fetch(request: Request): Promise<Response> {
-    const parsed = PeerSchema.safeParse(JSON.parse(request.headers.get(PEER_HEADER) ?? "null"));
-    if (!parsed.success || request.headers.get("Upgrade")?.toLowerCase() !== "websocket")
+    const peer = peerOfUpgrade(request);
+    if (!peer)
       return new Response("couch session expects a verified WebSocket upgrade", { status: 400 });
 
     const pair = new WebSocketPair();
     const [client, server] = [pair[0], pair[1]];
-    const peer = parsed.data;
     this.ctx.acceptWebSocket(server, [`device:${peer.deviceId}`]);
     server.serializeAttachment(peer);
     await this.apply(peer, {
@@ -61,27 +60,14 @@ export class CouchSession extends DurableObject<Env> {
   async webSocketMessage(ws: WebSocket, data: string | ArrayBuffer): Promise<void> {
     const peer = attachment(ws);
     if (!peer) return;
-    let raw: unknown;
-    try {
-      raw = JSON.parse(typeof data === "string" ? data : new TextDecoder().decode(data));
-    } catch {
-      return sendError(ws, "invalid_json", "Frames must be JSON");
-    }
-    const parsed = ClientMessageSchema.safeParse(raw);
-    if (!parsed.success) return sendError(ws, "invalid_message", "Not a couch session message");
-    const msg = fromSender(parsed.data, peer);
-    if (!msg)
-      return sendError(
-        ws,
-        "identity_from_token",
-        "hello and bye come from the token, not the client",
-      );
-    await this.apply(peer, msg);
+    const frame = readFrame(data, peer);
+    if ("error" in frame) return sendError(ws, ...frame.error);
+    await this.apply(peer, frame.msg);
   }
 
   async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
     try {
-      ws.close(code === 1005 || code === 1006 ? 1000 : code, reason);
+      ws.close(closeCode(code), reason);
     } catch {
       // Already closed.
     }
@@ -137,15 +123,53 @@ export class CouchSession extends DurableObject<Env> {
       return peer ? [{ ws, peer }] : [];
     });
     const peers: Recipient[] = sockets.map((s) => s.peer);
-    for (const o of out) {
-      const frame = JSON.stringify(o.msg);
-      for (const i of recipients(o, peers)) {
-        try {
-          sockets[i].ws.send(frame);
-        } catch {
-          // A socket closing mid-broadcast gets its bye from webSocketClose.
-        }
-      }
+    sendAll(
+      out.flatMap((o) => {
+        const frame = JSON.stringify(o.msg);
+        return recipients(o, peers).map((i) => ({ ws: sockets[i].ws, frame }));
+      }),
+    );
+  }
+}
+
+/** The verified peer of a WebSocket upgrade from the Worker, or null. */
+export function peerOfUpgrade(request: Request): Peer | null {
+  const parsed = PeerSchema.safeParse(JSON.parse(request.headers.get(PEER_HEADER) ?? "null"));
+  const upgrade = request.headers.get("Upgrade")?.toLowerCase();
+  return parsed.success && upgrade === "websocket" ? parsed.data : null;
+}
+
+type FrameError = [code: ErrorCode, message: string];
+
+/** A client frame as the sender's message, or the error to answer it with. */
+export function readFrame(
+  data: string | ArrayBuffer,
+  peer: Peer,
+): { msg: ClientMessage } | { error: FrameError } {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(typeof data === "string" ? data : new TextDecoder().decode(data));
+  } catch {
+    return { error: ["invalid_json", "Frames must be JSON"] };
+  }
+  const parsed = ClientMessageSchema.safeParse(raw);
+  if (!parsed.success) return { error: ["invalid_message", "Not a couch session message"] };
+  const msg = fromSender(parsed.data, peer);
+  return msg
+    ? { msg }
+    : { error: ["identity_from_token", "hello and bye come from the token, not the client"] };
+}
+
+/** 1005 and 1006 are reserved (never sent): echo them as a normal close. */
+export const closeCode = (code: number) => (code === 1005 || code === 1006 ? 1000 : code);
+
+/** Sends each frame; a socket closing mid-broadcast gets its bye from webSocketClose. */
+export function sendAll(sends: { ws: { send(frame: string): void }; frame: string }[]): void {
+  for (const { ws, frame } of sends) {
+    try {
+      ws.send(frame);
+    } catch {
+      // Closing; see above.
     }
   }
 }
