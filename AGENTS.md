@@ -34,6 +34,7 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 
 | Topic | Location |
 |---|---|
+| Roadmap (order of work) | [docs/roadmap.md](docs/roadmap.md) |
 | Architecture overview | [docs/architecture.md](docs/architecture.md) |
 | Monorepo structure | [docs/structure.md](docs/structure.md) |
 | Migration status | [docs/migration-status.md](docs/migration-status.md) |

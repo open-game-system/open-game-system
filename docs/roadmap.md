@@ -1,0 +1,46 @@
+# OGS roadmap
+
+Owner-decided direction as of 2026-10-04. Detail lives in the linked specs and ADRs; this page is the order of work.
+Statuses: **Done** (committed and verified locally) · **Next** · **Later** · **Not planned**.
+
+## The product today (Done, on `design/ogs-app-hillclimb`, not deployed)
+
+- Cast once; the TV launcher frames each game in one stream; swap without recasting; swipe back = Home; Rejoin returns to the same room. Spec: `product-specs/ogs-app-v3.html`.
+- Five tabs: Playing · TV · Library · Friends · Profile. Library = All Games (covers) → game page with sittings + Start game.
+- Profiles (one per device): "Make your OGS profile", @id, back up / sign in with Apple, Google or email (Cloudflare Email Service). Spec: `product-specs/ogs-profiles.html`.
+- Friends: add by QR, code, link or @id; requests; presence; Join a friend's cast.
+- Games know you: game-scoped ES256 tokens, `profile-kit`; Rocket Crew skips its name form; every game reports a sitting label.
+- Art kit per game; PS5-style TV launcher; redesigned remote, Playing, Library.
+
+## Next: make it real for the family
+
+1. **Deploy and test on real devices** (owner approval): API (signing key, D1 reset), launcher, app build for your phone and the kids' iPads, then the games. Confirm production URLs (`tv.opengame.org`, `api.opengame.org`).
+2. **Owner setup:** regenerate the iOS project for Sign in with Apple; Google client id; Apple sign-in capability; Cloudflare Email Sending on opengame.org.
+3. **Open decisions:** Rejoin pill on every tab (spec) vs only TV/Friends/Profile (critics); holder placement on the remote; react-native-svg for a physical pad.
+4. **Friends follow-ups:** `opengame.org/add/<token>` web route (opens the app or the store); in-app QR scanner (expo-camera + prebuild).
+5. **Web + browser TVs (direct mode):** the app as a website; any browser or laptop on HDMI as the TV via `tv.opengame.org` and the TV code; Chrome Cast from desktop/Android Chrome as a bonus; `profile-kit` web transport (postMessage from the host page).
+6. **Google / Android TV:** Cast already works; decide direct vs stream after a device test.
+
+## Later
+
+- **Pushes:** "a friend started a new game", with a setting. (Deferred by owner.)
+- **Profile switching** on one device (Netflix/YouTube style).
+- **Family:** a profile group with parental controls; basis for paid family/friends plans. COPPA consent for under-13 back-up.
+- **Developer setting:** test your own game (the catalogue is app config until then).
+- **Amazon Fire TV app** (direct: thin WebView app; Matter Casting or TV code).
+- **Samsung / LG TV web apps** (direct).
+- **Apple TV app** (stream): native tvOS launcher shell + WebRTC player; Siri Remote → session moves.
+- **Cloud rendering cost model:** stream only while someone is on the couch; idle shutdown; hourly cost per household before turning it on.
+- **Launcher polish:** per-game focal anchors so focused cards never cover a game's subject; crisp focus crossfades; Hearthisle art kit if it joins the catalogue.
+
+## Not planned
+
+- **Roku:** no web engine and no WebRTC; HLS rejected (delay). Revisit if Roku adds WebRTC.
+- **Phone-rendered TV via AirPlay:** rejected; the phone must not do the rendering.
+- **Native per-platform game rewrites** or a native 2D "TV view" protocol.
+
+## Decisions behind this
+
+- [TV platforms ADR](adrs/2026-10-04-tv-platforms.md)
+- [Cast-kit uses app-bridge + stream-kit](adrs/2026-03-14-cast-kit-uses-app-bridge.md)
+- Briefing with tonight's decisions: `exec-plans/active/2026-10-04-afternoon-briefing.md`
