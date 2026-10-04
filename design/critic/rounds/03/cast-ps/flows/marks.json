@@ -1,0 +1,198 @@
+{
+  "cast-first": {
+    "label": "Open OGS → cast → the TV becomes the launcher",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 0.687,
+        "text": "Open OGS → cast → the TV becomes the launcher"
+      },
+      {
+        "t": 2.199,
+        "text": "Open OGS: the first thing is the TV. Cast to a TV",
+        "device": "phone",
+        "bot": "cast-open"
+      },
+      {
+        "t": 4.117,
+        "text": "Living room TV: OGS starts in the cloud and streams to it; the phone turns into the remote",
+        "device": "phone",
+        "bot": "tv-living"
+      },
+      {
+        "t": 8.235,
+        "text": "First touch: the focus moves along the icon row, the whole TV becomes that game's hub",
+        "device": "phone",
+        "bot": "pad-right"
+      }
+    ]
+  },
+  "launch": {
+    "label": "Pick and start Rocket Crew mission 6 with the touchpad",
+    "taps": 5,
+    "marks": [
+      {
+        "t": 0.695,
+        "text": "Pick and start Rocket Crew mission 6 with the touchpad"
+      },
+      {
+        "t": 2.205,
+        "text": "Click right on the glass: Word Duel's hub (your turns)",
+        "device": "phone",
+        "bot": "pad-right"
+      },
+      {
+        "t": 4.321,
+        "text": "Back to Rocket Crew",
+        "device": "phone",
+        "bot": "pad-left"
+      },
+      {
+        "t": 6.23,
+        "text": "Down to Continue · Mission 6 (the phone says what a click will do)",
+        "device": "phone",
+        "bot": "pad-down"
+      },
+      {
+        "t": 8.141,
+        "text": "Click: who's playing. Tonight's crew is already in; Juneau's and Ava's iPads light up",
+        "device": "phone",
+        "bot": "pad-select"
+      },
+      {
+        "t": 10.852,
+        "text": "Start: mission 6 in the same stream; the phone becomes the Captain controller",
+        "device": "phone",
+        "bot": "pad-select"
+      }
+    ]
+  },
+  "swap": {
+    "label": "In Rocket Crew → Home → Bake Shop day 4: 2 phone taps, 0 kid taps, no recast",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 0.689,
+        "text": "In Rocket Crew → Home → Bake Shop day 4: 2 phone taps, 0 kid taps, no recast"
+      },
+      {
+        "t": 2.198,
+        "text": "Home: Rocket Crew suspends at mission 6; the control centre slides up over it",
+        "device": "phone",
+        "bot": "home"
+      },
+      {
+        "t": 4.917,
+        "text": "Click: Bake Shop day 4 is already focused. Same stream, the iPads follow by name",
+        "device": "phone",
+        "bot": "pad-select"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Your turn on the TV → play it on the phone",
+    "taps": 5,
+    "marks": [
+      {
+        "t": 0.7,
+        "text": "Your turn on the TV → play it on the phone"
+      },
+      {
+        "t": 2.211,
+        "text": "Word Duel's hub: two turns waiting, from Nana and Mom",
+        "device": "phone",
+        "bot": "pad-right"
+      },
+      {
+        "t": 4.329,
+        "text": "Down to the turn cards",
+        "device": "phone",
+        "bot": "pad-down"
+      },
+      {
+        "t": 6.239,
+        "text": "Click Nana's turn: the board opens on the phone; the TV shows only the score",
+        "device": "phone",
+        "bot": "pad-select"
+      },
+      {
+        "t": 8.951,
+        "text": "Play TONAL for 26 on the phone",
+        "device": "phone",
+        "bot": "wd-play"
+      },
+      {
+        "t": 11.459,
+        "text": "Back to the TV: one turn left (Mom)",
+        "device": "phone",
+        "bot": "wd-done"
+      }
+    ]
+  },
+  "list": {
+    "label": "Browse on the phone instead: tap the list, the TV follows",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 0.71,
+        "text": "Browse on the phone instead: tap the list, the TV follows"
+      },
+      {
+        "t": 2.221,
+        "text": "Switch the remote to a list on the phone",
+        "device": "phone",
+        "bot": "mode-browse"
+      },
+      {
+        "t": 4.133,
+        "text": "Tap Bake Shop: the TV turns to its hub",
+        "device": "phone",
+        "bot": "browse-bake-shop"
+      },
+      {
+        "t": 6.245,
+        "text": "Continue · Day 4: who's playing on the TV and on the phone",
+        "device": "phone",
+        "bot": "browse-act-continue"
+      },
+      {
+        "t": 8.557,
+        "text": "Start",
+        "device": "phone",
+        "bot": "pick-start"
+      }
+    ]
+  },
+  "remote-handoff": {
+    "label": "Jonathan's phone sleeps: Mom picks up the remote",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 0.706,
+        "text": "Jonathan's phone sleeps: Mom picks up the remote"
+      },
+      {
+        "t": 2.217,
+        "text": "Mom takes the remote: one tap, the TV says so",
+        "device": "phone",
+        "bot": "take-remote"
+      }
+    ]
+  },
+  "recast": {
+    "label": "The cast drops: cast again resumes mission 6",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 0.696,
+        "text": "The cast drops: cast again resumes mission 6"
+      },
+      {
+        "t": 2.205,
+        "text": "Cast again: OGS comes back at mission 6; the iPads drop back in",
+        "device": "phone",
+        "bot": "recast"
+      }
+    ]
+  }
+}

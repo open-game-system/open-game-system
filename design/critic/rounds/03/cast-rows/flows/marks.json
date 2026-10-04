@@ -1,0 +1,200 @@
+{
+  "cast-first": {
+    "label": "Cast first: open the app, cast, the TV becomes the launcher",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 1.103,
+        "text": "Cast first: open the app, cast, the TV becomes the launcher"
+      },
+      {
+        "t": 2.619,
+        "text": "Open Game, tap Cast to a TV",
+        "device": "phone",
+        "bot": "cast"
+      },
+      {
+        "t": 4.532,
+        "text": "Pick the living room TV: the TV boots the launcher",
+        "device": "phone",
+        "bot": "pick-living"
+      },
+      {
+        "t": 8.241,
+        "text": "Touch a game on the phone: the TV follows",
+        "device": "phone",
+        "bot": "item-c-bs-1"
+      }
+    ]
+  },
+  "launch": {
+    "label": "Launch with the remote: Rocket Crew, who's playing, start",
+    "taps": 10,
+    "marks": [
+      {
+        "t": 1.086,
+        "text": "Launch with the remote: Rocket Crew, who's playing, start"
+      },
+      {
+        "t": 2.597,
+        "text": "Switch the phone to Remote",
+        "device": "phone",
+        "bot": "mode-remote"
+      },
+      {
+        "t": 4.529,
+        "text": "Right: focus moves to Bake Shop, the hero follows",
+        "device": "phone",
+        "bot": "pad-right"
+      },
+      {
+        "t": 6.439,
+        "text": "Left: back to Rocket Crew",
+        "device": "phone",
+        "bot": "pad-left"
+      },
+      {
+        "t": 8.347,
+        "text": "OK: Rocket Crew's page",
+        "device": "phone",
+        "bot": "pad-ok"
+      },
+      {
+        "t": 10.256,
+        "text": "OK on Continue Mission 6: who's playing?",
+        "device": "phone",
+        "bot": "pad-ok"
+      },
+      {
+        "t": 12.164,
+        "text": "OK: Juneau's in, his iPad lights up",
+        "device": "phone",
+        "bot": "pad-ok"
+      },
+      {
+        "t": 14.07,
+        "text": "Right to Ava",
+        "device": "phone",
+        "bot": "pad-right"
+      },
+      {
+        "t": 15.978,
+        "text": "OK: Ava's in, her iPad lights up",
+        "device": "phone",
+        "bot": "pad-ok"
+      },
+      {
+        "t": 17.886,
+        "text": "Down to Start",
+        "device": "phone",
+        "bot": "pad-down"
+      },
+      {
+        "t": 19.799,
+        "text": "Start: mission 6 on the TV, controllers on every device",
+        "device": "phone",
+        "bot": "pad-ok"
+      }
+    ]
+  },
+  "swap": {
+    "label": "Swap: Rocket Crew → Home → Bake Shop, same stream, 3 phone taps, 0 kid taps",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 1.078,
+        "text": "Swap: Rocket Crew → Home → Bake Shop, same stream, 3 phone taps, 0 kid taps"
+      },
+      {
+        "t": 2.591,
+        "text": "Home: Rocket Crew saves at mission 6, the TV is the shelf again",
+        "device": "phone",
+        "bot": "home"
+      },
+      {
+        "t": 5.339,
+        "text": "Touch Bake Shop: the TV shows day 4",
+        "device": "phone",
+        "bot": "item-c-bs-1"
+      },
+      {
+        "t": 7.253,
+        "text": "Continue Day 4: same stream, iPads follow by name",
+        "device": "phone",
+        "bot": "play-c-bs-1"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Your turn on the TV, played on the phone",
+    "taps": 7,
+    "marks": [
+      {
+        "t": 1.09,
+        "text": "Your turn on the TV, played on the phone"
+      },
+      {
+        "t": 2.605,
+        "text": "Touch Nana's game: the TV focuses Your turn",
+        "device": "phone",
+        "bot": "item-d-wd-1"
+      },
+      {
+        "t": 4.523,
+        "text": "Play on this phone: the TV says so, shows no tiles",
+        "device": "phone",
+        "bot": "play-d-wd-1"
+      },
+      {
+        "t": 6.437,
+        "text": "Place O, W, N under the T of QUILT",
+        "device": "phone",
+        "bot": "tile-O"
+      },
+      {
+        "t": 10.065,
+        "text": "Play TOWN for 16",
+        "device": "phone",
+        "bot": "duel-send"
+      },
+      {
+        "t": 11.975,
+        "text": "Back to the TV: Mom's game is next in Your turn",
+        "device": "phone",
+        "bot": "duel-done"
+      }
+    ]
+  },
+  "recast": {
+    "label": "The cast drops mid-game: cast again, back at mission 6",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.079,
+        "text": "The cast drops mid-game: cast again, back at mission 6"
+      },
+      {
+        "t": 2.591,
+        "text": "Cast again: same game, same mission, iPads unpause",
+        "device": "phone",
+        "bot": "recast"
+      }
+    ]
+  },
+  "remote-handover": {
+    "label": "Jonathan's phone sleeps: Mom picks up the remote",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.106,
+        "text": "Jonathan's phone sleeps: Mom picks up the remote"
+      },
+      {
+        "t": 2.618,
+        "text": "Mom: Take the remote",
+        "device": "phone",
+        "bot": "take-remote"
+      }
+    ]
+  }
+}

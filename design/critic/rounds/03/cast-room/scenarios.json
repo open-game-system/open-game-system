@@ -1,0 +1,289 @@
+[
+  {
+    "id": "first-run.01-open",
+    "label": "Open OGS: nothing on the TV yet",
+    "flow": "first-run",
+    "state": "empty",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "first-run.02-pick-tv",
+    "label": "Which TV?",
+    "flow": "first-run",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "first-run.03-searching",
+    "label": "Looking for TVs",
+    "flow": "first-run",
+    "state": "loading",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "first-run.04-no-tv",
+    "label": "No TV found on this Wi-Fi",
+    "flow": "first-run",
+    "state": "error",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "first-run.05-connecting",
+    "label": "Turning on the living room",
+    "flow": "first-run",
+    "state": "loading",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "first-run.06-room-fresh",
+    "label": "The room on the TV, nobody has picked yet",
+    "flow": "first-run",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.01-room",
+    "label": "Spotlight on Rocket Crew",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.02-focus-bake",
+    "label": "Spotlight moved to Bake Shop (remote right)",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.03-focus-night",
+    "label": "Spotlight on game night through the window",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.04-remote-only",
+    "label": "Just the remote: eyes on the TV",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.05-detail-rocket",
+    "label": "Rocket Crew box opened: resume point, who's playing",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.06-detail-remote",
+    "label": "Box opened, driven with just the remote",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.01-who-picker",
+    "label": "Who's playing: spotlight on Ava, not seated yet",
+    "flow": "tonight",
+    "state": "partial",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "tonight.02-ava-seated",
+    "label": "Ava seated: her iPad lights up",
+    "flow": "tonight",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.01-playing-rocket",
+    "label": "Rocket Crew mission 6: Captain phone, Fixer + helper iPads",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.02-home",
+    "label": "Home: Rocket Crew folds back into its box at Mission 6",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.03-bake-open",
+    "label": "Bake Shop day 4 opened from the phone's room",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.04-bake-playing",
+    "label": "Bake Shop day 4 in the same stream, iPads followed",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "word-duel.01-note",
+    "label": "Spotlight on Nana's note: your turn",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.02-on-phone",
+    "label": "Note taken down: played on the phone",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.03-tiles",
+    "label": "Building TAME down from QUILT",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.04-sent",
+    "label": "Sent: Nana's note turns to waiting",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "game-night.01-window",
+    "label": "Game night opened from the window",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "failure.01-remote-asleep",
+    "label": "Jonathan's phone sleeps: Mom's phone can pick up the remote",
+    "flow": "failure",
+    "state": "interrupted",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "failure.02-remote-picked-up",
+    "label": "Mom has the remote",
+    "flow": "failure",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "failure.03-asleep-in-game",
+    "label": "Captain's phone sleeps mid-mission",
+    "flow": "failure",
+    "state": "interrupted",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "failure.04-cast-dropped",
+    "label": "The cast drops mid-mission",
+    "flow": "failure",
+    "state": "error",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "failure.05-recasting",
+    "label": "Re-cast: Rocket Crew comes back at Mission 6",
+    "flow": "failure",
+    "state": "loading",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  }
+]

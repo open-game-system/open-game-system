@@ -1,0 +1,380 @@
+[
+  {
+    "id": "first-run.01-open",
+    "label": "Open OGS: nothing on the TV yet; one button, Cast to TV",
+    "flow": "first-run",
+    "state": "empty",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "first-run.02-pick-tv",
+    "label": "Cast to: the living room TV (the bedroom TV is off)",
+    "flow": "first-run",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "first-run.03-no-tv",
+    "label": "No TV found on this Wi-Fi: three checks, look again",
+    "flow": "first-run",
+    "state": "error",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "first-run.04-connecting",
+    "label": "Connecting: the TV boots the OGS home, the phone says what's next",
+    "flow": "first-run",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "first-run.05-launcher-fresh",
+    "label": "The launcher before anyone picked anything; the phone is now the remote",
+    "flow": "first-run",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.01-remote",
+    "label": "Remote: focus on Rocket Crew, its resume point under it",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.02-focus-bake",
+    "label": "Right on the d-pad: focus moves to Bake Shop",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.03-focus-far",
+    "label": "Further right: the row slides, Hearthisle game night in focus",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.04-system-row",
+    "label": "Down: the system row (your turn, game night, who's here, devices)",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.05-users-row",
+    "label": "Up: the household's stickers, who's here tonight",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.06-browse",
+    "label": "List mode: the phone shows the same row as tiles; the TV follows",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.07-detail",
+    "label": "A on Rocket Crew: art, resume point, who's playing, Continue / New",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.08-detail-browse",
+    "label": "The same detail on the phone in List mode",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.09-devices",
+    "label": "Phones & iPads on this TV (Ava's battery at 9%)",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "home.10-night",
+    "label": "Game night across three homes, its own tile and detail",
+    "flow": "game-night",
+    "state": "default",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "tonight.01-who",
+    "label": "Who's playing Rocket Crew? Last crew picked; Juneau's iPad lights up",
+    "flow": "tonight",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "tonight.02-who-ava",
+    "label": "Ava added as helper: her iPad lights up too",
+    "flow": "tonight",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "tonight.03-who-browse",
+    "label": "Who's playing, on the phone in List mode",
+    "flow": "tonight",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.04-starting",
+    "label": "Start: Rocket Crew opens inside the same stream",
+    "flow": "tonight",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.01-playing-rocket",
+    "label": "Rocket Crew mission 6: TV game, phone Captain, Juneau's Fixer",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.01b-ava-helper",
+    "label": "Ava's iPad: one big helper button",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.02-home",
+    "label": "Home: the TV is back on the launcher, Rocket Crew suspended at mission 6",
+    "flow": "swap",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.03-focus-bake",
+    "label": "Right: Bake Shop, day 4 under it",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "swap.04-bake-detail",
+    "label": "A: Bake Shop's page, tonight's crew already on it",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "swap.05-cutover",
+    "label": "A on Continue: Bake Shop starts in the same stream; mission 6 saved",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.06-bake-playing",
+    "label": "Bake Shop day 4: order reader on the phone, Baker on Juneau's iPad",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.06b-ava-bake",
+    "label": "Ava's iPad follows by name: littlest helper",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "ipad"
+    ]
+  },
+  {
+    "id": "word-duel.01-system",
+    "label": "The Your turn icon on the TV, with a 2",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "word-duel.02-turns",
+    "label": "Two turns on the TV: who, last move, score; never your letters",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "word-duel.03-on-phone",
+    "label": "Playing Nana's game on the phone; the TV only says a turn is happening",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "word-duel.04-done",
+    "label": "Played: one turn left on the TV",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.01-remote-asleep",
+    "label": "Jonathan's phone sleeps mid-game: the TV says so in a corner",
+    "flow": "failure",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.02-mom-offer",
+    "label": "Mom's phone offers the remote",
+    "flow": "failure",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.03-mom-remote",
+    "label": "Mom has the remote; the TV says whose it is",
+    "flow": "failure",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.04-cast-dropped",
+    "label": "The cast drops mid-game: the TV is back to its own screen; nothing lost",
+    "flow": "failure",
+    "state": "error",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "failure.05-recasting",
+    "label": "Cast again: the TV picks up Rocket Crew at mission 6",
+    "flow": "failure",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "failure.06-resumed",
+    "label": "Resumed: same mission, same crew, iPads back in",
+    "flow": "failure",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  }
+]

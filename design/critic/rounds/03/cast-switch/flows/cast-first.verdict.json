@@ -1,0 +1,32 @@
+{
+  "clip": "critic/rounds/03/cast-switch/flows/cast-first.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "6.0–7.1s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.6–14.2s"
+    }
+  ],
+  "detections": {
+    "duration": 14.16,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 6,
+        "end": 7.12
+      },
+      {
+        "start": 10.64,
+        "end": 14.16
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

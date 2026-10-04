@@ -1,0 +1,64 @@
+{
+  "clip": "critic/rounds/03/cast-room/flows/launch.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "1.4–2.6s"
+    },
+    {
+      "code": "frozen",
+      "at": "3.4–4.6s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.4–7.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "11.9–13.3s"
+    },
+    {
+      "code": "frozen",
+      "at": "13.3–15.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "15.4–16.4s"
+    }
+  ],
+  "detections": {
+    "duration": 16.44,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 1.36,
+        "end": 2.64
+      },
+      {
+        "start": 3.36,
+        "end": 4.56
+      },
+      {
+        "start": 5.44,
+        "end": 6.96
+      },
+      {
+        "start": 11.88,
+        "end": 13.32
+      },
+      {
+        "start": 13.32,
+        "end": 15.36
+      },
+      {
+        "start": 15.4,
+        "end": 16.44
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

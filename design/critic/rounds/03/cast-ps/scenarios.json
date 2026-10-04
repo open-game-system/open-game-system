@@ -1,0 +1,298 @@
+[
+  {
+    "id": "first-run.01-open-app",
+    "label": "Open OGS: nothing cast yet",
+    "flow": "first-run",
+    "state": "empty",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "first-run.02-pick-tv",
+    "label": "Cast → pick the living room TV",
+    "flow": "first-run",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "first-run.03-no-tv",
+    "label": "No TV found on this Wi-Fi",
+    "flow": "first-run",
+    "state": "error",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "first-run.04-connecting",
+    "label": "Connecting: OGS starts on the TV",
+    "flow": "first-run",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "first-run.05-launcher-fresh",
+    "label": "Launcher on the TV, nobody has picked anything; phone is the remote",
+    "flow": "first-run",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.01-remote",
+    "label": "Remote: focus on the icon row (Rocket Crew hub)",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "home.02-focus-continue",
+    "label": "Remote: focus down on Continue",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.03-focus-card",
+    "label": "Remote: focus on an activity card",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.04-list-on-phone",
+    "label": "List mode: browse on the phone, the TV follows",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "home.05-story-nook-hub",
+    "label": "Story Nook hub: Juneau's character is ready",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "home.06-game-night-hub",
+    "label": "Hearthisle hub: game night paused at turn 14",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "home.07-bake-shop-hub",
+    "label": "Bake Shop hub: paused Tuesday at day 4",
+    "flow": "home",
+    "state": "default",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "tonight.01-whos-playing",
+    "label": "Who's playing Rocket Crew: the kids' iPads light up",
+    "flow": "tonight",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "tonight.02-ava-left-out",
+    "label": "Who's playing: Ava left out, her iPad stays resting",
+    "flow": "tonight",
+    "state": "partial",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "tonight.03-picker-on-phone",
+    "label": "Who's playing, in list mode on the phone",
+    "flow": "tonight",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "tonight.04-rocket-running",
+    "label": "Rocket Crew mission 6 running: Captain phone, Fixer iPads",
+    "flow": "tonight",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.01-control-centre",
+    "label": "Home pressed: control centre over the suspended game",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.02-control-on-phone",
+    "label": "Control centre in list mode on the phone",
+    "flow": "swap",
+    "state": "default",
+    "devices": [
+      "phone"
+    ]
+  },
+  {
+    "id": "swap.03-switching",
+    "label": "Switching in the same stream: Rocket Crew saved, Bake Shop day 4 loads, iPads follow",
+    "flow": "swap",
+    "state": "loading",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.04-bake-running",
+    "label": "Bake Shop day 4 running: no recast, no kid taps",
+    "flow": "swap",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "swap.05-launcher-suspended",
+    "label": "Home twice: launcher with Rocket Crew suspended at mission 6",
+    "flow": "swap",
+    "state": "partial",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.01-your-turn",
+    "label": "Word Duel hub: two of your turns on the TV",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.02-on-phone",
+    "label": "Handed off: the board is on the phone, the TV shows only the score",
+    "flow": "word-duel",
+    "state": "default",
+    "devices": [
+      "tv",
+      "phone",
+      "ipad"
+    ]
+  },
+  {
+    "id": "word-duel.03-played",
+    "label": "Played TONAL: sent to Nana",
+    "flow": "word-duel",
+    "state": "success",
+    "devices": [
+      "tv",
+      "phone"
+    ]
+  },
+  {
+    "id": "word-duel.04-one-left",
+    "label": "Back on the launcher: one turn left (Mom)",
+    "flow": "word-duel",
+    "state": "partial",
+    "devices": [
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.01-remote-asleep",
+    "label": "Jonathan's phone sleeps: Mom's phone can take the remote",
+    "flow": "failure",
+    "state": "interrupted",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.02-mom-has-remote",
+    "label": "Mom has the remote",
+    "flow": "failure",
+    "state": "success",
+    "devices": [
+      "phone",
+      "tv"
+    ]
+  },
+  {
+    "id": "failure.03-cast-dropped",
+    "label": "The cast drops mid-game: everything waits at mission 6",
+    "flow": "failure",
+    "state": "error",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  },
+  {
+    "id": "failure.04-recasting",
+    "label": "Cast again: the TV picks up at mission 6",
+    "flow": "failure",
+    "state": "loading",
+    "devices": [
+      "phone",
+      "tv",
+      "ipad"
+    ]
+  }
+]

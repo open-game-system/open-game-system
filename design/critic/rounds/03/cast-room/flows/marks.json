@@ -1,0 +1,222 @@
+{
+  "cast-first": {
+    "label": "Open OGS, put the living room on the TV",
+    "taps": 5,
+    "marks": [
+      {
+        "t": 0.693,
+        "text": "Open OGS, put the living room on the TV"
+      },
+      {
+        "t": 2.208,
+        "text": "1 tap: Put it on the TV",
+        "device": "phone",
+        "bot": "cast"
+      },
+      {
+        "t": 4.152,
+        "text": "2: the living room TV. The room lights up on the TV",
+        "device": "phone",
+        "bot": "tv-living"
+      },
+      {
+        "t": 7.869,
+        "text": "The phone is the remote: the spotlight moves",
+        "device": "phone",
+        "bot": "right"
+      },
+      {
+        "t": 9.781,
+        "text": "Or tap the room on the phone: game night opens on the TV",
+        "device": "phone",
+        "bot": "mini-night"
+      },
+      {
+        "t": 11.695,
+        "text": "Back to the room",
+        "device": "phone",
+        "bot": "back"
+      }
+    ]
+  },
+  "launch": {
+    "label": "Pick Rocket Crew with the remote and start mission 6",
+    "taps": 6,
+    "marks": [
+      {
+        "t": 1.098,
+        "text": "Pick Rocket Crew with the remote and start mission 6"
+      },
+      {
+        "t": 2.609,
+        "text": "Remote right: spotlight on Bake Shop",
+        "device": "phone",
+        "bot": "right"
+      },
+      {
+        "t": 4.521,
+        "text": "Left: back to Rocket Crew",
+        "device": "phone",
+        "bot": "left"
+      },
+      {
+        "t": 6.429,
+        "text": "OK: the box opens. Mission 6, who's playing",
+        "device": "phone",
+        "bot": "ok"
+      },
+      {
+        "t": 8.342,
+        "text": "Seat Ava: her iPad lights up",
+        "device": "phone",
+        "bot": "who-ava"
+      },
+      {
+        "t": 10.65,
+        "text": "OK: Continue mission 6. Every device follows",
+        "device": "phone",
+        "bot": "ok"
+      },
+      {
+        "t": 13.36,
+        "text": "Juneau's Fixer pads",
+        "device": "ipad",
+        "bot": "pad-1"
+      }
+    ]
+  },
+  "swap": {
+    "label": "Swap Rocket Crew for Bake Shop: 3 phone taps, 0 kid taps, no recast",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 1.104,
+        "text": "Swap Rocket Crew for Bake Shop: 3 phone taps, 0 kid taps, no recast"
+      },
+      {
+        "t": 2.616,
+        "text": "1: Home. Rocket Crew folds back into its box at Mission 6",
+        "device": "phone",
+        "bot": "home"
+      },
+      {
+        "t": 5.355,
+        "text": "2: tap Bake Shop in the room. Day 4 opens on the TV",
+        "device": "phone",
+        "bot": "mini-bake-shop"
+      },
+      {
+        "t": 7.866,
+        "text": "3: Continue day 4. Same stream; iPads follow by name",
+        "device": "phone",
+        "bot": "continue"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Your turn on the cork board, played on the phone",
+    "taps": 5,
+    "marks": [
+      {
+        "t": 1.123,
+        "text": "Your turn on the cork board, played on the phone"
+      },
+      {
+        "t": 2.634,
+        "text": "Tap Nana's note: the TV takes it down, tiles go to the phone",
+        "device": "phone",
+        "bot": "mini-wd-1"
+      },
+      {
+        "t": 4.547,
+        "text": "Your tiles stay on your phone",
+        "device": "phone",
+        "bot": "tile-1"
+      },
+      {
+        "t": 10.272,
+        "text": "Play TAME: the note goes back up as waiting",
+        "device": "phone",
+        "bot": "play"
+      }
+    ]
+  },
+  "remote-pickup": {
+    "label": "Jonathan's phone sleeps: Mom picks up the remote",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 1.115,
+        "text": "Jonathan's phone sleeps: Mom picks up the remote"
+      },
+      {
+        "t": 2.625,
+        "text": "Mom's phone: Pick up the remote",
+        "device": "phone",
+        "bot": "take-remote"
+      },
+      {
+        "t": 4.535,
+        "text": "She drives the same room",
+        "device": "phone",
+        "bot": "mini-bake-shop"
+      }
+    ]
+  },
+  "recast": {
+    "label": "The cast drops mid-mission, re-cast lands back at Mission 6",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.119,
+        "text": "The cast drops mid-mission, re-cast lands back at Mission 6"
+      },
+      {
+        "t": 2.632,
+        "text": "One tap: the TV comes back in the game, iPads never moved",
+        "device": "phone",
+        "bot": "recast"
+      }
+    ]
+  },
+  "remote-modes": {
+    "label": "Room on top, remote below, or just the remote",
+    "taps": 5,
+    "marks": [
+      {
+        "t": 1.101,
+        "text": "Room on top, remote below, or just the remote"
+      },
+      {
+        "t": 2.61,
+        "text": "Just the remote: eyes on the TV",
+        "device": "phone",
+        "bot": "layout-remote"
+      },
+      {
+        "t": 4.522,
+        "text": "Right",
+        "device": "phone",
+        "bot": "right"
+      },
+      {
+        "t": 6.43,
+        "text": "Up: the window",
+        "device": "phone",
+        "bot": "up"
+      },
+      {
+        "t": 8.338,
+        "text": "Show the room again",
+        "device": "phone",
+        "bot": "layout-both"
+      },
+      {
+        "t": 10.252,
+        "text": "Tap Story Nook in the room",
+        "device": "phone",
+        "bot": "mini-story-nook"
+      }
+    ]
+  }
+}

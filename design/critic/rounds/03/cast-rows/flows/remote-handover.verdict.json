@@ -1,0 +1,40 @@
+{
+  "clip": "critic/rounds/03/cast-rows/flows/remote-handover.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "1.5–2.6s"
+    },
+    {
+      "code": "frozen",
+      "at": "3.2–4.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.2–7.3s"
+    }
+  ],
+  "detections": {
+    "duration": 7.28,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 1.52,
+        "end": 2.64
+      },
+      {
+        "start": 3.2,
+        "end": 4.36
+      },
+      {
+        "start": 5.16,
+        "end": 7.28
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

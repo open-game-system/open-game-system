@@ -1,0 +1,234 @@
+{
+  "cast-first": {
+    "label": "Cast first: open OGS, cast, the TV becomes the console home",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 1.133,
+        "text": "Cast first: open OGS, cast, the TV becomes the console home"
+      },
+      {
+        "t": 2.646,
+        "text": "Open OGS. Nothing on the TV yet: tap Cast to TV",
+        "device": "phone",
+        "bot": "cast"
+      },
+      {
+        "t": 4.379,
+        "text": "Pick the living room TV: the TV boots the OGS home",
+        "device": "phone",
+        "bot": "tv-living"
+      },
+      {
+        "t": 8.291,
+        "text": "The phone is now a remote. Right on the d-pad: focus moves on the TV",
+        "device": "phone",
+        "bot": "r-right"
+      },
+      {
+        "t": 10.104,
+        "text": "Got it. The iPads already sit on the couch, waiting",
+        "device": "phone",
+        "bot": "got-it"
+      }
+    ]
+  },
+  "launch": {
+    "label": "Pick and start Rocket Crew with the remote (who's playing on the TV)",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.712,
+        "text": "Pick and start Rocket Crew with the remote (who's playing on the TV)"
+      },
+      {
+        "t": 2.227,
+        "text": "Right: Bake Shop",
+        "device": "phone",
+        "bot": "r-right"
+      },
+      {
+        "t": 3.743,
+        "text": "Left: back to Rocket Crew, paused at mission 6",
+        "device": "phone",
+        "bot": "r-left"
+      },
+      {
+        "t": 5.455,
+        "text": "A: Rocket Crew's page on the TV",
+        "device": "phone",
+        "bot": "r-a"
+      },
+      {
+        "t": 7.566,
+        "text": "A on Continue: who's playing? Last crew is picked; Juneau's iPad lights up",
+        "device": "phone",
+        "bot": "r-a"
+      },
+      {
+        "t": 9.882,
+        "text": "Left to Ava",
+        "device": "phone",
+        "bot": "r-left"
+      },
+      {
+        "t": 11.29,
+        "text": "A: Ava joins as helper; her iPad lights up",
+        "device": "phone",
+        "bot": "r-a"
+      },
+      {
+        "t": 13.401,
+        "text": "Down to Start",
+        "device": "phone",
+        "bot": "r-down"
+      },
+      {
+        "t": 14.814,
+        "text": "Start: Rocket Crew opens in the same stream; phone is Captain, iPads get their pads",
+        "device": "phone",
+        "bot": "r-a"
+      }
+    ]
+  },
+  "swap": {
+    "label": "Swap: Rocket Crew mission 6 → Home → Bake Shop day 4 (4 taps, 0 kid taps, 0 recasts)",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 0.722,
+        "text": "Swap: Rocket Crew mission 6 → Home → Bake Shop day 4 (4 taps, 0 kid taps, 0 recasts)"
+      },
+      {
+        "t": 2.235,
+        "text": "Home: the TV returns to the launcher, Rocket Crew suspended at mission 6; iPads pause",
+        "device": "phone",
+        "bot": "home"
+      },
+      {
+        "t": 4.982,
+        "text": "Right: Bake Shop, day 4 · 3 of 5 orders",
+        "device": "phone",
+        "bot": "r-right"
+      },
+      {
+        "t": 6.993,
+        "text": "A: Bake Shop's page; tonight's crew is already on it",
+        "device": "phone",
+        "bot": "r-a"
+      },
+      {
+        "t": 9.106,
+        "text": "A on Continue: mission 6 saved, Bake Shop starts in the same stream; iPads follow by name",
+        "device": "phone",
+        "bot": "r-a"
+      }
+    ]
+  },
+  "swap-list": {
+    "label": "The same swap from List mode (3 taps)",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 1.168,
+        "text": "The same swap from List mode (3 taps)"
+      },
+      {
+        "t": 2.682,
+        "text": "Home",
+        "device": "phone",
+        "bot": "home"
+      },
+      {
+        "t": 4.824,
+        "text": "List: the TV row as tiles on the phone",
+        "device": "phone",
+        "bot": "mode-list"
+      },
+      {
+        "t": 6.642,
+        "text": "Tap Bake Shop: its page opens on the TV and the phone",
+        "device": "phone",
+        "bot": "b-bake-shop"
+      },
+      {
+        "t": 8.769,
+        "text": "Continue: day 4 in the same stream; iPads follow",
+        "device": "phone",
+        "bot": "b-continue"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Your turn on the TV → play it on the phone",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 1.156,
+        "text": "Your turn on the TV → play it on the phone"
+      },
+      {
+        "t": 2.667,
+        "text": "Down: Your turn has a 2",
+        "device": "phone",
+        "bot": "r-down"
+      },
+      {
+        "t": 4.509,
+        "text": "A: the two turns on the TV (who, last move, score; never your letters)",
+        "device": "phone",
+        "bot": "r-a"
+      },
+      {
+        "t": 6.824,
+        "text": "A on Nana: the board opens on the phone; the TV only says a turn is happening",
+        "device": "phone",
+        "bot": "r-a"
+      },
+      {
+        "t": 9.34,
+        "text": "Play WAVE: sent to Nana; Mom's turn is next on the TV",
+        "device": "phone",
+        "bot": "duel-play"
+      }
+    ]
+  },
+  "remote-handover": {
+    "label": "Jonathan's phone sleeps; Mom picks up the remote",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 1.173,
+        "text": "Jonathan's phone sleeps; Mom picks up the remote"
+      },
+      {
+        "t": 2.688,
+        "text": "Mom: Take the remote. The TV says it's Mom's now",
+        "device": "phone",
+        "bot": "take-remote"
+      },
+      {
+        "t": 4.806,
+        "text": "Her d-pad moves the same focus",
+        "device": "phone",
+        "bot": "r-right"
+      }
+    ]
+  },
+  "recast": {
+    "label": "The cast drops; cast again resumes Rocket Crew at mission 6",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 1.132,
+        "text": "The cast drops; cast again resumes Rocket Crew at mission 6"
+      },
+      {
+        "t": 2.646,
+        "text": "Cast again: the TV picks up mission 6, the iPads drop back into their pads",
+        "device": "phone",
+        "bot": "recast"
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "clip": "critic/rounds/03/cast-room/flows/recast.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "1.3–2.7s"
+    },
+    {
+      "code": "frozen",
+      "at": "6.0–7.5s"
+    }
+  ],
+  "detections": {
+    "duration": 7.52,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 1.32,
+        "end": 2.68
+      },
+      {
+        "start": 5.96,
+        "end": 7.52
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

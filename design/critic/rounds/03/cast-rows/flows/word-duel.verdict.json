@@ -1,0 +1,56 @@
+{
+  "clip": "critic/rounds/03/cast-rows/flows/word-duel.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "6.4–7.5s"
+    },
+    {
+      "code": "frozen",
+      "at": "7.5–9.2s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.6–12.5s"
+    },
+    {
+      "code": "frozen",
+      "at": "13.1–15.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "15.4–16.6s"
+    }
+  ],
+  "detections": {
+    "duration": 16.64,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 6.36,
+        "end": 7.48
+      },
+      {
+        "start": 7.48,
+        "end": 9.2
+      },
+      {
+        "start": 10.6,
+        "end": 12.52
+      },
+      {
+        "start": 13.08,
+        "end": 15.36
+      },
+      {
+        "start": 15.36,
+        "end": 16.64
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

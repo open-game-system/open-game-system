@@ -1,0 +1,48 @@
+{
+  "clip": "critic/rounds/03/cast-room/flows/cast-first.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "3.0–4.1s"
+    },
+    {
+      "code": "frozen",
+      "at": "6.9–8.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "8.6–9.8s"
+    },
+    {
+      "code": "frozen",
+      "at": "12.2–15.4s"
+    }
+  ],
+  "detections": {
+    "duration": 15.76,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 2.96,
+        "end": 4.12
+      },
+      {
+        "start": 6.88,
+        "end": 8.36
+      },
+      {
+        "start": 8.56,
+        "end": 9.8
+      },
+      {
+        "start": 12.24,
+        "end": 15.36
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

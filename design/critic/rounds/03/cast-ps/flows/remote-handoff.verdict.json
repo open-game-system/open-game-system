@@ -1,0 +1,32 @@
+{
+  "clip": "critic/rounds/03/cast-ps/flows/remote-handoff.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "2.8–5.1s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.2–7.1s"
+    }
+  ],
+  "detections": {
+    "duration": 7.08,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 2.8,
+        "end": 5.12
+      },
+      {
+        "start": 5.16,
+        "end": 7.08
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}
