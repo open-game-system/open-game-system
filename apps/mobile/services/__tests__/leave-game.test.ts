@@ -31,6 +31,26 @@ describe("leaving a game (a completed swipe back)", () => {
     });
   });
 
+  it("a known sitting is recorded under its own id, so two games of one title stay two", () => {
+    const out = leaveGame({
+      ...base,
+      ogsCast: true,
+      reported: false,
+      instanceId: "rocket-crew-abc",
+    });
+    expect(out.visit?.instanceId).toBe("rocket-crew-abc");
+  });
+
+  it("the return pill remembers the sitting it points back into", () => {
+    const out = leaveGame({
+      ...base,
+      ogsCast: false,
+      reported: true,
+      instanceId: "rocket-crew-abc",
+    });
+    expect(out.pill.instanceId).toBe("rocket-crew-abc");
+  });
+
   it("without a known game there is nothing to record", () => {
     expect(leaveGame({ ...base, appId: null, ogsCast: false, reported: false }).visit).toBeNull();
   });

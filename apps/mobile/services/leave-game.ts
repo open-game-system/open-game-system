@@ -5,13 +5,16 @@ export interface ReturnPill {
   name: string;
   url: string;
   at: number;
+  /** The sitting it points back into, when known. */
+  instanceId?: string;
 }
 
 /**
  * What a completed swipe back from a game does (a cancelled swipe never gets here).
  * - cast: `home`, so the session pauses the game and the launcher shows its box again;
- * - a game that never reported itself: a Tier 0 `visit` (one stable id per game, so visits
- *   collapse to a single Continue entry);
+ * - a game that never reported itself: a Tier 0 `visit` under its sitting's id (so two games of
+ *   one title stay two, and returning to one sitting updates it), or one stable id per game when
+ *   the sitting is unknown;
  * - always: the "Rejoin" return pill.
  */
 export function leaveGame(input: {
@@ -21,12 +24,15 @@ export function leaveGame(input: {
   ogsCast: boolean;
   reported: boolean;
   now: number;
+  /** The sitting the screen holds (see game-rejoin `sittingId`). */
+  instanceId?: string | null;
 }): { home: boolean; visit: InstanceReport | null; pill: ReturnPill } {
   const { appId, name, url, ogsCast, reported, now } = input;
+  const instanceId = input.instanceId ?? undefined;
   const visit: InstanceReport | null =
     appId && !reported
       ? {
-          instanceId: `visit-${appId}`,
+          instanceId: instanceId ?? `visit-${appId}`,
           appId,
           status: "suspended",
           title: name,
@@ -34,5 +40,5 @@ export function leaveGame(input: {
           resumeUrl: /^https?:\/\//.test(url) ? url : undefined,
         }
       : null;
-  return { home: ogsCast, visit, pill: { appId, name, url, at: now } };
+  return { home: ogsCast, visit, pill: { appId, name, url, at: now, instanceId } };
 }

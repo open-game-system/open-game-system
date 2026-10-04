@@ -14,7 +14,7 @@ import { colors, fonts } from "../components/ogs/theme";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import type { CastStores } from "../services/cast-store";
 import { exitGame } from "../services/game-exit";
-import { latestGameUrl } from "../services/game-rejoin";
+import { latestGameUrl, sittingId } from "../services/game-rejoin";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
 import {
@@ -51,7 +51,12 @@ const CastContext = BridgeContext.createNativeStoreContext("cast");
 /** A game, full screen over the tabs. Swiping from the left edge returns (and pauses it on the TV). */
 export default function GameScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ url?: string; name?: string; appId?: string }>();
+  const params = useLocalSearchParams<{
+    url?: string;
+    name?: string;
+    appId?: string;
+    instanceId?: string;
+  }>();
   const app = useApp();
   const translateX = useRef(new Animated.Value(0)).current;
   const [showSwipeHint, dismissSwipeHint] = useSwipeHint();
@@ -115,6 +120,7 @@ export default function GameScreen() {
       appId,
       name,
       url,
+      instanceId: appId ? sittingId(appId, couchHub.getSnapshot().state, params.instanceId) : null,
       ogsCast: ogsCastNow(),
       reported: appId !== null && ogsStore.getSnapshot().reported.includes(appId),
       now: Date.now(),
@@ -123,7 +129,7 @@ export default function GameScreen() {
       setPill: (p) => appState.setPill(p),
       goBack: () => (router.canGoBack() ? router.back() : router.replace("/library")),
     });
-  }, [appId, name, router]);
+  }, [appId, name, router, params.instanceId]);
   const leaveRef = useRef(leave);
   leaveRef.current = leave;
 

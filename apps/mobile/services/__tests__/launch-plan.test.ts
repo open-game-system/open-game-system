@@ -96,6 +96,28 @@ describe("tapping a game in Library (spec v3, Where a game plays)", () => {
     });
   });
 
+  it("while cast: Rejoin of one named sitting tells the session which one", () => {
+    const plan = launchPlan({
+      manifest: game("required"),
+      ogsCast: true,
+      deviceId: "p",
+      instanceId: "rocket-crew-old",
+      resumeUrl: "https://rc.example/join/ABCD",
+    });
+    expect(plan.kind === "tv" && plan.start.instanceId).toBe("rocket-crew-old");
+  });
+
+  it("a new sitting never names an old one", () => {
+    const plan = launchPlan({
+      manifest: game("required"),
+      ogsCast: true,
+      deviceId: "p",
+      mode: "new",
+      instanceId: "rocket-crew-old",
+    });
+    expect(plan.kind === "tv" && plan.start).not.toHaveProperty("instanceId");
+  });
+
   it("a new sitting always opens the start page, even with an old room to resume", () => {
     for (const ogsCast of [true, false]) {
       const plan = launchPlan({

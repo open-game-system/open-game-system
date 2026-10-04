@@ -2,7 +2,7 @@ import type { ClientMessage } from "@open-game-system/ogs-protocol";
 import { exitGame } from "../game-exit";
 import { swipeBackHandlers } from "../swipe-back";
 
-function setup(ogsCast: boolean, reported = true) {
+function setup(ogsCast: boolean, reported = true, instanceId?: string) {
   const sent: ClientMessage[] = [];
   const report = jest.fn(async () => undefined);
   const setPill = jest.fn();
@@ -21,6 +21,7 @@ function setup(ogsCast: boolean, reported = true) {
         ogsCast,
         reported,
         now: 1,
+        instanceId,
         send: (m) => sent.push(m),
         report,
         setPill,
@@ -38,6 +39,18 @@ describe("swipe back from a game (spec v3: swipe back = home; a cancelled swipe 
     expect(t.sent).toEqual([{ type: "home" }]);
     expect(t.setPill).toHaveBeenCalledWith(expect.objectContaining({ appId: "rocket-crew" }));
     expect(t.goBack).toHaveBeenCalled();
+  });
+
+  it("an unreported game's visit is recorded under the sitting the screen holds", () => {
+    const t = setup(true, false, "rocket-crew-abc");
+    t.swipe.release(200);
+    expect(t.report).toHaveBeenCalledWith(
+      expect.objectContaining({ instanceId: "rocket-crew-abc" }),
+      "visit",
+    );
+    expect(t.setPill).toHaveBeenCalledWith(
+      expect.objectContaining({ instanceId: "rocket-crew-abc" }),
+    );
   });
 
   it("a cancelled swipe (released short) sends nothing", () => {

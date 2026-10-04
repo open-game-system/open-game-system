@@ -10,6 +10,7 @@ export function exitGame(ctx: {
   ogsCast: boolean;
   reported: boolean;
   now: number;
+  instanceId?: string | null;
   send: (msg: ClientMessage) => void;
   report: (report: InstanceReport, source: InstanceSource) => Promise<unknown>;
   setPill: (pill: ReturnPill) => void;

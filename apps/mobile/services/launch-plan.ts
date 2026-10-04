@@ -20,14 +20,17 @@ export function launchPlan(input: {
   deviceId: string;
   mode?: "continue" | "new";
   resumeUrl?: string;
+  /** Rejoin of one named sitting (a game's page lists several). Ignored for a new sitting. */
+  instanceId?: string;
 }): LaunchPlan {
   const { manifest, ogsCast, deviceId, mode = "continue", resumeUrl } = input;
+  const named = mode === "continue" && input.instanceId ? { instanceId: input.instanceId } : {};
   // Continue opens the instance's own page (its room); a new sitting starts from the start page.
   const url = mode === "new" ? manifest.startUrl : (resumeUrl ?? manifest.startUrl);
   if (ogsCast && manifest.tv !== "none")
     return {
       kind: "tv",
-      start: { type: "game.start", appId: manifest.appId, mode, hostDeviceId: deviceId },
+      start: { type: "game.start", appId: manifest.appId, mode, hostDeviceId: deviceId, ...named },
       url,
     };
   if (manifest.tv === "required") return { kind: "needs-tv" };

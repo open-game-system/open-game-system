@@ -1,5 +1,5 @@
 import type { SessionState } from "@open-game-system/ogs-protocol";
-import { createGameUrls, latestGameUrl, rejoinUrl, rememberGame } from "../game-rejoin";
+import { createGameUrls, latestGameUrl, rejoinUrl, rememberGame, sittingId } from "../game-rejoin";
 
 const START = "https://rocket-crew.example/";
 const ROOM = "https://rocket-crew.example/join/PQWS?t=seat-1&tv=tv-1";
@@ -46,6 +46,25 @@ describe("the game's latest URL (Rejoin returns to the same room, not a new one)
     expect(latestGameUrl(START, "http://localhost:8787/join/ABCD")).toBe(
       "http://localhost:8787/join/ABCD",
     );
+  });
+});
+
+describe("which sitting the game screen holds (the id its visit is recorded under)", () => {
+  it("cast: the session's live instance of that game, whatever the screen was opened for", () => {
+    expect(
+      sittingId("rocket-crew", session({ current: live("rocket-crew", "i-1") }), "phone-id"),
+    ).toBe("i-1");
+  });
+
+  it("not live on the TV: the sitting the screen was opened for", () => {
+    expect(sittingId("rocket-crew", session({ current: live("bake-shop", "b-1") }), "rc-2")).toBe(
+      "rc-2",
+    );
+    expect(sittingId("rocket-crew", null, "rc-2")).toBe("rc-2");
+  });
+
+  it("unknown: null", () => {
+    expect(sittingId("rocket-crew", null, undefined)).toBeNull();
   });
 });
 

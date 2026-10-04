@@ -30,6 +30,19 @@ export function rememberGame(
   return { appId, url, instanceId: current?.appId === appId ? current.instanceId : null };
 }
 
+/**
+ * The sitting the game screen holds, for its visit record and return pill: the session's live
+ * instance of the game while cast, else the sitting the screen was opened for (null if unknown).
+ */
+export function sittingId(
+  appId: string,
+  session: SessionState | null,
+  opened: string | undefined,
+): string | null {
+  const current = session?.current;
+  return current?.appId === appId ? current.instanceId : (opened ?? null);
+}
+
 /** One remembered URL per game for the app's lifetime. */
 export function createGameUrls() {
   const byApp = new Map<string, RememberedGame>();

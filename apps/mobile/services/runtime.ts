@@ -27,6 +27,7 @@ import { createGoogleCastBackend } from "./google-cast-backend";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
 import { createOgsApi } from "./ogs-api";
+import { sittingToOpen } from "./sittings";
 
 /**
  * The app's singletons, wired once for its lifetime: config, cast backend (real or fake) and the
@@ -165,31 +166,42 @@ function rejoinUrlFor(appId: string, instanceId?: string): string | undefined {
   });
 }
 
-function pushGame(game: Pick<Manifest, "appId" | "name">, url: string) {
+function pushGame(game: Pick<Manifest, "appId" | "name">, url: string, instanceId?: string) {
   gamePresence.opening(game.appId);
-  router.push({ pathname: "/game", params: { url, name: game.name, appId: game.appId } });
+  router.push({
+    pathname: "/game",
+    params: { url, name: game.name, appId: game.appId, ...(instanceId ? { instanceId } : {}) },
+  });
 }
 
-/** A tap on a game (Library, Playing, the return pill): spec v3, Where a game plays. */
+/**
+ * A tap on a game (a game's page, Playing, the return pill): spec v3, Where a game plays.
+ * `instanceId` names one sitting to rejoin (a game's page lists several).
+ */
 export function openGame(
   game: Manifest,
-  opts: { mode?: "continue" | "new"; resumeUrl?: string } = {},
+  opts: { mode?: "continue" | "new"; resumeUrl?: string; instanceId?: string } = {},
 ) {
-  const resumeUrl = opts.resumeUrl ?? (opts.mode === "new" ? undefined : rejoinUrlFor(game.appId));
+  const isNew = opts.mode === "new";
+  const resumeUrl =
+    opts.resumeUrl ?? (isNew ? undefined : rejoinUrlFor(game.appId, opts.instanceId));
+  const instanceId = isNew ? undefined : opts.instanceId;
   const plan = launchPlan({
     manifest: game,
     ogsCast: ogsCastNow(),
     deviceId: deviceId(),
     mode: opts.mode,
     resumeUrl,
+    instanceId,
   });
+  const sitting = sittingToOpen(game.appId, { instanceId, resumeUrl }, Date.now());
   switch (plan.kind) {
     case "tv":
       couchHub.send(plan.start);
-      pushGame(game, plan.url);
+      pushGame(game, plan.url, sitting);
       break;
     case "phone":
-      pushGame(game, plan.url);
+      pushGame(game, plan.url, sitting);
       break;
     case "needs-tv":
       router.push({ pathname: "/game-page", params: { appId: game.appId } });
@@ -199,7 +211,7 @@ export function openGame(
 
 export function openPill(pill: ReturnPill) {
   const game = appState.getSnapshot().library.find((g) => g.appId === pill.appId);
-  if (game) openGame(game, { resumeUrl: pill.url });
+  if (game) openGame(game, { resumeUrl: pill.url, instanceId: pill.instanceId });
   else router.push({ pathname: "/game", params: { url: pill.url, name: pill.name } });
 }
 
