@@ -14,8 +14,10 @@
   - `packages/cast-kit/` — TV casting SDK for web games (Google Cast via native bridge)
   - `packages/notification-kit-*/` — Push notification SDK (core, react, server)
   - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
-  - `services/api/` — Hono API on Cloudflare Workers (auth, push dispatch, future stream control)
+  - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
+  - `services/api/` — Hono API on Cloudflare Workers (auth, push dispatch, households, catalogue, instances, CouchSession DO)
   - `examples/` — Demo/reference apps (4 apps)
+  - `e2e/` — cross-surface e2e (tester.army `e2e`, fake Chromecast, couch flow); standalone install
 
 ## Feedback Commands
 
