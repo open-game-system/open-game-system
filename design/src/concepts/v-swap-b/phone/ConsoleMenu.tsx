@@ -34,7 +34,7 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
             <Battery size={20} level={low.battery ?? 0} /> {low.name} is at {Math.round((low.battery ?? 0) * 100)}%. It keeps its seat if it falls asleep.
           </p>
         )}
-        <div className="cx-next">
+        <div className="cx-next cx-next--doors">
           {next.map((g) => {
             const seats = seatPlan(g);
             return (

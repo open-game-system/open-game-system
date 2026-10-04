@@ -39,11 +39,12 @@ function NowOverlay({ s, gameId, arrived }: { s: S; gameId: string; arrived: boo
   const game = gameById(gameId);
   if (game.shape === "live") return <NightChip s={s} />;
   const seats = seatViews(game, s.asleep, () => true);
-  const left = s.left;
-  const band = left || arrived;
+  // After a switch the doorway already told everyone who's through (its corner row hands over to
+  // the chip), so only the cast's first arrival gets the band.
+  const band = arrived;
   return (
     <>
-      {band && <NowBand s={s} gameId={gameId} kicker={left?.undone ? "Back to" : "Now playing"} seats={seats} settle />}
+      {band && <NowBand s={s} gameId={gameId} kicker="Now playing" seats={seats} settle />}
       <NowChip s={s} gameId={gameId} seats={seats} delayed={!!band} />
     </>
   );

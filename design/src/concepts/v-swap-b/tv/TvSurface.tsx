@@ -3,7 +3,7 @@ import type { Store } from "../../../harness/store";
 import { useStore } from "../../../harness/store";
 import type { S } from "../state";
 import { TvConnecting, TvOff } from "./TvCastState";
-import { TvCutover } from "./TvCutover";
+import { TvDoor } from "./TvDoor";
 import { TvHome } from "./TvHome";
 import { TvPlaying } from "./TvPlaying";
 import { showsWelcome, TvWelcome } from "./TvWelcome";
@@ -28,7 +28,7 @@ export function TvSurface({ store }: { store: Store<S> }) {
       ) : s.cast === "connecting" ? (
         <TvConnecting s={s} />
       ) : s.switching ? (
-        <TvCutover key={`${s.switching.from}-${s.switching.to}`} s={s} sw={s.switching} asleep={s.asleep} />
+        <TvDoor key={`${s.switching.from}-${s.switching.to}`} sw={s.switching} asleep={s.asleep} />
       ) : s.onTv ? (
         <TvPlaying key={s.onTv} s={s} gameId={s.onTv} arrived={arrived.current === s.onTv} />
       ) : (

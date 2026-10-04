@@ -16,7 +16,7 @@ import { advance, type S, type SwitchPhase } from "./state";
  * After `following` the strip collapses into the corner chip (TvPlaying, ~1.5 s of CSS), so the whole
  * switch is ~5.3 s of continuous motion: no frozen tail.
  */
-export const SWITCH_MS: Record<SwitchPhase, number> = { saving: 1300, cutover: 1500, following: 1300 };
+export const SWITCH_MS: Record<SwitchPhase, number> = { saving: 1000, cutover: 1300, following: 1500 };
 
 /** The phone drives the switch's timeline (one clock for the whole session; frozen in shots). */
 export function useSwitchClock(s: S, store: Store<S>, shot: boolean) {
