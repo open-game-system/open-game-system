@@ -1,9 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { apiKeyAuth } from "./middleware/auth";
+import { householdAuth } from "./middleware/household-auth";
 import cast from "./routes/cast";
+import catalogue from "./routes/catalogue";
 import devices from "./routes/devices";
 import households from "./routes/households";
+import library from "./routes/library";
 import notifications from "./routes/notifications";
 import stream from "./routes/stream";
 import { handleScheduled } from "./scheduled";
@@ -33,7 +36,13 @@ app.use("/api/v1/cast/sessions", apiKeyAuth);
 app.route("/api/v1/cast", cast);
 
 // Households (OGS app v3 identity): household JWTs, see middleware/household-auth.ts
+app.use("/api/v1/households/:hid", householdAuth);
+app.use("/api/v1/households/:hid/*", householdAuth);
 app.route("/api/v1/households", households);
+app.route("/api/v1/households", library);
+
+// Catalogue of games (public)
+app.route("/api/v1/catalogue", catalogue);
 
 // Stream routes (no API key required - called by web games directly)
 app.route("/api/v1/stream", stream);

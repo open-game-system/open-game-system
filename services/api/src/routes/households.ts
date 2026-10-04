@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { apiError, invalidBody, parseBody } from "../lib/http";
 import { issueToken, LAUNCHER_TOKEN_TTL_S, PHONE_TOKEN_TTL_S } from "../lib/identity";
-import { type HouseholdEnv, householdAuth, phoneOnly } from "../middleware/household-auth";
+import { type HouseholdEnv, phoneOnly } from "../middleware/household-auth";
 
 const BandSchema = z.enum(["grownup", "kid", "little"]);
 const NewPersonSchema = z.object({
@@ -45,6 +45,7 @@ const DeviceRowSchema = z.object({
 });
 const HouseholdRowSchema = z.object({ id: z.string(), name: z.string() });
 
+/** Mounted at /api/v1/households; every `/:hid` route sits behind householdAuth (index.ts). */
 const households = new Hono<HouseholdEnv>();
 
 /** POST /api/v1/households — create a household, its people, and a token for the creating phone. */
@@ -86,9 +87,6 @@ households.post("/", async (c) => {
   );
   return c.json({ householdId, people, token }, 201);
 });
-
-households.use("/:hid", householdAuth);
-households.use("/:hid/*", householdAuth);
 
 /** GET /api/v1/households/:hid — the household, its people and devices. */
 households.get("/:hid", async (c) => {
