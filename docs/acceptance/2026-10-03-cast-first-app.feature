@@ -5,8 +5,9 @@
 Feature: Cast-first OGS app with games inside one stream
 
   Background:
-    Given a household "The Mumms" with Jonathan (grown-up), Juneau (kid) and Ava (little)
-    And Jonathan's phone is registered to the household
+    # Households are gone (docs/product-specs/ogs-profiles.html): everyone has a profile, one per device.
+    Given profiles Jonathan (on his phone), Mom (on her phone) and Juneau (on his iPad)
+    And Jonathan's phone has his profile token
 
   # --- M1: Library, Playing, instances ---
 
@@ -16,11 +17,10 @@ Feature: Cast-first OGS app with games inside one stream
     Then the Library tab is selected
     And the tabs read "Playing", "TV", "Library", "Friends", "Profile" in that order
 
-  Scenario: Profile shows you, your kids, and Settings
+  Scenario: Profile shows you and Settings
     When Jonathan opens the Profile tab
-    Then it shows his sticker and the name "Jonathan"
-    And "Kids on this phone" lists Juneau (Kid) and Ava (Little)
-    And it shows no @id and no Edit until the profiles backend exists
+    Then it shows his sticker, the name "Jonathan" and his @id with Edit
+    And there is no list of kids (a kid's iPad has the kid's own profile)
     When Jonathan taps Settings
     Then the Settings screen opens with Notifications, Developer and About
     And closing it returns to the Profile tab
@@ -90,15 +90,15 @@ Feature: Cast-first OGS app with games inside one stream
 
   Scenario: A game reports its instance over the bridge
     When the game page calls the OGS bridge with status "suspended" and title "Day 4"
-    Then the household's instances include it with title "Day 4"
-    And an update without a valid household token is rejected
+    Then Jonathan's instances include it with title "Day 4"
+    And an update without a valid profile token is rejected
 
   # --- M2: cast first, the launcher ---
 
   Scenario: Cast from the TV tab before any game
     Given the TV is not cast
     When Jonathan opens the TV tab and taps Cast and picks "Living room TV"
-    Then the TV shows the OGS launcher with the household's games
+    Then the TV shows the OGS launcher titled "Living room TV · Jonathan's games" with Jonathan's games
     And the TV tab becomes the remote
     And the session counts exactly 1 cast
 

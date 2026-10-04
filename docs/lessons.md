@@ -43,6 +43,9 @@ Persistent project knowledge. Review at the start of each task.
 - **Screenshot after the cut-over, not after the DOM**: the launcher's box↔fullscreen transition runs after the state change; wait for `[data-testid=player][data-phase=hidden]` before capturing home.
 - **Game art for the launcher: crop out the HUD**: game screenshots carry HUD rows and faced UI props (smiling planets/stars). Manifest `art.safe` (scale + origin) crops them; check every hero/tile by eye.
 
+- **`wrangler dev` hot-reloads from the working tree**: the shared local API (8788) runs from `services/api`, so a commit (or even a save) there reaches it immediately, against its old local D1. A schema change then breaks the owner's running app. Run your own copy with `--port <other> --persist-to <scratch dir>` and restart the shared one (wiping `.wrangler/state/v3/d1`, `pnpm db:local`) only when you mean to.
+- **Sign-in tests use vercel-labs/emulate, not real providers**: Apple/Google ID tokens come from `POST /auth/authorize/callback` (Apple) or `/o/oauth2/v2/auth/callback` (Google) with a seeded user's email, then the token endpoint; Resend's sent mail is `GET /emails`. Apple's `email_verified` is the string `"true"`, Google's a boolean. Workers in vitest-pool-workers can fetch the emulators on localhost.
+
 ## Process
 
 - **Monorepo consolidation (2026-03-13)**: Merged 5 repos. Key issues were import path changes (`app-bridge` → `app-bridge-web`/`app-bridge-react`), vitest version mismatches (v4 needs vite v6+), and React types version conflicts across packages.
