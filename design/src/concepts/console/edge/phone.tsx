@@ -4,7 +4,8 @@ import type { ReactNode } from "react";
 import type { Store } from "../../../harness/store";
 import { HOME, NANA, OKAFORS, gameById, person } from "../../../world";
 import { castAndPlay, gameName, hereTonight, resumePoint, seatPlan, type S } from "../state";
-import { PhoneIcon, TabletIcon } from "../ui/Icons";
+import { GameArt } from "../ui/GameArt";
+import { TabletIcon } from "../ui/Icons";
 import type { Fault, FaultPhase } from "./fault";
 import { Banner, Btn, HomeDot, Lock, Page, PersonIcon, Quiet, TvGlyph, type Row } from "./parts";
 
@@ -171,8 +172,8 @@ function KidOffline({ s, f, children }: { s: S; f: Fault; children: ReactNode })
 // ---- 5: save conflict (the game's save PUT came back 409) ----
 
 const VERSIONS = {
-  tonight: { when: "Tonight 7:12 pm", by: "Living room · this phone", what: ["4 of 5 orders baked", "Rainbow sprinkles unlocked", "Mrs. Bear served"] },
-  tuesday: { when: "Tuesday 6:40 pm", by: "Mom's iPhone", what: ["3 of 5 orders baked", "Strawberry tart on the shelf", "Mrs. Bear still waiting"] },
+  tonight: { when: "Living room · 7:12 pm", by: "Played on the TV just now", what: ["4 of 5 orders baked", "Rainbow sprinkles unlocked", "Mrs. Bear served"] },
+  tuesday: { when: "Mom's iPhone · 6:40 pm", by: "Played earlier tonight, offline", what: ["3 of 5 orders baked", "Strawberry tart on the shelf", "Mrs. Bear still waiting"] },
 } as const;
 
 function SaveConflict({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; children: ReactNode }) {
@@ -183,12 +184,12 @@ function SaveConflict({ s, store, f, children }: { s: S; store: Store<S>; f: Fau
     return (
       <Banner
         tone="ok"
-        line={`Day 4 from ${kept === "tonight" ? "tonight" : "Tuesday"} is loaded`}
-        sub={`${kept === "tonight" ? "Tuesday" : "Tonight"}'s day 4 is kept in Saves for 30 days.`}
+        line={kept === "tonight" ? "The living room's day 4 is loaded" : "Mom's day 4 is loaded"}
+        sub={`${kept === "tonight" ? "Mom's" : "The living room's"} day 4 is kept in Saves for 30 days.`}
         action={
           f.phase === "recovered" ? (
             <button className="eg-banner__act" data-bot="edge-save-swap" onClick={() => set(store, { phase: "undone", save: other })}>
-              Use {other === "tonight" ? "tonight's" : "Tuesday's"}
+              Use {other === "tonight" ? "the TV's" : "Mom's"}
             </button>
           ) : undefined
         }
@@ -208,7 +209,7 @@ function SaveConflict({ s, store, f, children }: { s: S; store: Store<S>; f: Fau
       model="Saves live in OGS for the whole family, not on one phone."
       action={
         <Btn bot="edge-save-keep" busy={recovering} onClick={() => to(store, "recovering")}>
-          {recovering ? "Loading day 4" : `Keep ${pick === "tonight" ? "tonight's" : "Tuesday's"} day 4`}
+          {recovering ? "Loading day 4" : `Keep ${pick === "tonight" ? "the living room's" : "Mom's"} day 4`}
         </Btn>
       }
     >
@@ -364,7 +365,12 @@ function InviteExpired({ store, f }: { store: Store<S>; f: Fault }) {
       pointLabel="Invite from Tuesday"
       glyph="none"
       line={asked ? "Asked Jonathan for a new link." : "This invite has expired."}
-      sub={asked ? "It'll come to this phone. Your seat colour, amber, is kept for you." : "Game-night links last 3 days, and this one is from Tuesday. The night is still on."}
+      sub={asked ? "It'll come to this phone. Your seat is held for you." : "Game-night links last 3 days, and this one is from Tuesday. The night is still on, and your seat is held."}
+      rows={[
+        { key: "us", icon: <HomeDot color="#2f6fc8" />, name: `${HOME.name} · hosting`, note: "Tonight 8:00 · their TV", state: "ok" },
+        { key: "ok", icon: <HomeDot color="#c8412f" />, name: OKAFORS.name, note: "In · their TV", state: "ok" },
+        { key: "nana", icon: <HomeDot color="#e08a1e" />, name: `${NANA.name} · you`, note: asked ? "Seat held · new link on its way" : "Seat held · amber", state: asked ? "busy" : "wait" },
+      ]}
       action={
         asked ? undefined : (
           <Btn bot="edge-ask-link" busy={recovering} onClick={() => to(store, "recovering")}>
@@ -400,7 +406,7 @@ function GameDown({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; 
       sub={`Its server is down, not your save: ${resumePoint(down).toLowerCase()} is safe in OGS. The TV stays on the console.`}
       rows={[
         { key: "srv", icon: <TvGlyph />, name: `${gameName(down)}'s server`, note: "Tried 3 times · checking every minute", state: "off" },
-        { key: "rc", icon: <PhoneIcon size={26} />, name: gameName(back), note: `Ready · ${resumePoint(back)}`, state: "ok" },
+        { key: "rc", icon: <span className="eg-thumb"><GameArt gameId={back} /></span>, name: gameName(back), note: `Ready · ${resumePoint(back)}`, state: "ok" },
       ]}
       action={
         <Btn

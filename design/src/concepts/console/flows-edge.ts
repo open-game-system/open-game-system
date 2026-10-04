@@ -34,9 +34,9 @@ export const edgeFlows: Flow[] = [
     label: "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind",
     start: "failure.30-save-conflict",
     steps: [
-      { device: "phone", bot: "edge-save-tuesday", mark: "Each version says what it holds. Pick Tuesday's", wait: 1000 },
-      { device: "phone", bot: "edge-save-tonight", mark: "No, tonight's: Mrs. Bear was already served", wait: 1000 },
-      { device: "phone", bot: "edge-save-keep", mark: "Keep tonight's day 4; Tuesday's is kept in Saves", wait: 3000 },
+      { device: "phone", bot: "edge-save-tuesday", mark: "Each version says what it holds. Pick Mom's", wait: 1000 },
+      { device: "phone", bot: "edge-save-tonight", mark: "No, the living room's: Mrs. Bear was already served", wait: 1000 },
+      { device: "phone", bot: "edge-save-keep", mark: "Keep it; Mom's day 4 is kept in Saves", wait: 3000 },
     ],
   },
   {

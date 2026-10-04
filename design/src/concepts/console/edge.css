@@ -137,3 +137,8 @@ html.shot .eg-kid__arc.is-on { stroke-opacity: 1; }
 html.shot .eg-kid__dot { opacity: 0.6; }
 .eg-kidback { position: absolute; inset: 0; }
 .eg-hero__live { width: 9px; height: 9px; border-radius: 50%; background: var(--signal-hi); box-shadow: 0 0 0 3px rgba(255, 106, 43, 0.3); }
+.eg-thumb { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; display: block; }
+.eg-thumb img, .eg-thumb svg { width: 100%; height: 100%; object-fit: cover; }
+.eg-kid__game { opacity: 0.32; filter: grayscale(0.6); transition: opacity 1s; }
+.eg-kid__game.is-on { opacity: 1; filter: none; }
+.eg-kid__dot { position: relative; }

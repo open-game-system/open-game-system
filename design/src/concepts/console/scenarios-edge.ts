@@ -52,10 +52,10 @@ export const edgeScenarios: Scenario<S>[] = [
   { id: "failure.22-juneau-back", label: "Juneau dropped back into his seat", flow: "failure", state: "success", devices: ["ipad", "phone", "tv"], build: at({}, fault("ipad-offline", "recovered", { subject: J })) },
 
   // 5. Save conflict (409): two phones saved Bake Shop day 4 differently.
-  { id: "failure.30-save-conflict", label: "Two day 4s: tonight's or Tuesday's, with what each holds", flow: "failure", state: "error", devices: ["phone", "tv"], build: at(bakeLive, fault("save-conflict", "now", { save: "tonight" })) },
-  { id: "failure.31-save-pick-tuesday", label: "Picking Tuesday's day 4 instead", flow: "failure", state: "partial", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "now", { save: "tuesday" })) },
-  { id: "failure.32-save-kept", label: "Tonight's day 4 kept; Tuesday's kept in Saves", flow: "failure", state: "success", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "recovered", { save: "tonight" })) },
-  { id: "failure.33-save-swapped", label: "Changed our minds: Tuesday's day 4, tonight's kept", flow: "failure", state: "undone", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "undone", { save: "tuesday" })) },
+  { id: "failure.30-save-conflict", label: "Two day 4s: the living room's or Mom's, with what each holds", flow: "failure", state: "error", devices: ["phone", "tv"], build: at(bakeLive, fault("save-conflict", "now", { save: "tonight" })) },
+  { id: "failure.31-save-pick-moms", label: "Picking Mom's day 4 instead", flow: "failure", state: "partial", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "now", { save: "tuesday" })) },
+  { id: "failure.32-save-kept", label: "The living room's day 4 kept; Mom's kept in Saves", flow: "failure", state: "success", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "recovered", { save: "tonight" })) },
+  { id: "failure.33-save-swapped", label: "Changed our minds: Mom's day 4, the living room's kept", flow: "failure", state: "undone", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "undone", { save: "tuesday" })) },
 
   // 6. A home drops mid game night.
   { id: "failure.40-okafors-drop", label: "The Okafors dropped at turn 15: the host decides", flow: "failure", state: "error", devices: ["phone", "tv"], build: at(nightAt15(false, "home"), fault("home-drops", "now", { subject: "hh-okafor" })) },

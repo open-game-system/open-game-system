@@ -4,6 +4,7 @@
 // straight into the seat it kept, with the same confetti as a late join.
 import { useRef, type ReactNode } from "react";
 import { HOME, person, type Person } from "../../../world";
+import { frameFor, type Frame } from "../tv/frame";
 import { KidArrive } from "../ipad/KidArrive";
 import { KidChar } from "../ipad/KidChar";
 import { Bursts, useBursts } from "../ipad/juice";
@@ -12,7 +13,7 @@ import type { Fault } from "./fault";
 
 const PATH = "M640 470 C 720 330, 780 230, 880 190";
 
-function KidWait({ who, what, coming }: { who: Person; what: "tv" | "wifi"; coming: boolean }) {
+function KidWait({ who, what, coming, art }: { who: Person; what: "tv" | "wifi"; coming: boolean; art?: Frame | null }) {
   const host = useRef<HTMLDivElement>(null);
   const { bursts, fire } = useBursts();
   return (
@@ -29,7 +30,7 @@ function KidWait({ who, what, coming }: { who: Person; what: "tv" | "wifi"; comi
         {coming && <path d={PATH} className="eg-kid__march" />}
       </svg>
       <div className="eg-kid__thing" aria-hidden>
-        {what === "tv" ? <WaitTv coming={coming} /> : <WaitWifi coming={coming} />}
+        {what === "tv" ? <WaitTv coming={coming} art={art} /> : <WaitWifi coming={coming} />}
       </div>
       <KidChar
         who={who}
@@ -46,11 +47,30 @@ function KidWait({ who, what, coming }: { who: Person; what: "tv" | "wifi"; comi
 }
 
 /** The TV, resting: a dim screen with three slow dots; warming up as it comes back. */
-function WaitTv({ coming }: { coming: boolean }) {
+function WaitTv({ coming, art }: { coming: boolean; art?: Frame | null }) {
   return (
     <svg width="270" height="210" viewBox="0 0 250 190">
+      <defs>
+        <clipPath id="eg-kid-screen">
+          <rect x="26" y="26" width="198" height="108" rx="9" />
+        </clipPath>
+      </defs>
       <rect x="8" y="8" width="234" height="144" rx="20" fill="#1d2030" stroke="#f4f2ee" strokeOpacity=".9" strokeWidth="8" />
       <rect x="26" y="26" width="198" height="108" rx="9" className={`eg-kid__screen ${coming ? "is-warm" : ""}`} />
+      {art && (
+        <g clipPath="url(#eg-kid-screen)">
+          {/* The game's HUD-safe crop (its manifest's art.safe), so no HUD or faced prop shows. */}
+          <image
+            href={art.src}
+            x={26 - 198 * (art.scale - 1) * (art.ox / 100)}
+            y={26 - 111.4 * (art.scale - 1) * (art.oy / 100)}
+            width={198 * art.scale}
+            height={111.4 * art.scale}
+            preserveAspectRatio="xMidYMid slice"
+            className={`eg-kid__game ${coming ? "is-on" : ""}`}
+          />
+        </g>
+      )}
       {[0, 1, 2].map((i) => (
         <circle key={i} cx={95 + i * 30} cy="80" r="10" fill="#fff6e0" className="eg-kid__dot" style={{ animationDelay: `${i * 0.35}s` }} />
       ))}
@@ -97,5 +117,7 @@ export function EdgeKid({ s, f, seat, children }: { s: S; f: Fault; seat?: strin
       </div>
     );
   }
-  return <KidWait who={who} what={offline ? "wifi" : "tv"} coming={f.phase === "recovering"} />;
+  // The TV on the iPad holds tonight's game, resting: it's still in there, waiting for them.
+  const art = s.onTv ? frameFor(s.onTv) : null;
+  return <KidWait who={who} what={offline ? "wifi" : "tv"} coming={f.phase === "recovering"} art={art} />;
 }
