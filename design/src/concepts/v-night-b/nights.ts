@@ -54,6 +54,8 @@ export interface Nights {
   kidNames: boolean;
   /** An invite link is out for a free seat (after a home couldn't make it). */
   link: boolean;
+  /** Home opens scrolled to the game-night cards (coming back from a card, or a shot of the lane). */
+  peek: boolean;
 }
 
 export const US = "hh-mumm";
@@ -97,7 +99,7 @@ export function hearthisleNight(): Night {
 }
 
 export function baseNights(): Nights {
-  return { list: [hearthisleNight()], open: null, step: "detail", picked: ["hh-okafor", "hh-nana"], preview: false, kidNames: false, link: false };
+  return { list: [hearthisleNight()], open: null, step: "detail", picked: ["hh-okafor", "hh-nana"], preview: false, kidNames: false, link: false, peek: false };
 }
 
 export const homeName = (n: Night, id: string): string => n.homes.find((h) => h.householdId === id)?.name ?? "";
@@ -141,7 +143,7 @@ export const screenWords = (h: NightHome): string => {
 const mapNight = (ns: Nights, id: string, f: (n: Night) => Night): Nights => ({ ...ns, list: ns.list.map((n) => (n.id === id ? f(n) : n)) });
 const current = (ns: Nights): Night | undefined => ns.list.find((n) => n.id === ns.open);
 
-export const openNight = (ns: Nights, id: string): Nights => ({ ...ns, open: id, step: "detail", preview: false });
+export const openNight = (ns: Nights, id: string): Nights => ({ ...ns, open: id, step: "detail", preview: false, peek: false });
 
 /** A new night while another is paused: the paused one keeps its place and stays in Game nights. */
 export const beginNewNight = (ns: Nights): Nights => ({ ...ns, open: null, step: "invite", picked: ["hh-okafor", "hh-nana"], preview: false });

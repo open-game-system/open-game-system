@@ -59,7 +59,7 @@ export function NightChip({ s }: { s: S }) {
           <Crest household={home} size={50} />
         </span>
         <b>{short(ours.name)}</b>
-        <span>our seat</span>
+        <span>our place</span>
         <span className="ct-chip__sep" />
         <span className="ct-chip__turn">{ourRoll ? "Our roll" : `${short(turnHome?.name ?? "")} to roll`}</span>
       </div>

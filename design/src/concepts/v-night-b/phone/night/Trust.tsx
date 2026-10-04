@@ -1,29 +1,17 @@
-// What other homes see of us, said at the moment we decide: the household name and seat colour,
-// never the kids' names or pictures unless we choose. One switch, reversible any time.
+// The one trust decision on the back of the card: print Juneau's name for the other homes, or not.
+// Off by default; reversible any time (it leaves every home's copy at once).
 import type { Store } from "../../../../harness/store";
-import { HOME } from "../../../../world";
-import type { NightHome } from "../../nights";
 import type { S } from "../../state";
-import { Eye } from "../../ui/Icons";
 
-export function Trust({ s, store, us }: { s: S; store: Store<S>; us: NightHome | undefined }) {
-  const kids = HOME.people.filter((p) => p.band !== "grownup").map((p) => p.name);
-  const seen = s.nights.kidNames ? `The Mumms (Jonathan, Juneau) · ${us?.colorName ?? "blue"} seat` : `The Mumms · ${us?.colorName ?? "blue"} seat`;
+export function KidNamesSwitch({ s, store }: { s: S; store: Store<S> }) {
+  const on = s.nights.kidNames;
   return (
-    <section className="cx-trust" aria-label="What other homes see">
-      <h3>
-        <Eye size={18} /> What the other homes see of us
-      </h3>
-      <p className="cx-trust__seen">{seen}</p>
-      <p>{s.nights.kidNames ? `${kids[1] ?? "Ava"}'s name isn't shown. Pictures never leave this home.` : `${kids.join(" and ")}'s names and pictures stay in this home. Other homes see only their own hands.`}</p>
-      <label className="cx-switchrow">
-        <span>
-          <b>{s.nights.kidNames ? "Juneau's name is shown" : "Show Juneau's name"}</b>
-          <span>{s.nights.kidNames ? "Turn this off to hide it again. It leaves every home's screen at once, tonight's board too." : "Off. You can turn it on, and back off, any time."}</span>
-        </span>
-        <input type="checkbox" role="switch" data-bot="kid-names" checked={s.nights.kidNames} onChange={() => store.update((x) => ({ ...x, nights: { ...x.nights, kidNames: !x.nights.kidNames } }))} />
-      </label>
-      <p className="cx-trust__who">Only homes you invite can join. Remove a home any time; its seat leaves the board.</p>
-    </section>
+    <label className="iv-switch">
+      <span>
+        <b>{on ? "Juneau's name is printed" : "Print Juneau's name"}</b>
+        <span>{on ? "Turn off to take it off every home's copy, tonight's board too." : "Off. Turn it on, and back off, any time."}</span>
+      </span>
+      <input type="checkbox" role="switch" data-bot="kid-names" checked={on} onChange={() => store.update((x) => ({ ...x, nights: { ...x.nights, kidNames: !x.nights.kidNames } }))} />
+    </label>
   );
 }

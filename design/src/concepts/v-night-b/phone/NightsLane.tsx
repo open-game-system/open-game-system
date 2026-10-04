@@ -1,32 +1,41 @@
-// Lane 3, "Game nights": games played across homes. Each night is its own card: the game's art,
-// the homes in seat order on the follow path, where it stands, and when it's next.
+// Lane 3, "Coming up": each game night is its invitation card, lying on the table: the game's art,
+// the date, the homes' crests with their answers, and (while it's paused) the bookmark ribbon.
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
-import { beginNewNight, nightLine, nightStatus, openNight, type Night } from "../nights";
+import { beginNewNight, household, openNight, short, type Night } from "../nights";
 import { comingUp } from "../inbox";
 import { night, type S } from "../state";
-import { Chip } from "../ui/Chip";
 import { GameArt } from "../ui/GameArt";
-import { HomesPath } from "../ui/HomesPath";
 import { Lane } from "../ui/Lane";
 import { Plus } from "../ui/Icons";
+import { Crest } from "../ui/Sticker";
+import { Ribbon, Stamp, cardDate, ribbonWords, stampOf } from "./night/card";
 
-export function NightCard({ n, s, store }: { n: Night; s: S; store: Store<S> }) {
+export function NightCard({ n, store }: { n: Night; s: S; store: Store<S> }) {
+  const g = gameById(n.gameId);
   return (
-    <button className="cx-nightcard" data-bot={`night-${n.id}`} onClick={() => store.update((x) => night(x, (ns) => openNight(ns, n.id)))}>
-      <span className="cx-nightcard__art">
+    <button className={`iv-mini ${n.status === "paused" ? "has-ribbon" : ""}`} data-bot={`night-${n.id}`} onClick={() => store.update((x) => night(x, (ns) => openNight(ns, n.id)))}>
+      <span className="iv-mini__plate">
         <GameArt gameId={n.gameId} alt={n.id !== "hi-1"} />
       </span>
-      <span className="cx-nightcard__top">
-        <Chip status={nightStatus(n, s.onTv)} />
+      <span className="iv-mini__words">
+        <span className="iv-mini__kicker">Game night</span>
+        <b className="iv-mini__title">{g.name}</b>
+        <span className="iv-mini__when">{cardDate(n.when)}</span>
       </span>
-      <span className="cx-nightcard__body">
-        <span className="cx-nightcard__title">
-          <b>{gameById(n.gameId).name}</b>
-          <span>{nightLine(n)}</span>
-        </span>
-        <HomesPath night={n} />
+      <span className="iv-mini__homes">
+        {n.homes.map((h) => {
+          const st = stampOf(h, n);
+          return (
+            <span key={h.householdId} className="iv-mini__home">
+              <Crest household={household(h.householdId)} size={34} shared dim={st.kind === "no"} />
+              <span className="iv-mini__name">{short(h.name)}</span>
+              <Stamp kind={st.kind}>{st.word}</Stamp>
+            </span>
+          );
+        })}
       </span>
+      {n.status === "paused" && <Ribbon words={ribbonWords(n)} />}
     </button>
   );
 }
@@ -37,21 +46,23 @@ export function NightsLane({ s, store }: { s: S; store: Store<S> }) {
   const ids = comingUp(s).map((t) => (t.target.kind === "night" ? t.target.id : ""));
   const list = s.nights.list.filter((n) => ids.includes(n.id));
   return (
-    <Lane
-      id="nights"
-      title="Coming up"
-      action={
-        <button className="cx-lane__more" data-bot="night-new" onClick={() => store.update((x) => night(x, beginNewNight))}>
-          <Plus size={16} /> Game night
-        </button>
-      }
-    >
-      {list.length === 0 && <p className="cx-lane__empty">No game nights set. Start one with the homes you play with.</p>}
-      <div className="cx-nights">
-        {list.map((n) => (
-          <NightCard key={n.id} n={n} s={s} store={store} />
-        ))}
-      </div>
-    </Lane>
+    <div ref={(el) => { if (el && s.nights.peek) el.scrollIntoView({ block: "start" }); }}>
+      <Lane
+        id="nights"
+        title="Coming up"
+        action={
+          <button className="cx-lane__more" data-bot="night-new" onClick={() => store.update((x) => night(x, beginNewNight))}>
+            <Plus size={16} /> New card
+          </button>
+        }
+      >
+        {list.length === 0 && <p className="cx-lane__empty">No game nights set. Make a card for the homes you play with.</p>}
+        <div className="iv-minis">
+          {list.map((n) => (
+            <NightCard key={n.id} n={n} s={s} store={store} />
+          ))}
+        </div>
+      </Lane>
+    </div>
   );
 }
