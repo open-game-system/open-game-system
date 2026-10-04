@@ -68,9 +68,9 @@ describe("TV launcher (fake session)", () => {
     expect(cards).toHaveLength(4);
     expect(cards[0]).toMatch(/^game:~continue:bake-shop:/);
     expect(cards.slice(1)).toEqual([
+      "game:~surprise",
       "game:~continue:story-nook:story-nook-ember",
       "game:~continue:hearthisle:hearthisle-night",
-      "game:~surprise",
     ]);
     expect(
       await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
@@ -137,6 +137,8 @@ describe("TV launcher (fake session)", () => {
     await send(page, { type: "focus.move", dir: "down" });
     await expect.poll(focused).toMatch(/^game:~continue:bake-shop:/);
     expect(await page.getByTestId("hero").getAttribute("data-hero")).toBe("bake-shop");
+    await shot(page, "01b-home-card-focus");
+    await expectTvRules();
     await send(page, { type: "select", deviceId: "jonathan-phone" });
     await page.getByTestId("starting").waitFor();
     const s = await sessionState(page);
@@ -189,8 +191,11 @@ describe("TV launcher (fake session)", () => {
     await send(page, { type: "focus.move", dir: "right" });
     await expect.poll(focused).toBe("game:story-nook");
     expect((await sessionState(page))?.focus).toBe("game:story-nook");
+    // Down goes to the first card (the latest sitting); up comes back to the icon it left.
     await send(page, { type: "focus.move", dir: "down" });
-    await expect.poll(focused).toBe("game:~continue:story-nook:story-nook-ember");
+    await expect.poll(focused).toMatch(/^game:~continue:bake-shop:/);
+    await send(page, { type: "focus.move", dir: "right" });
+    await expect.poll(focused).toBe("game:~surprise");
     await send(page, { type: "focus.move", dir: "up" });
     await expect.poll(focused).toBe("game:story-nook");
     await send(page, { type: "focus.move", dir: "right" });

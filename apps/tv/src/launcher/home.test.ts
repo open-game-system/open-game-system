@@ -1,7 +1,7 @@
 import type { SuspendedGame } from "@open-game-system/ogs-protocol";
 import { describe, expect, it } from "vitest";
 import { FIXTURE_GAMES, fixtureInstances } from "../session/fixture";
-import { buildHome, homeFocusRows, iconArt, recoverFocus, roomArt } from "./home";
+import { buildHome, homeFocusRows, homeMove, iconArt, recoverFocus, roomArt } from "./home";
 import { SURPRISE_ITEM } from "./shortcuts";
 
 const NOW = new Date(2026, 9, 3, 19, 10).getTime(); // a Saturday, 7:10 pm
@@ -50,12 +50,12 @@ describe("home: a row of game icons, the room, activity cards", () => {
     expect([pg?.tag, pg?.resume]).toEqual(["", "Find who is hiding"]);
   });
 
-  it("puts the sittings (paused, then tonight) on cards that continue that sitting, then Surprise me", () => {
+  it("puts the latest sitting first, then Surprise me, then the other sittings (paused, then tonight)", () => {
     expect(home.cards.map((c) => c.itemId)).toEqual([
       "game:~continue:rocket-crew:rc-1",
+      SURPRISE_ITEM,
       "game:~continue:bake-shop:bs-1",
       "game:~continue:story-nook:story-nook-ember",
-      SURPRISE_ITEM,
     ]);
     const first = home.cards[0];
     expect(first?.kind === "sitting" && [first.name, first.tag, first.resume]).toEqual([
@@ -74,10 +74,10 @@ describe("home: a row of game icons, the room, activity cards", () => {
     });
     expect(h.cards.map((c) => c.itemId)).toEqual([
       "game:~continue:story-nook:story-nook-ember",
-      "game:~continue:hearthisle:hearthisle-night",
       SURPRISE_ITEM,
+      "game:~continue:hearthisle:hearthisle-night",
     ]);
-    const night = h.cards[1];
+    const night = h.cards[2];
     expect(night?.kind === "sitting" && night.tag).toBe("Tonight at 8:00");
   });
 
@@ -97,7 +97,7 @@ describe("home: a row of game icons, the room, activity cards", () => {
     const rows = homeFocusRows(home);
     expect(rows.map((r) => r.id)).toEqual(["games", "activity"]);
     expect(rows[0]?.items).toHaveLength(6);
-    expect(rows[1]?.items.at(-1)).toBe(SURPRISE_ITEM);
+    expect(rows[1]?.items[1]).toBe(SURPRISE_ITEM);
     const fresh = buildHome({ games: [], instances: [], suspended: [], now: NOW });
     expect(homeFocusRows(fresh).map((r) => r.items)).toEqual([[], []]);
   });
@@ -140,5 +140,32 @@ describe("recoverFocus", () => {
   it("falls back to the first icon", () => {
     expect(recoverFocus(rows, null, null)).toBe("game:a");
     expect(recoverFocus(rows, "action:new", "gone")).toBe("game:a");
+  });
+});
+
+describe("homeMove: the remote between the icon row and the cards", () => {
+  const rows = [
+    { id: "games", items: ["game:a", "game:b", "game:c", "game:d"] },
+    { id: "activity", items: ["game:~continue:a:1", "game:~surprise"] },
+  ];
+  it("goes down to the first card (the latest sitting), whichever icon is focused", () => {
+    expect(homeMove(rows, "game:d", "down", null)).toBe("game:~continue:a:1");
+  });
+  it("goes back up to the icon it came from", () => {
+    expect(homeMove(rows, "game:~surprise", "up", "game:d")).toBe("game:d");
+  });
+  it("goes up to the first icon when it remembers none", () => {
+    expect(homeMove(rows, "game:~surprise", "up", null)).toBe("game:a");
+    expect(homeMove(rows, "game:~surprise", "up", "game:gone")).toBe("game:a");
+  });
+  it("moves along a row like the focus grid, and goes nowhere past the ends", () => {
+    expect(homeMove(rows, "game:b", "right", null)).toBe("game:c");
+    expect(homeMove(rows, "game:a", "left", null)).toBe("game:a");
+    expect(homeMove(rows, "game:a", "up", null)).toBe("game:a");
+    expect(homeMove(rows, "game:~surprise", "down", null)).toBe("game:~surprise");
+  });
+  it("goes nowhere down when there are no cards", () => {
+    const bare = [rows[0] ?? { id: "games", items: [] }, { id: "activity", items: [] }];
+    expect(homeMove(bare, "game:b", "down", null)).toBe("game:b");
   });
 });

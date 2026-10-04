@@ -1,5 +1,5 @@
 import type { Instance, Manifest, SuspendedGame } from "@open-game-system/ogs-protocol";
-import { type FocusRow, firstFocus, locate } from "./focus-grid";
+import { type Dir, type FocusRow, firstFocus, locate, move } from "./focus-grid";
 import { buildRows } from "./layout";
 import { continueItem, SURPRISE_ITEM } from "./shortcuts";
 
@@ -101,8 +101,13 @@ export function buildHome(input: {
           ]
         : [];
     });
+  // Surprise me sits right after the latest sitting: the kids' button is never at the far end.
   if (icons.length >= 2)
-    cards.push({ kind: "surprise", itemId: SURPRISE_ITEM, icons: icons.map((i) => i.icon) });
+    cards.splice(Math.min(1, cards.length), 0, {
+      kind: "surprise",
+      itemId: SURPRISE_ITEM,
+      icons: icons.map((i) => i.icon),
+    });
   return { icons, cards };
 }
 
@@ -122,3 +127,20 @@ export function recoverFocus(
   return back && locate(rows, back) ? back : firstFocus(rows);
 }
 
+/**
+ * The remote on home: along a row as the focus grid moves; down from the icons to the first card
+ * (the latest sitting), and back up to the icon the ring came from (`lastIcon`), PS5-style.
+ */
+export function homeMove(
+  rows: FocusRow[],
+  focus: string | null,
+  dir: Dir,
+  lastIcon: string | null,
+): string | null {
+  const at = locate(rows, focus);
+  const [icons, cards] = [rows[0]?.items ?? [], rows[1]?.items ?? []];
+  if (at?.row === 0 && dir === "down") return cards[0] ?? focus;
+  if (at?.row === 1 && dir === "up")
+    return lastIcon && icons.includes(lastIcon) ? lastIcon : (icons[0] ?? focus);
+  return move(rows, focus, dir);
+}

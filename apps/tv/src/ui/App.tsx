@@ -10,8 +10,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { Boot } from "../boot";
-import { move } from "../launcher/focus-grid";
-import { buildHome, homeFocusRows, recoverFocus } from "../launcher/home";
+import { buildHome, homeFocusRows, homeMove, recoverFocus } from "../launcher/home";
 import { nameForDevice, phoneOf } from "../launcher/people";
 import { pageMove, readShortcut, shortcutStart } from "../launcher/shortcuts";
 import type { Connection, SessionClient } from "../session/client";
@@ -81,7 +80,7 @@ function Living(props: {
   const onMove = useEffectEvent((dir: "up" | "down" | "left" | "right") => {
     const next =
       state.screen === "home"
-        ? move(grid, state.focus, dir)
+        ? homeMove(grid, state.focus, dir, lastIcon.current)
         : state.screen === "game-page" && pageGame
           ? pageMove(
               state.focus,
@@ -93,6 +92,9 @@ function Living(props: {
   });
   useEffect(() => client.onFocusMove((d) => onMove(d)), [client]);
 
+  // The last icon the ring was on: up from the cards returns there.
+  const lastIcon = useRef<string | null>(null);
+  if (grid[0]?.items.includes(state.focus ?? "")) lastIcon.current = state.focus;
   // Back from a game's page the ring returns to that game's icon.
   const lastPage = useRef<string | null>(null);
   if (pageGame) lastPage.current = pageGame.appId;

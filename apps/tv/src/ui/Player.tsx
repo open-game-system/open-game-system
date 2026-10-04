@@ -120,7 +120,11 @@ export function Player(props: {
       ))}
       {shown && game && !active && (
         <div className="player-card" data-testid="starting">
-          <p className="eyebrow">Getting ready</p>
+          {game.art.logo && <img className="player-logo" src={game.art.logo} alt="" />}
+          <p className="eyebrow">
+            <span className="pulse" />
+            Getting ready
+          </p>
           <p className="player-line">
             Starting {game.name} on {props.hostPhone}
           </p>
@@ -128,7 +132,8 @@ export function Player(props: {
       )}
       {shown && game && active && frames.activeFailed && (
         <div className="player-card" data-testid="frame-failed">
-          <p className="eyebrow">{game.name}</p>
+          {game.art.logo && <img className="player-logo" src={game.art.logo} alt="" />}
+          <p className="eyebrow">Couldn't open</p>
           <p className="player-line">{game.name} didn't open on the TV</p>
           <p className="player-sub">
             Choose another on {props.remoteHolder ? `${props.remoteHolder}'s phone` : "your phone"}

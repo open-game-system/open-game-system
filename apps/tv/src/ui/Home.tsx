@@ -171,7 +171,7 @@ function Card({ card, focused }: { card: CardModel; focused: boolean }) {
     return (
       <div className={`card surprise${focused ? " focused" : ""}`} data-card="surprise" {...common}>
         <div className="card-art surprise-art">
-          {card.icons.slice(0, 3).map((a, n) => (
+          {card.icons.slice(0, 4).map((a, n) => (
             <img
               key={a.src}
               className={`fan fan-${n}`}
@@ -183,7 +183,7 @@ function Card({ card, focused }: { card: CardModel; focused: boolean }) {
           <SurpriseMark />
         </div>
         <span className="card-name">Surprise me</span>
-        <span className="card-resume">Any game</span>
+        <span className="card-resume">A game for the kids</span>
       </div>
     );
   return (

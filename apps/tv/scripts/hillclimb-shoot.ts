@@ -303,7 +303,12 @@ writeFileSync(join(OUT, "checks.json"), `${JSON.stringify(checks, null, 2)}\n`);
   writeFileSync(join(OUT, "sheet.html"), html);
   await page.goto(`file://${join(OUT, "sheet.html")}`);
   await page.waitForLoadState("networkidle");
-  await page.screenshot({ path: join(OUT, "sheet.jpg"), fullPage: true, type: "jpeg", quality: 85 });
+  await page.screenshot({
+    path: join(OUT, "sheet.jpg"),
+    fullPage: true,
+    type: "jpeg",
+    quality: 85,
+  });
   rmSync(join(OUT, "sheet.html"));
 }
 
