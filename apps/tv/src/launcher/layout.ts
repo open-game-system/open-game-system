@@ -21,6 +21,8 @@ export interface BoxModel {
   tag: string;
   /** The resume point on the spine, e.g. "Mission 6". */
   resume: string;
+  /** The sitting this box resumes (paused or tonight); none for a game from the library. */
+  instanceId?: string;
 }
 
 export interface RowModel {
@@ -51,8 +53,9 @@ export function when(t: number, now: number): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-function box(game: Manifest, tag: string, resume: string): BoxModel {
+function box(game: Manifest, tag: string, resume: string, instanceId?: string): BoxModel {
   return {
+    ...(instanceId ? { instanceId } : {}),
     itemId: `game:${game.appId}`,
     appId: game.appId,
     name: game.name,
@@ -95,16 +98,19 @@ export function buildRows(input: {
   const cont: BoxModel[] = [];
   for (const s of input.suspended) {
     const g = take(s.appId);
-    if (g) cont.push(box(g, `Paused ${when(s.at, now)}`, s.label || g.tagline));
+    if (g) cont.push(box(g, `Paused ${when(s.at, now)}`, s.label || g.tagline, s.instanceId));
   }
   for (const i of section("paused")) {
     const g = take(i.appId);
-    if (g) cont.push(box(g, `Played ${when(i.updatedAt, now)}`, i.title || i.detail));
+    if (g) cont.push(box(g, `Played ${when(i.updatedAt, now)}`, i.title || i.detail, i.instanceId));
   }
   const tonight: BoxModel[] = [];
   for (const i of section("tonight")) {
     const g = take(i.appId);
-    if (g) tonight.push(box(g, `Tonight at ${clock(i.startsAt ?? now)}`, i.title || i.detail));
+    if (g)
+      tonight.push(
+        box(g, `Tonight at ${clock(i.startsAt ?? now)}`, i.title || i.detail, i.instanceId),
+      );
   }
   const library: BoxModel[] = [];
   for (const appId of tvGames.keys()) {

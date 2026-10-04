@@ -11,7 +11,7 @@ const LiveSchema = z.object({
 });
 
 export type LauncherParams =
-  | { mode: "fake"; hold: boolean }
+  | { mode: "fake"; hold: boolean; fresh?: true }
   | { mode: "live"; api: string; token: string; sessionId: string };
 
 /** Knobs for tests and design: how long a frame may take to load before the launcher gives up. */
@@ -23,8 +23,13 @@ export type ParamsResult = { ok: true; params: LauncherParams } | { ok: false; e
 
 export function parseParams(search: string): ParamsResult {
   const q = new URLSearchParams(search);
-  if (q.get("fake") === "1")
-    return { ok: true, params: { mode: "fake", hold: q.get("hold") === "1" } };
+  if (q.get("fake") === "1") {
+    const hold = q.get("hold") === "1";
+    // `world=fresh`: the evening before anyone has played anything (design and tests).
+    const params: LauncherParams =
+      q.get("world") === "fresh" ? { mode: "fake", hold, fresh: true } : { mode: "fake", hold };
+    return { ok: true, params };
+  }
   const r = LiveSchema.safeParse({
     api: q.get("api") ?? undefined,
     token: q.get("token") ?? undefined,

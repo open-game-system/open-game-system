@@ -90,9 +90,9 @@ it("loads the session and the host's library with the bearer token, then the cou
   expect(await page.locator(".room-name").textContent()).toBe("Living room TV · Jonathan's games");
   expect(await page.locator("[data-testid=couch] figcaption").allTextContents()).toEqual(["Mom"]);
   expect(await page.getByTestId("join-code").textContent()).toContain(FIXTURE_SESSION.code);
-  // Only the host's library is on the shelf, in its order.
+  // Only the host's library is on the icon row, in its order.
   const shelf = await page
-    .locator("[data-item]")
+    .locator("[data-row=games] [data-item]")
     .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
   expect(shelf).toEqual(["game:story-nook", "game:hearthisle", "game:rocket-crew"]);
   // No focus yet: the launcher places the ring on its first box and tells the session.
@@ -101,7 +101,7 @@ it("loads the session and the host's library with the bearer token, then the cou
   sockets[0]?.send(
     JSON.stringify({ type: "state", state: { ...seeded(), focus: "game:story-nook" } }),
   );
-  sockets[0]?.send(JSON.stringify({ type: "focus.move", dir: "down" }));
+  sockets[0]?.send(JSON.stringify({ type: "focus.move", dir: "right" }));
   await expect.poll(() => sent).toContainEqual({ type: "focus.set", itemId: "game:hearthisle" });
   // The launcher never says hello: a reconnect must not count as a recast.
   expect(
@@ -230,7 +230,7 @@ describe.skipIf(!apiUp)(`launcher against the OGS API at ${LIVE_API}`, () => {
     );
     expect(await page.getByTestId("join-code").textContent()).toContain(session.code);
     const shelf = await page
-      .locator("[data-row=library] [data-item]")
+      .locator("[data-row=games] [data-item]")
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
     expect(shelf).toEqual(library.map((id) => `game:${id}`));
 

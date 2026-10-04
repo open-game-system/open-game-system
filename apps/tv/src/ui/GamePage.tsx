@@ -1,9 +1,10 @@
 import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
+import { roomArt } from "../launcher/home";
 import { when } from "../launcher/layout";
 import { stickerUrl } from "../session/data";
 import { safeStyle } from "./art";
 
-/** The box opened: its art, where you left off, Continue / New, and who's playing. */
+/** The game opened: its art fills the room, its logo, where you left off, Continue / Start game, who's playing. */
 export function GamePage(props: {
   game: Manifest;
   state: SessionState;
@@ -16,22 +17,39 @@ export function GamePage(props: {
   const players = roster.length
     ? state.members.filter((m) => roster.some((r) => r.profileId === m.profileId))
     : state.members;
+  const onStart = paused !== undefined && state.focus === "action:new";
+  const art = roomArt(game);
   return (
     <div className="screen game-page" data-testid="game-page" data-page={game.appId}>
       <div className="page-art" data-cover-page={game.appId}>
-        <img src={game.art.hero ?? game.art.tile} alt="" style={safeStyle(game.art.safe)} />
+        <img src={art.src} alt="" style={safeStyle(art.safe)} />
       </div>
+      <div className="page-scrim" />
       <div className="page-card">
-        <p className="eyebrow">{paused ? `Paused ${when(paused.at, now)}` : "From the shelf"}</p>
-        <h1 className="page-title">{game.name}</h1>
-        <p className="page-resume" data-testid="page-resume">
-          {paused ? paused.label : game.tagline}
+        {game.art.logo ? (
+          <img className="page-logo" src={game.art.logo} alt={game.name} />
+        ) : (
+          <h1 className="page-title">{game.name}</h1>
+        )}
+        <p className="page-status">
+          <span className="spot-tag">{paused ? `Paused ${when(paused.at, now)}` : "New"}</span>
+          <span className="page-resume" data-testid="page-resume">
+            {paused ? paused.label || game.tagline : game.tagline}
+          </span>
         </p>
         <div className="page-actions">
-          <span className="action primary focused" data-testid="action-continue">
-            {paused ? `Continue ${paused.label}` : "Play"}
+          <span
+            className={`action primary${onStart ? "" : " focused"}`}
+            data-testid="action-continue"
+          >
+            <PlayGlyph />
+            {paused ? (paused.label ? `Continue ${paused.label}` : "Continue") : "Start game"}
           </span>
-          {paused && <span className="action">New game</span>}
+          {paused && (
+            <span className={`action${onStart ? " focused" : ""}`} data-testid="action-start">
+              Start game
+            </span>
+          )}
         </div>
         <p className="page-hint">
           {props.remoteHolder
@@ -51,5 +69,13 @@ export function GamePage(props: {
         </div>
       </div>
     </div>
+  );
+}
+
+function PlayGlyph() {
+  return (
+    <svg className="play-glyph" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 4 L20 12 L7 20 Z" fill="currentColor" />
+    </svg>
   );
 }

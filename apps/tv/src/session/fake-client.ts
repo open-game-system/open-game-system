@@ -18,16 +18,22 @@ const DAY = 24 * 60 * 60 * 1000;
 
 const [JONATHAN, MOM, JUNEAU] = FIXTURE_MEMBERS;
 
-/** The evening so far: Jonathan cast, Mom's phone and Juneau's iPad joined, Bake Shop paused at Day 4. */
-function seed(now: number): SessionState {
+/**
+ * The evening so far: Jonathan cast, Mom's phone and Juneau's iPad joined, Bake Shop paused at Day 4
+ * (a fresh evening skips the Bake Shop sitting).
+ */
+function seed(now: number, fresh: boolean): SessionState {
+  const played: [ClientMessage, number][] = [
+    [{ type: "game.start", appId: "bake-shop", mode: "new" }, now - 3 * DAY],
+    [{ type: "game.resume-point", appId: "bake-shop", label: "Day 4" }, now - 3 * DAY],
+    [{ type: "home" }, now - 3 * DAY + 40 * 60 * 1000],
+  ];
   const steps: [ClientMessage, number][] = [
     [
       { type: "hello", deviceId: "jonathan-phone", kind: "phone", profile: JONATHAN },
       now - 3 * DAY,
     ],
-    [{ type: "game.start", appId: "bake-shop", mode: "new" }, now - 3 * DAY],
-    [{ type: "game.resume-point", appId: "bake-shop", label: "Day 4" }, now - 3 * DAY],
-    [{ type: "home" }, now - 3 * DAY + 40 * 60 * 1000],
+    ...(fresh ? [] : played),
     [{ type: "hello", deviceId: "mom-phone", kind: "phone", profile: MOM }, now],
     [{ type: "hello", deviceId: "juneau-ipad", kind: "tablet", profile: JUNEAU }, now],
     [{ type: "hello", deviceId: "living-room-tv", kind: "launcher" }, now],
@@ -41,7 +47,9 @@ function seed(now: number): SessionState {
  * An in-memory couch session running the protocol's own reducer, so tests and the design page
  * drive the launcher exactly as the Durable Object would.
  */
-export function createFakeClient(opts: { now?: () => number; hold?: boolean } = {}): FakeClient {
+export function createFakeClient(
+  opts: { now?: () => number; hold?: boolean; fresh?: boolean } = {},
+): FakeClient {
   const now = opts.now ?? Date.now;
   const changes = new Emitter<void>();
   const moves = new Emitter<Dir>();
@@ -65,7 +73,8 @@ export function createFakeClient(opts: { now?: () => number; hold?: boolean } = 
       }
       publish({ state });
     },
-    connect: () => publish({ state: snapshot.state ?? seed(now()), connection: "open" }),
+    connect: () =>
+      publish({ state: snapshot.state ?? seed(now(), opts.fresh === true), connection: "open" }),
     drop: () => publish({ connection: "reconnecting" }),
     restore: () => publish({ connection: "open" }),
     close: () => {},

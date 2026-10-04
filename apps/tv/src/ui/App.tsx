@@ -1,7 +1,8 @@
-import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
+import type { ClientMessage, Manifest, SessionState } from "@open-game-system/ogs-protocol";
 import {
   Suspense,
   use,
+  useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -9,9 +10,10 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { Boot } from "../boot";
-import { firstFocus, locate, move } from "../launcher/focus-grid";
-import { buildRows, focusRows } from "../launcher/layout";
+import { move } from "../launcher/focus-grid";
+import { buildHome, homeFocusRows, recoverFocus } from "../launcher/home";
 import { nameForDevice, phoneOf } from "../launcher/people";
+import { pageMove, readShortcut, shortcutStart } from "../launcher/shortcuts";
 import type { Connection, SessionClient } from "../session/client";
 import type { LauncherData } from "../session/data";
 import { Assembling } from "./Assembling";
@@ -19,6 +21,7 @@ import { GamePage } from "./GamePage";
 import { Home } from "./Home";
 import { Player } from "./Player";
 import { Stage } from "./Stage";
+import { Surprise } from "./Surprise";
 import { useFrames } from "./useFrames";
 import { useNow } from "./useNow";
 
@@ -65,30 +68,67 @@ function Living(props: {
   const { state, connection } = props;
   const now = useNow();
   const games = useMemo(() => new Map(data.games.map((g) => [g.appId, g])), [data.games]);
-  const rows = useMemo(
+  const home = useMemo(
     () =>
-      buildRows({ games: data.games, instances: data.instances, suspended: state.suspended, now }),
+      buildHome({ games: data.games, instances: data.instances, suspended: state.suspended, now }),
     [data, state.suspended, now],
   );
-  const grid = useMemo(() => focusRows(rows), [rows]);
+  const grid = useMemo(() => homeFocusRows(home), [home]);
+  const pageGame = state.page ? games.get(state.page) : undefined;
+  const shortcut = state.screen === "game-page" ? readShortcut(state.page) : null;
 
   // The launcher owns its layout: a remote press arrives as focus.move, the ring's new place goes back.
   const onMove = useEffectEvent((dir: "up" | "down" | "left" | "right") => {
-    if (state.screen !== "home") return;
-    const next = move(grid, state.focus, dir);
+    const next =
+      state.screen === "home"
+        ? move(grid, state.focus, dir)
+        : state.screen === "game-page" && pageGame
+          ? pageMove(
+              state.focus,
+              dir,
+              state.suspended.some((g) => g.appId === pageGame.appId),
+            )
+          : null;
     if (next && next !== state.focus) client.send({ type: "focus.set", itemId: next });
   });
   useEffect(() => client.onFocusMove((d) => onMove(d)), [client]);
 
+  // Back from a game's page the ring returns to that game's icon.
+  const lastPage = useRef<string | null>(null);
+  if (pageGame) lastPage.current = pageGame.appId;
   const sentInitial = useRef<string | null>(null);
   useEffect(() => {
-    if (state.screen !== "home" || connection !== "open" || locate(grid, state.focus)) return;
-    const first = firstFocus(grid);
-    if (first && sentInitial.current !== `${state.focus}->${first}`) {
-      sentInitial.current = `${state.focus}->${first}`;
-      client.send({ type: "focus.set", itemId: first });
+    if (state.screen !== "home" || connection !== "open") return;
+    const next = recoverFocus(grid, state.focus, lastPage.current);
+    if (next && sentInitial.current !== `${state.focus}->${next}`) {
+      sentInitial.current = `${state.focus}->${next}`;
+      client.send({ type: "focus.set", itemId: next });
     }
   }, [state.screen, state.focus, grid, connection, client]);
+
+  // A sitting card opened: continue that sitting at once (the Surprise card spins first).
+  const startedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (shortcut?.kind !== "continue" || connection !== "open") return;
+    if (startedFor.current === state.page) return;
+    startedFor.current = state.page;
+    const msg = shortcutStart(shortcut, {
+      surprise: null,
+      suspended: state.suspended,
+      remote: state.remote,
+    });
+    if (msg) client.send(msg);
+  }, [shortcut, state.page, state.suspended, state.remote, connection, client]);
+  if (state.screen !== "game-page") startedFor.current = null;
+  const startSurprise = useCallback(
+    (appId: string) =>
+      shortcutStart(
+        { kind: "surprise" },
+        { surprise: appId, suspended: state.suspended, remote: state.remote },
+      ),
+    [state.suspended, state.remote],
+  );
+  const send = useCallback((m: ClientMessage) => client.send(m), [client]);
 
   // A keyboard drives the session the way the phone's remote does (development; a TV has none).
   const onKey = useEffectEvent((e: KeyboardEvent) => {
@@ -109,13 +149,12 @@ function Living(props: {
   const lastGame = useRef<Manifest | null>(null);
   const currentGame = state.current ? (games.get(state.current.appId) ?? null) : null;
   if (currentGame) lastGame.current = currentGame;
-  const pageGame = state.page ? games.get(state.page) : undefined;
   const remoteHolder = nameForDevice(state, state.remote);
 
   return (
     <div className="launcher" data-screen={state.screen} data-connection={connection}>
       <Home
-        rows={rows}
+        home={home}
         focus={state.focus}
         session={data.session}
         members={state.members}
@@ -124,6 +163,14 @@ function Living(props: {
       />
       {state.screen === "game-page" && pageGame && (
         <GamePage game={pageGame} state={state} remoteHolder={remoteHolder} now={now} />
+      )}
+      {shortcut?.kind === "surprise" && (
+        <Surprise
+          icons={home.icons}
+          recent={state.suspended[0]?.appId ?? null}
+          start={startSurprise}
+          send={send}
+        />
       )}
       <Player
         screen={state.screen}

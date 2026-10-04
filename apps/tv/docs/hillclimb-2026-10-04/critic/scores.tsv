@@ -1,0 +1,5 @@
+round	critic	model	R1	R2	R3	R4	R5	R6	R7	R8	min	decision	note
+00	claude	opus-5.5 (general-purpose subagent)	4	5	6	4	7	6	5	5	4	baseline	status-first rows of 16:9 boxes, couch slab
+00	codex	gpt-5.6-sol (medium)	5	5	6	4	7	7	4	7	4	baseline	codex judged text size from the downscaled sheet (no DOM check yet)
+01	claude	opus-5.5 (general-purpose subagent)	7	6	7	6	7	7	6	6	6	keep	PS5 home: icon row, full-bleed heroClean + logo, activity cards, Surprise me, people corner, Start game, square cut-over
+01	codex	gpt-5.6-sol (medium)	8	7	8	8	8	8	8	7	7	keep	

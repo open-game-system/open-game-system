@@ -17,7 +17,15 @@ const game = (
   startUrl: `https://${appId}.jonathanrmumm.workers.dev/`,
   tvUrl: tv === "none" ? undefined : `https://${appId}.jonathanrmumm.workers.dev/tv`,
   roles: [],
-  art: { tile: `/art/${appId}/tv.jpg`, hero: `/art/${appId}/alt.jpg` },
+  // The Codex-made art kit (apps/tv/public/art/<appId>/, see KIT-SHEET.jpg), as the catalogue serves it.
+  art: {
+    tile: `/art/${appId}/tv.jpg`,
+    hero: `/art/${appId}/alt.jpg`,
+    icon: `/art/${appId}/icon.png`,
+    cover: `/art/${appId}/cover.jpg`,
+    logo: `/art/${appId}/logo.png`,
+    heroClean: `/art/${appId}/hero-clean.jpg`,
+  },
   shop: {},
   instanceTtlMs: 7 * 24 * 60 * 60 * 1000,
 });
@@ -30,6 +38,7 @@ export const FIXTURE_GAMES: Manifest[] = [
   game("night-flight", "Night Flight", "Fly the owls home before sunrise", "required"),
   {
     ...game("hearthisle", "Hearthisle", "Settle the island", "optional", "live"),
+    // No art kit yet: the launcher falls back to its captures.
     art: { tile: "/art/hearthisle/tv.jpg", hero: "/art/hearthisle/dusk.jpg" },
   },
 ];

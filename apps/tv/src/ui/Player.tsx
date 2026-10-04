@@ -1,6 +1,8 @@
 import type { Manifest, Screen } from "@open-game-system/ogs-protocol";
 import { useLayoutEffect, useRef } from "react";
+import { boxFrame } from "../launcher/cutover";
 import type { FrameSlot } from "../launcher/frames";
+import { roomArt } from "../launcher/home";
 import { safeStyle } from "./art";
 import type { useFrames } from "./useFrames";
 
@@ -28,7 +30,8 @@ function rectInStage(player: HTMLElement, selector: string): Rect | null {
   return { x: (r.left - s.left) / k, y: (r.top - s.top) / k, w: r.width / k, h: r.height / k };
 }
 
-const boxTransform = (r: Rect) => `translate(${r.x}px, ${r.y}px) scale(${r.w / W}, ${r.h / H})`;
+/** A rect that already fills the stage (the game page's art): nothing to grow from. */
+const fillsStage = (r: Rect) => r.w >= W - 1 && r.h >= H - 1;
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
@@ -56,14 +59,14 @@ function useCutOver(
     const done = () => {
       el.dataset.phase = shown ? "shown" : "hidden";
     };
-    if (reducedMotion() || !cover) {
+    if (reducedMotion() || !cover || fillsStage(cover)) {
       const fade = [{ opacity: shown ? 0 : 1 }, { opacity: shown ? 1 : 0 }];
       el.animate(fade, { duration: reducedMotion() ? 180 : 320, easing: "ease-out" }).onfinish =
         done;
       return;
     }
-    const small = { transform: boxTransform(cover), borderRadius: "48px" };
-    const big = { transform: "none", borderRadius: "0px" };
+    const small = boxFrame(cover);
+    const big = { transform: "translate(0px, 0px) scale(1)", clipPath: "inset(0px 0px round 0px)" };
     const frames = shown
       ? [
           { ...small, opacity: 1 },
@@ -88,6 +91,7 @@ export function Player(props: {
   const { game, frames } = props;
   const ref = useRef<HTMLDivElement>(null);
   const shown = props.screen === "game";
+  const art = game ? roomArt(game) : null;
   useCutOver(ref, shown, game?.appId ?? null);
   const { active, parked } = frames.frames;
   const slots = [active, parked].filter((s): s is FrameSlot => s !== null);
@@ -100,9 +104,7 @@ export function Player(props: {
       data-phase="hidden"
       data-testid="player"
     >
-      {game && (
-        <img className="player-art" src={game.art.tile} alt="" style={safeStyle(game.art.safe)} />
-      )}
+      {art && <img className="player-art" src={art.src} alt="" style={safeStyle(art.safe)} />}
       {slots.map((slot) => (
         <iframe
           key={slot.instanceId}

@@ -13,10 +13,8 @@
   --terracotta-deep: #8f4024;
   --ink: #2a1533;
   --safe-x: 96px;
-  --row-pitch: 316px;
-  --box-w: 304px;
-  --box-gap: 32px;
   --safe-y: 54px;
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
   --display: "Fraunces", Georgia, serif;
   --sans: "Nunito Sans", "Avenir Next", system-ui, sans-serif;
   color-scheme: dark;
@@ -86,7 +84,7 @@ figure {
   top: var(--safe-y);
   left: var(--safe-x);
   right: var(--safe-x);
-  height: 72px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -95,90 +93,58 @@ figure {
 .room-name {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 44px;
+  font-size: 32px;
   color: var(--cream);
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 .clock {
   display: flex;
   align-items: baseline;
-  gap: 16px;
+  gap: 14px;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 .clock-time {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 48px;
+  font-size: 40px;
 }
 .clock-day {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--cream-dim);
 }
 
-/* ---------- hero ---------- */
-.hero {
+/* ---------- the room: the focused game's clean art, full bleed ---------- */
+.room {
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 620px;
+  inset: 0;
+  overflow: hidden;
+  background: var(--plum-950);
 }
-.hero-art {
+.room-art {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 1240px;
-  height: 640px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  -webkit-mask-image:
-    linear-gradient(90deg, transparent 0%, #000 34%),
-    linear-gradient(180deg, #000 52%, transparent 92%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(90deg, transparent 0%, #000 34%),
-    linear-gradient(180deg, #000 52%, transparent 92%);
-  mask-composite: intersect;
-  animation: hero-in 420ms ease-out both;
 }
-.hero-text {
-  position: absolute;
-  left: var(--safe-x);
-  top: 150px;
-  width: 860px;
-  animation: hero-text-in 420ms ease-out both;
+.room-art.in {
+  animation: room-in 520ms ease-out both;
 }
-.hero-tag {
-  display: inline-block;
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--ink);
-  background: var(--cream);
-  border-radius: 999px;
-  padding: 6px 22px;
-  margin-bottom: 20px;
-}
-.hero-title {
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 104px;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.55);
-}
-.hero-resume {
-  margin-top: 18px;
-  font-size: 38px;
-  font-weight: 700;
-  color: var(--cream);
-  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.7);
-}
-.hero.empty .hero-title {
-  font-size: 80px;
-}
-@keyframes hero-in {
+@keyframes room-in {
   from {
     opacity: 0;
-    transform: scale(1.02);
+    transform: scale(1.03);
   }
+}
+/* Scrims for the left third (logo), the top (icons) and the bottom (cards); the subject stays clear. */
+.room-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(18, 8, 24, 0.78) 0%, rgba(18, 8, 24, 0.5) 30%, rgba(18, 8, 24, 0) 52%),
+    linear-gradient(180deg, rgba(18, 8, 24, 0.72) 0%, rgba(18, 8, 24, 0.25) 26%, rgba(18, 8, 24, 0) 38%),
+    linear-gradient(0deg, rgba(18, 8, 24, 0.86) 0%, rgba(18, 8, 24, 0.4) 24%, rgba(18, 8, 24, 0) 40%);
 }
 @keyframes hero-text-in {
   from {
@@ -187,89 +153,178 @@ figure {
   }
 }
 
-/* ---------- rows of boxes ---------- */
-.rows-viewport {
+/* ---------- the icon row ---------- */
+.icon-row {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 488px;
-  height: 372px;
-  overflow: hidden;
-  /* Extra left room so the focused box's lift and ring stay inside title-safe. */
-  padding: 24px var(--safe-x) 0 calc(var(--safe-x) + 14px);
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 24px, #000 88%, transparent);
-  mask-image: linear-gradient(180deg, transparent, #000 24px, #000 88%, transparent);
-}
-.rows {
-  transform: translateY(calc(var(--row, 0) * -1 * var(--row-pitch)));
-  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.24, 1);
-}
-.row {
-  height: var(--row-pitch);
-}
-.row-title {
-  font-family: var(--sans);
-  font-weight: 800;
-  font-size: 28px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--cream-dim);
-  height: 40px;
-  margin-bottom: 18px;
-  transition: color 200ms;
-}
-.row {
-  transition: opacity 240ms;
-}
-.row.above {
-  opacity: 0;
-}
-.row.current .row-title {
-  color: var(--amber);
-}
-.shelf {
+  left: var(--safe-x);
+  top: 132px;
+  height: 212px;
   display: flex;
-  gap: var(--box-gap);
-  transform: translateX(calc(var(--shift, 0) * -1 * (var(--box-w) + var(--box-gap))));
-  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.24, 1);
+  align-items: center;
+  gap: 22px;
+  z-index: 3;
 }
-.box {
-  flex: none;
-  width: 304px;
-  transition: transform 220ms cubic-bezier(0.22, 0.8, 0.24, 1);
-  transform-origin: 50% 60%;
+.game-icon {
+  display: flex;
+  align-items: center;
+  gap: 28px;
 }
-.box-cover {
+.game-icon-art {
   position: relative;
-  width: 304px;
-  aspect-ratio: 16 / 9;
-  border-radius: 14px;
+  flex: none;
+  width: 128px;
+  height: 128px;
+  border-radius: 26px;
   overflow: hidden;
   background: var(--plum-700);
-  /* A printed box has depth: a darker bottom edge under the cover. */
   box-shadow:
-    0 6px 0 #170a1e,
-    0 14px 26px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+    0 10px 24px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  transition:
+    width 240ms var(--ease),
+    height 240ms var(--ease),
+    border-radius 240ms var(--ease);
 }
-.box-cover img {
+.game-icon-art img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-/* The box's spine: a darker printed edge with a gloss line, so it reads as a box, not a tile. */
-.box-spine {
+/* A paused sitting waits in this game: an amber dot, no words needed. */
+.game-icon-dot {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 14px;
-  background: linear-gradient(90deg, rgba(20, 8, 26, 0.75), rgba(20, 8, 26, 0.25) 70%, rgba(255, 255, 255, 0.25) 90%, transparent);
+  right: 10px;
+  bottom: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow:
+    0 0 0 4px rgba(23, 11, 31, 0.7),
+    0 0 14px var(--amber-glow);
 }
-.box-tag {
+.game-icon-name {
+  display: none;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 40px;
+  white-space: nowrap;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+}
+.game-icon.focused .game-icon-art {
+  width: 196px;
+  height: 196px;
+  border-radius: 36px;
+  outline: 6px solid var(--cream);
+  outline-offset: 6px;
+  box-shadow:
+    0 0 0 18px rgba(248, 236, 217, 0.16),
+    0 20px 44px rgba(0, 0, 0, 0.6);
+}
+.game-icon.focused .game-icon-name {
+  display: block;
+  animation: name-in 260ms ease-out both;
+}
+@keyframes name-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+}
+.home[data-zone="cards"] .game-icon-art {
+  opacity: 0.7;
+}
+
+/* ---------- the left third: logo and where you left off ---------- */
+.spotlight {
   position: absolute;
-  top: 10px;
-  left: 24px;
-  max-width: 268px;
+  left: var(--safe-x);
+  top: 404px;
+  width: 660px;
+  z-index: 2;
+  animation: hero-text-in 420ms ease-out both;
+}
+.spot-logo {
+  display: block;
+  max-width: 600px;
+  height: 240px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.55));
+}
+.spot-wordmark {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 96px;
+  line-height: 1.02;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+.spot-line {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 34px;
+  font-weight: 800;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+}
+.spot-tag {
+  flex: none;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--cream);
+  border-radius: 999px;
+  padding: 5px 20px;
+  text-shadow: none;
+}
+.spot-resume {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.spotlight.empty {
+  top: 300px;
+}
+
+/* ---------- activity cards ---------- */
+.cards {
+  position: absolute;
+  left: var(--safe-x);
+  bottom: var(--safe-y);
+  display: flex;
+  gap: 28px;
+  z-index: 3;
+}
+.card {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 220ms var(--ease);
+}
+.card-art {
+  position: relative;
+  width: 320px;
+  height: 180px;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--plum-700);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+.card-art > img:not(.fan) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-tag {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  max-width: 296px;
   font-size: 24px;
   line-height: 1.2;
   font-weight: 800;
@@ -282,119 +337,144 @@ figure {
   text-overflow: ellipsis;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
-.box-label {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 4px 0 4px;
+.play-mark {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 56px;
+  height: 56px;
+  color: var(--cream);
 }
-.box-name {
+.card-name {
+  margin-top: 14px;
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 30px;
   line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
-.box-resume {
+.card-resume {
   font-size: 24px;
   font-weight: 700;
   color: var(--cream-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
 }
-/* Focus ring: a warm amber frame and glow, visible from the couch. */
-.box.focused {
-  transform: scale(1.07);
+.card.focused {
+  transform: translateY(-8px);
 }
-.box.focused .box-cover {
-  outline: 6px solid var(--amber);
-  outline-offset: 4px;
+.card.focused .card-art {
+  outline: 6px solid var(--cream);
+  outline-offset: 6px;
   box-shadow:
-    0 0 0 14px var(--amber-glow),
-    0 6px 0 #170a1e,
-    0 18px 40px rgba(0, 0, 0, 0.6);
+    0 0 0 18px rgba(248, 236, 217, 0.16),
+    0 20px 44px rgba(0, 0, 0, 0.6);
 }
-.box.focused .box-resume {
+.card.focused .card-resume {
   color: var(--amber);
 }
-
-/* ---------- couch: who's here ---------- */
-.couch {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 760px;
-  height: 196px;
-  transform: translateX(-50%);
-  z-index: 2;
+.surprise-art {
+  background:
+    radial-gradient(260px 160px at 50% 60%, rgba(246, 187, 82, 0.4), transparent 70%),
+    linear-gradient(135deg, #5a2a6e, #2b1637);
 }
-.couch-back {
+.fan {
   position: absolute;
-  left: 40px;
-  right: 40px;
-  bottom: 92px;
-  height: 84px;
-  border-radius: 42px 42px 12px 12px;
-  background: linear-gradient(180deg, #d4744b, var(--terracotta));
-  box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.2);
+  top: 34px;
+  width: 112px;
+  height: 112px;
+  border-radius: 22px;
+  object-fit: cover;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5);
 }
-.couch::before,
-.couch::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  width: 70px;
-  height: 150px;
-  border-radius: 34px 34px 0 0;
-  background: linear-gradient(180deg, #cf6c43, var(--terracotta-deep));
+.fan-0 {
+  left: 30px;
+  transform: rotate(-12deg);
+}
+.fan-1 {
+  left: 104px;
+  top: 22px;
   z-index: 1;
 }
-.couch::before {
-  left: 0;
+.fan-2 {
+  left: 178px;
+  transform: rotate(12deg);
 }
-.couch::after {
-  right: 0;
-}
-/* The seat front carries the names, inside the bottom title-safe line. */
-.couch-seat {
+.surprise-mark {
   position: absolute;
-  left: 50px;
-  right: 50px;
+  right: 6px;
   bottom: 0;
-  height: 108px;
-  border-radius: 18px 18px 0 0;
-  background: linear-gradient(180deg, #b9573a, #8a3d22);
+  width: 96px;
+  height: 96px;
+  z-index: 2;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
+}
+.card.surprise.focused .fan-0 {
+  transform: rotate(-20deg) translateX(-8px);
+}
+.card.surprise.focused .fan-2 {
+  transform: rotate(20deg) translateX(8px);
+}
+.fan {
+  transition: transform 260ms var(--ease);
+}
+
+/* ---------- who's here: the couch, the remote, the code ---------- */
+.people {
+  position: absolute;
+  right: var(--safe-x);
+  top: 136px;
   display: flex;
-  justify-content: space-evenly;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+  z-index: 3;
+}
+.couch {
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 16px 10px;
+  border-radius: 28px;
+  background: rgba(23, 11, 31, 0.62);
+  border: 2px solid rgba(248, 236, 217, 0.14);
+}
+.couch-back {
+  display: none;
+}
+.couch-seat {
+  display: flex;
+  gap: 6px;
+}
+.couch-seat:empty {
+  display: none;
+}
+.couch:has(.couch-seat:empty) {
+  display: none;
 }
 .sitter {
-  position: relative;
-  width: 140px;
+  width: 104px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .sitter img {
-  position: absolute;
-  left: 50%;
-  bottom: 96px;
-  height: 116px;
+  height: 76px;
   width: auto;
-  max-width: 150px;
+  max-width: 96px;
   object-fit: contain;
-  transform: translateX(-50%);
-  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.35));
-  z-index: 2;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
 }
 .sitter figcaption {
-  position: absolute;
-  left: 50%;
-  bottom: 62px;
-  transform: translateX(-50%);
+  margin-top: 4px;
   font-size: 24px;
-  line-height: 1;
+  line-height: 1.1;
   font-weight: 800;
   color: var(--cream);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   white-space: nowrap;
 }
 .sitter.arriving {
@@ -403,94 +483,112 @@ figure {
 @keyframes sitter-in {
   from {
     opacity: 0;
-    transform: translateY(40px) scale(0.9);
+    transform: translateY(24px) scale(0.9);
   }
 }
-
 .remote-chip {
-  position: absolute;
-  right: var(--safe-x);
-  bottom: var(--safe-y);
   display: flex;
   align-items: center;
   gap: 14px;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--cream);
-  background: rgba(23, 11, 31, 0.78);
-  border: 2px solid rgba(248, 236, 217, 0.16);
-  padding: 12px 26px;
+  background: rgba(23, 11, 31, 0.62);
+  border: 2px solid rgba(248, 236, 217, 0.14);
+  padding: 10px 22px;
   border-radius: 999px;
-  z-index: 3;
 }
 .remote-icon {
-  width: 18px;
-  height: 30px;
+  width: 16px;
+  height: 26px;
 }
 
-/* ---------- game page (the box opened) ---------- */
+/* ---------- game page: the game opened, its art fills the room ---------- */
 .game-page {
   z-index: 4;
-  background:
-    radial-gradient(900px 600px at 30% 40%, rgba(122, 64, 120, 0.35), transparent 70%),
-    linear-gradient(180deg, var(--plum-800), var(--plum-900));
+  background: var(--plum-950);
   animation: page-in 320ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
 }
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: scale(0.98);
   }
 }
 .page-art {
   position: absolute;
-  left: var(--safe-x);
-  top: 96px;
-  width: 1040px;
-  aspect-ratio: 16 / 9;
-  border-radius: 22px;
+  inset: 0;
   overflow: hidden;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55);
 }
 .page-art img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  animation: page-art-in 900ms var(--ease) both;
+}
+@keyframes page-art-in {
+  from {
+    transform: scale(1.06);
+  }
+}
+.page-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(18, 8, 24, 0.9) 0%, rgba(18, 8, 24, 0.66) 34%, rgba(18, 8, 24, 0) 60%),
+    linear-gradient(0deg, rgba(18, 8, 24, 0.8) 0%, rgba(18, 8, 24, 0) 34%);
 }
 .page-card {
   position: absolute;
-  left: 1200px;
-  right: var(--safe-x);
+  left: var(--safe-x);
   top: 120px;
+  width: 860px;
+  animation: hero-text-in 420ms 120ms ease-out both;
+}
+.page-logo {
+  display: block;
+  max-width: 640px;
+  height: 280px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.55));
 }
 .page-title {
   font-family: var(--display);
   font-weight: 700;
-  font-size: 84px;
+  font-size: 104px;
   line-height: 1.02;
-  margin-top: 12px;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+.page-status {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 .page-resume {
-  margin-top: 16px;
   font-size: 36px;
-  font-weight: 700;
-  color: var(--cream-dim);
+  font-weight: 800;
+  color: var(--cream);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
 }
 .page-actions {
-  margin-top: 48px;
+  margin-top: 44px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 22px;
+  gap: 28px;
 }
 .action {
-  font-size: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 34px;
   font-weight: 800;
   border-radius: 999px;
-  padding: 16px 40px;
-  border: 3px solid rgba(248, 236, 217, 0.4);
+  padding: 18px 44px;
+  border: 3px solid rgba(248, 236, 217, 0.5);
+  background: rgba(23, 11, 31, 0.55);
   color: var(--cream);
+  transition: transform 200ms var(--ease);
 }
 .action.primary {
   background: var(--cream);
@@ -498,46 +596,127 @@ figure {
   border-color: var(--cream);
 }
 .action.focused {
-  outline: 6px solid var(--amber);
-  outline-offset: 5px;
-  box-shadow: 0 0 0 14px var(--amber-glow);
+  outline: 6px solid var(--cream);
+  outline-offset: 6px;
+  box-shadow: 0 0 0 18px rgba(248, 236, 217, 0.16);
+  transform: scale(1.04);
+}
+.play-glyph {
+  width: 30px;
+  height: 30px;
 }
 .page-hint {
-  margin-top: 28px;
-  font-size: 24px;
+  margin-top: 30px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--cream-dim);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 .page-players {
   position: absolute;
   left: var(--safe-x);
-  top: 726px;
+  bottom: var(--safe-y);
 }
 .page-stickers {
   display: flex;
-  gap: 28px;
-  margin-top: 16px;
+  gap: 18px;
+  margin-top: 14px;
 }
 .page-sticker {
-  width: 150px;
-  height: 196px;
-  border-radius: 20px;
-  background: rgba(248, 236, 217, 0.08);
+  width: 132px;
+  height: 160px;
+  border-radius: 22px;
+  background: rgba(23, 11, 31, 0.6);
   border: 2px solid rgba(248, 236, 217, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  padding-bottom: 12px;
+  padding-bottom: 10px;
 }
 .page-sticker img {
-  height: 124px;
+  height: 96px;
   width: auto;
   object-fit: contain;
 }
 .page-sticker figcaption {
   font-size: 24px;
   font-weight: 800;
+}
+
+/* ---------- Surprise me: the reel ---------- */
+.surprise-page {
+  z-index: 5;
+  background: var(--plum-950);
+  animation: page-in 240ms ease-out both;
+}
+.surprise-room {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 500ms ease-out;
+}
+.surprise-room.in {
+  opacity: 1;
+}
+.surprise-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(900px 500px at 50% 50%, rgba(18, 8, 24, 0.2), rgba(18, 8, 24, 0.75));
+}
+.reel {
+  position: absolute;
+  left: 0;
+  top: 430px;
+  display: flex;
+  gap: 36px;
+  transition: transform 1600ms cubic-bezier(0.12, 0.7, 0.18, 1);
+}
+.surprise-page[data-phase="ready"] .reel {
+  transition: none;
+}
+.reel-icon {
+  flex: none;
+  width: 220px;
+  height: 220px;
+  border-radius: 40px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  transition:
+    transform 300ms var(--ease),
+    opacity 300ms;
+}
+.reel-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.surprise-page[data-phase="landed"] .reel-icon:not(.picked) {
+  opacity: 0;
+}
+.reel-icon.picked {
+  transform: scale(1.25);
+  outline: 6px solid var(--cream);
+  outline-offset: 8px;
+}
+.surprise-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 760px;
+  display: grid;
+  place-items: center;
+  animation: hero-text-in 360ms ease-out both;
+}
+.surprise-logo {
+  height: 200px;
+  max-width: 720px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.6));
 }
 
 /* ---------- the player: framed game, box ↔ full screen ---------- */
@@ -553,7 +732,7 @@ figure {
   visibility: hidden;
 }
 /* Behind the player the home screen rearranges instantly, so the cut-over lands on the box's resting place. */
-.launcher:has(.player:not([data-phase="hidden"])) :is(.rows, .row, .shelf, .box) {
+.launcher:has(.player:not([data-phase="hidden"])) :is(.game-icon-art, .card, .fan) {
   transition: none;
 }
 /* The box's cover, grown to full screen; dimmed and softened while the game is on its way. */
@@ -650,16 +829,18 @@ figure {
   }
 }
 
-/* On home and the game page the chip sits under the clock instead of over it. */
+/* On home and the game page the chip sits top centre, clear of the clock and the people. */
 .launcher:not([data-screen="game"]) .connection-chip {
-  top: 150px;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* ---------- assembling (connecting) ---------- */
 .assembling-hero {
   position: absolute;
   left: var(--safe-x);
-  top: 260px;
+  top: 420px;
 }
 .assembling-line {
   margin-top: 16px;
@@ -668,23 +849,38 @@ figure {
   font-size: 72px;
   animation: hero-text-in 600ms ease-out both;
 }
-.assembling-shelf {
+.assembling-icons {
   position: absolute;
   left: var(--safe-x);
-  top: 594px;
+  top: 174px;
   display: flex;
-  gap: 32px;
+  gap: 22px;
 }
-.ghost-box {
-  width: 304px;
-  aspect-ratio: 16 / 9;
-  border-radius: 14px;
+.assembling-cards {
+  position: absolute;
+  left: var(--safe-x);
+  bottom: calc(var(--safe-y) + 78px);
+  display: flex;
+  gap: 28px;
+}
+.ghost-icon,
+.ghost-card {
+  border-radius: 26px;
   background: linear-gradient(100deg, rgba(248, 236, 217, 0.05) 30%, rgba(248, 236, 217, 0.12) 50%, rgba(248, 236, 217, 0.05) 70%);
   background-size: 300% 100%;
   border: 2px solid rgba(248, 236, 217, 0.1);
   animation:
     sitter-in 500ms ease-out both,
     shimmer 1.8s linear infinite;
+}
+.ghost-icon {
+  width: 128px;
+  height: 128px;
+}
+.ghost-card {
+  width: 320px;
+  height: 180px;
+  border-radius: 20px;
 }
 @keyframes shimmer {
   to {
@@ -719,16 +915,17 @@ figure {
 /* ---------- couch corner: join with the TV code ---------- */
 .join-code {
   position: absolute;
-  left: var(--safe-x);
+  right: var(--safe-x);
   bottom: var(--safe-y);
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 14px 26px 16px;
   border-radius: 22px;
-  background: rgba(23, 11, 31, 0.78);
-  border: 2px solid rgba(248, 236, 217, 0.16);
+  background: rgba(23, 11, 31, 0.62);
+  border: 2px solid rgba(248, 236, 217, 0.14);
   z-index: 3;
+  text-align: right;
 }
 .join-code-line {
   font-size: 24px;

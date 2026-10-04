@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-export const BASE = "http://localhost:5190";
+export const BASE = `http://localhost:${process.env.TV_E2E_PORT ?? 5190}`;
 export const SHOTS = new URL("./__screens__/", import.meta.url).pathname;
 export const ROCKET_TV = "https://rocket-crew.jonathanrmumm.workers.dev/tv?room=KITE";
 export const BAKE_TV = "https://bake-shop.jonathanrmumm.workers.dev/tv?room=OVEN";

@@ -49,7 +49,7 @@ export function boot(params: LauncherParams, search: string): Boot {
   window.__launcherBootId ??= crypto.randomUUID();
   const timeout = frameTimeoutMs(search);
   if (params.mode === "fake") {
-    const fake = createFakeClient({ hold: params.hold });
+    const fake = createFakeClient({ hold: params.hold, fresh: params.fresh === true });
     window.__ogsFake = {
       send: (m) => fake.send(m),
       state: () => fake.getSnapshot().state,
@@ -59,7 +59,7 @@ export function boot(params: LauncherParams, search: string): Boot {
     };
     const data = Promise.resolve({
       games: libraryGames(FIXTURE_GAMES, FIXTURE_LIBRARY),
-      instances: fixtureInstances(Date.now()),
+      instances: params.fresh ? [] : fixtureInstances(Date.now()),
       session: FIXTURE_SESSION,
     });
     return { client: fake, data, frameTimeoutMs: timeout };

@@ -1,5 +1,6 @@
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { visibleRect } from "../src/launcher/cutover";
 import {
   attr,
   BAKE_TV,
@@ -48,14 +49,40 @@ describe("TV launcher (fake session)", () => {
     await page.getByTestId("home").waitFor();
   });
 
-  it("renders home: hero, Continue · Tonight · Library rows, the couch and the remote", async () => {
+  it("renders home: icon row, the focused game's room, activity cards, the couch and the remote", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
-    const rows = await page
-      .locator("[data-row]")
-      .evaluateAll((els) => els.map((e) => e.getAttribute("data-row")));
-    expect(rows).toEqual(["continue", "tonight", "library"]);
-    expect(await page.locator('[data-row="continue"] [data-item]').count()).toBe(2);
-    expect(await page.locator('[data-item="game:bake-shop"]').textContent()).toContain("Day 4");
+    const icons = await page
+      .locator('[data-row="games"] [data-item]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
+    expect(icons).toEqual([
+      "game:bake-shop",
+      "game:story-nook",
+      "game:hearthisle",
+      "game:rocket-crew",
+      "game:peekaboo-garden",
+      "game:night-flight",
+    ]);
+    const cards = await page
+      .locator('[data-row="activity"] [data-item]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
+    expect(cards).toHaveLength(4);
+    expect(cards[0]).toMatch(/^game:~continue:bake-shop:/);
+    expect(cards.slice(1)).toEqual([
+      "game:~continue:story-nook:story-nook-ember",
+      "game:~continue:hearthisle:hearthisle-night",
+      "game:~surprise",
+    ]);
+    expect(
+      await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
+    ).toContain("Day 4");
+    // The focused icon shows its name; the room shows its clean art and logo, with the resume point.
+    expect(await page.locator("[data-focused] .game-icon-name").textContent()).toBe("Bake Shop");
+    expect(await page.locator(".room-art.in").getAttribute("src")).toBe(
+      "/art/bake-shop/hero-clean.jpg",
+    );
+    expect(await page.locator(".spot-logo").getAttribute("src")).toBe("/art/bake-shop/logo.png");
+    expect(await page.locator(".spot-resume").textContent()).toBe("Day 4");
+    expect(await page.locator(".spot-tag").textContent()).toMatch(/^Paused /);
     expect(await page.locator(".room-name").textContent()).toBe(
       "Living room TV · Jonathan's games",
     );
@@ -71,18 +98,74 @@ describe("TV launcher (fake session)", () => {
     await expectTvRules();
   });
 
-  it("opens a paused box on select: Continue at its resume point, New, who's here", async () => {
+  it("opens a paused game's page on select: Continue at its resume point, Start game, who's here", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
     await send(page, { type: "select", deviceId: "jonathan-phone" });
     await page.getByTestId("game-page").waitFor();
     expect(await page.getByTestId("action-continue").textContent()).toBe("Continue Day 4");
-    expect(await page.getByTestId("game-page").textContent()).toContain("New game");
+    expect(await page.getByTestId("action-start").textContent()).toBe("Start game");
+    expect(await page.getByTestId("action-continue").getAttribute("class")).toContain("focused");
     const here = await page.locator(".page-sticker figcaption").allTextContents();
     expect(here).toEqual(["Jonathan", "Mom", "Juneau"]);
     await shot(page, "03b-game-page-paused");
     await expectTvRules();
+    // The remote moves between Continue and Start game.
+    await send(page, { type: "focus.move", dir: "right" });
+    await expect.poll(() => attr(page, "action-start", "class")).toContain("focused");
+    expect(await page.getByTestId("action-continue").getAttribute("class")).not.toContain(
+      "focused",
+    );
     await send(page, { type: "back" });
     await page.getByTestId("game-page").waitFor({ state: "detached" });
+    // Back home, the ring returns to the game whose page was open.
+    await expect.poll(focused).toBe("game:bake-shop");
+  });
+
+  it("starts a fresh sitting from Start game on a paused game's page", async () => {
+    await expect.poll(focused).toBe("game:bake-shop");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await page.getByTestId("game-page").waitFor();
+    await send(page, { type: "focus.move", dir: "right" });
+    await expect.poll(() => attr(page, "action-start", "class")).toContain("focused");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await expect.poll(async () => (await sessionState(page))?.current?.mode).toBe("new");
+    expect((await sessionState(page))?.current?.label).toBe("");
+  });
+
+  it("continues a sitting straight from its card", async () => {
+    await expect.poll(focused).toBe("game:bake-shop");
+    await send(page, { type: "focus.move", dir: "down" });
+    await expect.poll(focused).toMatch(/^game:~continue:bake-shop:/);
+    expect(await page.getByTestId("hero").getAttribute("data-hero")).toBe("bake-shop");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await page.getByTestId("starting").waitFor();
+    const s = await sessionState(page);
+    expect([s?.screen, s?.current?.appId, s?.current?.mode, s?.current?.label]).toEqual([
+      "game",
+      "bake-shop",
+      "continue",
+      "Day 4",
+    ]);
+    expect(s?.current?.hostDeviceId).toBe("jonathan-phone");
+    expect(await count(page, "[data-testid=game-page]")).toBe(0);
+  });
+
+  it("Surprise me spins the icons, lands on a game and starts it", async () => {
+    await send(page, { type: "focus.set", itemId: "game:~surprise" });
+    await expect.poll(focused).toBe("game:~surprise");
+    expect(await page.getByTestId("hero").getAttribute("data-hero")).toBe("surprise");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await page.getByTestId("surprise").waitFor();
+    const pick = await page.getByTestId("surprise").getAttribute("data-pick");
+    expect(pick).toMatch(/^[a-z-]+$/);
+    // Not the game just played (Bake Shop is the last paused one).
+    expect(pick).not.toBe("bake-shop");
+    await page.locator('[data-testid=surprise][data-phase="landed"]').waitFor();
+    await shot(page, "07-surprise");
+    await expect
+      .poll(async () => (await sessionState(page))?.current?.appId, { timeout: 4000 })
+      .toBe(pick);
+    expect((await sessionState(page))?.screen).toBe("game");
   });
 
   it("shows who played last time on a game's page, by profile", async () => {
@@ -107,8 +190,11 @@ describe("TV launcher (fake session)", () => {
     await expect.poll(focused).toBe("game:story-nook");
     expect((await sessionState(page))?.focus).toBe("game:story-nook");
     await send(page, { type: "focus.move", dir: "down" });
-    await expect.poll(focused).toBe("game:hearthisle");
-    await send(page, { type: "focus.move", dir: "down" });
+    await expect.poll(focused).toBe("game:~continue:story-nook:story-nook-ember");
+    await send(page, { type: "focus.move", dir: "up" });
+    await expect.poll(focused).toBe("game:story-nook");
+    await send(page, { type: "focus.move", dir: "right" });
+    await send(page, { type: "focus.move", dir: "right" });
     await expect.poll(focused).toBe("game:rocket-crew");
     expect(await page.getByTestId("hero").getAttribute("data-hero")).toBe("rocket-crew");
     await shot(page, "02-focus-library");
@@ -145,9 +231,9 @@ describe("TV launcher (fake session)", () => {
 
     await send(page, { type: "home" });
     await page.locator('[data-testid=player][data-phase="hidden"]').waitFor({ state: "attached" });
-    const box = page.locator('[data-row="continue"] [data-item="game:rocket-crew"]');
-    expect(await box.textContent()).toContain("Mission 6");
-    expect(await box.textContent()).toContain("Paused just now");
+    const card = page.locator('[data-card="sitting"][data-app="rocket-crew"]');
+    expect(await card.textContent()).toContain("Mission 6");
+    expect(await card.textContent()).toContain("Paused just now");
     await expect.poll(focused).toBe("game:rocket-crew");
     // The parked frame was told to suspend and stays loaded for an instant Continue.
     const afterHome = await receivedBy(page, "parked-frame");
@@ -173,11 +259,13 @@ describe("TV launcher (fake session)", () => {
     // Bake Shop says nothing back: Home still works, with the session's own label.
     await send(page, { type: "home" });
     await page.locator('[data-testid=player][data-phase="hidden"]').waitFor({ state: "attached" });
-    const continueRow = await page
-      .locator('[data-row="continue"] [data-item]')
-      .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
-    expect(continueRow.slice(0, 2)).toEqual(["game:bake-shop", "game:rocket-crew"]);
-    expect(await page.locator('[data-item="game:bake-shop"]').textContent()).toContain("Day 4");
+    const sittings = await page
+      .locator('[data-card="sitting"]')
+      .evaluateAll((els) => els.map((e) => e.getAttribute("data-app")));
+    expect(sittings.slice(0, 2)).toEqual(["bake-shop", "rocket-crew"]);
+    expect(
+      await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
+    ).toContain("Day 4");
 
     await send(page, { type: "game.start", appId: "bake-shop", mode: "continue" });
     await expect.poll(() => attr(page, "game-frame", "src")).toBe(BAKE_TV);
@@ -213,7 +301,7 @@ describe("TV launcher (fake session)", () => {
 });
 
 describe("the cut-over", () => {
-  it("grows the focused box to full screen and shrinks it back into its box", async () => {
+  it("grows the focused icon to full screen and shrinks it back into its icon", async () => {
     page = await open(browser);
     await page.getByTestId("home").waitFor();
     await send(page, { type: "focus.set", itemId: "game:rocket-crew" });
@@ -224,41 +312,42 @@ describe("the cut-over", () => {
     await send(page, { type: "game.start", appId: "rocket-crew", mode: "new" });
     const grow = await firstFrame(page);
     expect(grow.duration).toBeLessThanOrEqual(700);
+    // It starts exactly on the square icon (the art scaled to cover it and clipped to it).
     expect(grow.x).toBeCloseTo(box?.x ?? -1, 0);
     expect(grow.y).toBeCloseTo(box?.y ?? -1, 0);
-    expect(grow.scale).toBeCloseTo((box?.width ?? 0) / 1920, 2);
+    expect(grow.w).toBeCloseTo(box?.width ?? -1, 0);
+    expect(grow.h).toBeCloseTo(box?.height ?? -1, 0);
     await midMotion(page, "04a-cutover-grow");
 
     await send(page, { type: "game.view", appId: "rocket-crew", url: ROCKET_TV });
     await expect.poll(() => attr(page, "game-frame", "class")).toContain("live");
     await send(page, { type: "home" });
-    await page.locator('[data-row="continue"] [data-item="game:rocket-crew"]').waitFor();
+    await page.locator('[data-card="sitting"][data-app="rocket-crew"]').waitFor();
     const target = await page.locator('[data-cover="rocket-crew"]').boundingBox();
     const shrink = await lastSmallFrame(page);
     expect(shrink.x).toBeCloseTo(target?.x ?? -1, 0);
     expect(shrink.y).toBeCloseTo(target?.y ?? -1, 0);
-    // It lands on the Continue row where it rests, not where a shelf scroll would start.
-    expect(shrink.y).toBeGreaterThan(488);
+    expect(shrink.w).toBeCloseTo(target?.width ?? -1, 0);
+    // It lands on the focused icon at the head of the row, where it rests (not mid-grow).
+    expect(shrink.x).toBeCloseTo(96, 0);
     await midMotion(page, "06a-cutover-shrink");
   });
 });
 
-/** The player animation's keyframe at the box (translate + scale), read from the running animation. */
+/** The player animation's keyframe at the box, as the stage rect it shows, read from the running animation. */
 async function boxKeyframe(p: Page, which: "first" | "smallest") {
-  return p.getByTestId("player").evaluate((el, w) => {
+  const k = await p.getByTestId("player").evaluate((el, w) => {
     const a = el.getAnimations()[0];
     const effect = a?.effect;
     if (!a || !(effect instanceof KeyframeEffect)) throw new Error("no cut-over animation");
-    const frames = effect.getKeyframes().map((k) => String(k.transform));
-    const small = w === "first" ? frames[0] : frames.find((f) => f.includes("scale"));
-    const m = /translate\(([-\d.]+)px, ([-\d.]+)px\) scale\(([-\d.]+)/.exec(small ?? "");
-    return {
-      x: Number(m?.[1]),
-      y: Number(m?.[2]),
-      scale: Number(m?.[3]),
-      duration: Number(effect.getTiming().duration),
-    };
+    const frames = effect
+      .getKeyframes()
+      .map((f) => ({ transform: String(f.transform), clipPath: String(f.clipPath) }));
+    const small = w === "first" ? frames[0] : frames.find((f) => !f.transform.includes("scale(1)"));
+    return { frame: small, duration: Number(effect.getTiming().duration) };
   }, which);
+  if (!k.frame) throw new Error("no small keyframe");
+  return { ...visibleRect(k.frame), duration: k.duration };
 }
 const firstFrame = (p: Page) => boxKeyframe(p, "first");
 const lastSmallFrame = (p: Page) => boxKeyframe(p, "smallest");

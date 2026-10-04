@@ -21,6 +21,16 @@ describe("fake couch session", () => {
     expect(state?.devices.find((d) => d.deviceId === "juneau-ipad")?.profileId).toBe("juneau");
   });
 
+  it("seeds a fresh evening with the couch but nothing paused", () => {
+    const c = createFakeClient({ now: () => NOW, fresh: true });
+    const state = c.getSnapshot().state;
+    expect(state?.suspended).toEqual([]);
+    expect(state?.rosters).toEqual({});
+    expect(state?.members).toEqual(FIXTURE_MEMBERS);
+    expect(state?.remote).toBe("jonathan-phone");
+    expect(state?.casts).toBe(1);
+  });
+
   it("holds in connecting until connect() when asked", () => {
     const c = createFakeClient({ now: () => NOW, hold: true });
     expect(c.getSnapshot()).toEqual({ state: null, connection: "connecting" });

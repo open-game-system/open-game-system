@@ -31,6 +31,17 @@ describe("launcher URL", () => {
     });
   });
 
+  it("runs fake mode on a fresh evening (nothing played yet) when asked", () => {
+    expect(parseParams("?fake=1&world=fresh")).toEqual({
+      ok: true,
+      params: { mode: "fake", hold: false, fresh: true },
+    });
+    expect(parseParams("?fake=1&world=other")).toEqual({
+      ok: true,
+      params: { mode: "fake", hold: false },
+    });
+  });
+
   it("rejects a missing token or a bad api", () => {
     expect(parseParams("?api=https://x.org").ok).toBe(false);
     expect(parseParams(`?api=not a url&token=${LAUNCHER}`).ok).toBe(false);

@@ -1,6 +1,7 @@
 import { createServer, type ViteDevServer } from "vite";
 
-export const E2E_PORT = 5190;
+/** 5190 unless TV_E2E_PORT says otherwise (another server may hold 5190). */
+export const E2E_PORT = Number(process.env.TV_E2E_PORT ?? 5190);
 
 let server: ViteDevServer | undefined;
 
