@@ -204,3 +204,122 @@ describe("couch session client", () => {
     expect(session.getSnapshot().status).toBe("closed");
   });
 });
+
+describe("couch session lifecycle edges", () => {
+  it("only swaps a leading http for ws", () => {
+    expect(couchSocketUrl("ftp://http.example", "t", "s")).toBe(
+      "ftp://http.example/api/v1/couch/ws?token=t&session=s",
+    );
+  });
+
+  it("is closed until started, then connecting until the socket opens", () => {
+    FakeSocket.all = [];
+    const session = createCouchSession({
+      url: "ws://x",
+      deviceId: "p",
+      createSocket: (url) => new FakeSocket(url),
+    });
+    expect(session.getSnapshot()).toEqual({
+      status: "closed",
+      state: null,
+      remoteOffer: null,
+      error: null,
+    });
+    expect(() => session.stop()).not.toThrow();
+    session.start();
+    expect(session.getSnapshot().status).toBe("connecting");
+    session.start();
+    expect(FakeSocket.all).toHaveLength(1);
+  });
+
+  it("can be started again after a stop", () => {
+    const { session } = setup();
+    last().open();
+    session.stop();
+    session.start();
+    expect(FakeSocket.all).toHaveLength(2);
+    last().open();
+    expect(session.getSnapshot().status).toBe("open");
+  });
+
+  it("stopping while waiting to reconnect cancels the reconnect", () => {
+    const { session } = setup();
+    last().open();
+    last().drop();
+    expect(() => session.stop()).not.toThrow();
+    jest.advanceTimersByTime(60_000);
+    expect(FakeSocket.all).toHaveLength(1);
+  });
+
+  it("follows the host without a follow handler (nothing to open)", () => {
+    FakeSocket.all = [];
+    const session = createCouchSession({
+      url: "ws://x",
+      deviceId: "p",
+      createSocket: (url) => new FakeSocket(url),
+    });
+    session.start();
+    last().open();
+    expect(() =>
+      last().receive({
+        type: "follow",
+        target: { kind: "game", appId: "rocket-crew", instanceId: "rc-1", roleId: "host" },
+      }),
+    ).not.toThrow();
+  });
+
+  it("ignores a socket it has already replaced", () => {
+    const { session } = setup();
+    const first = last();
+    first.open();
+    first.drop();
+    jest.advanceTimersByTime(500);
+    const second = last();
+    expect(second).not.toBe(first);
+    first.open();
+    first.receive({ type: "state", state: state({ cast: true }) });
+    expect(session.getSnapshot()).toMatchObject({ status: "reconnecting", state: null });
+    first.drop();
+    jest.advanceTimersByTime(60_000);
+    expect(FakeSocket.all).toHaveLength(2);
+    second.open();
+    session.send({ type: "focus.move", dir: "up" });
+    expect(second.sent).toEqual([{ type: "focus.move", dir: "up" }]);
+  });
+
+  it("holds messages until open instead of writing to a connecting socket", () => {
+    const { session } = setup();
+    session.send({ type: "focus.move", dir: "left" });
+    expect(last().sent).toEqual([]);
+    last().open();
+    last().drop();
+    session.send({ type: "focus.move", dir: "right" });
+    jest.advanceTimersByTime(500);
+    last().open();
+    expect(last().sent).toEqual([{ type: "focus.move", dir: "right" }]);
+  });
+
+  it("holds at most 20 messages before the socket opens", () => {
+    const { session } = setup();
+    for (let i = 0; i < 25; i++) session.send({ type: "focus.set", itemId: `game:${i}` });
+    last().open();
+    expect(last().sent).toHaveLength(20);
+    expect(last().sent[19]).toEqual({ type: "focus.set", itemId: "game:19" });
+  });
+
+  it("stops notifying a listener once it unsubscribes", () => {
+    const { session } = setup();
+    const listener = jest.fn();
+    const off = session.subscribe(listener);
+    off();
+    last().open();
+    expect(listener).not.toHaveBeenCalled();
+  });
+
+  it("names an error without a code ERROR", () => {
+    const { session } = setup();
+    last().open();
+    last().receive({ type: "error", message: "Something broke" });
+    expect(session.getSnapshot().error).toEqual({ code: "ERROR", message: "Something broke" });
+  });
+});

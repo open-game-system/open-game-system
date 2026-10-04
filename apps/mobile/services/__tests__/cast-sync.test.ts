@@ -161,3 +161,113 @@ describe("cast sync: the game's buttons drive the real session", () => {
     expect(GoogleCast.showCastDialog).toHaveBeenCalled();
   });
 });
+
+describe("cast commands, directly", () => {
+  const TV = { id: "cc-1", name: "Chromecast HD", type: "chromecast" as const };
+
+  it("opens the picker for a device it doesn't know, and before it is bound", () => {
+    const dialog = jest.fn();
+    const sm = fakeSessionManager();
+    const commands = castCommands(dialog);
+    commands.startCasting("cc-1", [TV]);
+    expect(dialog).toHaveBeenCalledTimes(1);
+    commands.bind(sm);
+    commands.startCasting("other", [TV]);
+    expect(dialog).toHaveBeenCalledTimes(2);
+    expect(sm.startSession).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the picker when the session can't start", async () => {
+    const dialog = jest.fn();
+    const sm = fakeSessionManager();
+    sm.startSession.mockRejectedValueOnce(new Error("no route"));
+    const commands = castCommands(dialog);
+    commands.bind(sm);
+    commands.startCasting("cc-1", [TV]);
+    expect(sm.startSession).toHaveBeenCalledWith("cc-1");
+    expect(dialog).not.toHaveBeenCalled();
+    await flush();
+    expect(dialog).toHaveBeenCalledTimes(1);
+  });
+
+  it("stop before binding does nothing, and a failed stop is swallowed", async () => {
+    const commands = castCommands(jest.fn());
+    expect(() => commands.stopCasting()).not.toThrow();
+    const sm = fakeSessionManager();
+    sm.endCurrentSession.mockRejectedValueOnce(new Error("gone"));
+    commands.bind(sm);
+    commands.stopCasting();
+    await flush();
+    expect(sm.endCurrentSession).toHaveBeenCalledWith(true);
+  });
+});
+
+describe("cast sync: ordering", () => {
+  /** A session whose device lookup resolves only when the test says so. */
+  function slowSession(name: string) {
+    let resolve: (d: { deviceId: string; friendlyName: string }) => void = () => {};
+    const s = fakeSession(name, name);
+    return {
+      ...s,
+      getCastDevice: () =>
+        new Promise<{ deviceId: string; friendlyName: string }>((r) => {
+          resolve = r;
+        }),
+      arrive: () => resolve({ deviceId: name, friendlyName: name }),
+    };
+  }
+
+  it("sends the new TV page to the receiver when the game changes it", async () => {
+    const { sm, store } = setup();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/AB" });
+    const session = fakeSession();
+    sm.emitStarted(session);
+    await flush();
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/CD" });
+    store.dispatch({ type: "SET_VIEW_URL", url: "https://game/tv/CD" });
+    store.dispatch({ type: "RESET_ERROR" });
+    await flush();
+    expect(session.sent.map((m) => (m as { viewUrl: string }).viewUrl)).toEqual([
+      "https://game/tv/AB",
+      "https://game/tv/CD",
+    ]);
+  });
+
+  it("a session that ends before its device is known stays ended", async () => {
+    const { sm, store } = setup();
+    const a = slowSession("Den TV");
+    sm.emitStarted(a);
+    sm.emitEnded();
+    a.arrive();
+    await flush();
+    expect(store.getSnapshot().session.status).toBe("disconnected");
+  });
+
+  it("a late answer from an older session never overrides the newer one", async () => {
+    const { sm, store } = setup();
+    const a = slowSession("Den TV");
+    const b = slowSession("Kitchen TV");
+    sm.emitStarted(a);
+    sm.emitEnded();
+    sm.emitStarted(b);
+    b.arrive();
+    await flush();
+    a.arrive();
+    await flush();
+    expect(store.getSnapshot().session.deviceName).toBe("Kitchen TV");
+  });
+
+  it("names the TV from discovery when the session can't say which device it is", async () => {
+    const { sm, store } = setup();
+    store.dispatch({ type: "DEVICES_UPDATED", devices: [TV_ONLY] });
+    const s = { ...fakeSession(), getCastDevice: () => Promise.reject(new Error("no device")) };
+    sm.emitStarted(s);
+    await flush();
+    expect(store.getSnapshot().session).toMatchObject({
+      status: "connected",
+      deviceName: "Only TV",
+    });
+  });
+});
+
+const TV_ONLY = { id: "only", name: "Only TV", type: "chromecast" as const };
