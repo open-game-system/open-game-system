@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { apiKeyAuth } from "./middleware/auth";
 import cast from "./routes/cast";
 import devices from "./routes/devices";
+import households from "./routes/households";
 import notifications from "./routes/notifications";
 import stream from "./routes/stream";
 import { handleScheduled } from "./scheduled";
@@ -30,6 +31,9 @@ app.use("/api/v1/cast/sessions/*", apiKeyAuth);
 app.use("/api/v1/cast/sessions", apiKeyAuth);
 // /api/v1/cast/stream/* is unauthenticated (called by Chromecast receiver)
 app.route("/api/v1/cast", cast);
+
+// Households (OGS app v3 identity): household JWTs, see middleware/household-auth.ts
+app.route("/api/v1/households", households);
 
 // Stream routes (no API key required - called by web games directly)
 app.route("/api/v1/stream", stream);
