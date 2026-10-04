@@ -8,6 +8,7 @@ import catalogue from "./routes/catalogue";
 import couch from "./routes/couch";
 import devices from "./routes/devices";
 import friends from "./routes/friends";
+import games from "./routes/games";
 import instances from "./routes/instances";
 import library from "./routes/library";
 import me from "./routes/me";
@@ -15,6 +16,7 @@ import notifications from "./routes/notifications";
 import profiles from "./routes/profiles";
 import sessions from "./routes/sessions";
 import stream from "./routes/stream";
+import wellKnown from "./routes/well-known";
 import { handleScheduled } from "./scheduled";
 import type { Env } from "./types";
 
@@ -59,6 +61,10 @@ app.route("/api/v1/sessions", sessions);
 
 // Friends (slice 2): invites, requests, the list with presence, friends' casts
 app.route("/api/v1/friends", friends);
+
+// Games know who you are (slice 3): game tokens and OGS's public key
+app.route("/api/v1/games", games);
+app.route("/.well-known", wellKnown);
 
 // Couch session WebSocket (profile or launcher token in ?token=, session in ?session=)
 app.route("/api/v1/couch", couch);

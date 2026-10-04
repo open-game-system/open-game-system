@@ -21,6 +21,11 @@ export interface Env {
   RESEND_BASE_URL?: string;
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
+  /** Game tokens (slice 3): the private ES256 JWK (secret) and where sticker art is served. */
+  OGS_GAME_SIGNING_KEY?: string;
+  AVATAR_BASE_URL?: string;
+  /** Local dev / e2e only: JSON `{ appId: startUrl }` pointing catalogue games at local servers. */
+  CATALOGUE_START_URLS?: string;
   /** Friend invite links and QR codes: `<base>/<token>` (default https://opengame.org/add). */
   INVITE_BASE_URL?: string;
 }

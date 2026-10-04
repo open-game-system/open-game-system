@@ -7,3 +7,8 @@ GOOGLE_ISSUER=http://localhost:4102
 GOOGLE_CLIENT_IDS=ogs-test.apps.googleusercontent.com
 RESEND_BASE_URL=http://localhost:4108
 RESEND_API_KEY=re_local_emulated
+# Game tokens (slice 3): `pnpm game-key` writes a fresh OGS_GAME_SIGNING_KEY (private ES256 JWK) here.
+OGS_GAME_SIGNING_KEY='{"kty":"EC","crv":"P-256","x":"…","y":"…","d":"…","kid":"ogs-local"}'
+AVATAR_BASE_URL=http://localhost:5180
+# Optional: open catalogue games from local dev servers (e2e), JSON { appId: startUrl }.
+# CATALOGUE_START_URLS={"rocket-crew":"http://localhost:8821/"}

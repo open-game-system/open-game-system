@@ -1194,6 +1194,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260317.1
         version: 4.20260317.1
+      '@open-game-system/profile-kit':
+        specifier: workspace:*
+        version: link:../../packages/profile-kit
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.58.2

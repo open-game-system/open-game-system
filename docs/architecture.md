@@ -153,7 +153,10 @@ route → 403 `profile_token_required`.
 | GET | `/api/v1/friends` | phone/tablet | → `Friend[]` = `{ id, handle, name, sticker, presence, since }`; presence `casting{sessionId,tvName,game}` · `playing{sessionId,tvName,game}` · `online` (seen < 5 min) · `offline{lastSeenAt}`; sorted by presence then name |
 | DELETE | `/api/v1/friends/:profileId` | phone/tablet | → 204 (mutual); 404 `friend_not_found` |
 | GET | `/api/v1/friends/casting` | phone/tablet | → `CastingFriend[] { sessionId, tvName, host, game, joined }`: friends hosting a session whose TV is connected, newest first |
-| GET | `/api/v1/catalogue` | none | → `Manifest[]` (the five deployed games, `services/api/src/catalogue.ts`) |
+| GET | `/api/v1/catalogue` | none | → `Manifest[]` (the five deployed games, `services/api/src/catalogue.ts`; local dev/e2e may point start URLs at local servers with `CATALOGUE_START_URLS` = JSON `{ appId: url }`) |
+| POST | `/api/v1/games/:appId/token` | phone/tablet | Game token for the app's WebView → `{ token, profile: { id, handle, name, avatar }, expiresAt }`; 404 `game_not_found`, 403 `profile_token_required` (launcher), 503 `game_tokens_unavailable` |
+| POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
+| GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 
 Sign-in config (wrangler `vars`, `.dev.vars.example`): `APPLE_ISSUER`, `APPLE_CLIENT_IDS`,
@@ -162,6 +165,20 @@ ID tokens are verified RS256 against the issuer's discovery document → JWKS, p
 (one of the client ids), `exp`, and `nonce` when sent. Tests and local dev point these at
 vercel-labs/emulate (`pnpm --filter @open-game-system/api emulate`; integration tests start it on
 4202/4204/4208 in `test/integration/global-setup.ts`).
+
+### Game tokens (slice 3: games know who you are)
+
+A game never sees the app's profile token. It gets an **ES256** JWT for that one game
+(`ogs-protocol` `GameTokenSchema`): `{ iss, aud: appId, sub: profileId, handle, name, avatar, iat,
+exp }` (1 h), plus `sid` and `players` on the TV page's token. Built from the profile row only — no
+friends, other games, device ids, push tokens or age. Signed with the Worker secret
+`OGS_GAME_SIGNING_KEY` (private P-256 JWK + `kid`; `pnpm --filter @open-game-system/api game-key`
+writes one into `.dev.vars`); games verify with `/.well-known/jwks.json` via
+`@open-game-system/profile-kit/server` `verifyOgsToken(token, { appId, jwksUrl })`, which rejects a
+token for another game. `avatar` = `<AVATAR_BASE_URL>/art/story-nook/char-<sticker>.webp`.
+Delivery: the app's game WebView gets an app-bridge store `profile`
+(`{ status: asking | ready(profile) | none }`, refreshed 5 min before expiry); the launcher puts the
+session token and players into `ogs:start` and re-sends it when the frame says `ogs:ready`.
 
 ### Couch session WebSocket
 

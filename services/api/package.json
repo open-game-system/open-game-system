@@ -15,7 +15,8 @@
     "test:e2e": "playwright test",
     "db:local": "wrangler d1 execute opengame-api-db --local --file=schema.sql",
     "dev:local": "wrangler dev --enable-containers=false",
-    "emulate": "node scripts/emulate.mjs"
+    "emulate": "node scripts/emulate.mjs",
+    "game-key": "node scripts/game-key.mjs"
   },
   "dependencies": {
     "@cloudflare/containers": "^0.1.1",
@@ -26,6 +27,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.13.2",
     "@cloudflare/workers-types": "^4.20260317.1",
+    "@open-game-system/profile-kit": "workspace:*",
     "@playwright/test": "^1.58.2",
     "@vitest/coverage-v8": "^4.1.0",
     "emulate": "0.12.1",

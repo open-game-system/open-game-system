@@ -6,7 +6,8 @@
   "compatibility_flags": ["nodejs_compat", "nodejs_compat_populate_process_env"],
   "account_id": "ccf4d9a0a3b76ffae0b6ee048de66f07",
 
-  // Sign-in providers (OGS profiles). Secrets (RESEND_API_KEY, OGS_JWT_SECRET) are set with
+  // Sign-in providers (OGS profiles). Secrets (RESEND_API_KEY, OGS_JWT_SECRET, and
+  // OGS_GAME_SIGNING_KEY: `node scripts/game-key.mjs --print | wrangler secret put OGS_GAME_SIGNING_KEY`) are set with
   // `wrangler secret put`; local dev overrides these in .dev.vars (see .dev.vars.example).
   "vars": {
     "APPLE_ISSUER": "https://appleid.apple.com",
@@ -14,7 +15,9 @@
     "GOOGLE_ISSUER": "https://accounts.google.com",
     "GOOGLE_CLIENT_IDS": "",
     "RESEND_BASE_URL": "https://api.resend.com",
-    "EMAIL_FROM": "OGS <hello@opengame.org>"
+    "EMAIL_FROM": "OGS <hello@opengame.org>",
+    // Game tokens: avatars are the launcher's painted stickers (<base>/art/story-nook/char-<sticker>.webp).
+    "AVATAR_BASE_URL": "https://tv.opengame.org"
   },
 
   "triggers": {

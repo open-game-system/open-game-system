@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { areFriends } from "../lib/friends";
+import { couchOf, grantFor, playersOf } from "../lib/game-grants";
 import { apiError, invalidBody, parseBody } from "../lib/http";
 import { issueToken, LAUNCHER_TOKEN_TTL_S } from "../lib/identity";
 import { getProfile, isUniqueViolation } from "../lib/profiles";
@@ -107,6 +108,28 @@ sessions.post("/:sid/join", async (c) => {
       .run();
   }
   return c.json(view);
+});
+
+/**
+ * POST /sessions/:sid/game-token — the launcher's token for the game it frames: `{ appId }` →
+ * `{ token, players, expiresAt }` (aud = appId, sid, everyone on the couch; sub = the host).
+ */
+const GameTokenBody = z.object({ appId: z.string().min(1) });
+sessions.post("/:sid/game-token", async (c) => {
+  const body = await parseBody(c, GameTokenBody);
+  if (!body) return invalidBody(c, "appId is required");
+  const db = c.env.DB;
+  const row = await getSession(db, c.req.param("sid"));
+  if (!row) return apiError(c, 404, "session_not_found", "Session not found");
+  if (!(await mayEnter(db, c.get("claims"), row)))
+    return apiError(c, 403, "not_a_member", "Join this TV with its code first");
+  const couch = await couchOf(db, row.id, row.host_profile_id);
+  const host = couch.find((p) => p.id === row.host_profile_id);
+  if (!host) return apiError(c, 404, "profile_not_found", "Profile not found");
+  const players = playersOf(c.env, couch);
+  const grant = await grantFor(c, body.appId, host, { sid: row.id, players });
+  if (grant instanceof Response) return grant;
+  return c.json({ ...grant, players });
 });
 
 /** GET /sessions/:sid — TV name, host and code, for its launcher, its host and its members. */

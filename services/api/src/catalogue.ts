@@ -1,4 +1,5 @@
 import { type Manifest, ManifestSchema } from "@open-game-system/ogs-protocol";
+import { z } from "zod";
 
 /**
  * The OGS catalogue: the five deployed family games. All are room-based, so none has a static
@@ -134,3 +135,24 @@ export const catalogueIds = (): string[] => CATALOGUE.map((m) => m.appId);
 
 export const findManifest = (appId: string): Manifest | undefined =>
   CATALOGUE.find((m) => m.appId === appId);
+
+const StartUrlsSchema = z.record(z.string(), z.string().url());
+
+/**
+ * The catalogue with local start URLs (`CATALOGUE_START_URLS` = JSON `{ appId: url }`), so a dev
+ * stack or an e2e run can open a game served on localhost. Never adds games; a malformed value is
+ * ignored. Production leaves it unset.
+ */
+export function catalogueFor(env: { CATALOGUE_START_URLS?: string }): readonly Manifest[] {
+  if (!env.CATALOGUE_START_URLS) return CATALOGUE;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(env.CATALOGUE_START_URLS);
+  } catch {
+    return CATALOGUE;
+  }
+  const parsed = StartUrlsSchema.safeParse(raw);
+  if (!parsed.success) return CATALOGUE;
+  const urls = parsed.data;
+  return CATALOGUE.map((m) => (urls[m.appId] ? { ...m, startUrl: urls[m.appId] } : m));
+}
