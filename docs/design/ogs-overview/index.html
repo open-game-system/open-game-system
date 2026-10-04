@@ -243,7 +243,7 @@ flowchart LR
     <div class="flow"><h3>Rejoin</h3><ol><li>Tap Rejoin (pill, Playing, or the game page)</li><li>Same room code, same seat, no name prompt</li><li>TV frames the same room</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Twice in a row, no recast.</p></div>
     <div class="flow"><h3>Switch games</h3><ol><li>Start Bake Shop while Rocket Crew is paused</li><li>Bake Shop frames in the same stream</li><li>Rocket Crew keeps its place</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Casts stays 1.</p></div>
     <div class="flow"><h3>Two of the same game</h3><ol><li>Start a second Rocket Crew from its page</li><li>Both show as separate sittings</li><li>Each Rejoin opens its own room</li></ol><p class="proof"><span class="chip s-done">Verified</span><br>Labels look alike until games report one.</p></div>
-    <div class="flow"><h3>Friend is casting</h3><ol><li>A push when a friend starts casting (if switched on)</li><li>Join card on top of Playing</li><li>Anyone else joins with the code on the TV</li></ol><p class="proof"><span class="chip s-plan">Designed</span><br>Slice 2.</p></div>
+    <div class="flow"><h3>Friend is casting</h3><ol><li>Your friend casts; a Join card shows on top of your Playing tab</li><li>Tap Join to be on that couch</li><li>Anyone else joins with the code on the TV</li></ol><p class="proof"><span class="chip s-plan">Designed</span><br>Slice 2.</p></div>
   </div>
   <figure>
     <video src="media/phone-and-tv.mp4" controls muted playsinline preload="metadata"></video>
@@ -274,7 +274,7 @@ flowchart LR
   <header>
     <p class="eyebrow">Profiles and friends</p>
     <h2>You have an OGS profile. Games know your name.</h2>
-    <p class="prose muted">Onboarding makes your profile once: name, @id, sticker. Every game you open gets a token with it, so Rocket Crew stops asking "Who's playing here?". Full spec: <code>docs/product-specs/ogs-profiles.html</code>.</p>
+    <p class="prose muted">First priority: casting, profile setup and friends. Onboarding makes your profile once: name, @id, sticker. Every game you open gets a token with it, so Rocket Crew stops asking "Who's playing here?". Full spec: <code>docs/product-specs/ogs-profiles.html</code>.</p>
   </header>
   <div class="tablewrap"><table class="words">
     <thead><tr><th>Decision</th><th>Chosen</th></tr></thead>
@@ -282,7 +282,7 @@ flowchart LR
       <tr><td>Profile id</td><td>A unique <span class="id">@id</span>, pre-filled from your name, editable</td></tr>
       <tr><td>Kids</td><td>Full profiles for everyone, like Roblox, Minecraft and Steam. A grown-up types the name on a kid's iPad. Family (parental controls, plans) comes later.</td></tr>
       <tr><td>Profiles per device</td><td>One for now; switching later</td></tr>
-      <tr><td>Joining a cast</td><td>No automatic joining. Friends tap Join; others use the TV code. Pushes when friends start casting or join your game, each with a switch.</td></tr>
+      <tr><td>Joining a cast</td><td>No automatic joining. Friends tap Join; others use the TV code. Later: a push when a friend starts a new game, with a switch.</td></tr>
       <tr><td>What a game sees</td><td>Your profile id, @id, name and avatar</td></tr>
       <tr><td>Age</td><td>Not shared with games</td></tr>
       <tr><td>Losing a phone</td><td>Back up with Apple, Google or email, offered after onboarding. Tested end to end with local emulators.</td></tr>
@@ -315,8 +315,9 @@ flowchart LR
     <tr><td>Remote redesign, TV picker, Stop casting</td><td>Round 1 of 3</td><td><span class="chip s-wip">Iterating</span></td></tr>
     <tr><td>Five tabs; tab labels above the home indicator</td><td>Fix in progress</td><td><span class="chip s-wip">In progress</span></td></tr>
     <tr><td>Profiles + sign-in (slice 1)</td><td>API, onboarding, Profile tab, emulator tests</td><td><span class="chip s-wip">In progress</span></td></tr>
-    <tr><td>Friends + pushes (slice 2)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
+    <tr><td>Friends (slice 2)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
     <tr><td>Games get your profile; sitting labels (slice 3)</td><td>Designed</td><td><span class="chip s-plan">Next</span></td></tr>
+    <tr><td>Pushes ("a friend started a new game")</td><td>After casting, profiles and friends</td><td><span class="chip s-plan">Later</span></td></tr>
     <tr><td>Real Chromecast + your phone, iPad, TV</td><td>Needs deploy</td><td><span class="chip s-you">Needs you</span></td></tr>
   </tbody></table></div>
 </section>

@@ -290,7 +290,7 @@ td.area { font-weight: 700; white-space: nowrap }
         <div class="person"><span class="av bear">bear</span><div>Jonathan<div class="meta">@jonathan.m · Edit</div></div></div>
         <div class="banner" style="border-color:var(--ember);background:var(--ember-soft);color:var(--ember)">Not backed up<span class="btn" style="background:var(--ember);border-color:var(--ember)">Back up</span></div>
         <div class="lbl">Notify me when</div>
-        <div class="set"><div>A friend starts casting</div><span class="sw on"></span></div>
+        <div class="set"><div>A friend starts a new game</div><span class="sw on"></span></div>
         <div class="set"><div>A friend joins a game I'm in</div><span class="sw on"></span></div>
         <div class="set"><div>It's my turn</div><span class="sw on"></span></div>
         <div class="set"><div>Settings<div class="meta">TV, privacy, about</div></div></div>
@@ -497,7 +497,7 @@ RESEND_BASE_URL=http://localhost:…/resend</pre>
       <tr><td class="area">API routes</td><td class="del"><code>/households</code>, <code>/:hid/devices</code>, <code>/:hid/launcher-token</code>, <code>/:hid/library</code>, <code>/:hid/instances</code></td><td class="new"><code>POST /profiles</code> · <code>GET/PATCH /me</code> · <code>POST /auth/apple</code>, <code>/auth/google</code>, <code>/auth/email/start</code>, <code>/auth/email/verify</code> · <code>/friends</code> (invite, accept, list, remove) · <code>POST /sessions</code>, <code>/sessions/:sid/join</code> · <code>POST /games/:appId/token</code> · <code>/me/library</code>, <code>/me/instances</code> · <code>GET/PUT /me/notifications</code> · <code>/.well-known/jwks.json</code></td></tr>
       <tr><td class="area">schema.sql</td><td class="del"><code>households</code>, <code>household_people</code>, <code>household_devices</code></td><td class="new"><code>profiles(id, handle, name, sticker)</code>, <code>profile_logins(provider, subject, profile_id)</code>, <code>profile_devices</code>, <code>friendships</code>, <code>friend_invites</code>, <code>notification_settings</code>; library and instances keyed by profile</td></tr>
       <tr><td class="area">CouchSession DO</td><td><code>idFromName(hid)</code></td><td><code>idFromName(sessionId)</code>; join allowed for host, host's friends, or holder of the TV code</td></tr>
-      <tr><td class="area">Push</td><td>Turn pushes only</td><td>"Friend is casting" and "friend joined your game", each behind its own setting</td></tr>
+      <tr><td class="area">Push</td><td>Turn pushes only</td><td>Later (not in the first slices): "a friend started a new game", behind its own setting</td></tr>
       <tr><td class="area">Mobile app</td><td class="del"><code>FamilyStep</code>, <code>DEFAULT_FAMILY</code>, "Our family", three tabs</td><td class="new"><code>ProfileStep</code>, five tabs (Friends, Profile added), Add a friend, Join card, Back up (Apple, Google, email), notification switches; <code>Identity = { profile, token }</code></td></tr>
       <tr><td class="area">TV launcher</td><td>"&lt;household&gt;'s living room"</td><td>"&lt;TV&gt; · &lt;host&gt;'s games", members who joined, join QR in the corner</td></tr>
       <tr><td class="area">Rocket Crew</td><td>NameGate always</td><td>NameGate only when <code>useOgsProfile()</code> is null</td></tr>
@@ -510,7 +510,7 @@ RESEND_BASE_URL=http://localhost:…/resend</pre>
       <p style="margin:8px 0 0;font-size:14px"><code>2026-03-15-ogs-app-onboarding.feature</code>: profile page between pages 2 and 3; completion offers Back up.</p>
     </div>
     <div class="panel"><span class="tag">Acceptance: new ogs-profiles.feature</span>
-      <p style="margin:8px 0 0;font-size:14px">Create a profile · taken @id suggests another · set up a profile on another device without sign-in · back up with Apple / Google / email (emulated) · sign in on a new phone restores @id and friends · add a friend by QR / code / link / @id · request shows in Friends · friend sees Join while you cast · casting push respects its switch · friend-joined push · non-friend joins by TV code · game gets the name, no form · TV page gets players · game gets profile id and @id · game A's token rejected by game B · token has no friends and no age · plain browser falls back to NameGate.</p>
+      <p style="margin:8px 0 0;font-size:14px">Create a profile · taken @id suggests another · set up a profile on another device without sign-in · back up with Apple / Google / email (emulated) · sign in on a new phone restores @id and friends · add a friend by QR / code / link / @id · request shows in Friends · friend sees Join while you cast · non-friend joins by TV code · game gets the name, no form · TV page gets players · game gets profile id and @id · game A's token rejected by game B · token has no friends and no age · plain browser falls back to NameGate.</p>
     </div>
   </div>
 </section>
@@ -522,7 +522,7 @@ RESEND_BASE_URL=http://localhost:…/resend</pre>
   <div class="done">
     <div class="panel"><span class="qn">Q1</span><div><b>Unique @id</b> <span class="t2">pre-filled from the name, editable</span></div></div>
     <div class="panel"><span class="qn">Q2</span><div><b>Everyone gets a full profile</b> <span class="t2">no kids concept; Family is later</span></div></div>
-    <div class="panel"><span class="qn">Q3</span><div><b>No automatic joining</b> <span class="t2">friends tap Join, others use the TV code; pushes with switches</span></div></div>
+    <div class="panel"><span class="qn">Q3</span><div><b>No automatic joining</b> <span class="t2">friends tap Join, others use the TV code; pushes later ("a friend started a new game")</span></div></div>
     <div class="panel"><span class="qn">Q4</span><div><b>Games get your profile id, @id, name and avatar</b> <span class="t2">tokens stay scoped to one game</span></div></div>
     <div class="panel"><span class="qn">Q5</span><div><b>No age to games</b> <span class="t2">name and sticker only</span></div></div>
     <div class="panel"><span class="qn">Q6</span><div><b>Apple, Google or email</b> <span class="t2">offered after onboarding, not required</span></div></div>
