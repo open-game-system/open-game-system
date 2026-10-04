@@ -1,9 +1,10 @@
 import type { SuspendedGame } from "@open-game-system/ogs-protocol";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { FIXTURE_GAMES, fixtureInstances } from "../session/fixture";
 import {
   buildHome,
   forKids,
+  type HomeModel,
   homeFocusRows,
   homeMove,
   iconArt,
@@ -31,11 +32,15 @@ const kit = (appId: string) => ({
 });
 
 describe("home: a row of game icons, the room, activity cards", () => {
-  const home = buildHome({
-    games: FIXTURE_GAMES,
-    instances: fixtureInstances(NOW),
-    suspended,
-    now: NOW,
+  // Built per test, not at collection: a throw while collecting skips the file silently under Stryker.
+  let home: HomeModel;
+  beforeEach(() => {
+    home = buildHome({
+      games: FIXTURE_GAMES,
+      instances: fixtureInstances(NOW),
+      suspended,
+      now: NOW,
+    });
   });
 
   it("lists every TV game once as an icon, paused sittings first (Continue order)", () => {
@@ -235,6 +240,40 @@ describe("for the kids", () => {
     });
     const kinds = h.cards.map((c) => (c.kind === "sitting" ? c.upcoming : c.kind));
     expect(kinds).toEqual([false, "surprise", true]);
+  });
+});
+
+describe("home, in detail", () => {
+  const base = FIXTURE_GAMES[0];
+  if (!base) throw new Error("fixture");
+
+  it("counts ages that don't start with a number as not saying (kid-friendly)", () => {
+    expect(forKids({ ...base, shop: { ages: "Ages 10+" } })).toBe(true);
+  });
+
+  it("gives each icon its logo, or none", () => {
+    const noLogo = { ...base, appId: "plain", art: { tile: "/art/plain/tv.jpg" } };
+    const h = buildHome({ games: [base, noLogo], instances: [], suspended: [], now: NOW });
+    expect(h.icons.map((i) => i.logo)).toEqual([`/art/${base.appId}/logo.png`, null]);
+  });
+
+  it("Surprise me needs exactly two kid-friendly games, and shows and picks from them", () => {
+    const two = FIXTURE_GAMES.slice(0, 2);
+    const h = buildHome({ games: two, instances: [], suspended: [], now: NOW });
+    const surprise = h.cards.find((c) => c.kind === "surprise");
+    expect(surprise?.kind === "surprise" && surprise.pool).toEqual(two.map((g) => g.appId));
+    expect(surprise?.kind === "surprise" && surprise.icons).toEqual(h.icons.map((i) => i.icon));
+  });
+
+  it("the icon row's focus items are the icons' item ids", () => {
+    const h = buildHome({ games: FIXTURE_GAMES, instances: [], suspended: [], now: NOW });
+    expect(homeFocusRows(h)[0]?.items).toEqual(h.icons.map((i) => i.itemId));
+  });
+
+  it("an unknown focus recovers like the focus grid, and a home with no card row stays put", () => {
+    const rows = [{ id: "games", items: ["game:a", "game:b"] }];
+    expect(homeMove(rows, "game:gone", "down", null)).toBe("game:a");
+    expect(homeMove(rows, "game:a", "down", null)).toBe("game:a");
   });
 });
 

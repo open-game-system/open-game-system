@@ -16,6 +16,7 @@ export function playersOf(
   state: Pick<SessionState, "members" | "rosters">,
   appId: string,
 ): Member[] {
+  // Stryker disable next-line ArrayDeclaration: equivalent, a string roster entry has no profileId and matches no member
   const roster = state.rosters[appId] ?? [];
   return state.members.filter((m) => roster.some((r) => r.profileId === m.profileId));
 }

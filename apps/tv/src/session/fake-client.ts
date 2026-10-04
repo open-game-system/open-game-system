@@ -25,12 +25,14 @@ const [JONATHAN, MOM, JUNEAU] = FIXTURE_MEMBERS;
 function seed(now: number, fresh: boolean): SessionState {
   const played: [ClientMessage, number][] = [
     [{ type: "game.start", appId: "bake-shop", mode: "new" }, now - 3 * DAY],
+    // Stryker disable next-line ArithmeticOperator: equivalent, the reducer does not record when a resume point arrived
     [{ type: "game.resume-point", appId: "bake-shop", label: "Day 4" }, now - 3 * DAY],
     [{ type: "home" }, now - 3 * DAY + 40 * 60 * 1000],
   ];
   const steps: [ClientMessage, number][] = [
     [
       { type: "hello", deviceId: "jonathan-phone", kind: "phone", profile: JONATHAN },
+      // Stryker disable next-line ArithmeticOperator: equivalent, the reducer does not record when a device said hello
       now - 3 * DAY,
     ],
     ...(fresh ? [] : played),

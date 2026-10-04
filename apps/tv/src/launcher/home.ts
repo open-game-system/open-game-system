@@ -101,6 +101,7 @@ export function buildHome(input: {
   const boxes = rows.flatMap((r) => r.boxes);
   const icons: IconModel[] = boxes.flatMap((b) => {
     const g = byId.get(b.appId);
+    // Stryker disable next-line ConditionalExpression,ArrayDeclaration: equivalent, every box comes from input.games
     if (!g) return [];
     return [
       {
@@ -116,11 +117,13 @@ export function buildHome(input: {
       },
     ];
   });
+  // Stryker disable next-line MethodExpression: equivalent, the flatMap below drops boxes without a sitting too
   const cards: CardModel[] = boxes
     .filter((b) => b.instanceId)
     .slice(0, MAX_SITTINGS)
     .flatMap((b) => {
       const g = byId.get(b.appId);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent, the filter above keeps only boxes with a sitting, all from input.games
       return g && b.instanceId
         ? [
             {
@@ -134,11 +137,13 @@ export function buildHome(input: {
               upcoming: b.tag.startsWith("Tonight"),
             },
           ]
-        : [];
+        : // Stryker disable next-line ArrayDeclaration: equivalent, unreachable after the filter above
+          [];
     });
   // Surprise me sits right after the latest sitting: the kids' button is never at the far end.
   const kids = icons.filter((i) => {
     const g = byId.get(i.appId);
+    // Stryker disable next-line BooleanLiteral: equivalent, every icon's game is in input.games
     return g ? forKids(g) : false;
   });
   const recent = input.suspended[0]?.appId ?? null;
@@ -193,6 +198,7 @@ const firstCard = (rows: FocusRow[]): string | undefined => rows[1]?.items[0];
 
 /** The icon the ring came down from, while it is still on screen; else the first icon. */
 function iconAbove(rows: FocusRow[], lastIcon: string | null): string | undefined {
+  // Stryker disable next-line OptionalChaining,ArrayDeclaration: equivalent, reached only from row 1, so row 0 exists
   const icons = rows[0]?.items ?? [];
   return lastIcon && icons.includes(lastIcon) ? lastIcon : icons[0];
 }

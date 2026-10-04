@@ -99,6 +99,18 @@ describe("boot, fake mode", () => {
     boot({ mode: "fake", hold: true }, "");
     expect(window.__launcherBootId).toBe(id);
   });
+
+  it("a fresh world has nothing played: no sittings and no paused games", async () => {
+    const b = boot({ mode: "fake", hold: false, fresh: true }, "");
+    expect(b.client.getSnapshot().state?.suspended).toEqual([]);
+    expect((await b.data).instances).toEqual([]);
+  });
+
+  it("the usual world has the evening's sittings and Bake Shop paused", async () => {
+    const b = boot({ mode: "fake", hold: false }, "");
+    expect(b.client.getSnapshot().state?.suspended.map((g) => g.appId)).toEqual(["bake-shop"]);
+    expect((await b.data).instances).toHaveLength(2);
+  });
 });
 
 describe("boot, live mode", () => {
