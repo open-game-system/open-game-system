@@ -79,7 +79,7 @@ a { color: var(--ember) }
     </div>
     <span class="tag">New: switching games</span>
     <div class="lane">
-      <span class="chip">Open OGS</span><span class="arrow">→</span><span class="chip good">Cast once</span><span class="arrow">→</span><span class="chip">Launcher on TV</span><span class="arrow">→</span><span class="chip">Rocket Crew</span><span class="arrow">→</span><span class="chip">Swipe back</span><span class="arrow">→</span><span class="chip">Bake Shop</span><span class="arrow">→</span><span class="chip good">Same stream · iPads follow</span>
+      <span class="chip">Open OGS</span><span class="arrow">→</span><span class="chip good">Cast once</span><span class="arrow">→</span><span class="chip">Launcher on TV</span><span class="arrow">→</span><span class="chip">Rocket Crew <span style="color:var(--ink-2)">(tap it on the phone, or pick it on the TV)</span></span><span class="arrow">→</span><span class="chip">Swipe back</span><span class="arrow">→</span><span class="chip">Bake Shop</span><span class="arrow">→</span><span class="chip good">Same stream · iPads follow</span>
     </div>
   </div>
 </section>
@@ -186,7 +186,7 @@ stateDiagram-v2
       <tbody>
         <tr><td>Phone → session</td><td><code>focus.move</code> · <code>focus.set</code></td><td>direction · item id</td><td>Remote swipe / browse tap</td></tr>
         <tr><td>Phone → session</td><td><code>select</code> · <code>back</code> · <code>home</code></td><td>none</td><td>OK and Back on the remote; <code>home</code> when the game screen is swiped away</td></tr>
-        <tr><td>Phone → session</td><td><code>game.start</code></td><td>gameId, mode (continue | new), roster [person → role]</td><td>Start on the game page</td></tr>
+        <tr><td>Phone → session</td><td><code>game.start</code></td><td>gameId, mode (continue | new), roster [person → role]</td><td>Start on the game page, from the TV (remote) or the phone (Games). Same message either way</td></tr>
         <tr><td>Session → launcher</td><td><code>state</code></td><td>screen, focus, roster, current game, suspended games</td><td>Every change</td></tr>
         <tr><td>Launcher → game frame</td><td><code>ogs:start</code> · <code>ogs:suspend</code> · <code>ogs:resume</code></td><td>resume point, roster</td><td>Launch, swipe back, Continue</td></tr>
         <tr><td>Game frame → launcher</td><td><code>ogs:ready</code> · <code>ogs:resume-point</code></td><td>label ("Mission 6"), save version</td><td>Loaded; on suspend</td></tr>
@@ -272,6 +272,10 @@ const F=[
 ['Browse: tap a game on the phone; the TV focus jumps to it.',tv(launcher(2,'Bake Shop')),ph(`${w('Browse')}<div class="tile" style="height:13px"></div><div class="tile" style="height:13px"></div><div class="tile focus" style="height:13px"></div><div class="tile" style="height:13px"></div>`)],
 ['Remote: swipe or d-pad moves the ring on the TV.',tv(launcher(3,'Story Nook')),ph(`${w('Remote')}${pad}`)],
 ['OK opens the game page: resume point, who played, Continue or New.',tv(`<div class="row" style="height:100%;gap:8px"><div class="tile" style="flex:1"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Rocket Crew')}${w('Mission 6')}<div>${dots(3)}</div>${btn('Continue',1)}${btn('New')}</div></div>`),ph(`${w('Remote')}${pad}`)]]],
+['2b · Or launch from the phone (no remote needed)',[
+['Games on the phone: tap Rocket Crew.',tv(launcher(0,'Rocket Crew')),ph(`${w('Games')}<div class="tile focus" style="height:13px"></div><div class="tile" style="height:13px"></div><div class="tile" style="height:13px"></div><div class="tile" style="height:13px"></div>`)],
+['Same game page on the phone and the TV: Continue mission 6 or New.',tv(`<div class="row" style="height:100%;gap:8px"><div class="tile" style="flex:1"></div><div style="flex:1;display:flex;flex-direction:column;gap:5px">${w('Rocket Crew')}${w('Mission 6')}${btn('Continue',1)}</div></div>`),ph(`${w('Rocket Crew')}<div class="tile" style="height:30px"></div>${w('Mission 6')}<div style="flex:1"></div>${btn('Continue',1)}`)],
+['The TV switches to Rocket Crew; the phone becomes the Captain. One game.start, whichever screen it came from.',tv(`<div class="tile" style="height:100%"></div>`),ph(`${w('Captain')}<div class="tile" style="flex:1"></div>${w('← swipe back')}`),ip(`<div class="tile" style="width:26px;height:26px"></div><div class="tile" style="width:26px;height:26px"></div>`)]]],
 ['3 · Who’s playing',[
 ['The TV asks who’s playing; last night’s roles are preset.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:7px">${w('Who’s playing?')}<div>${dots(4)}</div>${w('Captain · Fixer · Helper')}</div>`),ph(`${w('People')}<div>${dots(4)}</div><div style="flex:1"></div>${btn('Start',1)}`)],
 ['Each kid iPad lights up as its child is picked.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:7px">${w('Juneau joining')}<div>${dots(4)}</div></div>`),'',ip(`<span class="dot" style="width:28px;height:28px"></span>`)]]],
