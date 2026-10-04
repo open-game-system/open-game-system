@@ -2,14 +2,14 @@
 // follows by name. Nobody scans, nobody picks a role.
 import type { Store } from "../../../harness/store";
 import { gameById } from "../../../world";
-import { resumePoint, seatPlan, type S, type Switching as Sw } from "../state";
+import { pointIn, seatPlan, type S, type Switching as Sw } from "../state";
 import { Portrait } from "../ui/Brand";
 import { GameArt } from "../ui/GameArt";
 import { Battery, Check, Moon, PhoneIcon, Spinner, TabletIcon } from "../ui/Icons";
 
 const STEP = { saving: 0, cutover: 1, following: 2 };
 
-export function Switching({ sw, asleep, store }: { sw: Sw; asleep: string[]; store: Store<S> }) {
+export function Switching({ s, sw, asleep, store }: { s: S; sw: Sw; asleep: string[]; store: Store<S> }) {
   const from = gameById(sw.from);
   const to = gameById(sw.to);
   const step = STEP[sw.phase];
@@ -21,7 +21,7 @@ export function Switching({ sw, asleep, store }: { sw: Sw; asleep: string[]; sto
           <GameArt gameId={from.id} alt />
           <span className="cx-switch__saved">
             {step === 0 ? <Spinner size={16} /> : <Check size={16} />}
-            {step === 0 ? "Saving" : `Saved · ${resumePoint(from.id)}`}
+            {step === 0 ? "Saving" : `Saved · ${pointIn(s, from.id)}`}
           </span>
         </div>
         <div className="cx-switch__arrow" aria-hidden>
@@ -32,10 +32,10 @@ export function Switching({ sw, asleep, store }: { sw: Sw; asleep: string[]; sto
         </div>
       </div>
       <h2 className="cx-switch__title">
-        {step === 0 ? `Saving ${from.name}, ${resumePoint(from.id).toLowerCase()}` : step === 1 ? `${to.name} is coming up on the TV` : "Everyone's moving over"}
+        {step === 0 ? `Saving ${from.name}, ${pointIn(s, from.id).toLowerCase()}` : step === 1 ? `${to.name} is coming up on the TV` : "Everyone's moving over"}
       </h2>
       <p className="cx-switch__sub">
-        {to.name} · {resumePoint(to.id)} · Living room TV
+        {to.name} · {pointIn(s, to.id)} · Living room TV
       </p>
       <ul className="cx-seats">
         {seats.map((x, i) => {

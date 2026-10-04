@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import type { Store } from "../../../harness/store";
 import { HOME, NANA, OKAFORS, gameById, person } from "../../../world";
-import { castAndPlay, gameName, hereTonight, resumePoint, seatPlan, type S } from "../state";
+import { castAndPlay, gameName, hereTonight, pointIn, seatPlan, type S } from "../state";
 import { GameArt } from "../ui/GameArt";
 import { TabletIcon } from "../ui/Icons";
 import type { Fault, FaultPhase } from "./fault";
@@ -45,7 +45,7 @@ export function EdgePhone({ s, store, f, children }: { s: S; store: Store<S>; f:
 
 function TvTrouble({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; children: ReactNode }) {
   const gameId = s.onTv ?? "rocket-crew";
-  const point = resumePoint(gameId);
+  const point = pointIn(s, gameId);
   const name = gameName(gameId);
   const lost = f.kind === "cast-lost";
   if (f.phase === "recovered") {
@@ -99,7 +99,7 @@ function TvTrouble({ s, store, f, children }: { s: S; store: Store<S>; f: Fault;
 
 function RemoteHandoff({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; children: ReactNode }) {
   const gameId = s.onTv ?? "rocket-crew";
-  const point = resumePoint(gameId);
+  const point = pointIn(s, gameId);
   const name = gameName(gameId);
   if (f.phase === "now") {
     return (
@@ -150,7 +150,7 @@ function KidOffline({ s, f, children }: { s: S; f: Fault; children: ReactNode })
   const dev = HOME.devices.find((d) => d.id === f.subject);
   const kid = person(dev?.personId ?? "juneau");
   const his = kid.id === "ava" ? "her" : "his";
-  const point = resumePoint(s.onTv ?? "rocket-crew");
+  const point = pointIn(s, s.onTv ?? "rocket-crew");
   if (f.phase === "recovered") {
     return (
       <Banner tone="ok" line={`${kid.name} is back in ${his} seat`} sub={`${dev?.name ?? "The iPad"} rejoined at ${point} by itself.`}>
@@ -389,7 +389,7 @@ function GameDown({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; 
   const back = "rocket-crew";
   if (f.phase === "recovered") {
     return (
-      <Banner tone="ok" line={`${gameName(back)} at ${resumePoint(back)}`} sub={`We'll tell you when ${gameName(down)} is back. Day 4 is safe.`}>
+      <Banner tone="ok" line={`${gameName(back)} at ${pointIn(s, back)}`} sub={`We'll tell you when ${gameName(down)} is back. Day 4 is safe.`}>
         {children}
       </Banner>
     );
@@ -401,12 +401,12 @@ function GameDown({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; 
       title={gameName(down)}
       where="Living room TV · console home"
       gameId={down}
-      pointLabel={`Saved · ${resumePoint(down)}`}
+      pointLabel={`Saved · ${pointIn(s, down)}`}
       line={`${gameName(down)} isn't answering.`}
-      sub={`Its server is down, not your save: ${resumePoint(down).toLowerCase()} is safe in OGS. The TV stays on the console.`}
+      sub={`Its server is down, not your save: ${pointIn(s, down).toLowerCase()} is safe in OGS. The TV stays on the console.`}
       rows={[
         { key: "srv", icon: <TvGlyph />, name: `${gameName(down)}'s server`, note: "Tried 3 times · checking every minute", state: "off" },
-        { key: "rc", icon: <span className="eg-thumb"><GameArt gameId={back} /></span>, name: gameName(back), note: `Ready · ${resumePoint(back)}`, state: "ok" },
+        { key: "rc", icon: <span className="eg-thumb"><GameArt gameId={back} /></span>, name: gameName(back), note: `Ready · ${pointIn(s, back)}`, state: "ok" },
       ]}
       action={
         <Btn
@@ -414,7 +414,7 @@ function GameDown({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; 
           busy={recovering}
           onClick={() => store.update((x) => ({ ...x, onTv: back, tvFocus: back, phone: "controller", fault: x.fault ? { ...x.fault, phase: "recovering" } : null }))}
         >
-          {recovering ? `Starting ${gameName(back)}` : `Play ${gameName(back)} · ${resumePoint(back)}`}
+          {recovering ? `Starting ${gameName(back)}` : `Play ${gameName(back)} · ${pointIn(s, back)}`}
         </Btn>
       }
     />
@@ -427,7 +427,7 @@ function NoTv({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; chil
   const gameId = s.tvFocus;
   if (f.phase === "recovered") {
     return (
-      <Banner tone="ok" line="Found the Living room TV" sub={`${gameName(gameId)} is coming up at ${resumePoint(gameId)}.`}>
+      <Banner tone="ok" line="Found the Living room TV" sub={`${gameName(gameId)} is coming up at ${pointIn(s, gameId)}.`}>
         {children}
       </Banner>
     );
@@ -437,9 +437,9 @@ function NoTv({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; chil
   return (
     <Page
       title="Tonight"
-      where={`${gameName(gameId)} · ${resumePoint(gameId)}`}
+      where={`${gameName(gameId)} · ${pointIn(s, gameId)}`}
       gameId={gameId}
-      pointLabel={`Ready · ${resumePoint(gameId)}`}
+      pointLabel={`Ready · ${pointIn(s, gameId)}`}
       glyph="none"
       line={recovering ? "Looking for the Living room TV" : "Can't find the Living room TV."}
       sub={recovering ? "Still looking. It shows up here as soon as it's on." : "It may be off, or on another Wi-Fi. Turn it on and it shows up here by itself."}

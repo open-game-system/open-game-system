@@ -2,13 +2,13 @@
 // the bottom edge, never in the game's focal area, and the small corner chip it collapses into
 // within ~2 s so the game owns the TV again.
 import { gameById } from "../../../world";
-import { resumeDetail, resumePoint } from "../state";
+import { detailIn, pointIn, type S } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
 import { Roster, type SeatView } from "./Roster";
 
-export function NowBand({ gameId, kicker, seats, settle, stagger = 0 }: { gameId: string; kicker: string; seats: SeatView[]; settle: boolean; stagger?: number }) {
+export function NowBand({ s, gameId, kicker, seats, settle, stagger = 0 }: { s: S; gameId: string; kicker: string; seats: SeatView[]; settle: boolean; stagger?: number }) {
   const g = gameById(gameId);
-  const detail = resumeDetail(gameId);
+  const detail = detailIn(s, gameId);
   return (
     <div className={`ct-band ${settle ? "ct-band--settle" : ""}`}>
       <div className="ct-band__scrim" />
@@ -17,7 +17,7 @@ export function NowBand({ gameId, kicker, seats, settle, stagger = 0 }: { gameId
           <span className="ct-kicker">{kicker}</span>
           <h1>{g.name}</h1>
           <p>
-            {resumePoint(gameId)}
+            {pointIn(s, gameId)}
             {detail ? ` · ${detail}` : ""}
           </p>
         </section>
@@ -27,13 +27,13 @@ export function NowBand({ gameId, kicker, seats, settle, stagger = 0 }: { gameId
   );
 }
 
-export function NowChip({ gameId, seats, delayed }: { gameId: string; seats: SeatView[]; delayed: boolean }) {
+export function NowChip({ s, gameId, seats, delayed }: { s: S; gameId: string; seats: SeatView[]; delayed: boolean }) {
   const g = gameById(gameId);
   return (
     <div className={`ct-chip ${delayed ? "ct-chip--after" : ""}`}>
       <Mark size={34} />
       <b>{g.name}</b>
-      <span>{resumePoint(gameId)}</span>
+      <span>{pointIn(s, gameId)}</span>
       <span className="ct-chip__who">
         {seats.map((x) => (
           <Portrait key={x.person.id} person={x.person} size={40} dim={x.state === "asleep"} />

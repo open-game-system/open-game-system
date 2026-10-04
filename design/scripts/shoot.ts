@@ -60,6 +60,22 @@ async function probe(page: Page): Promise<Probe> {
       const topHasText = [...top.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? "").trim());
       return !topHasText;
     };
+    // Where a surface actually paints: its box cut by every ancestor that clips its overflow (a game
+    // capture zoomed inside a rounded card only shows inside the card).
+    const painted = (e: Element): { left: number; right: number; top: number; bottom: number } => {
+      const r = e.getBoundingClientRect();
+      const out = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+      for (let p = e.parentElement; p && p !== root; p = p.parentElement) {
+        const o = getComputedStyle(p);
+        if (o.overflowX === "visible" && o.overflowY === "visible") continue;
+        const pr = p.getBoundingClientRect();
+        out.left = Math.max(out.left, pr.left);
+        out.right = Math.min(out.right, pr.right);
+        out.top = Math.max(out.top, pr.top);
+        out.bottom = Math.min(out.bottom, pr.bottom);
+      }
+      return out;
+    };
     // Cards and images: anything with its own paint that could sit on top of text.
     const surfaces = [...root.querySelectorAll<HTMLElement>("*")].filter((e) => {
       if (!visible(e)) return false;
@@ -96,7 +112,7 @@ async function probe(page: Page): Promise<Probe> {
       const underSurface: string[] = [];
       for (const sf of surfaces) {
         if (sf === el || sf.contains(el) || el.contains(sf)) continue;
-        const sr = sf.getBoundingClientRect();
+        const sr = painted(sf);
         const ix0 = Math.max(ink.left, sr.left), ix1 = Math.min(ink.right, sr.right);
         const iy0 = Math.max(ink.top, sr.top), iy1 = Math.min(ink.bottom, sr.bottom);
         if (ix1 - ix0 < 4 || iy1 - iy0 < 4) continue;

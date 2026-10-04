@@ -137,6 +137,8 @@ export function startNew(s: S): S {
 
 /** Where a game is, as this session knows it: a game started new tonight is at its start. */
 export const pointIn = (s: S, gameId: string): string => (s.fresh[gameId] ? "New game" : resumePoint(gameId));
+/** The rest of the resume line ("3 of 5 orders baked"); nothing for a game started new tonight. */
+export const detailIn = (s: S, gameId: string): string => (s.fresh[gameId] ? "" : resumeDetail(gameId));
 
 export interface Push {
   gameId: string;

@@ -65,6 +65,7 @@ export const scenarios: Scenario<S>[] = [
   { id: "continue.03-new-replaces", label: "New, replacing day 4: said plainly, can't be undone", flow: "continue", state: "error", devices: ["phone"], build: at({ ...bakeFocus, start: { gameId: "bake-shop", fate: "replace" } }) },
   { id: "continue.04-new-started", label: "New bakery on the TV; day 4 kept", flow: "continue", state: "success", devices: ["phone", "tv"], build: at({ phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop", fresh: { "bake-shop": "keep" } }) },
   { id: "continue.05-continued", label: "Continue: day 4 picks up on the TV", flow: "continue", state: "success", devices: ["phone", "tv"], build: at({ phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop" }) },
+  { id: "continue.06-new-paused", label: "The new bakery paused: the TV and the menu say New game, not day 4", flow: "continue", state: "default", devices: ["phone", "tv"], build: at({ phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop", menu: true, fresh: { "bake-shop": "keep" } }) },
 
   // Swap: Rocket Crew mission 6 → Bake Shop day 4, all devices
   { id: "swap.01-mid-rocket-crew", label: "Mid Rocket Crew: Dad captains, Juneau fixes", flow: "swap", state: "default", devices: ["phone", "ipad", "tv"], build: at({ phone: "controller" }) },

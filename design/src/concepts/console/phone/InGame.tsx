@@ -38,12 +38,12 @@ export function InGame({ s, store }: { s: S; store: Store<S> }) {
       {s.cast === "connecting" ? (
         <Casting s={s} gameId={gameId} />
       ) : sw ? (
-        <Switching sw={sw} asleep={s.asleep} store={store} />
+        <Switching s={s} sw={sw} asleep={s.asleep} store={store} />
       ) : (
         <>
           <Strips s={s} store={store} />
           <div className="cx-gameview">
-            <GamePhoneView gameId={gameId} />
+            <GamePhoneView gameId={gameId} fresh={!!s.fresh[gameId]} />
           </div>
         </>
       )}

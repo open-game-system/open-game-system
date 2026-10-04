@@ -3,7 +3,7 @@
 // calm card with the resume point, because that is all the room needs to know.
 import type { ReactNode } from "react";
 import { HOME, person } from "../../../world";
-import { gameName, resumePoint, type S } from "../state";
+import { gameName, pointIn, type S } from "../state";
 import { Mark, Portrait } from "../ui/Brand";
 import { TvArt } from "../tv/TvArt";
 import type { Fault } from "./fault";
@@ -23,7 +23,7 @@ function WithChip({ children, chip, replaceOwn = false, home = false }: { childr
 }
 
 /** The picture is gone and coming back: one card over the game's own art, softly. */
-function ComingBack({ gameId, kicker }: { gameId: string; kicker: string }) {
+function ComingBack({ s, gameId, kicker }: { s: S; gameId: string; kicker: string }) {
   return (
     <div className="eg-tvback">
       <div className="eg-tvback__art" aria-hidden>
@@ -35,7 +35,7 @@ function ComingBack({ gameId, kicker }: { gameId: string; kicker: string }) {
         </span>
         <span className="eg-tvback__kicker">{kicker}</span>
         <h1>{gameName(gameId)}</h1>
-        <p>{resumePoint(gameId)} · right where you were</p>
+        <p>{pointIn(s, gameId)} · right where you were</p>
       </div>
     </div>
   );
@@ -43,12 +43,12 @@ function ComingBack({ gameId, kicker }: { gameId: string; kicker: string }) {
 
 export function EdgeTv({ s, f, children }: { s: S; f: Fault; children: ReactNode }): ReactNode {
   const gameId = s.onTv ?? "rocket-crew";
-  const point = resumePoint(gameId);
+  const point = pointIn(s, gameId);
   switch (f.kind) {
     case "cast-lost":
       // The receiver dropped: nothing from OGS can reach this screen, so it shows only the TV's own idle.
       if (f.phase === "now") return <div className="eg-tvgone" aria-label="Cast dropped: the TV shows its own idle screen" />;
-      if (f.phase === "recovering") return <ComingBack gameId={gameId} kicker="Back to" />;
+      if (f.phase === "recovering") return <ComingBack s={s} gameId={gameId} kicker="Back to" />;
       return backChip(children, point);
     case "stream-stall":
       if (f.phase === "now") {
@@ -63,7 +63,7 @@ export function EdgeTv({ s, f, children }: { s: S; f: Fault; children: ReactNode
           </div>
         );
       }
-      if (f.phase === "recovering") return <ComingBack gameId={gameId} kicker="Picking up" />;
+      if (f.phase === "recovering") return <ComingBack s={s} gameId={gameId} kicker="Picking up" />;
       return backChip(children, point);
     case "remote-dies":
       return (
@@ -137,7 +137,7 @@ export function EdgeTv({ s, f, children }: { s: S; f: Fault; children: ReactNode
               <Chip>
                 <Mark size={34} />
                 <b>{gameName(down)} isn't answering</b>
-                <span>{resumePoint(down)} is safe</span>
+                <span>{pointIn(s, down)} is safe</span>
               </Chip>
             }
           >

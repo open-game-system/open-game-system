@@ -9,7 +9,7 @@
 //               the bottom edge (never in the game's focal area).
 // Then the game takes the TV and the strip collapses into the corner chip (TvPlaying).
 import { gameById } from "../../../world";
-import { resumeDetail, resumePoint, type Switching } from "../state";
+import { detailIn, pointIn, type S, type Switching } from "../state";
 import { Portrait } from "../ui/Brand";
 import { Check, Moon } from "../ui/Icons";
 import { FollowPath, PulseMark } from "./Motif";
@@ -17,7 +17,7 @@ import { NowBand } from "./NowPlaying";
 import { seatViews, type SeatView } from "./Roster";
 import { TvArt } from "./TvArt";
 
-export function TvCutover({ sw, asleep }: { sw: Switching; asleep: string[] }) {
+export function TvCutover({ s, sw, asleep }: { s: S; sw: Switching; asleep: string[] }) {
   const to = gameById(sw.to);
   // Phones are in from the cut-over (the phone said ✓ first); iPads check in when they follow.
   const seats = seatViews(to, asleep, (x) => sw.phase === "following" || (sw.phase === "cutover" && x.device?.kind === "phone"));
@@ -29,10 +29,10 @@ export function TvCutover({ sw, asleep }: { sw: Switching; asleep: string[] }) {
       <div className="ct-cut__to">
         <TvArt gameId={sw.to} />
       </div>
-      <SavedCard gameId={sw.from} saved={sw.phase !== "saving"} />
+      <SavedCard s={s} gameId={sw.from} saved={sw.phase !== "saving"} />
       {sw.phase !== "following" && <FollowPath className="ct-cut__path" w={560} h={190} d="M20 10 C 120 170, 420 190, 540 40" />}
-      <UpNext gameId={sw.to} undo={sw.undo} seats={seats} />
-      {sw.phase === "following" && <NowBand gameId={sw.to} kicker={sw.undo ? "Back to" : "Now playing"} seats={seats} settle={false} />}
+      <UpNext s={s} gameId={sw.to} undo={sw.undo} seats={seats} />
+      {sw.phase === "following" && <NowBand s={s} gameId={sw.to} kicker={sw.undo ? "Back to" : "Now playing"} seats={seats} settle={false} />}
       <span className="ct-cut__mark">
         <PulseMark size={48} />
       </span>
@@ -40,7 +40,7 @@ export function TvCutover({ sw, asleep }: { sw: Switching; asleep: string[] }) {
   );
 }
 
-function SavedCard({ gameId, saved }: { gameId: string; saved: boolean }) {
+function SavedCard({ s, gameId, saved }: { s: S; gameId: string; saved: boolean }) {
   return (
     <div className="ct-cut__from">
       <div className="ct-cut__fromart">
@@ -54,20 +54,20 @@ function SavedCard({ gameId, saved }: { gameId: string; saved: boolean }) {
           </svg>
           {saved && <Check size={22} />}
         </span>
-        {saved ? "Saved" : "Saving"} · {resumePoint(gameId)}
+        {saved ? "Saved" : "Saving"} · {pointIn(s, gameId)}
       </span>
     </div>
   );
 }
 
-function UpNext({ gameId, undo, seats }: { gameId: string; undo: boolean; seats: SeatView[] }) {
-  const detail = resumeDetail(gameId);
+function UpNext({ s, gameId, undo, seats }: { s: S; gameId: string; undo: boolean; seats: SeatView[] }) {
+  const detail = detailIn(s, gameId);
   return (
     <section className="ct-cut__next">
       <span className="ct-kicker">{undo ? "Back to" : "Up next"}</span>
       <h2>{gameById(gameId).name}</h2>
       <p>
-        {resumePoint(gameId)}
+        {pointIn(s, gameId)}
         {detail ? ` · ${detail}` : ""}
       </p>
       <ul className="ct-cut__seats">

@@ -1,13 +1,13 @@
 // The TV while the console menu is open on the phone: the game steps back into a paused card,
 // the ring mark pulses, and the next couch games come up. The phone chooses; the TV only shows.
 import { GAMES, gameById } from "../../../world";
-import { nextLine, resumeDetail, resumePoint, seatPlan } from "../state";
+import { detailIn, nextLine, pointIn, seatPlan, type S } from "../state";
 import { Portrait } from "../ui/Brand";
 import { PhoneIcon } from "../ui/Icons";
 import { Clock, FollowPath, PulseMark } from "./Motif";
 import { TvArt } from "./TvArt";
 
-export function TvPaused({ gameId }: { gameId: string }) {
+export function TvPaused({ s, gameId }: { s: S; gameId: string }) {
   const g = gameById(gameId);
   const next = GAMES.filter((x) => x.shape === "couch" && x.id !== gameId);
   return (
@@ -23,9 +23,9 @@ export function TvPaused({ gameId }: { gameId: string }) {
         <PauseGlyph />
       </span>
       <section className="ct-paused__info">
-        <span className="ct-kicker">Paused · {resumePoint(gameId)}</span>
+        <span className="ct-kicker">Paused · {pointIn(s, gameId)}</span>
         <h2>{g.name}</h2>
-        <p className="ct-paused__line">{resumeDetail(gameId) || resumePoint(gameId)}</p>
+        <p className="ct-paused__line">{detailIn(s, gameId) || pointIn(s, gameId)}</p>
         <p className="ct-paused__note">Switching saves it. Back to it any time tonight.</p>
         <div className="ct-paused__who">
           {seatPlan(g).map((x) => (

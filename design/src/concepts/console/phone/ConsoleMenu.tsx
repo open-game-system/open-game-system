@@ -3,7 +3,7 @@
 // so there is no confirm step.
 import type { Store } from "../../../harness/store";
 import { GAMES, HOME, gameById } from "../../../world";
-import { closeMenu, resumePoint, seatPlan, startSwitch, type S } from "../state";
+import { closeMenu, pointIn, seatPlan, startSwitch, type S } from "../state";
 import { couchLine, couchStatus } from "../status";
 import { Portrait } from "../ui/Brand";
 import { Chip } from "../ui/Chip";
@@ -23,7 +23,7 @@ export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
           <div className="cx-sheet__now">
             <span className="cx-sheet__kicker">Paused on the TV</span>
             <b>
-              {gameById(current).name} · {resumePoint(current)}
+              {gameById(current).name} · {pointIn(s, current)}
             </b>
             <span>Switching saves it here. Back to it any time tonight.</span>
           </div>

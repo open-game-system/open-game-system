@@ -28,7 +28,7 @@ export function TvSurface({ store }: { store: Store<S> }) {
       ) : s.cast === "connecting" ? (
         <TvConnecting s={s} />
       ) : s.switching ? (
-        <TvCutover key={`${s.switching.from}-${s.switching.to}`} sw={s.switching} asleep={s.asleep} />
+        <TvCutover key={`${s.switching.from}-${s.switching.to}`} s={s} sw={s.switching} asleep={s.asleep} />
       ) : s.onTv ? (
         <TvPlaying key={s.onTv} s={s} gameId={s.onTv} arrived={arrived.current === s.onTv} />
       ) : (

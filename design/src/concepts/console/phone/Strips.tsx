@@ -1,7 +1,7 @@
 // Console strips: one line between the OGS bar and the game. Never inside the game's view.
 import type { Store } from "../../../harness/store";
 import { HOME, gameById } from "../../../world";
-import { resumePoint, saveOf, seatPlan, undoSwitch, type S } from "../state";
+import { pointIn, saveOf, seatPlan, undoSwitch, type S } from "../state";
 import { Portrait } from "../ui/Brand";
 import { Battery, Bell, Check, Undo } from "../ui/Icons";
 
@@ -74,7 +74,7 @@ export function Strips({ s, store }: { s: S; store: Store<S> }) {
       <div className="cx-strip" role="status">
         <span className="cx-strip__text">
           <b>
-            {left.name} saved at {resumePoint(left.id).toLowerCase()}
+            {left.name} saved at {pointIn(s, left.id).toLowerCase()}
           </b>
           <span>Everyone moved to {game.name}.</span>
         </span>
@@ -90,10 +90,10 @@ export function Strips({ s, store }: { s: S; store: Store<S> }) {
       <div className="cx-strip" role="status">
         <span className="cx-strip__text">
           <b>
-            Back on {game.name} · {resumePoint(game.id).toLowerCase()}
+            Back on {game.name} · {pointIn(s, game.id).toLowerCase()}
           </b>
           <span>
-            {left.name} kept {resumePoint(left.id).toLowerCase()} for later, in Jump back in.
+            {left.name} kept {pointIn(s, left.id).toLowerCase()} for later, in Jump back in.
           </span>
         </span>
         <Check size={22} />

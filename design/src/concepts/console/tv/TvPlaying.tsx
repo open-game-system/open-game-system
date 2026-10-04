@@ -28,7 +28,7 @@ export function TvPlaying({ s, gameId, arrived = false }: { s: S; gameId: string
           <GameTvView gameId={gameId} />
         </div>
       </div>
-      {s.menu ? <TvPaused gameId={gameId} /> : <NowOverlay s={s} gameId={gameId} arrived={arrived} />}
+      {s.menu ? <TvPaused s={s} gameId={gameId} /> : <NowOverlay s={s} gameId={gameId} arrived={arrived} />}
     </div>
   );
 }
@@ -43,8 +43,8 @@ function NowOverlay({ s, gameId, arrived }: { s: S; gameId: string; arrived: boo
   const band = left || arrived;
   return (
     <>
-      {band && <NowBand gameId={gameId} kicker={left?.undone ? "Back to" : "Now playing"} seats={seats} settle />}
-      <NowChip gameId={gameId} seats={seats} delayed={!!band} />
+      {band && <NowBand s={s} gameId={gameId} kicker={left?.undone ? "Back to" : "Now playing"} seats={seats} settle />}
+      <NowChip s={s} gameId={gameId} seats={seats} delayed={!!band} />
     </>
   );
 }

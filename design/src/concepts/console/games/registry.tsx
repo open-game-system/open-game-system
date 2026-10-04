@@ -9,9 +9,10 @@ import { BakeReader } from "./Bake";
 import { BakeBaker, BakeHelper } from "./BakeKid";
 import { person } from "../../../world";
 
-export function GamePhoneView({ gameId }: { gameId: string }): ReactNode {
+/** `fresh`: the household started this game new tonight (Continue/New → New), so it's at its start. */
+export function GamePhoneView({ gameId, fresh = false }: { gameId: string; fresh?: boolean }): ReactNode {
   if (gameId === "rocket-crew") return <RocketCaptain juneau={person("juneau")} />;
-  if (gameId === "bake-shop") return <BakeReader />;
+  if (gameId === "bake-shop") return <BakeReader fresh={fresh} />;
   const g = gameById(gameId);
   return (
     <div className="g-generic" style={{ background: g.palette.ground, color: g.palette.ink }}>

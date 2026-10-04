@@ -1,14 +1,16 @@
 // Bake Shop's own controller views (stand-ins for the game's web content inside OGS).
 import { Shaker, Strawberry, Swirl } from "./BakeArt";
 
-export function BakeReader() {
+/** A new bakery starts at day 1 with nothing baked; otherwise it's the save's day 4, 3 of 5 baked. */
+export function BakeReader({ fresh = false }: { fresh?: boolean }) {
+  const baked = fresh ? 0 : 3;
   return (
     <div className="g-bake g-bake--phone">
       <div className="g-bake__day">
-        <span>Day 4</span>
-        <span className="g-bake__pips" aria-label="3 of 5 orders baked">
+        <span>{fresh ? "Day 1" : "Day 4"}</span>
+        <span className="g-bake__pips" aria-label={`${baked} of 5 orders baked`}>
           {[0, 1, 2, 3, 4].map((i) => (
-            <i key={i} className={i < 3 ? "on" : i === 3 ? "now" : ""} />
+            <i key={i} className={i < baked ? "on" : i === baked ? "now" : ""} />
           ))}
         </span>
       </div>
