@@ -45,6 +45,34 @@ function toInstance(row: z.infer<typeof InstanceRowSchema>): Instance {
   });
 }
 
+/** Inserts or replaces the profile's instance (by instance id). */
+function upsertInstance(db: D1Database, instance: Instance) {
+  return db
+    .prepare(
+      `INSERT INTO instances (profile_id, instance_id, app_id, status, title, detail, your_turn,
+         starts_at, resume_url, source, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(profile_id, instance_id) DO UPDATE SET
+         app_id = excluded.app_id, status = excluded.status, title = excluded.title,
+         detail = excluded.detail, your_turn = excluded.your_turn, starts_at = excluded.starts_at,
+         resume_url = excluded.resume_url, source = excluded.source, updated_at = excluded.updated_at`,
+    )
+    .bind(
+      instance.profileId,
+      instance.instanceId,
+      instance.appId,
+      instance.status,
+      instance.title,
+      instance.detail,
+      instance.yourTurn === undefined ? null : Number(instance.yourTurn),
+      instance.startsAt ?? null,
+      instance.resumeUrl ?? null,
+      instance.source,
+      instance.updatedAt,
+    )
+    .run();
+}
+
 /** A profile's instances. Mounted under /api/v1/me, behind anyToken (a launcher acts for its host). */
 const instances = new Hono<ProfileEnv>();
 
@@ -60,29 +88,7 @@ instances.post("/instances", async (c) => {
     profileId: c.get("claims").sub,
     updatedAt: Date.now(),
   };
-  await c.env.DB.prepare(
-    `INSERT INTO instances (profile_id, instance_id, app_id, status, title, detail, your_turn,
-       starts_at, resume_url, source, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(profile_id, instance_id) DO UPDATE SET
-       app_id = excluded.app_id, status = excluded.status, title = excluded.title,
-       detail = excluded.detail, your_turn = excluded.your_turn, starts_at = excluded.starts_at,
-       resume_url = excluded.resume_url, source = excluded.source, updated_at = excluded.updated_at`,
-  )
-    .bind(
-      instance.profileId,
-      instance.instanceId,
-      instance.appId,
-      instance.status,
-      instance.title,
-      instance.detail,
-      instance.yourTurn === undefined ? null : Number(instance.yourTurn),
-      instance.startsAt ?? null,
-      instance.resumeUrl ?? null,
-      instance.source,
-      instance.updatedAt,
-    )
-    .run();
+  await upsertInstance(c.env.DB, instance);
   return c.json(instance);
 });
 
