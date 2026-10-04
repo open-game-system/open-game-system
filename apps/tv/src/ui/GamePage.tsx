@@ -1,6 +1,5 @@
 import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
 import { when } from "../launcher/layout";
-import type { Household } from "../session/data";
 import { stickerUrl } from "../session/data";
 import { safeStyle } from "./art";
 
@@ -8,16 +7,15 @@ import { safeStyle } from "./art";
 export function GamePage(props: {
   game: Manifest;
   state: SessionState;
-  household: Household;
   remoteHolder: string | null;
   now: number;
 }) {
-  const { game, state, household, now } = props;
+  const { game, state, now } = props;
   const paused = state.suspended.find((g) => g.appId === game.appId);
   const roster = state.rosters[game.appId] ?? [];
   const players = roster.length
-    ? household.people.filter((p) => roster.some((r) => r.personId === p.id))
-    : household.people;
+    ? state.members.filter((m) => roster.some((r) => r.profileId === m.profileId))
+    : state.members;
   return (
     <div className="screen game-page" data-testid="game-page" data-page={game.appId}>
       <div className="page-art" data-cover-page={game.appId}>
@@ -45,7 +43,7 @@ export function GamePage(props: {
         <p className="eyebrow">{roster.length ? "Playing last time" : "Who's here"}</p>
         <div className="page-stickers">
           {players.map((p) => (
-            <figure key={p.id} className="page-sticker">
+            <figure key={p.profileId} className="page-sticker" data-profile={p.profileId}>
               <img src={stickerUrl(p.sticker)} alt="" />
               <figcaption>{p.name}</figcaption>
             </figure>

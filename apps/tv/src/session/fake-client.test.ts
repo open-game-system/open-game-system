@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { createFakeClient } from "./fake-client";
+import { FIXTURE_MEMBERS, FIXTURE_SESSION } from "./fixture";
 
 const NOW = new Date(2026, 9, 3, 19, 10).getTime();
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 describe("fake couch session", () => {
-  it("connects at once by default with the household seeded", () => {
+  it("connects at once by default with the session seeded", () => {
     const c = createFakeClient({ now: () => NOW });
     const { state, connection } = c.getSnapshot();
     expect(connection).toBe("open");
@@ -14,6 +15,10 @@ describe("fake couch session", () => {
     expect(state?.remote).toBe("jonathan-phone");
     expect(state?.suspended.map((g) => [g.appId, g.label])).toEqual([["bake-shop", "Day 4"]]);
     expect(state?.screen).toBe("home");
+    expect(state?.sessionId).toBe(FIXTURE_SESSION.sessionId);
+    expect(state?.hostProfileId).toBe("jonathan");
+    expect(state?.members).toEqual(FIXTURE_MEMBERS);
+    expect(state?.devices.find((d) => d.deviceId === "juneau-ipad")?.profileId).toBe("juneau");
   });
 
   it("holds in connecting until connect() when asked", () => {

@@ -1,7 +1,7 @@
 import type { Instance, Manifest } from "@open-game-system/ogs-protocol";
-import type { Household } from "./data";
+import type { CouchSession } from "./data";
 
-/** The household and games fake mode runs on (tests and design). */
+/** The session and games fake mode runs on (tests and design). */
 const game = (
   appId: string,
   name: string,
@@ -34,16 +34,23 @@ export const FIXTURE_GAMES: Manifest[] = [
   },
 ];
 
-export const FIXTURE_HOUSEHOLD: Household = {
-  id: "mumms",
-  name: "The Mumms",
-  people: [
-    { id: "jonathan", name: "Jonathan", sticker: "bear" },
-    { id: "mom", name: "Mom", sticker: "owl" },
-    { id: "juneau", name: "Juneau", sticker: "dragon" },
-    { id: "ava", name: "Ava", sticker: "dinosaur" },
-  ],
+/** Jonathan cast to the living room TV: his library, his paused games, his code. */
+export const FIXTURE_SESSION: CouchSession = {
+  sessionId: "s-living-room",
+  code: "KQ7M2X",
+  tvName: "Living room TV",
+  host: { id: "jonathan", handle: "jonathan.m", name: "Jonathan", sticker: "bear" },
 };
+
+/** Who joins the fixture cast (profile ids match the host's). */
+export const FIXTURE_MEMBERS = [
+  { profileId: "jonathan", name: "Jonathan", sticker: "bear" },
+  { profileId: "mom", name: "Mom", sticker: "owl" },
+  { profileId: "juneau", name: "Juneau", sticker: "dragon" },
+];
+
+/** The host's library: every fixture game, in shelf order. */
+export const FIXTURE_LIBRARY = FIXTURE_GAMES.map((g) => g.appId);
 
 export function fixtureInstances(now: number): Instance[] {
   const tonight = new Date(now);
@@ -53,7 +60,7 @@ export function fixtureInstances(now: number): Instance[] {
     {
       instanceId: "hearthisle-night",
       appId: "hearthisle",
-      householdId: "mumms",
+      profileId: "jonathan",
       status: "lobby",
       title: "Game night",
       detail: "Turn 14 · the Okafors are in",
@@ -64,7 +71,7 @@ export function fixtureInstances(now: number): Instance[] {
     {
       instanceId: "story-nook-ember",
       appId: "story-nook",
-      householdId: "mumms",
+      profileId: "jonathan",
       status: "suspended",
       title: "Juneau's dragon is ready",
       detail: "",

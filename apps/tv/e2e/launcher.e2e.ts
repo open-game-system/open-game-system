@@ -56,8 +56,13 @@ describe("TV launcher (fake session)", () => {
     expect(rows).toEqual(["continue", "tonight", "library"]);
     expect(await page.locator('[data-row="continue"] [data-item]').count()).toBe(2);
     expect(await page.locator('[data-item="game:bake-shop"]').textContent()).toContain("Day 4");
+    expect(await page.locator(".room-name").textContent()).toBe(
+      "Living room TV · Jonathan's games",
+    );
+    // The couch is whoever joined this cast, in join order: nobody joins automatically.
     const sitters = await page.locator("[data-testid=couch] figcaption").allTextContents();
-    expect(sitters).toEqual(["Jonathan", "Mom", "Juneau", "Ava"]);
+    expect(sitters).toEqual(["Jonathan", "Mom", "Juneau"]);
+    expect(await page.getByTestId("join-code").textContent()).toBe("Join from your phoneKQ7M2X");
     expect(await page.getByTestId("remote-chip").textContent()).toContain(
       "Jonathan has the remote",
     );
@@ -72,10 +77,28 @@ describe("TV launcher (fake session)", () => {
     await page.getByTestId("game-page").waitFor();
     expect(await page.getByTestId("action-continue").textContent()).toBe("Continue Day 4");
     expect(await page.getByTestId("game-page").textContent()).toContain("New game");
+    const here = await page.locator(".page-sticker figcaption").allTextContents();
+    expect(here).toEqual(["Jonathan", "Mom", "Juneau"]);
     await shot(page, "03b-game-page-paused");
     await expectTvRules();
     await send(page, { type: "back" });
     await page.getByTestId("game-page").waitFor({ state: "detached" });
+  });
+
+  it("shows who played last time on a game's page, by profile", async () => {
+    await send(page, {
+      type: "game.start",
+      appId: "rocket-crew",
+      mode: "new",
+      roster: [{ profileId: "juneau", roleId: "fixer" }],
+    });
+    await send(page, { type: "home" });
+    await send(page, { type: "focus.set", itemId: "game:rocket-crew" });
+    await expect.poll(focused).toBe("game:rocket-crew");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await page.getByTestId("game-page").waitFor();
+    expect(await page.locator(".page-players .eyebrow").textContent()).toBe("Playing last time");
+    expect(await page.locator(".page-sticker figcaption").allTextContents()).toEqual(["Juneau"]);
   });
 
   it("moves the ring on focus.move, through the session", async () => {
@@ -261,6 +284,14 @@ describe("TV launcher before the session", () => {
     expect(await page.getByTestId("assembling").textContent()).toContain(
       "Setting up the living room",
     );
+    // Before the session state arrives: the title from the session fetch and the host only.
+    await expect
+      .poll(() => page.locator(".room-name").textContent())
+      .toBe("Living room TV · Jonathan's games");
+    expect(await page.locator("[data-testid=couch] figcaption").allTextContents()).toEqual([
+      "Jonathan",
+    ]);
+    expect(await page.getByTestId("join-code").textContent()).toContain("KQ7M2X");
     await shot(page, "00-connecting");
     await expectTvRules();
     await page.evaluate(() => window.__ogsFake?.connect());

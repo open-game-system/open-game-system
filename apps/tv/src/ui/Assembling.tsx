@@ -1,13 +1,19 @@
-import type { Household } from "../session/data";
-import { stickerUrl } from "../session/data";
-import { roomName } from "./copy";
+import type { CouchSession } from "../session/data";
+import { Couch } from "./Couch";
+import { roomTitle } from "./copy";
+import { JoinCode } from "./JoinCode";
 
-/** Connecting: the living room assembling (furniture first, then the boxes), never a black card. */
-export function Assembling({ household }: { household?: Household }) {
+/**
+ * Connecting: the living room assembling (furniture first, then the boxes), never a black card.
+ * Before the session state arrives only the host is known, so only the host sits down.
+ */
+export function Assembling({ session }: { session?: CouchSession }) {
   return (
     <div className="screen home assembling" data-testid="assembling">
       <header className="topbar">
-        <h1 className="room-name">{household ? roomName(household.name) : "OGS"}</h1>
+        <h1 className="room-name">
+          {session ? roomTitle(session.tvName, session.host.name) : "OGS"}
+        </h1>
       </header>
       <div className="assembling-hero">
         <p className="eyebrow">Connecting</p>
@@ -18,21 +24,23 @@ export function Assembling({ household }: { household?: Household }) {
           <div key={i} className="ghost-box" style={{ animationDelay: `${i * 120}ms` }} />
         ))}
       </div>
-      <div className="couch">
-        <div className="couch-back" />
-        <div className="couch-seat">
-          {household?.people.map((p, i) => (
-            <figure
-              key={p.id}
-              className="sitter arriving"
-              style={{ animationDelay: `${300 + i * 140}ms` }}
-            >
-              <img src={stickerUrl(p.sticker)} alt="" />
-              <figcaption>{p.name}</figcaption>
-            </figure>
-          ))}
-        </div>
-      </div>
+      {session ? (
+        <>
+          <Couch
+            arriving
+            members={[
+              {
+                profileId: session.host.id,
+                name: session.host.name,
+                sticker: session.host.sticker,
+              },
+            ]}
+          />
+          <JoinCode code={session.code} />
+        </>
+      ) : (
+        <Couch members={[]} />
+      )}
     </div>
   );
 }

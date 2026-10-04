@@ -60,7 +60,7 @@ describe("couch session socket", () => {
     let calls = 0;
     client.subscribe(() => calls++);
     sock().open();
-    const state = initialSession("h1");
+    const state = initialSession("s1", "jonathan");
     sock().receive({ type: "state", state });
     expect(client.getSnapshot()).toEqual({ state, connection: "open" });
     expect(calls).toBe(2);
@@ -98,7 +98,7 @@ describe("couch session socket", () => {
   it("keeps the last state while reconnecting with backoff", () => {
     const { client, sock, timers } = setup();
     sock().open();
-    const state = initialSession("h1");
+    const state = initialSession("s1", "jonathan");
     sock().receive({ type: "state", state });
     sock().drop();
     expect(client.getSnapshot()).toEqual({ state, connection: "reconnecting" });

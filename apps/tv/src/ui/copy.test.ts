@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { roomName } from "./copy";
+import { roomTitle } from "./copy";
 
-describe("roomName", () => {
-  it("adds an apostrophe after a name ending in s", () => {
-    expect(roomName("The Mumms")).toBe("The Mumms' living room");
+describe("roomTitle", () => {
+  it("names the TV and whose games it shows", () => {
+    expect(roomTitle("Living room TV", "Jonathan")).toBe("Living room TV · Jonathan's games");
   });
-  it("adds 's after any other name", () => {
-    expect(roomName("Our family")).toBe("Our family's living room");
-    expect(roomName("The Lee family")).toBe("The Lee family's living room");
+  it("adds an apostrophe after a name ending in s", () => {
+    expect(roomTitle("Den", "James")).toBe("Den · James' games");
   });
   it("ignores surrounding spaces", () => {
-    expect(roomName("  The Mumms ")).toBe("The Mumms' living room");
+    expect(roomTitle("  Living room TV ", " Mom ")).toBe("Living room TV · Mom's games");
   });
 });

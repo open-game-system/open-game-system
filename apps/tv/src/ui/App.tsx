@@ -35,7 +35,7 @@ export function App({ boot }: { boot: Boot }) {
 function Launcher({ boot }: { boot: Boot }) {
   const data = use(boot.data);
   const snap = useSyncExternalStore(boot.client.subscribe, boot.client.getSnapshot);
-  if (!snap.state) return <Assembling household={data.household} />;
+  if (!snap.state) return <Assembling session={data.session} />;
   return (
     <Living
       client={boot.client}
@@ -110,30 +110,25 @@ function Living(props: {
   const currentGame = state.current ? (games.get(state.current.appId) ?? null) : null;
   if (currentGame) lastGame.current = currentGame;
   const pageGame = state.page ? games.get(state.page) : undefined;
-  const remoteHolder = nameForDevice(state, data.household, state.remote);
+  const remoteHolder = nameForDevice(state, state.remote);
 
   return (
     <div className="launcher" data-screen={state.screen} data-connection={connection}>
       <Home
         rows={rows}
         focus={state.focus}
-        household={data.household}
+        session={data.session}
+        members={state.members}
         remoteHolder={remoteHolder}
         now={now}
       />
       {state.screen === "game-page" && pageGame && (
-        <GamePage
-          game={pageGame}
-          state={state}
-          household={data.household}
-          remoteHolder={remoteHolder}
-          now={now}
-        />
+        <GamePage game={pageGame} state={state} remoteHolder={remoteHolder} now={now} />
       )}
       <Player
         screen={state.screen}
         game={currentGame ?? lastGame.current}
-        hostPhone={phoneOf(state, data.household, state.current?.hostDeviceId ?? null)}
+        hostPhone={phoneOf(state, state.current?.hostDeviceId ?? null)}
         remoteHolder={remoteHolder}
         frames={frames}
       />

@@ -1,14 +1,19 @@
 import { initialSession, reduceSession, type SessionState } from "@open-game-system/ogs-protocol";
 import { type Browser, chromium, type Page, type WebSocketRoute } from "playwright";
 import { afterAll, beforeAll, expect, it } from "vitest";
-import { FIXTURE_GAMES, FIXTURE_HOUSEHOLD, fixtureInstances } from "../src/session/fixture";
+import {
+  FIXTURE_GAMES,
+  FIXTURE_MEMBERS,
+  FIXTURE_SESSION,
+  fixtureInstances,
+} from "../src/session/fixture";
 import { BASE, SHOTS, settle } from "./harness";
 
-/** The live path: launcher URL → JWT hid → API fetches with the bearer → couch socket. */
+/** The live path (API mocked): launcher URL → JWT sid → API fetches with the bearer → couch socket. */
 const API = "https://api.ogs.test";
 const b64url = (o: object) =>
   btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
-const TOKEN = `eyJhbGciOiJIUzI1NiJ9.${b64url({ hid: "mumms", did: "tv-1", kind: "launcher", exp: 9999999999 })}.sig`;
+const TOKEN = `eyJhbGciOiJIUzI1NiJ9.${b64url({ sub: "jonathan", did: "tv-1", kind: "launcher", sid: FIXTURE_SESSION.sessionId, exp: 9999999999 })}.sig`;
 
 let browser: Browser;
 beforeAll(async () => {
@@ -19,10 +24,10 @@ afterAll(async () => {
 });
 
 function seeded(): SessionState {
-  let s = initialSession("mumms");
+  let s = initialSession(FIXTURE_SESSION.sessionId, "jonathan");
   s = reduceSession(
     s,
-    { type: "hello", deviceId: "mom-phone", kind: "phone", personId: "mom" },
+    { type: "hello", deviceId: "mom-phone", kind: "phone", profile: FIXTURE_MEMBERS[1] },
     1,
   ).state;
   s = reduceSession(s, { type: "hello", deviceId: "tv-1", kind: "launcher" }, 2).state;
@@ -57,10 +62,11 @@ async function openLive(): Promise<{
     auth.push(r.request().headers().authorization ?? "");
     const path = new URL(r.request().url()).pathname;
     if (path === "/api/v1/catalogue") return r.fulfill(json({ games: FIXTURE_GAMES }));
-    if (path === "/api/v1/households/mumms/instances")
-      return r.fulfill(json({ instances: fixtureInstances(Date.now()) }));
-    if (path === "/api/v1/households/mumms")
-      return r.fulfill(json({ household: FIXTURE_HOUSEHOLD }));
+    if (path === `/api/v1/sessions/${FIXTURE_SESSION.sessionId}`)
+      return r.fulfill(json(FIXTURE_SESSION));
+    if (path === "/api/v1/me/instances") return r.fulfill(json(fixtureInstances(Date.now())));
+    if (path === "/api/v1/me/library")
+      return r.fulfill(json({ appIds: ["story-nook", "hearthisle", "rocket-crew"] }));
     return r.fulfill({ status: 404 });
   });
   await page.routeWebSocket(/\/api\/v1\/couch\/ws/, (ws) => {
@@ -72,13 +78,21 @@ async function openLive(): Promise<{
   return { page, sockets, sent, auth };
 }
 
-it("loads the household with the bearer token and renders the session from the socket", async () => {
+it("loads the session and the host's library with the bearer token, then the couch from the socket", async () => {
   const { page, sockets, sent, auth } = await openLive();
   await page.getByTestId("home").waitFor();
   expect(new URL(sockets[0]?.url() ?? "").searchParams.get("token")).toBe(TOKEN);
-  expect(auth.length).toBe(3);
+  expect(auth.length).toBe(4);
   expect(auth.every((a) => a === `Bearer ${TOKEN}`)).toBe(true);
   expect(await page.getByTestId("remote-chip").textContent()).toContain("Mom has the remote");
+  expect(await page.locator(".room-name").textContent()).toBe("Living room TV · Jonathan's games");
+  expect(await page.locator("[data-testid=couch] figcaption").allTextContents()).toEqual(["Mom"]);
+  expect(await page.getByTestId("join-code").textContent()).toContain(FIXTURE_SESSION.code);
+  // Only the host's library is on the shelf, in its order.
+  const shelf = await page
+    .locator("[data-item]")
+    .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
+  expect(shelf).toEqual(["game:story-nook", "game:hearthisle", "game:rocket-crew"]);
   // No focus yet: the launcher places the ring on its first box and tells the session.
   await expect.poll(() => sent).toContainEqual({ type: "focus.set", itemId: "game:story-nook" });
   // A remote press arrives as focus.move; the launcher answers with where the ring goes.

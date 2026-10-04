@@ -12,7 +12,7 @@ const LiveSchema = z.object({
 
 export type LauncherParams =
   | { mode: "fake"; hold: boolean }
-  | { mode: "live"; api: string; token: string };
+  | { mode: "live"; api: string; token: string; sessionId: string };
 
 /** Knobs for tests and design: how long a frame may take to load before the launcher gives up. */
 export function frameTimeoutMs(search: string): number {
@@ -31,7 +31,9 @@ export function parseParams(search: string): ParamsResult {
   });
   if (!r.success)
     return { ok: false, error: r.error.issues.map((i) => i.path.join(".")).join(", ") };
-  return { ok: true, params: { mode: "live", ...r.data } };
+  const sessionId = launcherSessionOf(r.data.token);
+  if (!sessionId) return { ok: false, error: "token: not a launcher token" };
+  return { ok: true, params: { mode: "live", ...r.data, sessionId } };
 }
 
 export function wsUrl(api: string, token: string): string {
@@ -46,13 +48,13 @@ function decodeSegment(seg: string): unknown {
   return JSON.parse(new TextDecoder().decode(bytes));
 }
 
-/** The household id from the launcher token's `hid` claim. Not verified here: the API does that. */
-export function householdOf(token: string): string | null {
+/** The couch session a launcher token is for (its `sid` claim). Not verified here: the API does that. */
+export function launcherSessionOf(token: string): string | null {
   const seg = token.split(".")[1];
   if (!seg) return null;
   try {
-    const claims = ClaimsSchema.pick({ hid: true }).safeParse(decodeSegment(seg));
-    return claims.success ? claims.data.hid : null;
+    const claims = ClaimsSchema.safeParse(decodeSegment(seg));
+    return claims.success && claims.data.kind === "launcher" ? (claims.data.sid ?? null) : null;
   } catch {
     return null;
   }

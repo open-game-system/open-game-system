@@ -1,9 +1,14 @@
 import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol";
-import { frameTimeoutMs, householdOf, type LauncherParams, wsUrl } from "./params";
+import { frameTimeoutMs, type LauncherParams, wsUrl } from "./params";
 import type { SessionClient } from "./session/client";
-import { fetchLauncherData, type LauncherData } from "./session/data";
+import { fetchLauncherData, type LauncherData, libraryGames } from "./session/data";
 import { createFakeClient } from "./session/fake-client";
-import { FIXTURE_GAMES, FIXTURE_HOUSEHOLD, fixtureInstances } from "./session/fixture";
+import {
+  FIXTURE_GAMES,
+  FIXTURE_LIBRARY,
+  FIXTURE_SESSION,
+  fixtureInstances,
+} from "./session/fixture";
 import { createWsClient } from "./session/ws-client";
 
 declare global {
@@ -53,17 +58,16 @@ export function boot(params: LauncherParams, search: string): Boot {
       restore: () => fake.restore(),
     };
     const data = Promise.resolve({
-      games: FIXTURE_GAMES,
+      games: libraryGames(FIXTURE_GAMES, FIXTURE_LIBRARY),
       instances: fixtureInstances(Date.now()),
-      household: FIXTURE_HOUSEHOLD,
+      session: FIXTURE_SESSION,
     });
     return { client: fake, data, frameTimeoutMs: timeout };
   }
-  const householdId = householdOf(params.token) ?? "";
   return {
     client: createWsClient({ url: wsUrl(params.api, params.token) }),
     data: loadWithRetry(() =>
-      fetchLauncherData({ api: params.api, token: params.token, householdId }),
+      fetchLauncherData({ api: params.api, token: params.token, sessionId: params.sessionId }),
     ),
     frameTimeoutMs: timeout,
   };

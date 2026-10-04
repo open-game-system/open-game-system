@@ -6,6 +6,7 @@ import {
 } from "@open-game-system/ogs-protocol";
 import type { Dir } from "../launcher/focus-grid";
 import { Emitter, type SessionClient, type SessionSnapshot } from "./client";
+import { FIXTURE_MEMBERS, FIXTURE_SESSION } from "./fixture";
 
 export interface FakeClient extends SessionClient {
   connect(): void;
@@ -15,21 +16,23 @@ export interface FakeClient extends SessionClient {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** The evening so far: the TV cast, two phones and Juneau's iPad here, Bake Shop paused at Day 4. */
+const [JONATHAN, MOM, JUNEAU] = FIXTURE_MEMBERS;
+
+/** The evening so far: Jonathan cast, Mom's phone and Juneau's iPad joined, Bake Shop paused at Day 4. */
 function seed(now: number): SessionState {
   const steps: [ClientMessage, number][] = [
     [
-      { type: "hello", deviceId: "jonathan-phone", kind: "phone", personId: "jonathan" },
+      { type: "hello", deviceId: "jonathan-phone", kind: "phone", profile: JONATHAN },
       now - 3 * DAY,
     ],
     [{ type: "game.start", appId: "bake-shop", mode: "new" }, now - 3 * DAY],
     [{ type: "game.resume-point", appId: "bake-shop", label: "Day 4" }, now - 3 * DAY],
     [{ type: "home" }, now - 3 * DAY + 40 * 60 * 1000],
-    [{ type: "hello", deviceId: "mom-phone", kind: "phone", personId: "mom" }, now],
-    [{ type: "hello", deviceId: "juneau-ipad", kind: "tablet", personId: "juneau" }, now],
+    [{ type: "hello", deviceId: "mom-phone", kind: "phone", profile: MOM }, now],
+    [{ type: "hello", deviceId: "juneau-ipad", kind: "tablet", profile: JUNEAU }, now],
     [{ type: "hello", deviceId: "living-room-tv", kind: "launcher" }, now],
   ];
-  let s: SessionState = initialSession("mumms");
+  let s = initialSession(FIXTURE_SESSION.sessionId, FIXTURE_SESSION.host.id);
   for (const [msg, at] of steps) s = reduceSession(s, msg, at).state;
   return { ...s, focus: null, rosters: {} };
 }

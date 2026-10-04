@@ -6,20 +6,25 @@ import {
 } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
 
-export const PersonSchema = z.object({
+export const ProfileSchema = z.object({
   id: z.string().min(1),
+  handle: z.string(),
   name: z.string().min(1),
-  /** A sticker id ("bear") from the household's painted set, or an image URL. */
+  /** A sticker id ("bear") from the painted set, or an image URL. */
   sticker: z.string().min(1),
 });
-export type Person = z.infer<typeof PersonSchema>;
+export type Profile = z.infer<typeof ProfileSchema>;
 
-export const HouseholdSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  people: z.array(PersonSchema),
+/** `GET /sessions/:sid`: the TV this cast is on, its join code and whose games it shows. */
+export const CouchSessionSchema = z.object({
+  sessionId: z.string().min(1),
+  code: z.string().min(1),
+  tvName: z.string().min(1),
+  host: ProfileSchema,
 });
-export type Household = z.infer<typeof HouseholdSchema>;
+export type CouchSession = z.infer<typeof CouchSessionSchema>;
+
+export const LibraryResponse = z.object({ appIds: z.array(z.string()) });
 
 /** One bad manifest or instance must not blank the TV: keep the ones that parse. */
 const lenientList = <T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>) =>
@@ -41,15 +46,21 @@ export const InstancesResponse = z.union([
   z.object({ instances: Instances }).transform((o) => o.instances),
   Instances,
 ]);
-export const HouseholdResponse = z.union([
-  z.object({ household: HouseholdSchema }).transform((o) => o.household),
-  HouseholdSchema,
-]);
 
 export interface LauncherData {
+  /** The host's library, in its order: the only games the TV shows. */
   games: Manifest[];
   instances: Instance[];
-  household: Household;
+  session: CouchSession;
+}
+
+/** The catalogue games in the host's library, in the library's order (unknown ids dropped). */
+export function libraryGames(catalogue: Manifest[], appIds: string[]): Manifest[] {
+  const byId = new Map(catalogue.map((g) => [g.appId, g]));
+  return [...new Set(appIds)].flatMap((id) => {
+    const g = byId.get(id);
+    return g ? [g] : [];
+  });
 }
 
 export function stickerUrl(sticker: string): string {
@@ -59,7 +70,7 @@ export function stickerUrl(sticker: string): string {
 export async function fetchLauncherData(opts: {
   api: string;
   token: string;
-  householdId: string;
+  sessionId: string;
   fetch?: typeof fetch;
 }): Promise<LauncherData> {
   const f = opts.fetch ?? fetch;
@@ -70,11 +81,11 @@ export async function fetchLauncherData(opts: {
     if (!res.ok) throw new Error(`${path} ${res.status}`);
     return schema.parse(await res.json());
   };
-  const hid = encodeURIComponent(opts.householdId);
-  const [games, instances, household] = await Promise.all([
+  const [catalogue, session, instances, library] = await Promise.all([
     get("/api/v1/catalogue", CatalogueResponse),
-    get(`/api/v1/households/${hid}/instances`, InstancesResponse),
-    get(`/api/v1/households/${hid}`, HouseholdResponse),
+    get(`/api/v1/sessions/${encodeURIComponent(opts.sessionId)}`, CouchSessionSchema),
+    get("/api/v1/me/instances", InstancesResponse),
+    get("/api/v1/me/library", LibraryResponse),
   ]);
-  return { games, instances, household };
+  return { games: libraryGames(catalogue, library.appIds), instances, session };
 }

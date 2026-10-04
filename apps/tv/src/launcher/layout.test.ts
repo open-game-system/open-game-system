@@ -85,7 +85,7 @@ describe("rows", () => {
     const inst: Instance = {
       instanceId: "x",
       appId: "rocket-crew",
-      householdId: "h",
+      profileId: "p",
       status: "suspended",
       title: "Mission 2",
       detail: "",

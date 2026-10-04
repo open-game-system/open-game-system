@@ -1,10 +1,12 @@
+import type { Member } from "@open-game-system/ogs-protocol";
 import { locate } from "../launcher/focus-grid";
 import { type BoxModel, clock, focusRows, type RowModel } from "../launcher/layout";
-import type { Household } from "../session/data";
+import type { CouchSession } from "../session/data";
 import { safeStyle } from "./art";
 import { Box } from "./Box";
 import { Couch } from "./Couch";
-import { roomName } from "./copy";
+import { roomTitle } from "./copy";
+import { JoinCode } from "./JoinCode";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 /** Boxes that fit across the shelf before it scrolls (pitches live in styles.css). */
@@ -13,17 +15,18 @@ const VISIBLE_BOXES = 5;
 export function Home(props: {
   rows: RowModel[];
   focus: string | null;
-  household: Household;
+  session: CouchSession;
+  members: Member[];
   remoteHolder: string | null;
   now: number;
 }) {
-  const { rows, focus, household, now } = props;
+  const { rows, focus, session, now } = props;
   const at = locate(focusRows(rows), focus) ?? { row: 0, col: 0 };
   const hero: BoxModel | undefined = rows[at.row]?.boxes[at.col] ?? rows[0]?.boxes[0] ?? undefined;
   return (
     <div className="screen home" data-testid="home">
       <header className="topbar">
-        <h1 className="room-name">{roomName(household.name)}</h1>
+        <h1 className="room-name">{roomTitle(session.tvName, session.host.name)}</h1>
         <div className="clock">
           <span className="clock-time">{clock(now)}</span>
           <span className="clock-day">{WEEKDAYS[new Date(now).getDay()]}</span>
@@ -53,7 +56,8 @@ export function Home(props: {
           ))}
         </div>
       </div>
-      <Couch household={household} />
+      <Couch members={props.members} />
+      <JoinCode code={session.code} />
       {props.remoteHolder && (
         <div className="remote-chip" data-testid="remote-chip">
           <RemoteIcon />

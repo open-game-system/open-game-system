@@ -122,7 +122,7 @@ describe("messages from the frame", () => {
   });
 
   it("builds ogs:start from the current game without leaking the launcher token", () => {
-    const roster = [{ personId: "juneau", roleId: "fixer" }];
+    const roster = [{ profileId: "juneau", roleId: "fixer" }];
     expect(startMessage(cur({ mode: "continue", roster }))).toEqual({
       type: "ogs:start",
       instanceId: "rc-1",
