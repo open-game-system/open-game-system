@@ -4,6 +4,7 @@ import { apiKeyAuth } from "./middleware/auth";
 import { householdAuth } from "./middleware/household-auth";
 import cast from "./routes/cast";
 import catalogue from "./routes/catalogue";
+import couch from "./routes/couch";
 import devices from "./routes/devices";
 import households from "./routes/households";
 import instances from "./routes/instances";
@@ -43,6 +44,9 @@ app.route("/api/v1/households", households);
 app.route("/api/v1/households", library);
 app.route("/api/v1/households", instances);
 
+// Couch session WebSocket (household token in ?token=)
+app.route("/api/v1/couch", couch);
+
 // Catalogue of games (public)
 app.route("/api/v1/catalogue", catalogue);
 
@@ -52,6 +56,7 @@ app.route("/api/v1/stream", stream);
 export default app;
 
 // Durable Object export — Cloudflare requires DO classes exported from the entry point.
+export { CouchSession } from "./couch-session";
 export { StreamContainer } from "./stream-container";
 // Cloudflare Workers scheduled event handler — exported for wrangler cron triggers.
 // In production, wrangler.jsonc wires this via the module's `scheduled` export.

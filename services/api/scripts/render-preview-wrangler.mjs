@@ -55,12 +55,20 @@ const config = {
         name: "STREAM_CONTAINER",
         class_name: "StreamContainer",
       },
+      {
+        name: "COUCH_SESSION",
+        class_name: "CouchSession",
+      },
     ],
   },
   migrations: [
     {
       tag: "v1",
       new_sqlite_classes: ["StreamContainer"],
+    },
+    {
+      tag: "v2",
+      new_sqlite_classes: ["CouchSession"],
     },
   ],
   observability: {
