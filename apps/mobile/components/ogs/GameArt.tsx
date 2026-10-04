@@ -1,5 +1,6 @@
 import type { Manifest } from "@open-game-system/ogs-protocol";
 import { Image, StyleSheet, View, type ViewStyle } from "react-native";
+import { safeCrop } from "../../services/art-crop";
 import { config } from "../../services/runtime";
 import { colors } from "./theme";
 
@@ -23,7 +24,7 @@ export function GameArt({
     <View style={[styles.frame, style]}>
       <Image
         source={{ uri: artUrl((hero && game.art.hero) || game.art.tile) }}
-        style={styles.img}
+        style={[styles.img, safeCrop(game.art.safe)]}
       />
     </View>
   );
