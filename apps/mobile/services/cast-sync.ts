@@ -26,7 +26,9 @@ export type SessionManagerLike = {
  * The game's cast buttons, run against the real session. Created before the store (the store's
  * side effects call these) and bound to the SessionManager when sync starts.
  */
-export function castCommands(): CastCommands & { bind(sm: SessionManagerLike): void } {
+export function castCommands(
+  showCastDialog: () => void = () => GoogleCast.showCastDialog(),
+): CastCommands & { bind(sm: SessionManagerLike): void } {
   let sm: SessionManagerLike | null = null;
   return {
     bind(next) {
@@ -34,8 +36,8 @@ export function castCommands(): CastCommands & { bind(sm: SessionManagerLike): v
     },
     startCasting(deviceId: string, devices: CastDevice[]) {
       if (sm && devices.some((d) => d.id === deviceId))
-        void sm.startSession(deviceId).catch(() => GoogleCast.showCastDialog());
-      else GoogleCast.showCastDialog();
+        void sm.startSession(deviceId).catch(() => showCastDialog());
+      else showCastDialog();
     },
     stopCasting() {
       // true: also stop the receiver app on the TV, not just disconnect this phone.
