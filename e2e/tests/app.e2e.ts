@@ -20,11 +20,24 @@ const tv = async (): Promise<Tv> => (await fetch(`${CAST}/launcher`)).json() as 
 const tvRoom = async (): Promise<string | null> => (await tv()).dom?.frameSrc?.match(/\/tv\/([A-Z]{4})/)?.[1] ?? null;
 
 describe("OGS app, cast-first", { tags: ["ios"], serial: true, requires: ["native-app"], video: "on" }, () => {
-  test("first run: family step, then Library", async ({ app, screen }) => {
+  test("first run: make your OGS profile, then Library", async ({ app, screen }) => {
     await app.clearState();
     await app.open();
-    await screen.getByTestId("onboardingNextButton").tap();
-    await screen.getByTestId("familyNext").tap();
+    // Skip the intro (never the profile): "Make your OGS profile", name typed, @id pre-filled.
+    await screen.getByTestId("onboardingSkipButton").tap();
+    await expect(screen.getByTestId("profileStep")).toBeVisible();
+    await expect(screen.getByText("Who's in your family?")).toHaveCount(0);
+    await screen.getByTestId("profileNameInput").fill("Jonathan Mumm");
+    await expect(screen.getByTestId("profileHandleStatus")).toHaveText("free", { timeout: 10_000 });
+    // Close the keyboard with its return key (it covers Next on a phone), then Next.
+    await screen.getByTestId("profileNameInput").press("Enter");
+    await screen.getByTestId("profileNext").tap();
+    // The done page greets by first name and offers Back up (never required) and Let's go.
+    await expect(screen.getByTestId("profileDoneGreeting")).toHaveText("Hi, Jonathan", { timeout: 10_000 });
+    // "@jonathan.m", or a free variant when an earlier run already took it.
+    await expect(screen.getByTestId("profileDoneHandle")).toHaveText(/^@jonathan\.m\d*$/);
+    await expect(screen.getByTestId("profileDoneBackUp")).toBeVisible();
+    await app.screenshot("profile-done");
     await screen.getByTestId("onboardingLetsGoButton").tap();
     await expect(screen.getByTestId("libraryScreen")).toBeVisible();
     await expect(screen.getByTestId("tabPlaying")).toBeVisible();

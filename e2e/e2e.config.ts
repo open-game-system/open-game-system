@@ -15,7 +15,13 @@ export default {
     },
     {
       name: "ios",
-      engine: mobile({ platform: "ios" }),
+      // E2E_IOS_DEVICE / E2E_IOS_SESSION: drive your own simulator (by UDID) under your own
+      // agent-device session; omitted, the pool is every booted simulator.
+      engine: mobile({
+        platform: "ios",
+        device: process.env.E2E_IOS_DEVICE,
+        session: process.env.E2E_IOS_SESSION,
+      }),
       app: {
         // A Release simulator build with EXPO_PUBLIC_FAKE_CAST=1, EXPO_PUBLIC_OGS_API=http://localhost:8788.
         bundleId: "org.opengame.app",
