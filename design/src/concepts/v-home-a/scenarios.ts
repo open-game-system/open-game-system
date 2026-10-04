@@ -46,6 +46,8 @@ export const scenarios: Scenario<S>[] = [
 
   // First run (flow 1): the TV, who plays here (each picks a sticker), the kids' iPads
   { id: "home.09-move-incoming", label: "Home, a beat before Tunde's move arrives", flow: "home", state: "default", devices: ["phone"], build: at({ onTv: null, arrival: { id: "wd-3", phase: "armed" } }) },
+  { id: "home.11-remote-paused", label: "Remote: Pause held Rocket Crew; the TV shows its paused card", flow: "home", state: "partial", devices: ["phone", "tv"], build: at({ paused: true }) },
+  { id: "home.12-remote-swap", label: "Remote: Swap opens the next games over the remote", flow: "home", state: "partial", devices: ["phone", "tv"], build: at({ menu: true }) },
   { id: "home.10-larger-text", label: "Home at iOS Larger Text (1.3×): lanes reflow, nothing overlaps", flow: "home", state: "default", devices: ["phone"], build: at({ textScale: 1.3 }) },
   { id: "world-clock.08-inbox-larger-text", label: "All turns at Larger Text (1.3×)", flow: "world-clock", state: "default", devices: ["phone"], build: at({ phone: "inbox", textScale: 1.3 }) },
   { id: "first-run.01-welcome", label: "First run: the library is full; set up the living room", flow: "first-run", state: "empty", devices: ["phone"], build: setupAt({}) },

@@ -16,6 +16,7 @@ import { Home } from "./Home";
 import { InGame } from "./InGame";
 import { LibraryView } from "./Library";
 import { TabBar } from "./TabBar";
+import { ConsoleMenu } from "./ConsoleMenu";
 
 export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }) {
   const s = useStore(store);
@@ -25,7 +26,6 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
   useArrivalClock(s, store, shot);
   if (s.phone === "lock") return <LockScreen s={s} store={store} />;
   if (s.phone === "night") return <NightPage s={s} store={store} />;
-  if (s.phone === "inbox") return <Inbox s={s} store={store} />;
   if (s.phone === "controller" && (s.onTv || s.switching)) return <InGame s={s} store={store} />;
   if (s.phone === "duels") return <DuelList s={s} store={store} />;
   if (s.phone === "duel") return <DuelGameView s={s} store={store} />;
@@ -40,10 +40,15 @@ export function PhoneSurface({ store, shot }: { store: Store<S>; shot: boolean }
   return (
     <div className={`cx-phone ${s.textScale > 1 ? "cx-phone--dt" : ""}`}>
       <StatusBar dark />
-      {s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
-      {!s.who && !s.start && <TabBar s={s} store={store} />}
+      {s.phone === "inbox" ? <Inbox s={s} store={store} /> : s.tab === "library" ? <LibraryView s={s} store={store} /> : <Home s={s} store={store} />}
+      {!s.who && !s.start && s.phone !== "inbox" && <TabBar s={s} store={store} />}
       {s.who && <WhoSheet s={s} store={store} />}
       {s.start && <StartNewSheet s={s} store={store} />}
+      {s.menu && s.onTv && (
+        <div className="cx-ingame rm-menuhost">
+          <ConsoleMenu s={s} store={store} />
+        </div>
+      )}
     </div>
   );
 }

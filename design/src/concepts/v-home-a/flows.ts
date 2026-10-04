@@ -12,6 +12,16 @@ export const flows: Flow[] = [
     ],
   },
   {
+    id: "home-remote",
+    flow: "home",
+    label: "The remote: pause the TV, then swap to Bake Shop from home",
+    start: "home.01-phone-friday",
+    steps: [
+      { device: "phone", bot: "tv-pause", mark: "Pause: Rocket Crew holds on the TV; the screen on the phone dims with it", wait: 1600 },
+      { device: "phone", bot: "act-bake-shop", mark: "Swap to Bake Shop: one tap under the thumb. Mission 6 saves, Juneau's iPad follows", wait: 4800 },
+    ],
+  },
+  {
     id: "swap",
     flow: "swap",
     label: "Rocket Crew mission 6 → Bake Shop day 4, every device",

@@ -1,16 +1,17 @@
-// Phone home: three lanes, one system. "On the TV tonight" (the couch session) · "Your turn" (every
-// game waiting on you, one inbox) · "Game nights" (games across homes). The library is a tab.
+// Phone home, "Remote first": the phone IS the TV's remote. One thumb, bottom-heavy.
+//   1. The screen: what the TV shows right now, as a big live tile, with its remote deck welded on
+//      (pause · controller · swap). Tonight's people sit on the screen's corner.
+//   2. Up next: a short stack of this household's couch games. One tap swaps the TV to it.
+//   3. Waiting on you: every duel move and game-night roll as one strip of stickers.
+// Everything a parent needs with a kid on their lap is in the lower two thirds of the glass.
 import type { Store } from "../../../harness/store";
 import { HOME } from "../../../world";
 import type { S } from "../state";
 import { Wordmark } from "../ui/Brand";
 import { Crest } from "../ui/Sticker";
-import { Lane } from "../ui/Lane";
-import { NightsLane } from "./NightsLane";
-import { CouchRail, NowPlaying } from "./NowPlaying";
-import { TurnRows } from "./TurnRows";
-import { everyGame } from "../inbox";
-import { Chevron } from "../ui/Icons";
+import { RemoteScreen } from "./remote/Screen";
+import { UpNext } from "./remote/UpNext";
+import { WaitingStrip } from "./remote/Waiting";
 
 export function HomeHeader() {
   return (
@@ -25,30 +26,17 @@ export function HomeHeader() {
 }
 
 export function Home({ s, store }: { s: S; store: Store<S> }) {
-  const all = everyGame(s);
-  const turns = all.yours;
-  const others = all.theirs.length + all.paused.length;
   return (
-    <div className="cx-scroll">
-      <HomeHeader />
-      <Lane id="tv" title="On the TV tonight">
-        <NowPlaying s={s} store={store} />
-        <CouchRail s={s} store={store} />
-      </Lane>
-      <Lane
-        id="turns"
-        title="Your turn"
-        count={turns.length}
-        action={
-          <button className="cx-lane__more" data-bot="inbox-all" onClick={() => store.update((x) => ({ ...x, phone: "inbox" }))}>
-            All turns <Chevron size={16} />
-          </button>
-        }
-      >
-        <TurnRows items={turns.slice(0, 2)} store={store} />
-        {others > 0 && <p className="cx-lane__foot">{others} more waiting on other people, in All turns.</p>}
-      </Lane>
-      <NightsLane s={s} store={store} />
+    <div className="cx-scroll rm-home">
+      <header className="rm-head">
+        <Wordmark size={20} />
+        <button className="rm-head__home" aria-label="The Mumms household" data-bot="household">
+          <Crest household={HOME} size={40} />
+        </button>
+      </header>
+      <RemoteScreen s={s} store={store} />
+      <UpNext s={s} store={store} />
+      <WaitingStrip s={s} store={store} />
     </div>
   );
 }

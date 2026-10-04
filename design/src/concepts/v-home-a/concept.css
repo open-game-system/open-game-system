@@ -1145,3 +1145,114 @@
 .cx-phone--dt .cx-tabs button { font-size: 15px; }
 .cx-phone--dt .cx-back { font-size: 22px; }
 .cx-phone .cx-now__where > span:last-child { white-space: nowrap; }
+
+/* ============ Variant v-home-a · "Remote first" ============
+   The phone home is the TV's remote. The screen (a mirror of the TV) with its key deck welded on,
+   then a short "next" stack and one "waiting on you" strip, all inside one thumb's reach. */
+.rm-home { display: flex; flex-direction: column; padding-bottom: 12px; }
+.rm-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 18px; min-height: 48px; flex: none; }
+.rm-head__home { min-width: 48px; min-height: 48px; display: grid; place-items: center; border-radius: 24px; }
+
+.rm-remote { margin: 2px 12px 0; border-radius: 30px; background: linear-gradient(180deg, #221c3f 0%, #17132b 100%); box-shadow: inset 0 0 0 1px rgba(251, 242, 228, 0.1), 0 18px 40px rgba(5, 3, 14, 0.45); padding: 8px 8px 10px; flex: none; }
+.rm-screen { position: relative; height: 196px; border-radius: 22px; overflow: hidden; background: #0b0918; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6); }
+.rm-screen__art { position: absolute; inset: 0; }
+.rm-screen__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rm-screen__art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 8, 22, 0.55) 0%, rgba(10, 8, 22, 0) 34%, rgba(10, 8, 22, 0) 46%, rgba(12, 9, 26, 0.94) 100%); }
+.rm-remote.is-held .rm-screen__art img { filter: saturate(0.45) brightness(0.62); transition: filter 0.4s; }
+.rm-screen__top { position: absolute; left: 10px; right: 10px; top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rm-screen__where { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 9px; border-radius: 14px; background: rgba(12, 9, 26, 0.78); color: var(--ogs-cream); font-size: 13px; font-weight: 700; backdrop-filter: blur(8px); }
+.rm-screen__held { position: absolute; left: 50%; top: 44%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; display: grid; place-items: center; background: rgba(251, 242, 228, 0.92); color: #1b1733; animation: cx-pop 0.4s cubic-bezier(.3,1.6,.5,1) both; }
+.rm-screen__foot { position: absolute; left: 14px; right: 8px; bottom: 10px; display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; }
+.rm-screen__title { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.rm-screen__title b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); font-size: 30px; line-height: 1.02; letter-spacing: -0.012em; color: var(--ogs-cream); }
+.rm-screen__title span { font-size: 15px; color: var(--ogs-cream-2); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rm-screen__who { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px 0 6px; border-radius: 22px; flex: none; }
+.rm-screen__who .ogs-sticker + .ogs-sticker { margin-left: -9px; }
+
+.rm-deck { display: grid; grid-template-columns: 1fr 1.25fr 1fr; align-items: end; padding: 12px 6px 0; }
+.rm-key { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 44px; color: var(--ogs-cream); background: none; border-radius: 20px; }
+.rm-key__cap { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center; background: #2d2652; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -3px 0 rgba(0, 0, 0, 0.28), 0 4px 10px rgba(5, 3, 14, 0.4); transition: transform 0.12s; }
+.rm-key:active .rm-key__cap { transform: translateY(2px) scale(0.97); }
+.rm-key__label { font-size: 14px; font-weight: 700; color: var(--ogs-cream-2); }
+.rm-key--main .rm-key__cap { width: 82px; height: 82px; background: var(--ogs-peach); color: #2a1630; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -4px 0 rgba(120, 60, 50, 0.3), 0 8px 18px rgba(247, 168, 120, 0.25); }
+.rm-key--main .rm-key__label { color: var(--ogs-cream); font-size: 15px; font-weight: 800; }
+.rm-key--blank { min-height: 44px; }
+
+.rm-h { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); font-size: 21px; letter-spacing: -0.01em; color: var(--ogs-cream); display: flex; align-items: center; gap: 8px; margin: 0; }
+
+.rm-next { padding: 16px 12px 0; flex: none; }
+.rm-next .rm-h { padding: 0 6px 6px; }
+.rm-next__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rm-next__list li + li { box-shadow: inset 0 1px 0 var(--ogs-hair); }
+.rm-next__row { width: 100%; display: grid; grid-template-columns: 76px 1fr 44px; align-items: center; gap: 12px; min-height: 58px; padding: 5px 0 5px 6px; text-align: left; color: var(--ogs-cream); background: none; }
+.rm-next__art { width: 76px; height: 46px; border-radius: 12px; overflow: hidden; display: block; }
+.rm-next__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rm-next__text { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.rm-next__text b { font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rm-next__go { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--ogs-cream-2); background: rgba(251, 242, 228, 0.07); }
+
+.rm-wait { margin: 14px 12px 0; padding: 4px 10px 10px 16px; border-radius: 24px; background: var(--ogs-dusk-1); box-shadow: inset 0 0 0 1px var(--ogs-hair); flex: none; }
+.rm-wait__head { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
+.rm-wait__count { display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 13px; background: var(--ogs-lamp); color: #231705; font-family: var(--ogs-text); font-size: 14px; font-weight: 900; animation: cx-pop 0.45s cubic-bezier(.3,1.6,.5,1) both; }
+.rm-wait__all { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; min-width: 64px; justify-content: flex-end; padding: 0 6px; color: var(--ogs-cream-2); font-weight: 700; font-size: 15px; }
+.rm-wait__tokens { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.rm-token { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 2px; min-height: 44px; color: var(--ogs-cream); background: none; border-radius: 16px; }
+.rm-token__disc { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; margin-bottom: 4px; background: var(--ogs-dusk-2); position: relative; }
+.rm-token.is-yours .rm-token__disc { overflow: visible; background: radial-gradient(circle, rgba(255, 200, 97, 0.95) 0%, rgba(255, 200, 97, 0.6) 58%, rgba(255, 200, 97, 0) 72%); }
+.rm-token__disc > img, .rm-token__disc .cx-art, .rm-token__disc picture { width: 100%; height: 100%; object-fit: cover; }
+.rm-token.is-coming .rm-token__disc { box-shadow: 0 0 0 2px var(--ogs-dusk-1), 0 0 0 3.5px rgba(251, 242, 228, 0.45); }
+.rm-token.is-new .rm-token__disc { background: none; box-shadow: inset 0 0 0 2px rgba(251, 242, 228, 0.3); color: var(--ogs-cream-2); }
+.rm-token b { font-size: 14px; font-weight: 800; line-height: 1.15; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.rm-token span:last-child { font-size: 13px; color: var(--ogs-cream-2); line-height: 1.15; white-space: nowrap; }
+.rm-token.is-yours span:last-child { color: var(--ogs-lamp); font-weight: 700; }
+.rm-wait__tokens li.is-arriving .rm-token__disc { animation: rm-arrive 0.9s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes rm-arrive { 0% { transform: translateY(-40px) scale(0.6); opacity: 0; } 60% { transform: translateY(4px) scale(1.06); opacity: 1; } 100% { transform: none; } }
+
+/* Larger Text: the deck keeps its keys; labels and the stack grow. */
+.cx-phone--dt .rm-screen__title b { font-size: 34px; }
+.cx-phone--dt .rm-screen__title span, .cx-phone--dt .rm-next__text b { font-size: 20px; }
+.cx-phone--dt .rm-key__label { font-size: 17px; }
+.cx-phone--dt .rm-next__text { flex-direction: column; align-items: flex-start; gap: 4px; }
+.cx-phone--dt .rm-next__row { min-height: 72px; }
+.cx-phone--dt .rm-wait__tokens { grid-template-columns: repeat(2, 1fr); row-gap: 10px; }
+.cx-phone--dt .rm-token b { font-size: 17px; }
+.cx-phone--dt .rm-token span:last-child { font-size: 16px; }
+.cx-phone--dt .rm-h { font-size: 25px; }
+
+/* "Every game": the strip, pulled up into a tall sheet; the TV tile peeks above it. */
+.rm-inbox__sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 112px; display: flex; flex-direction: column; border-radius: 26px 26px 0 0; background: var(--ogs-dusk-1); color: var(--ogs-cream); box-shadow: 0 -1px 0 var(--ogs-hair); animation: cx-sheet-in 0.42s cubic-bezier(.2,.9,.25,1) both; padding-top: 8px; }
+.rm-inbox__head { display: flex; align-items: center; justify-content: space-between; padding: 2px 8px 0 18px; }
+.rm-inbox__title { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); font-size: 28px; margin: 0; }
+.rm-inbox__done { min-height: 44px; min-width: 64px; padding: 0 12px; border-radius: 22px; font-weight: 800; font-size: 16px; color: var(--ogs-cream); background: rgba(251, 242, 228, 0.1); }
+.rm-inbox__scroll { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 28px; scrollbar-width: none; }
+.rm-inbox .cx-lane { padding-top: 16px; }
+.rm-inbox { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.rm-inbox .rm-inbox__sheet { position: relative; top: auto; flex: 1; min-height: 0; margin-top: 8px; }
+.rm-mini { flex: none; display: flex; align-items: center; gap: 8px; margin: 4px 12px 0; padding: 6px 6px 6px 6px; border-radius: 20px; background: linear-gradient(180deg, #221c3f 0%, #17132b 100%); box-shadow: inset 0 0 0 1px rgba(251, 242, 228, 0.1); }
+.rm-mini__back { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 52px; text-align: left; color: var(--ogs-cream); background: none; border-radius: 14px; }
+.rm-mini__art { width: 72px; height: 44px; border-radius: 10px; overflow: hidden; flex: none; }
+.rm-mini__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rm-mini__text { display: flex; flex-direction: column; min-width: 0; }
+.rm-mini__text b { font-family: var(--ogs-display); font-variation-settings: var(--ogs-display-axes); font-weight: var(--ogs-display-weight); font-size: 19px; line-height: 1.1; }
+.rm-mini__text span { font-size: 14px; color: var(--ogs-cream-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rm-mini__key { width: 52px; height: 52px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--ogs-peach); color: #2a1630; }
+.cx-phone--dt .rm-mini__text b { font-size: 22px; }
+.cx-phone--dt .rm-mini__text span { font-size: 17px; }
+.rm-menuhost { position: absolute !important; inset: 0; height: auto !important; background: transparent !important; z-index: 6; }
+/* compaction: everything above the tab bar, no scroll at 1× */
+.rm-screen { height: 178px; }
+.rm-deck { padding-top: 10px; }
+.rm-key__cap { width: 54px; height: 54px; }
+.rm-key--main .rm-key__cap { width: 70px; height: 70px; }
+.rm-key { gap: 4px; }
+.rm-next { padding-top: 12px; }
+.rm-next .rm-h { padding-bottom: 2px; }
+.rm-next__row { grid-template-columns: 64px 1fr 44px; min-height: 60px; padding: 4px 0 4px 6px; }
+.rm-next__art { width: 64px; height: 44px; }
+.rm-next__text { flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; }
+.rm-next__text b { font-size: 16px; max-width: 100%; }
+.rm-next__text .cx-chip { height: 22px; font-size: 12px; }
+.rm-wait { margin-top: 10px; padding-bottom: 8px; }
+.rm-wait__head { min-height: 44px; }
+.rm-token__disc { width: 50px; height: 50px; margin-bottom: 2px; }
+.cx-phone:has(.rm-menuhost) .rm-next, .cx-phone:has(.rm-menuhost) .rm-wait { visibility: hidden; }

@@ -17,18 +17,19 @@ export function TvPlaying({ s, gameId, arrived = false }: { s: S; gameId: string
   const zoom: CSSProperties = f ? { transform: `scale(${f.scale})`, transformOrigin: `${f.ox}% ${f.oy}%` } : {};
   // Right after a cut the stream starts at the cut-over's HUD-safe zoom and eases out to the game's
   // own full frame as the console's band settles: while OGS chrome is up, no HUD is in view.
+  const held = s.menu || s.paused;
   const landing: Record<string, string> = f ? { "--ct-z": String(f.scale), transformOrigin: `${f.ox}% ${f.oy}%` } : {};
   return (
-    <div className={`ct-play ${s.menu ? "is-paused" : ""} ${s.left ? "is-landed" : ""}`}>
+    <div className={`ct-play ${held ? "is-paused" : ""} ${s.left ? "is-landed" : ""}`}>
       <div className="ct-play__blur" aria-hidden>
         <TvArt gameId={gameId} />
       </div>
       <div className="ct-play__game">
-        <div className={`ct-play__zoom ${s.left && !s.menu ? "is-landing" : ""}`} style={s.menu ? zoom : s.left ? landing : undefined}>
+        <div className={`ct-play__zoom ${s.left && !held ? "is-landing" : ""}`} style={held ? zoom : s.left ? landing : undefined}>
           <GameTvView gameId={gameId} />
         </div>
       </div>
-      {s.menu ? <TvPaused s={s} gameId={gameId} /> : <NowOverlay s={s} gameId={gameId} arrived={arrived} />}
+      {held ? <TvPaused s={s} gameId={gameId} /> : <NowOverlay s={s} gameId={gameId} arrived={arrived} />}
     </div>
   );
 }

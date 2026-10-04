@@ -71,6 +71,8 @@ export interface S {
   arrival: { id: string; phase: "armed" | "landed" } | null;
   /** The phone's text size (iOS Dynamic Type): 1 is the default; 1.3 is "larger text". */
   textScale: 1 | 1.3;
+  /** The remote's pause: the couch game on the TV is held (the TV shows its paused card). */
+  paused: boolean;
 }
 
 // ---- First run ----
@@ -180,6 +182,7 @@ export function base(): S {
     fresh: {},
     arrival: null,
     textScale: 1,
+    paused: false,
   };
 }
 
@@ -222,12 +225,14 @@ export function seatPlan(game: GameManifest, present: Person[] = PRESENT): SeatA
 // ---- actions (pure) ----
 
 export const openMenu = (s: S): S => ({ ...s, menu: true });
+/** The remote's play/pause: holds the couch game on the TV, or lets it go again. */
+export const togglePause = (s: S): S => ({ ...s, paused: !s.paused });
 export const closeMenu = (s: S): S => ({ ...s, menu: false });
 
 export function startSwitch(s: S, to: string): S {
   const from = s.onTv;
-  if (!from || from === to) return { ...s, menu: false, onTv: to, phone: "controller" };
-  return { ...s, menu: false, phone: "controller", switching: { from, to, phase: "saving", undo: false }, lateJoin: null, rung: false };
+  if (!from || from === to) return { ...s, menu: false, paused: false, onTv: to, phone: "controller" };
+  return { ...s, menu: false, paused: false, phone: "controller", switching: { from, to, phase: "saving", undo: false }, lateJoin: null, rung: false };
 }
 
 export function undoSwitch(s: S): S {
