@@ -9,6 +9,8 @@ const SPIN_MS = 1600;
 const HOLD_MS = 900;
 /** Icon pitch on the reel (styles.css: .reel-icon width + gap). */
 const PITCH = 220 + 36;
+/** Where the picked icon lands: the left third, clear of the art's subject. */
+const LAND_X = 130;
 
 type Phase = "ready" | "spin" | "landed";
 
@@ -71,10 +73,7 @@ export function Surprise(props: {
         />
       )}
       <div className="surprise-scrim" />
-      <div
-        className="reel"
-        style={{ transform: `translateX(${960 - PITCH / 2 - stop * PITCH}px)` }}
-      >
+      <div className="reel" style={{ transform: `translateX(${LAND_X - stop * PITCH}px)` }}>
         {reel.map(({ icon, key }, n) => (
           <div
             key={key}

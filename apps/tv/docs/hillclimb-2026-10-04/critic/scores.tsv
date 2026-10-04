@@ -7,3 +7,5 @@ round	critic	model	R1	R2	R3	R4	R5	R6	R7	R8	min	decision	note
 02	codex	gpt-5.6-sol (medium)	8	7	7	7	8	8	7	7	7	keep	pairwise vs 01 (Codex, blind A/B): 02 better overall
 03	claude	opus-5.5 (general-purpose subagent)	7	7	7	7	7	8	6	6	6	keep	pairwise vs 02 (Claude, blind): 03 better overall (02 better only on R5: more resume cards)
 03	codex	gpt-5.6-sol (medium)	8	7	7	7	8	7	7	7	7	keep	pairwise vs 02 (Codex, blind): 03 better overall
+04	claude	opus-5.5 (general-purpose subagent)	7	7	7	6	8	8	7	6	6	keep	pairwise vs 03: both judges prefer 04 (caption cropped, Surprise result in left third, no duplicate chip in cards)
+04	codex	gpt-5.6-sol (medium)	8	7	7	8	7	8	8	7	7	keep	min flat at 7 (codex) / 6 (claude) since round 01: plateau

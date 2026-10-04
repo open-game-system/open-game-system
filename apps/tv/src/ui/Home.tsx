@@ -109,7 +109,7 @@ function Room({ spot }: { spot: Spot }) {
       {layers.map((l, n) => (
         <img
           key={l.src}
-          className={`room-art${n === layers.length - 1 ? " in" : ""}`}
+          className={`room-art${n === layers.length - 1 ? " in" : ""}${l.captured ? " captured" : ""}`}
           src={l.src}
           alt=""
           style={safeStyle(l.safe)}

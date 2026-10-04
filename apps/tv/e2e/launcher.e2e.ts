@@ -67,7 +67,10 @@ describe("TV launcher (fake session)", () => {
       .evaluateAll((els) => els.map((e) => e.getAttribute("data-item")));
     expect(cards).toHaveLength(3);
     expect(cards[0]).toMatch(/^game:~continue:bake-shop:/);
-    expect(cards.slice(1)).toEqual(["game:~surprise", "game:~continue:story-nook:story-nook-ember"]);
+    expect(cards.slice(1)).toEqual([
+      "game:~surprise",
+      "game:~continue:story-nook:story-nook-ember",
+    ]);
     expect(
       await page.locator('[data-card="sitting"][data-app="bake-shop"]').textContent(),
     ).toContain("Day 4");
