@@ -41,7 +41,9 @@ describe("game-directory", () => {
     });
 
     it("recognizes Rocket Crew pages after it redirects to /join", () => {
-      expect(findGameByUrl("https://rocket-crew.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("rocket-crew");
+      expect(findGameByUrl("https://rocket-crew.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe(
+        "rocket-crew",
+      );
     });
 
     it("lists Night Flight as a castable game", () => {
@@ -51,7 +53,9 @@ describe("game-directory", () => {
     });
 
     it("recognizes Night Flight pages after it redirects to /join", () => {
-      expect(findGameByUrl("https://night-flight.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("night-flight");
+      expect(
+        findGameByUrl("https://night-flight.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id,
+      ).toBe("night-flight");
     });
 
     it("returns undefined for unknown ID", () => {

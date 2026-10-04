@@ -9,7 +9,8 @@ import { z } from "zod";
 export const CAST_VIEW_NAMESPACE = "urn:x-cast:org.opengame.view";
 
 /** Default OGS stream server (the receiver uses the same default). */
-export const OGS_STREAM_SERVER_URL = "https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream";
+export const OGS_STREAM_SERVER_URL =
+  "https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream";
 
 type ChannelMessage = Record<string, unknown> | string;
 
@@ -51,9 +52,11 @@ export async function connectViewChannel(
     const send = async () => {
       const viewUrl = getViewUrl();
       if (!viewUrl) return;
-      await channel.sendMessage({ type: "LOAD_VIEW", viewUrl, streamServerUrl }).catch((err: unknown) => {
-        console.warn("[Cast] Could not send view to receiver:", err);
-      });
+      await channel
+        .sendMessage({ type: "LOAD_VIEW", viewUrl, streamServerUrl })
+        .catch((err: unknown) => {
+          console.warn("[Cast] Could not send view to receiver:", err);
+        });
     };
     channel.onMessage((message) => {
       if (isViewRequest(message)) void send();

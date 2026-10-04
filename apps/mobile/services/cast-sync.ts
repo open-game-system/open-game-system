@@ -1,11 +1,13 @@
-import GoogleCast from "react-native-google-cast";
 import type { Store } from "@open-game-system/app-bridge-types";
+import GoogleCast from "react-native-google-cast";
 import { sessionConnectedEvent } from "./cast-session-device";
 import type { CastCommands, CastDevice, NativeCastEvents, NativeCastState } from "./cast-store";
 import { connectViewChannel, type ViewChannelSession } from "./cast-view";
 
 type Subscription = { remove(): void };
-type Session = ViewChannelSession & { getCastDevice(): Promise<{ deviceId: string; friendlyName: string } | null> };
+type Session = ViewChannelSession & {
+  getCastDevice(): Promise<{ deviceId: string; friendlyName: string } | null>;
+};
 
 /** The slice of react-native-google-cast's SessionManager this needs (keeps it testable). */
 export type SessionManagerLike = {
@@ -31,7 +33,8 @@ export function castCommands(): CastCommands & { bind(sm: SessionManagerLike): v
       sm = next;
     },
     startCasting(deviceId: string, devices: CastDevice[]) {
-      if (sm && devices.some((d) => d.id === deviceId)) void sm.startSession(deviceId).catch(() => GoogleCast.showCastDialog());
+      if (sm && devices.some((d) => d.id === deviceId))
+        void sm.startSession(deviceId).catch(() => GoogleCast.showCastDialog());
       else GoogleCast.showCastDialog();
     },
     stopCasting() {
@@ -59,14 +62,17 @@ export function startCastSync(
   const connected = (session: Session) => {
     const mine = ++generation;
     channel = null;
-    void connectViewChannel(session, () => store.getSnapshot().viewUrl, streamServerUrl).then((c) => {
-      if (mine === generation) channel = c;
-    });
+    void connectViewChannel(session, () => store.getSnapshot().viewUrl, streamServerUrl).then(
+      (c) => {
+        if (mine === generation) channel = c;
+      },
+    );
     void session
       .getCastDevice()
       .catch(() => null)
       .then((device) => {
-        if (mine === generation) store.dispatch(sessionConnectedEvent(device, store.getSnapshot().devices));
+        if (mine === generation)
+          store.dispatch(sessionConnectedEvent(device, store.getSnapshot().devices));
       });
   };
   const ended = () => {

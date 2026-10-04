@@ -33,7 +33,9 @@ describe("connectViewChannel", () => {
     const f = fakeSession();
     await connectViewChannel(f.session, () => "https://game/tv/AB?stream=1", STREAM);
     expect(f.namespaces).toEqual([CAST_VIEW_NAMESPACE]);
-    expect(f.sent).toEqual([{ type: "LOAD_VIEW", viewUrl: "https://game/tv/AB?stream=1", streamServerUrl: STREAM }]);
+    expect(f.sent).toEqual([
+      { type: "LOAD_VIEW", viewUrl: "https://game/tv/AB?stream=1", streamServerUrl: STREAM },
+    ]);
   });
 
   it("answers the receiver's REQUEST_VIEW (a cold-started receiver misses the first send)", async () => {
@@ -69,7 +71,9 @@ describe("connectViewChannel", () => {
         throw new Error("receiver gone");
       },
     };
-    await expect(connectViewChannel(session, () => "https://game/tv/AB", STREAM)).resolves.toBeNull();
+    await expect(
+      connectViewChannel(session, () => "https://game/tv/AB", STREAM),
+    ).resolves.toBeNull();
   });
 
   it("uses a urn:x-cast namespace", () => {

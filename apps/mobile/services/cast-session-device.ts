@@ -11,5 +11,11 @@ export function sessionConnectedEvent(device: SessionDevice, discovered: CastDev
   const only = discovered.length === 1 ? discovered[0] : undefined;
   const deviceId = device?.deviceId ?? only?.id ?? "unknown";
   const deviceName = device?.friendlyName ?? only?.name ?? "your TV";
-  return { type: "SESSION_CONNECTED" as const, deviceId, deviceName, sessionId: "cast-session", streamSessionId: "" };
+  return {
+    type: "SESSION_CONNECTED" as const,
+    deviceId,
+    deviceName,
+    sessionId: "cast-session",
+    streamSessionId: "",
+  };
 }

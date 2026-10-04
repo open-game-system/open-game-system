@@ -7,20 +7,29 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, PanResponder, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  Dimensions,
+  PanResponder,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import GoogleCast, { useDevices } from "react-native-google-cast";
 import { GameErrorScreen } from "../components/GameErrorScreen";
 import { GameLoadingOverlay } from "../components/GameLoadingOverlay";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import { type CastDevice, type CastStores, createCastStore } from "../services/cast-store";
 import { castCommands, startCastSync } from "../services/cast-sync";
-import { swipeBackHandlers } from "../services/swipe-back";
 import { OGS_STREAM_SERVER_URL } from "../services/cast-view";
 // TODO: Re-enable when auth model for companion app is figured out
 // import { createCastSession, deleteCastSession } from "../services/cast-api";
 import { findGameByUrl } from "../services/game-directory";
 import { addRecentGame } from "../services/game-history";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
+import { swipeBackHandlers } from "../services/swipe-back";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
@@ -33,7 +42,12 @@ const bridge: NativeBridge<CastStores> = createNativeBridge<CastStores>();
 const castCommandsForStore = castCommands();
 const castStore = createCastStore(castCommandsForStore);
 bridge.setStore("cast", castStore);
-startCastSync(castStore, GoogleCast.getSessionManager(), castCommandsForStore, OGS_STREAM_SERVER_URL);
+startCastSync(
+  castStore,
+  GoogleCast.getSessionManager(),
+  castCommandsForStore,
+  OGS_STREAM_SERVER_URL,
+);
 const BridgeContext = createNativeBridgeContext<CastStores>();
 const CastContext = BridgeContext.createNativeStoreContext("cast");
 
@@ -146,7 +160,6 @@ export default function GameScreen() {
     }
   }, [devices]);
 
-
   // --- Swipe-back gesture ---
   const swipe = swipeBackHandlers({
     edge: EDGE_WIDTH,
@@ -165,7 +178,8 @@ export default function GameScreen() {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: (evt) => swipe.startsAt(evt.nativeEvent.pageX),
-      onMoveShouldSetPanResponder: (evt, gs) => evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
+      onMoveShouldSetPanResponder: (evt, gs) =>
+        evt.nativeEvent.pageX < EDGE_WIDTH + 20 && gs.dx > 5,
       onPanResponderMove: (_, gs) => swipe.move(gs.dx),
       onPanResponderRelease: (_, gs) => swipe.release(gs.dx),
       onPanResponderTerminate: () => swipe.terminate(),

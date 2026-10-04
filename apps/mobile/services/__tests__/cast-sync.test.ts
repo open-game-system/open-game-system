@@ -18,7 +18,7 @@ function fakeSessionManager(current: FakeSession | null = null) {
     resumed: new Set<(s: FakeSession) => void>(),
     ended: new Set<() => void>(),
   };
-  const sub = <T,>(set: Set<T>, fn: T) => {
+  const sub = <T>(set: Set<T>, fn: T) => {
     set.add(fn);
     return { remove: () => void set.delete(fn) };
   };
@@ -47,7 +47,10 @@ function fakeSession(name = "Chromecast HD", id = "cc-1") {
   return {
     sent,
     getCastDevice: async () => ({ deviceId: id, friendlyName: name }),
-    addChannel: async () => ({ sendMessage: async (m: unknown) => void sent.push(m), onMessage: () => {} }),
+    addChannel: async () => ({
+      sendMessage: async (m: unknown) => void sent.push(m),
+      onMessage: () => {},
+    }),
   };
 }
 
@@ -65,7 +68,10 @@ describe("cast sync: the app mirrors the real Google Cast session", () => {
   it("picks up a session that was already casting when the app (re)opens", async () => {
     const { store } = setup(fakeSession());
     await flush();
-    expect(store.getSnapshot().session).toMatchObject({ status: "connected", deviceName: "Chromecast HD" });
+    expect(store.getSnapshot().session).toMatchObject({
+      status: "connected",
+      deviceName: "Chromecast HD",
+    });
   });
 
   it("goes connecting → connected on a new session, named after its device", async () => {
@@ -74,7 +80,10 @@ describe("cast sync: the app mirrors the real Google Cast session", () => {
     expect(store.getSnapshot().session.status).toBe("connecting");
     sm.emitStarted(fakeSession());
     await flush();
-    expect(store.getSnapshot().session).toMatchObject({ status: "connected", deviceName: "Chromecast HD" });
+    expect(store.getSnapshot().session).toMatchObject({
+      status: "connected",
+      deviceName: "Chromecast HD",
+    });
   });
 
   it("doesn't stay stuck on connecting when the start fails", async () => {
@@ -111,7 +120,11 @@ describe("cast sync: the app mirrors the real Google Cast session", () => {
     const session = fakeSession();
     sm.emitStarted(session);
     await flush();
-    expect(session.sent).toContainEqual({ type: "LOAD_VIEW", viewUrl: "https://game/tv/AB?stream=1", streamServerUrl: "https://stream.example" });
+    expect(session.sent).toContainEqual({
+      type: "LOAD_VIEW",
+      viewUrl: "https://game/tv/AB?stream=1",
+      streamServerUrl: "https://stream.example",
+    });
   });
 
   it("stops listening when torn down", () => {
@@ -133,7 +146,10 @@ describe("cast sync: the game's buttons drive the real session", () => {
 
   it("casting to a known device starts a session on that device", () => {
     const { sm, store } = setup();
-    store.dispatch({ type: "DEVICES_UPDATED", devices: [{ id: "cc-1", name: "Chromecast HD", type: "chromecast" }] });
+    store.dispatch({
+      type: "DEVICES_UPDATED",
+      devices: [{ id: "cc-1", name: "Chromecast HD", type: "chromecast" }],
+    });
     store.dispatch({ type: "START_CASTING", deviceId: "cc-1" });
     expect(sm.startSession).toHaveBeenCalledWith("cc-1");
   });
