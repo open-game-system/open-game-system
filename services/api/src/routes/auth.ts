@@ -5,10 +5,11 @@ import { CODE_TTL_MS, checkCode, codeEmail, hashCode, newEmailCode } from "../li
 import { apiError, invalidBody, parseBody } from "../lib/http";
 import { type OidcProvider, type VerifiedLogin, verifyIdToken } from "../lib/oidc";
 import {
-  DeviceSchema,
   type Device,
+  DeviceSchema,
   deviceToken,
   getMe,
+  getProfile,
   type Provider,
   upsertDevice,
 } from "../lib/profiles";
@@ -62,42 +63,69 @@ async function who(
   device: Device | undefined,
 ): Promise<Who | { error: Response }> {
   if (!c.req.header("Authorization")) {
-    if (!device) return { error: invalidBody(c, "device { deviceId, kind, name } is required to sign in") };
+    if (!device)
+      return { error: invalidBody(c, "device { deviceId, kind, name } is required to sign in") };
     return { kind: "sign-in", device };
   }
   const result = await claimsFromHeader(c);
   if ("error" in result) return result;
   if (result.claims.kind === "launcher")
-    return { error: apiError(c, 403, "profile_token_required", "Needs the profile's phone or tablet token") };
+    return {
+      error: apiError(
+        c,
+        403,
+        "profile_token_required",
+        "Needs the profile's phone or tablet token",
+      ),
+    };
   return { kind: "link", claims: result.claims };
 }
 
 async function finish(c: Context<ProfileEnv>, w: Who, provider: Provider, login: VerifiedLogin) {
-  const db = c.env.DB;
+  const ownerId = await loginOwner(c.env.DB, provider, login.subject);
+  return w.kind === "link"
+    ? link(c, w.claims.sub, ownerId, provider, login)
+    : signIn(c, ownerId, w.device);
+}
+
+/** The profile a login backs up, if any. */
+async function loginOwner(db: D1Database, provider: Provider, subject: string) {
   const owner = await db
     .prepare("SELECT profile_id FROM profile_logins WHERE provider = ? AND subject = ?")
-    .bind(provider, login.subject)
+    .bind(provider, subject)
     .first();
-  const ownerId = owner ? z.object({ profile_id: z.string() }).parse(owner).profile_id : null;
+  return owner ? z.object({ profile_id: z.string() }).parse(owner).profile_id : null;
+}
 
-  if (w.kind === "link") {
-    const me = w.claims.sub;
-    if (ownerId && ownerId !== me)
-      return apiError(c, 409, "login_in_use", "That login backs up another profile");
-    if (!ownerId)
-      await db
-        .prepare("INSERT INTO profile_logins (provider, subject, profile_id, email) VALUES (?, ?, ?, ?)")
-        .bind(provider, login.subject, me, login.email)
-        .run();
-    const view = await getMe(db, me);
-    return view ? c.json(view) : apiError(c, 404, "profile_not_found", "Profile not found");
-  }
+/** Back up profile `me` with the login (a no-op when it already does). */
+async function link(
+  c: Context<ProfileEnv>,
+  me: string,
+  ownerId: string | null,
+  provider: Provider,
+  login: VerifiedLogin,
+) {
+  if (ownerId && ownerId !== me)
+    return apiError(c, 409, "login_in_use", "That login backs up another profile");
+  // Checked first: the insert below would hit the foreign key for a deleted profile.
+  if (!(await getProfile(c.env.DB, me)))
+    return apiError(c, 404, "profile_not_found", "Profile not found");
+  if (!ownerId)
+    await c.env.DB.prepare(
+      "INSERT INTO profile_logins (provider, subject, profile_id, email) VALUES (?, ?, ?, ?)",
+    )
+      .bind(provider, login.subject, me, login.email)
+      .run();
+  return c.json(await getMe(c.env.DB, me));
+}
 
-  if (!ownerId) return apiError(c, 404, "login_not_found", "No profile is backed up with that login");
-  const view = await getMe(db, ownerId);
-  if (!view) return apiError(c, 404, "login_not_found", "No profile is backed up with that login");
-  await upsertDevice(db, ownerId, w.device).run();
-  const token = await deviceToken(ownerId, w.device, c.env.OGS_JWT_SECRET);
+/** Put the device on the login's profile and hand it a device token. */
+async function signIn(c: Context<ProfileEnv>, ownerId: string | null, device: Device) {
+  const view = ownerId ? await getMe(c.env.DB, ownerId) : null;
+  if (!ownerId || !view)
+    return apiError(c, 404, "login_not_found", "No profile is backed up with that login");
+  await upsertDevice(c.env.DB, ownerId, device).run();
+  const token = await deviceToken(ownerId, device, c.env.OGS_JWT_SECRET);
   return c.json({ ...view, token });
 }
 
@@ -167,7 +195,10 @@ auth.post("/email/verify", async (c) => {
     Date.now(),
   );
   if (verdict === "wrong") {
-    await db.prepare("UPDATE email_codes SET attempts = attempts + 1 WHERE email = ?").bind(body.email).run();
+    await db
+      .prepare("UPDATE email_codes SET attempts = attempts + 1 WHERE email = ?")
+      .bind(body.email)
+      .run();
     return invalid();
   }
   await db.prepare("DELETE FROM email_codes WHERE email = ?").bind(body.email).run();
