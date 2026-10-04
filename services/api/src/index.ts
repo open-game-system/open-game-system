@@ -6,6 +6,7 @@ import cast from "./routes/cast";
 import catalogue from "./routes/catalogue";
 import devices from "./routes/devices";
 import households from "./routes/households";
+import instances from "./routes/instances";
 import library from "./routes/library";
 import notifications from "./routes/notifications";
 import stream from "./routes/stream";
@@ -40,6 +41,7 @@ app.use("/api/v1/households/:hid", householdAuth);
 app.use("/api/v1/households/:hid/*", householdAuth);
 app.route("/api/v1/households", households);
 app.route("/api/v1/households", library);
+app.route("/api/v1/households", instances);
 
 // Catalogue of games (public)
 app.route("/api/v1/catalogue", catalogue);
