@@ -69,6 +69,21 @@ function box(game: Manifest, tag: string, resume: string, instanceId?: string): 
 }
 
 /**
+ * Boxes for the items whose TV game isn't placed yet, in order; each game is placed once, so the
+ * focus ring is never ambiguous.
+ */
+function placer(tvGames: Map<string, Manifest>) {
+  const placed = new Set<string>();
+  return <T extends { appId: string }>(items: T[], boxOf: (g: Manifest, item: T) => BoxModel) =>
+    items.flatMap((item) => {
+      const g = tvGames.get(item.appId);
+      if (!g || placed.has(item.appId)) return [];
+      placed.add(item.appId);
+      return [boxOf(g, item)];
+    });
+}
+
+/**
  * Status first: what you paused (Continue), what's on tonight (Tonight), then the rest of the
  * household's TV games (Library). Each game appears once, so the focus ring is never ambiguous.
  */
@@ -86,37 +101,24 @@ export function buildRows(input: {
     liveInstanceIds: [],
     ttlFor: (appId) => ttl.get(appId) ?? 0,
   });
-  const placed = new Set<string>();
-  const take = (appId: string) => {
-    const g = tvGames.get(appId);
-    if (!g || placed.has(appId)) return null;
-    placed.add(appId);
-    return g;
-  };
+  const place = placer(tvGames);
   const section = (kind: string) => view.sections.find((s) => s.kind === kind)?.items ?? [];
 
-  const cont: BoxModel[] = [];
-  for (const s of input.suspended) {
-    const g = take(s.appId);
-    if (g) cont.push(box(g, `Paused ${when(s.at, now)}`, s.label || g.tagline, s.instanceId));
-  }
-  for (const i of section("paused")) {
-    const g = take(i.appId);
-    if (g) cont.push(box(g, `Played ${when(i.updatedAt, now)}`, i.title || i.detail, i.instanceId));
-  }
-  const tonight: BoxModel[] = [];
-  for (const i of section("tonight")) {
-    const g = take(i.appId);
-    if (g)
-      tonight.push(
-        box(g, `Tonight at ${clock(i.startsAt ?? now)}`, i.title || i.detail, i.instanceId),
-      );
-  }
-  const library: BoxModel[] = [];
-  for (const appId of tvGames.keys()) {
-    const g = take(appId);
-    if (g) library.push(box(g, "", g.tagline));
-  }
+  const cont = [
+    ...place(input.suspended, (g, s) =>
+      box(g, `Paused ${when(s.at, now)}`, s.label || g.tagline, s.instanceId),
+    ),
+    ...place(section("paused"), (g, i) =>
+      box(g, `Played ${when(i.updatedAt, now)}`, i.title || i.detail, i.instanceId),
+    ),
+  ];
+  const tonight = place(section("tonight"), (g, i) =>
+    box(g, `Tonight at ${clock(i.startsAt ?? now)}`, i.title || i.detail, i.instanceId),
+  );
+  const library = place(
+    [...tvGames.keys()].map((appId) => ({ appId })),
+    (g) => box(g, "", g.tagline),
+  );
   const rows: RowModel[] = [
     { id: "continue", title: "Continue", boxes: cont },
     { id: "tonight", title: "Tonight", boxes: tonight },
