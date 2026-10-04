@@ -85,12 +85,19 @@ try {
   check("cast starts a session owned by Jonathan; the others join with the TV code", session.host.id === dad.id && /^[A-Z2-9]{6}$/.test(session.code));
   const launcherT = session.token;
 
+  // Members are listed in the order they come onto the couch, so each device connects in turn.
   const phone = client("phone", dadP.token, session.sessionId);
-  const momPhone = client("mom", momP.token, session.sessionId);
-  const kid1 = client("juneau", juneauP.token, session.sessionId);
-  const kid2 = client("ava", avaP.token, session.sessionId);
-  await Promise.all([phone.open, momPhone.open, kid1.open, kid2.open]);
-  await until(() => phone.state?.members?.length === 4, "everyone on the couch");
+  await phone.open;
+  await until(() => phone.state?.members?.length === 1, "Jonathan on the couch");
+  const arrive = async (name, token, n) => {
+    const c = client(name, token, session.sessionId);
+    await c.open;
+    await until(() => phone.state?.members?.length === n, `${name} on the couch`);
+    return c;
+  };
+  const momPhone = await arrive("mom", momP.token, 2);
+  const kid1 = await arrive("juneau", juneauP.token, 3);
+  const kid2 = await arrive("ava", avaP.token, 4);
   check("the couch is who joined", phone.state.members.map((m) => m.name).join(",") === "Jonathan,Mom,Juneau,Ava", phone.state.members.map((m) => m.name).join(","));
 
   // Cast once: the fake Chromecast opens the launcher URL in its TV browser. Its load counter lives
