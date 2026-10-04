@@ -90,6 +90,7 @@ describe("boot, fake mode", () => {
     const b = boot({ mode: "fake", hold: false }, "");
     expect(b.client.getSnapshot().connection).toBe("open");
     expect(b.frameTimeoutMs).toBe(20_000);
+    expect(b.viewTimeoutMs).toBe(20_000);
   });
 
   it("gives the page one boot id that later boots keep", () => {
@@ -117,8 +118,9 @@ describe("boot, live mode", () => {
   it("opens the couch socket and loads the launcher data with the token", async () => {
     const { fetch, calls } = api();
     vi.stubGlobal("fetch", fetch);
-    const b = boot(LIVE, "?frameTimeout=900");
+    const b = boot(LIVE, "?frameTimeout=900&viewTimeout=1100");
     expect(b.frameTimeoutMs).toBe(900);
+    expect(b.viewTimeoutMs).toBe(1100);
     expect(BrowserWs.all.map((w) => w.url)).toEqual([
       "wss://api.example/api/v1/couch/ws?token=tok",
     ]);

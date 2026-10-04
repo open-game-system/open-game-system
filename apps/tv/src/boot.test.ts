@@ -7,8 +7,9 @@ describe("boot (fake mode)", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("serves the fixture launcher data, exposes the fake session, and keeps one boot id", async () => {
-    const first = boot({ mode: "fake", hold: false }, "?fake=1&frameTimeout=500");
+    const first = boot({ mode: "fake", hold: false }, "?fake=1&frameTimeout=500&viewTimeout=700");
     expect(first.frameTimeoutMs).toBe(500);
+    expect(first.viewTimeoutMs).toBe(700);
     const data = await first.data;
     expect(data.session).toEqual(FIXTURE_SESSION);
     expect(data.games.length).toBeGreaterThan(0);

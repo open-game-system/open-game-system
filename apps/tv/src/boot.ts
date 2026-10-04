@@ -1,7 +1,7 @@
 import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol";
 import type { StartGrant } from "./launcher/frames";
 import { createGameGrants } from "./launcher/game-grants";
-import { frameTimeoutMs, type LauncherParams, wsUrl } from "./params";
+import { frameTimeoutMs, type LauncherParams, viewTimeoutMs, wsUrl } from "./params";
 import type { SessionClient } from "./session/client";
 import { fetchLauncherData, type LauncherData, libraryGames } from "./session/data";
 import { createFakeClient } from "./session/fake-client";
@@ -32,6 +32,8 @@ export interface Boot {
   client: SessionClient;
   data: Promise<LauncherData>;
   frameTimeoutMs: number;
+  /** How long a started game may take to send its TV page before the TV says it didn't open. */
+  viewTimeoutMs: number;
   /** The session's game token for a framed game (and who's on the couch), for its ogs:start. */
   grants: (appId: string) => Promise<StartGrant | null>;
 }
@@ -52,6 +54,7 @@ export async function loadWithRetry(load: () => Promise<LauncherData>): Promise<
 export function boot(params: LauncherParams, search: string): Boot {
   window.__launcherBootId ??= crypto.randomUUID();
   const timeout = frameTimeoutMs(search);
+  const viewTimeout = viewTimeoutMs(search);
   if (params.mode === "fake") {
     const fake = createFakeClient({ hold: params.hold, fresh: params.fresh === true });
     window.__ogsFake = {
@@ -66,7 +69,13 @@ export function boot(params: LauncherParams, search: string): Boot {
       instances: params.fresh ? [] : fixtureInstances(Date.now()),
       session: FIXTURE_SESSION,
     });
-    return { client: fake, data, frameTimeoutMs: timeout, grants: async () => null };
+    return {
+      client: fake,
+      data,
+      frameTimeoutMs: timeout,
+      viewTimeoutMs: viewTimeout,
+      grants: async () => null,
+    };
   }
   return {
     client: createWsClient({ url: wsUrl(params.api, params.token) }),
@@ -74,6 +83,7 @@ export function boot(params: LauncherParams, search: string): Boot {
       fetchLauncherData({ api: params.api, token: params.token, sessionId: params.sessionId }),
     ),
     frameTimeoutMs: timeout,
+    viewTimeoutMs: viewTimeout,
     grants: createGameGrants(params),
   };
 }

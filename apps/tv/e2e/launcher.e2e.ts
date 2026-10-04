@@ -301,6 +301,47 @@ describe("TV launcher (fake session)", () => {
     await expectTvRules();
   });
 
+  it("says a game didn't open when it never sends its TV page, and Home comes back", async () => {
+    page = await open(browser, "?fake=1&viewTimeout=1500");
+    await page.getByTestId("home").waitFor();
+    // Started on the phone, but its phone page never asks for its TV view (no game.view).
+    await send(page, { type: "game.start", appId: "bake-shop", mode: "new" });
+    await page.getByTestId("starting").waitFor();
+    expect(await count(page, "[data-testid=no-view]")).toBe(0);
+    await page.getByTestId("no-view").waitFor({ timeout: 5000 });
+    expect(await count(page, "[data-testid=starting]")).toBe(0);
+    const card = await page.getByTestId("no-view").textContent();
+    expect(card).toContain("Couldn't open");
+    expect(card).toContain("Bake Shop didn't open on the TV");
+    expect(card).toContain("Press Home on Jonathan's phone to come back");
+    await shot(page, "08b-no-view");
+    await expectTvRules();
+    // The card stays in the lower left, clear of the focal area in the middle of the screen.
+    const box = await page.getByTestId("no-view").boundingBox();
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThan(1920 * 0.62);
+    expect(box?.y ?? 0).toBeGreaterThan(1080 * 0.4);
+    // The remote's Home goes back to the launcher home, the sitting paused.
+    await send(page, { type: "home" });
+    await page.locator('[data-testid=player][data-phase="hidden"]').waitFor({ state: "attached" });
+    expect(await count(page, "[data-testid=no-view]")).toBe(0);
+    expect((await sessionState(page))?.screen).toBe("home");
+  });
+
+  it("frames the game if its TV page arrives after the wait, and a Continue waits afresh", async () => {
+    page = await open(browser, "?fake=1&viewTimeout=1200");
+    await page.getByTestId("home").waitFor();
+    await send(page, { type: "game.start", appId: "rocket-crew", mode: "new" });
+    await page.getByTestId("no-view").waitFor({ timeout: 5000 });
+    await send(page, { type: "game.view", appId: "rocket-crew", url: ROCKET_TV });
+    await expect.poll(() => attr(page, "game-frame", "class")).toContain("live");
+    expect(await count(page, "[data-testid=no-view]")).toBe(0);
+    // Home, then start Bake Shop's paused sitting: Getting ready again, not straight to didn't open.
+    await send(page, { type: "home" });
+    await send(page, { type: "game.start", appId: "bake-shop", mode: "continue" });
+    await page.getByTestId("starting").waitFor();
+    expect(await count(page, "[data-testid=no-view]")).toBe(0);
+  });
+
   it("keeps the last state with a reconnecting chip when the socket drops", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
     await page.evaluate(() => window.__ogsFake?.drop());

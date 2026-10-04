@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef } from "react";
 import { boxFrame } from "../launcher/cutover";
 import type { FrameSlot } from "../launcher/frames";
 import { roomArt } from "../launcher/home";
+import { noViewCopy, playerCard } from "../launcher/starting";
 import { safeStyle } from "./art";
 import type { useFrames } from "./useFrames";
 
@@ -122,6 +123,8 @@ export function Player(props: {
   hostPhone: string;
   remoteHolder: string | null;
   frames: ReturnType<typeof useFrames>;
+  /** The game never sent its TV page in time (useViewTimeout). */
+  viewOverdue: boolean;
   /** The home item the game was started from (a card grows out of its card, not its icon). */
   origin: string | null;
 }) {
@@ -135,6 +138,14 @@ export function Player(props: {
   const slots = [active, parked].filter((s): s is FrameSlot => s !== null);
   const activeShowing = active !== null && frames.isLoaded(active);
   const waiting = shown && !activeShowing;
+  const card = playerCard({
+    shown,
+    game: game !== null,
+    active: active !== null,
+    frameFailed: frames.activeFailed,
+    viewOverdue: props.viewOverdue,
+  });
+  const noView = game && card === "no-view" ? noViewCopy(game.name, props.remoteHolder) : null;
   return (
     <div
       ref={ref}
@@ -157,7 +168,7 @@ export function Player(props: {
         />
       ))}
       <img ref={tile} className="player-tile" alt="" />
-      {shown && game && !active && (
+      {game && card === "starting" && (
         <div className="player-card" data-testid="starting">
           {game.art.logo && <img className="player-logo" src={game.art.logo} alt="" />}
           <p className="eyebrow">
@@ -169,7 +180,15 @@ export function Player(props: {
           </p>
         </div>
       )}
-      {shown && game && active && frames.activeFailed && (
+      {game && noView && (
+        <div className="player-card" data-testid="no-view">
+          {game.art.logo && <img className="player-logo" src={game.art.logo} alt="" />}
+          <p className="eyebrow">{noView.eyebrow}</p>
+          <p className="player-line">{noView.line}</p>
+          <p className="player-sub">{noView.sub}</p>
+        </div>
+      )}
+      {game && card === "frame-failed" && (
         <div className="player-card" data-testid="frame-failed">
           {game.art.logo && <img className="player-logo" src={game.art.logo} alt="" />}
           <p className="eyebrow">Couldn't open</p>

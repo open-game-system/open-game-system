@@ -1,5 +1,6 @@
 import { ClaimsSchema } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
+import { VIEW_TIMEOUT_MS } from "./launcher/starting";
 
 /** `/?api=<API base>&token=<launcher JWT>`, or `/?fake=1` for an in-browser session. */
 const LiveSchema = z.object({
@@ -14,10 +15,20 @@ export type LauncherParams =
   | { mode: "fake"; hold: boolean; fresh?: true }
   | { mode: "live"; api: string; token: string; sessionId: string };
 
+/** A positive millisecond knob from the URL, else its default. */
+function msKnob(search: string, name: string, fallback: number): number {
+  const n = Number(new URLSearchParams(search).get(name));
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 /** Knobs for tests and design: how long a frame may take to load before the launcher gives up. */
 export function frameTimeoutMs(search: string): number {
-  const n = Number(new URLSearchParams(search).get("frameTimeout"));
-  return Number.isFinite(n) && n > 0 ? n : 20_000;
+  return msKnob(search, "frameTimeout", 20_000);
+}
+
+/** How long a started game may take to send its TV page (game.view) before the TV says it didn't open. */
+export function viewTimeoutMs(search: string): number {
+  return msKnob(search, "viewTimeout", VIEW_TIMEOUT_MS);
 }
 export type ParamsResult = { ok: true; params: LauncherParams } | { ok: false; error: string };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { frameTimeoutMs, launcherSessionOf, parseParams, wsUrl } from "./params";
+import { frameTimeoutMs, launcherSessionOf, parseParams, viewTimeoutMs, wsUrl } from "./params";
 
 const b64url = (text: string) =>
   btoa(String.fromCharCode(...new TextEncoder().encode(text)))
@@ -110,5 +110,16 @@ describe("frame timeout knob", () => {
     expect(frameTimeoutMs("?frameTimeout=1500")).toBe(1500);
     expect(frameTimeoutMs("?frameTimeout=-1")).toBe(20_000);
     expect(frameTimeoutMs("?frameTimeout=abc")).toBe(20_000);
+  });
+});
+
+describe("view timeout knob", () => {
+  it("defaults to VIEW_TIMEOUT_MS (20 s) and accepts a positive override", () => {
+    expect(viewTimeoutMs("")).toBe(20_000);
+    expect(viewTimeoutMs("?viewTimeout=1500")).toBe(1500);
+    expect(viewTimeoutMs("?viewTimeout=0")).toBe(20_000);
+    expect(viewTimeoutMs("?viewTimeout=-1")).toBe(20_000);
+    expect(viewTimeoutMs("?viewTimeout=abc")).toBe(20_000);
+    expect(viewTimeoutMs("?frameTimeout=1500")).toBe(20_000);
   });
 });

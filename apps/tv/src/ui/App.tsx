@@ -14,6 +14,7 @@ import type { Boot } from "../boot";
 import { buildHome, homeFocusRows, homeMove, recoverFocus } from "../launcher/home";
 import { nameForDevice, phoneOf, playersOf } from "../launcher/people";
 import { pageMove } from "../launcher/shortcuts";
+import { waitingForView } from "../launcher/starting";
 import type { Connection, SessionClient } from "../session/client";
 import type { LauncherData } from "../session/data";
 import { Assembling } from "./Assembling";
@@ -24,6 +25,7 @@ import { Stage } from "./Stage";
 import { Surprise } from "./Surprise";
 import { useFrames } from "./useFrames";
 import { useNow } from "./useNow";
+import { useViewTimeout } from "./useViewTimeout";
 
 export function App({ boot }: { boot: Boot }) {
   return (
@@ -46,6 +48,7 @@ function Launcher({ boot }: { boot: Boot }) {
       connection={snap.connection}
       data={data}
       frameTimeoutMs={boot.frameTimeoutMs}
+      viewTimeoutMs={boot.viewTimeoutMs}
       grants={boot.grants}
     />
   );
@@ -73,6 +76,7 @@ function Living(props: {
   connection: Connection;
   data: LauncherData;
   frameTimeoutMs: number;
+  viewTimeoutMs: number;
   grants: Boot["grants"];
 }) {
   const { client, data } = props;
@@ -176,6 +180,10 @@ function Living(props: {
   }, []);
 
   const frames = useFrames(client, state.current, props.frameTimeoutMs, props.grants);
+  const viewOverdue = useViewTimeout(
+    waitingForView(state.screen, state.current),
+    props.viewTimeoutMs,
+  );
   const lastGame = useRef<Manifest | null>(null);
   const currentGame = state.current ? (games.get(state.current.appId) ?? null) : null;
   if (currentGame) lastGame.current = currentGame;
@@ -201,6 +209,7 @@ function Living(props: {
         hostPhone={phoneOf(state, state.current?.hostDeviceId ?? null)}
         remoteHolder={remoteHolder}
         frames={frames}
+        viewOverdue={viewOverdue}
         origin={startedFrom.current}
       />
       {surprising && state.current && (

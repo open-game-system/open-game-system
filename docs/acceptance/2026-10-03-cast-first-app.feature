@@ -199,6 +199,15 @@ Feature: Cast-first OGS app with games inside one stream
     Then Jonathan's phone opens Rocket Crew's start page
     And the launcher frames the game's TV view
 
+  Scenario: A game that never opens on the TV says so, and Home comes back
+    Given the launcher is on the TV
+    When Jonathan starts Bake Shop and its phone page never sends the TV its view
+    Then the TV shows "Getting ready · Starting Bake Shop on Jonathan's phone"
+    And after 20 seconds it shows "Couldn't open · Bake Shop didn't open on the TV" with "Press Home on Jonathan's phone to come back", in the lower left, clear of the focal area
+    And if the view still arrives, the launcher frames the game
+    When Jonathan presses Home on the remote
+    Then the TV shows the launcher home with Bake Shop paused
+
   Scenario: Swipe back pauses the game on the TV
     Given Rocket Crew is live and reported its resume point "Mission 6"
     When Jonathan swipes back from the left edge of the game screen
