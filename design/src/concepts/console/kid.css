@@ -298,3 +298,18 @@ html.shot .kd-tag { animation: none !important; }
 .kd-travel--saving .kd-travel__check::after { content: ""; position: absolute; inset: 12px; border-radius: 50%; border: 9px solid rgba(201, 154, 0, 0.25); border-top-color: #e0a800; animation: dc-kid-spin 0.7s linear infinite; }
 @keyframes dc-kid-spin { to { transform: rotate(360deg); } }
 .kd-travel__check svg { transition: opacity 0.2s; }
+
+/* ---- first run: an iPad nobody has paired yet (KidUnpaired) ---- */
+.kd-unpaired { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(60% 60% at 50% 50%, #1b1f3f, #0b0d1e 70%, #06070f); color: #f4f2ee; }
+.kd-unpaired__ring { position: relative; display: grid; place-items: center; width: 220px; height: 220px; animation: kd-unpaired-breathe 3.6s ease-in-out infinite alternate both; }
+.kd-unpaired__ring svg { position: relative; opacity: 0.85; }
+.kd-unpaired__ring i { position: absolute; inset: 0; border-radius: 50%; border: 6px solid #f4f2ee; opacity: 0; }
+.kd-unpaired.is-waiting .kd-unpaired__ring i { animation: kd-unpaired-halo 2s ease-out infinite both; }
+.kd-unpaired.is-waiting .kd-unpaired__ring i:nth-child(2) { animation-delay: 1s; }
+.kd-unpaired.is-waiting .kd-unpaired__ring svg { opacity: 1; color: #ffd8a8; }
+@keyframes kd-unpaired-breathe { from { transform: scale(0.92); opacity: 0.55; } to { transform: scale(1.04); opacity: 1; } }
+@keyframes kd-unpaired-halo { from { transform: scale(0.9); opacity: 0.6; } to { transform: scale(2.2); opacity: 0; } }
+html.shot .kd-unpaired.is-waiting .kd-unpaired__ring i:first-child { opacity: 0.35 !important; transform: scale(1.5) !important; animation: none !important; }
+.kd-screen, .kd-paired { position: absolute; inset: 0; }
+.kd-paired .kd-idle__me { animation: kd-paired-drop 0.9s 0.15s cubic-bezier(.3, 1.4, .5, 1) both; }
+@keyframes kd-paired-drop { from { transform: translateY(-520px) scale(0.6); opacity: 0; } 60% { opacity: 1; } }

@@ -1,6 +1,7 @@
 // A paired kid iPad. It has no menus and no way out: it shows whatever tonight's game gives this
 // child, and follows the TV by itself. Every screen here is wordless and landscape (two hands,
 // thumbs at the bottom edge); the child's own character always stands at the bottom centre.
+import { useRef } from "react";
 import type { Store } from "../../../harness/store";
 import { useStore } from "../../../harness/store";
 import { HOME, gameById, person, type Person } from "../../../world";
@@ -12,14 +13,28 @@ import { KidIdle } from "./KidIdle";
 import { KidTag } from "./KidTag";
 import { mashing } from "./mash";
 import { KidTravel } from "./KidTravel";
+import { isUnpaired, KidUnpaired } from "./KidUnpaired";
 
 /** `seat` is whose iPad this is (from the harness stage); scenarios without one use `s.ipad`. */
 export function KidSurface({ store, seat }: { store: Store<S>; seat?: string }) {
   const s = useStore(store);
   const who = person(seat ?? s.ipad);
+  // First run: until a grown-up pairs it, this iPad is nobody's yet (no character, no tag). The
+  // moment it pairs, the child's character arrives with a party (only on that change, never on load).
+  const pairing = s.firstRun ? s.setup.ipads[who.id] : undefined;
+  const was = useRef(pairing);
+  const paired = useRef(0);
+  if (was.current !== pairing) {
+    if (pairing === "paired" && isUnpaired(was.current)) paired.current += 1;
+    was.current = pairing;
+  }
+  if (pairing && isUnpaired(pairing)) return <KidUnpaired pairing={pairing} />;
   return (
     <>
-      <KidScreen s={s} who={who} />
+      <div className={paired.current > 0 ? "kd-paired" : "kd-screen"} key={paired.current}>
+        <KidScreen s={s} who={who} />
+      </div>
+      {paired.current > 0 && <KidArrive key={paired.current} who={who} />}
       <KidTag who={who} />
     </>
   );
