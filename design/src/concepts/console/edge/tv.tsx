@@ -115,7 +115,7 @@ export function EdgeTv({ s, f, children }: { s: S; f: Fault; children: ReactNode
                 {f.phase === "recovered"
                   ? f.night === "play-on"
                     ? "rejoin on their next turn"
-                    : "back · their roll"
+                    : "back · nothing missed"
                   : f.phase === "recovering"
                     ? `reconnecting · board held`
                     : `offline · turn ${n?.turn ?? 15} held`}

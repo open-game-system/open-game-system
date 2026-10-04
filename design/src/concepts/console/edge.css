@@ -136,3 +136,4 @@
 html.shot .eg-kid__arc.is-on { stroke-opacity: 1; }
 html.shot .eg-kid__dot { opacity: 0.6; }
 .eg-kidback { position: absolute; inset: 0; }
+.eg-hero__live { width: 9px; height: 9px; border-radius: 50%; background: var(--signal-hi); box-shadow: 0 0 0 3px rgba(255, 106, 43, 0.3); }

@@ -120,6 +120,7 @@ function RemoteHandoff({ s, store, f, children }: { s: S; store: Store<S>; f: Fa
         where={`Living room TV · ${point}`}
         gameId={gameId}
         pointLabel={`Still playing · ${point}`}
+        glyph="live"
         line="Pick up the remote?"
         sub="This phone becomes the remote and Jonathan's captain seat. Nothing restarts."
         model="Any grown-up phone in the family can hold the remote. Tonight lives in OGS, not on a phone."
@@ -250,7 +251,7 @@ function HomeDrops({ s, store, f, children }: { s: S; store: Store<S>; f: Fault;
       <Banner
         tone="ok"
         line={f.night === "play-on" ? "Playing on without the Okafors" : "The Okafors are back"}
-        sub={f.night === "play-on" ? `Their seat keeps its score; they rejoin on their next turn.` : `Turn ${turn}, their roll. Nobody lost a move.`}
+        sub={f.night === "play-on" ? `Their seat keeps its score; they rejoin on their next turn.` : "They picked up their roll at turn 15. Nobody lost a move."}
       >
         {children}
       </Banner>
@@ -281,7 +282,7 @@ function HomeDrops({ s, store, f, children }: { s: S; store: Store<S>; f: Fault;
       }
       quiet={
         recovering ? undefined : (
-          <Quiet bot="edge-night-play-on" onClick={() => set(store, { phase: "recovered", night: "play-on" })}>
+          <Quiet bot="edge-night-play-on" onClick={() => store.update((x) => nightResumes(x, "play-on"))}>
             Play on and skip their turns
           </Quiet>
         )
@@ -299,6 +300,7 @@ function OkaforPhone({ store, f, turn }: { store: Store<S>; f: Fault; turn: numb
       where={`Tunde's phone · ${OKAFORS.name}`}
       gameId="hearthisle"
       pointLabel={`Your seat · turn ${turn}`}
+      glyph={back ? "live" : "pause"}
       line={back ? "You're back. Your roll." : "You're offline."}
       sub={back ? `Turn ${turn}. The Mumms held the board for you.` : `Your seat is held at turn ${turn}. The Mumms are hosting and holding the board.`}
       action={
@@ -322,6 +324,7 @@ function NanaWaiting({ f, turn }: { f: Fault; turn: number }) {
       where={`Nana's phone · ${NANA.name}`}
       gameId="hearthisle"
       pointLabel={back ? `Turn ${turn} · Okafors to roll` : `Held at turn ${turn}`}
+      glyph={back ? "live" : "pause"}
       line={back ? "The Okafors are back." : "Waiting on the Okafors."}
       sub={back ? "Their roll, then yours." : "They lost their connection. The Mumms are hosting and holding the board; nothing for you to do."}
       model="Nobody loses a move while a home reconnects."
@@ -359,6 +362,7 @@ function InviteExpired({ store, f }: { store: Store<S>; f: Fault }) {
       where="From Jonathan · The Mumms"
       gameId="hearthisle"
       pointLabel="Invite from Tuesday"
+      glyph="none"
       line={asked ? "Asked Jonathan for a new link." : "This invite has expired."}
       sub={asked ? "It'll come to this phone. Your seat colour, amber, is kept for you." : "Game-night links last 3 days, and this one is from Tuesday. The night is still on."}
       action={
@@ -430,6 +434,7 @@ function NoTv({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; chil
       where={`${gameName(gameId)} · ${resumePoint(gameId)}`}
       gameId={gameId}
       pointLabel={`Ready · ${resumePoint(gameId)}`}
+      glyph="none"
       line={recovering ? "Looking for the Living room TV" : "Can't find the Living room TV."}
       sub={recovering ? "Still looking. It shows up here as soon as it's on." : "It may be off, or on another Wi-Fi. Turn it on and it shows up here by itself."}
       rows={[
@@ -448,3 +453,14 @@ function NoTv({ s, store, f, children }: { s: S; store: Store<S>; f: Fault; chil
 
 /** What "found it" does to the session: cast and play, exactly as if it had been there. */
 export const foundTv = (s: S): S => castAndPlay(s, s.tvFocus);
+
+/**
+ * The night page comes back once the table moves again (while a home is away the phone shows the
+ * failure page, so the board's turns don't advance under it). Waiting: the Okafors are back.
+ */
+export function nightResumes(s: S, choice: "wait" | "play-on"): S {
+  const list = s.nights.list.map((n) =>
+    n.gameId === "hearthisle" && choice === "wait" ? { ...n, homes: n.homes.map((h) => (h.householdId === "hh-okafor" ? { ...h, back: true } : h)) } : n,
+  );
+  return { ...s, phone: "night", nights: { ...s.nights, list }, fault: s.fault ? { ...s.fault, phase: "recovered", night: choice } : null };
+}

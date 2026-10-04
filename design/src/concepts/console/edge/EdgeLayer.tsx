@@ -8,7 +8,7 @@ import { useStore } from "../../../harness/store";
 import type { S } from "../state";
 import { nextBeat, type Fault, type FaultPhase } from "./fault";
 import { EdgeKid } from "./ipad";
-import { EdgePhone, foundTv } from "./phone";
+import { EdgePhone, foundTv, nightResumes } from "./phone";
 import { EdgeTv } from "./tv";
 
 export function EdgeLayer({ device, store, seat, children }: { device: Device; store: Store<S>; seat?: string; children: ReactNode }) {
@@ -32,6 +32,7 @@ function land(s: S, to: FaultPhase | "clear"): S {
   const f: Fault = { ...s.fault, phase: to };
   // The TV turned up: start tonight exactly as if it had been there all along.
   if (f.kind === "no-tv" && to === "recovered") return { ...foundTv(s), fault: f };
+  if (f.kind === "home-drops" && to === "recovered" && !f.viewer) return nightResumes(s, f.night ?? "wait");
   return { ...s, fault: f };
 }
 

@@ -9,7 +9,7 @@ const at = (patch: Partial<S>, f: Fault | null) => (): S => ({ ...base(), phone:
 const bakeLive: Partial<S> = { phone: "controller", onTv: "bake-shop", tvFocus: "bake-shop", left: null, savedTonight: { "rocket-crew": "7:14 pm" } };
 
 /** Hearthisle live across three homes, turn 15, the Okafors' roll; `okaforsBack` = their phone is online. */
-function nightAt15(okaforsBack: boolean): Partial<S> {
+function nightAt15(okaforsBack: boolean, phone: S["phone"] = "night"): Partial<S> {
   const n0: Nights = resumeNight(base().nights, "hi-1");
   const nights: Nights = {
     ...n0,
@@ -19,7 +19,7 @@ function nightAt15(okaforsBack: boolean): Partial<S> {
       n.id === "hi-1" ? { ...n, turn: 15, turnOf: "hh-okafor", homes: n.homes.map((h) => (h.householdId === "hh-okafor" ? { ...h, back: okaforsBack } : h)) } : n,
     ),
   };
-  return { phone: "night", onTv: "hearthisle", tvFocus: "hearthisle", nights };
+  return { phone, onTv: "hearthisle", tvFocus: "hearthisle", nights };
 }
 
 const consoleBake: Partial<S> = { phone: "home", onTv: null, tvFocus: "bake-shop" };
@@ -58,8 +58,8 @@ export const edgeScenarios: Scenario<S>[] = [
   { id: "failure.33-save-swapped", label: "Changed our minds: Tuesday's day 4, tonight's kept", flow: "failure", state: "undone", devices: ["phone"], build: at(bakeLive, fault("save-conflict", "undone", { save: "tuesday" })) },
 
   // 6. A home drops mid game night.
-  { id: "failure.40-okafors-drop", label: "The Okafors dropped at turn 15: the host decides", flow: "failure", state: "error", devices: ["phone", "tv"], build: at(nightAt15(false), fault("home-drops", "now", { subject: "hh-okafor" })) },
-  { id: "failure.41-holding-board", label: "Holding the board: every home sees it waiting", flow: "failure", state: "loading", devices: ["phone", "tv"], build: at(nightAt15(false), fault("home-drops", "recovering", { subject: "hh-okafor", night: "wait" })) },
+  { id: "failure.40-okafors-drop", label: "The Okafors dropped at turn 15: the host decides", flow: "failure", state: "error", devices: ["phone", "tv"], build: at(nightAt15(false, "home"), fault("home-drops", "now", { subject: "hh-okafor" })) },
+  { id: "failure.41-holding-board", label: "Holding the board: every home sees it waiting", flow: "failure", state: "loading", devices: ["phone", "tv"], build: at(nightAt15(false, "home"), fault("home-drops", "recovering", { subject: "hh-okafor", night: "wait" })) },
   { id: "failure.42-okafors-back", label: "The Okafors are back: their roll, nobody lost a move", flow: "failure", state: "success", devices: ["phone", "tv"], build: at(nightAt15(true), fault("home-drops", "recovered", { subject: "hh-okafor", night: "wait" })) },
   { id: "failure.43-play-on", label: "Played on without them: their seat keeps its score", flow: "failure", state: "partial", devices: ["phone", "tv"], build: at(nightAt15(false), fault("home-drops", "recovered", { subject: "hh-okafor", night: "play-on" })) },
   { id: "failure.44-nana-sees", label: "Nana's phone: waiting on the Okafors, nothing to do", flow: "failure", state: "partial", devices: ["phone"], build: at(nightAt15(false), fault("home-drops", "recovering", { subject: "hh-okafor", viewer: "nana" })) },

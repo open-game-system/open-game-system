@@ -30,6 +30,7 @@ export function Page({
   action,
   quiet,
   light = false,
+  glyph = "pause",
 }: {
   title: string;
   where: string;
@@ -47,6 +48,8 @@ export function Page({
   /** A quiet secondary (text link), never a second big button. */
   quiet?: ReactNode;
   light?: boolean;
+  /** What the resume chip leads with: paused, still running (live dot), or nothing. */
+  glyph?: "pause" | "live" | "none";
 }) {
   return (
     <div className={`eg-page ${light ? "eg-page--light" : ""}`}>
@@ -67,7 +70,7 @@ export function Page({
               <GameArt gameId={gameId} />
               {pointLabel && (
                 <span className="eg-hero__point">
-                  <PauseGlyph />
+                  {glyph === "live" ? <i className="eg-hero__live" /> : glyph === "pause" ? <PauseGlyph /> : null}
                   {pointLabel}
                 </span>
               )}
