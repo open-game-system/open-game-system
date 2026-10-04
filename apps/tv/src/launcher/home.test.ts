@@ -169,3 +169,13 @@ describe("homeMove: the remote between the icon row and the cards", () => {
     expect(homeMove(bare, "game:b", "down", null)).toBe("game:b");
   });
 });
+
+describe("homeMove: an empty icon row", () => {
+  it("keeps the focus on the card when there is no icon to go up to", () => {
+    const rows = [
+      { id: "games", items: [] },
+      { id: "activity", items: ["game:~surprise"] },
+    ];
+    expect(homeMove(rows, "game:~surprise", "up", "game:gone")).toBe("game:~surprise");
+  });
+});
