@@ -227,12 +227,40 @@ stateDiagram-v2
     </table>
   </div>
   <div class="ms">
-    <div class="panel"><span class="tag">M1</span><b>Library and Activity</b><span class="cap">Tabs, + Add games, Add by link, Activity and the return pill, tv none / optional games on the phone. Done when: Hearthisle plays without casting and the pill gets you back in.</span></div>
+    <div class="panel"><span class="tag">M1</span><b>Library and Activity</b><span class="cap">Set up the e2e framework and the first acceptance scenarios. Tabs, + Add games, Add by link, Activity and the return pill, tv none / optional games on the phone. Done when: Hearthisle plays without casting and the pill gets you back in.</span></div>
     <div class="panel"><span class="tag">M2</span><b>Cast from the TV tab</b><span class="cap">The launcher on the TV shows the library. Done when: casting happens from the TV tab, before any game.</span></div>
     <div class="panel"><span class="tag">M3</span><b>Games inside the stream</b><span class="cap">CouchSession, <code>game.start</code> from phone or TV, swipe back = home. Done when: two games swap with zero recasts.</span></div>
     <div class="panel"><span class="tag">M4</span><b>Remote and kids</b><span class="cap">The TV tab becomes the remote; iPads follow by name. Done when: a swap needs 0 kid taps.</span></div>
     <div class="panel"><span class="tag">M5</span><b>Recover</b><span class="cap">Remote handoff, re-cast to the resume point. Done when: killing the stream mid-mission resumes at the mission.</span></div>
   </div>
+</section>
+
+<section>
+  <span class="kicker">Verification</span>
+  <h2>How we know it works: four layers, one scenario list</h2>
+  <p class="sub">Every storyboard step above becomes a scenario in <code>docs/acceptance/</code>. Each layer proves the part it can see; the e2e framework drives one device per test, so cross-device truth lives in the session tests.</p>
+  <div class="ms">
+    <div class="panel"><span class="tag">1 · Session seam tests</span><b>The cross-device truth</b><span class="cap"><code>CouchSession</code> on <code>vitest-pool-workers</code> with fake phone, launcher and iPad clients over real WebSockets. Proves: one <code>game.start</code> from either screen, swipe back = <code>home</code> + resume point, iPads get <code>follow</code>, 0 recasts, re-cast resumes at Mission 6.</span></div>
+    <div class="panel"><span class="tag">2 · e2e per surface</span><b>Phone, TV launcher, kid iPad</b><span class="cap">The e2e framework (tester.army): iOS simulator with the Expo dev build, the launcher as a web target, an iPad simulator. Locators where exact, cached <code>agent.act</code> / <code>agent.assert</code> where not. A project tool plays the other screens through the session's test API.</span></div>
+    <div class="panel"><span class="tag">3 · Visual checks</span><b>The prototype's rig</b><span class="cap">Screen sheets and checks from <code>design/</code>: 44 pt targets, AA contrast, 0 words on kid screens, TV text ≥ 24 px, no overlaps. The prototype's flows are the reference picture for each scenario.</span></div>
+    <div class="panel"><span class="tag">4 · Real hardware</span><b>The living room</b><span class="cap">Cast to the real Chromecast and record the stream; <code>av-verdict</code> fails black or frozen video. One swap on the real iPads per release.</span></div>
+  </div>
+  <div class="tbl panel" style="padding:0">
+    <table>
+      <thead><tr><th>Scenario (from the storyboards)</th><th>Session test</th><th>e2e (target)</th><th>Hardware</th></tr></thead>
+      <tbody>
+        <tr><td>Hearthisle plays without casting</td><td>none</td><td>phone: Library → Hearthisle → Play here; board shows</td><td>none</td></tr>
+        <tr><td>Add a game, Add by link</td><td><code>library.add</code> persists</td><td>phone: + Add games → Night Flight → Add; appears in Library</td><td>none</td></tr>
+        <tr><td>Cast from the TV tab</td><td>session created, launcher URL sent once</td><td>phone: TV tab → Cast → remote appears; launcher: library rows render</td><td>stream up, <code>av-verdict</code> passes</td></tr>
+        <tr><td>Launch from phone or TV</td><td>both paths emit the same <code>game.start</code></td><td>phone: tap Rocket Crew; launcher: focus + OK</td><td>none</td></tr>
+        <tr><td>Swap without recasting</td><td>suspend → resume point → start; recast count = 0; iPads follow</td><td>phone: swipe back → Bake Shop → Continue; iPad: Baker controls appear, 0 taps</td><td>one swap on real iPads, stream never drops</td></tr>
+        <tr><td>Back in without a push</td><td>live game reported to Activity</td><td>phone: return pill on every tab; Activity pinned card opens the game</td><td>none</td></tr>
+        <tr><td>Phone-only game while cast</td><td>Word Duel never emits <code>game.start</code> for the TV</td><td>phone: Activity → Nana's card → board; launcher unchanged</td><td>none</td></tr>
+        <tr><td>Remote phone dies / cast drops</td><td>remote handoff; re-cast restores screen + resume point</td><td>phone (second device): Take the TV; Reconnect</td><td>pull the Chromecast's power, re-cast, resumes at Mission 6</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub">Open: whether the e2e framework can drive two targets in one test (its docs show one target per test). Spike it in M1; if not, keep cross-device assertions in the session tests and project tools.</p>
 </section>
 
 <section>
