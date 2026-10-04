@@ -1,0 +1,60 @@
+/* ---------- Kid iPad: their own seat on the couch (no words) ---------- */
+.cr-ipad { background: var(--wall-deep); }
+.cr-kid { position: absolute; inset: 0; overflow: hidden; }
+.cr-kid-wall {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(255, 220, 180, 0.04) 0 2px, transparent 2px 40px),
+    radial-gradient(ellipse 700px 500px at 590px 200px, #4f3456, transparent 70%), linear-gradient(180deg, #3a2741, var(--wall) 70%, #2c1a11 70%);
+  transition: filter 0.6s;
+}
+.cr-kid.is-asleep .cr-kid-wall, .cr-kid.is-waiting .cr-kid-wall { filter: brightness(0.5) saturate(0.7); }
+.cr-kid-moon { position: absolute; right: 120px; top: 80px; width: 90px; height: 90px; border-radius: 50%; box-shadow: -22px 10px 0 0 #f4e4b8; }
+
+.cr-ktv {
+  position: absolute; left: 50%; top: 56px; width: 420px; height: 236px; margin-left: -210px; border-radius: 16px; overflow: hidden;
+  border: 12px solid #171019; background: #0e0a10; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+.cr-ktv img { width: 100%; height: 100%; object-fit: cover; animation: cr-fade 0.6s both; }
+.cr-ktv-glow { width: 100%; height: 100%; background: radial-gradient(circle at 50% 70%, rgba(255, 207, 122, 0.85), #b0502e 45%, #33223a 80%); animation: cr-breathe 4s ease-in-out infinite; }
+.cr-kid.is-asleep .cr-ktv-glow { background: #0e0a10; animation: none; }
+.cr-ktv-wait { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; margin: -45px; border-radius: 50%; border: 10px dotted var(--honey); animation: cr-spin 3s linear infinite; }
+@keyframes cr-spin { to { transform: rotate(360deg); } }
+.cr-kid.is-called .cr-ktv { opacity: 0; }
+
+.cr-kcouch { position: absolute; left: 80px; right: 80px; top: 360px; bottom: 0; }
+.cr-kcouch-back { position: absolute; left: 70px; right: 70px; top: 120px; height: 220px; border-radius: 90px 90px 24px 24px; background: linear-gradient(180deg, #c4643b, var(--rust)); }
+.cr-kcouch-seat { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; border-radius: 40px 40px 0 0; background: linear-gradient(180deg, #d0764a, #a9482a); }
+.cr-kcouch-row { position: absolute; left: 120px; right: 120px; bottom: 110px; display: flex; justify-content: space-around; align-items: flex-end; z-index: 1; }
+.cr-kother { width: 140px; height: 170px; object-fit: contain; filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.3)); }
+.cr-kme { width: 260px; height: 300px; flex: none; }
+.cr-kme img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 26px rgba(255, 207, 122, 0.75)) drop-shadow(0 14px 14px rgba(0, 0, 0, 0.35)); }
+.cr-kme img.is-wiggle { animation: cr-wiggle 0.6s ease both; }
+.cr-kcouch.is-dim { filter: brightness(0.5) saturate(0.6); }
+.cr-kid.is-called .cr-kme { visibility: hidden; }
+
+.cr-called { position: absolute; left: 50%; top: 30px; width: 460px; height: 460px; margin-left: -230px; z-index: 3; }
+.cr-called-art { position: absolute; inset: 40px; border-radius: 50%; overflow: hidden; border: 14px solid var(--paper); box-shadow: 0 0 0 10px var(--honey), 0 0 120px 40px rgba(255, 207, 122, 0.55); animation: cr-rise 0.5s ease both; }
+.cr-called-art img { width: 100%; height: 100%; object-fit: cover; }
+.cr-called-me { position: absolute; left: 50%; bottom: -150px; width: 300px; height: 350px; margin-left: -150px; object-fit: contain; filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.45)); animation: cr-hop 0.6s cubic-bezier(.2, .9, .3, 1.4) both; }
+@keyframes cr-hop { from { transform: translateY(160px) scale(0.8); } to { transform: none; } }
+.cr-called-ring { position: absolute; inset: 20px; border-radius: 50%; border: 8px solid var(--honey); animation: cr-pulse 1.6s ease-out infinite; }
+
+/* in the game: big pads in the game's own colours */
+.cr-kpads { position: absolute; inset: 0; background: var(--g-ground); }
+.cr-kpads-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(10px) saturate(1.1); transform: scale(1.08); }
+.cr-kpads-veil { position: absolute; inset: 0; background: var(--g-ground); opacity: 0.55; }
+.cr-kpads-me { position: absolute; left: 40px; top: 30px; width: 140px; height: 160px; object-fit: contain; filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.35)); }
+.cr-kpads-row { position: absolute; left: 0; right: 0; bottom: 70px; display: flex; justify-content: center; gap: 60px; }
+.cr-kpad {
+  width: 280px; height: 280px; border-radius: 50%; background: var(--g-accent); display: flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 -16px 0 rgba(0, 0, 0, 0.2), 0 20px 30px rgba(0, 0, 0, 0.35); transition: transform 0.12s;
+}
+.cr-kpad.is-1 { background: var(--g-accent2); }
+.cr-kpad:active { transform: scale(0.94); }
+.cr-kpad-shape { width: 120px; height: 120px; background: var(--paper); }
+.cr-kpad.is-0 .cr-kpad-shape { border-radius: 50%; }
+.cr-kpad.is-1 .cr-kpad-shape { clip-path: polygon(50% 4%, 96% 92%, 4% 92%); }
+.cr-kpad.is-2 .cr-kpad-shape { clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 92%, 50% 70%, 21% 92%, 32% 57%, 2% 35%, 39% 35%); }
+.cr-kpad.is-hit .cr-kpad-shape { animation: cr-wiggle 0.4s ease both; }
+.cr-kpads.is-little .cr-kpad { width: 440px; height: 440px; }
+.cr-kpads.is-little .cr-kpad-shape { width: 200px; height: 200px; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 92%, 50% 70%, 21% 92%, 32% 57%, 2% 35%, 39% 35%); border-radius: 0; }
