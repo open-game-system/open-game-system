@@ -1,0 +1,155 @@
+/* v-kid-a "Toy box": the kid iPad is the child's own toy box. Loads after kid.css. */
+
+/* ---------- the room ---------- */
+.tb-room { position: absolute; inset: 0; pointer-events: none; }
+.tb-room__wall { position: absolute; inset: 0; background:
+  radial-gradient(60% 50% at 50% 70%, color-mix(in srgb, currentColor 45%, transparent) 0%, transparent 70%),
+  radial-gradient(circle at 30px 30px, rgba(255,246,224,.07) 0 5px, transparent 6px) 0 0 / 120px 120px,
+  radial-gradient(circle at 90px 90px, rgba(255,246,224,.05) 0 3px, transparent 4px) 0 0 / 120px 120px,
+  linear-gradient(180deg, color-mix(in srgb, currentColor 22%, #1f1838) 0%, color-mix(in srgb, currentColor 34%, #2a1b36) 75%); }
+.tb-room__floor { position: absolute; left: 0; right: 0; bottom: 0; height: 250px; background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.16) 0 3px, transparent 3px 148px),
+  linear-gradient(180deg, #7a4f34, #5c3a26); box-shadow: 0 -14px 40px rgba(0,0,0,.35); }
+.tb-room__rug { position: absolute; left: 40px; right: 40px; bottom: 6px; height: 270px; width: 1100px; }
+.tb-room__rugfill { fill: color-mix(in srgb, currentColor 70%, #3b2433); }
+.tb-room.is-dim .tb-room__wall { filter: brightness(.8); }
+
+/* ---------- the toy box ---------- */
+.tb-box { position: absolute; pointer-events: none; }
+.tb-box--back { z-index: 4; }
+.tb-box--front { z-index: 8; pointer-events: auto; }
+.tb-box__rim { position: absolute; left: -6px; right: -6px; top: -44px; height: 88px; border-radius: 30px;
+  background: radial-gradient(80% 90% at 50% 70%, #1a0f12, #2c1a1c 70%);
+  box-shadow: 0 0 0 12px color-mix(in srgb, var(--tb) 70%, #fff6e0), inset 0 10px 18px rgba(0,0,0,.6); }
+.tb-box__lidup { position: absolute; left: 3%; right: 3%; bottom: calc(100% + 34px); height: 64%; border-radius: 30px 30px 10px 10px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tb) 75%, #000) , color-mix(in srgb, var(--tb) 60%, #000));
+  box-shadow: inset 0 0 0 10px color-mix(in srgb, var(--tb) 70%, #fff6e0), 0 -10px 30px rgba(0,0,0,.3);
+  transform-origin: 50% 100%; transform: perspective(900px) rotateX(14deg); transition: transform .45s cubic-bezier(.3,1.5,.5,1), opacity .2s; overflow: hidden; }
+.tb-box:not(.is-open) .tb-box__lidup { transform: perspective(900px) rotateX(88deg); opacity: 0; }
+.tb-box__lidface { position: absolute; inset: 18px; border-radius: 18px; overflow: hidden; display: grid; place-items: center; opacity: .9; }
+.tb-box__lidface img { width: 100%; height: 100%; object-fit: cover; }
+.tb-box--back .tb-box__lidface img[src*="char-"] { width: 62%; height: 92%; object-fit: contain; object-position: 50% 100%; opacity: .45; filter: saturate(0) brightness(2); mix-blend-mode: soft-light; }
+
+.tb-box__front { position: absolute; inset: 0; border-radius: 14px 14px 34px 34px;
+  background:
+    repeating-linear-gradient(180deg, transparent 0 52px, rgba(0,0,0,.14) 52px 56px),
+    linear-gradient(180deg, color-mix(in srgb, var(--tb) 92%, #fff) 0%, var(--tb) 40%, color-mix(in srgb, var(--tb) 78%, #000) 100%);
+  box-shadow: inset 0 8px 0 rgba(255,255,255,.22), inset 0 -14px 0 rgba(0,0,0,.18), 0 24px 40px rgba(0,0,0,.4); }
+.tb-box__corner { position: absolute; top: 10px; bottom: 14px; width: 26px; border-radius: 10px; background: linear-gradient(90deg, #f3c34e, #c98f1c); box-shadow: inset 0 0 0 3px #ffe08a; }
+.tb-box__corner--l { left: 14px; }
+.tb-box__corner--r { right: 14px; }
+.tb-box__lid { position: absolute; left: -10px; right: -10px; top: -58px; height: 74px; border-radius: 30px 30px 12px 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tb) 85%, #fff), var(--tb));
+  box-shadow: inset 0 -10px 0 rgba(0,0,0,.18), inset 0 6px 0 rgba(255,255,255,.25), 0 10px 18px rgba(0,0,0,.35);
+  transform-origin: 50% 100%; transition: transform .4s cubic-bezier(.3,1.6,.5,1), opacity .15s; }
+.tb-box.is-open .tb-box__lid { transform: scaleY(0) translateY(-40px); opacity: 0; }
+.tb-box__label { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -46%); display: grid; place-items: center; }
+
+.tb-disc { display: grid; place-items: center; width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #fffaf0, #f0e3c8); box-shadow: 0 0 0 9px #fff6e0, 0 0 0 15px color-mix(in srgb, var(--tb) 60%, #000), 0 10px 20px rgba(0,0,0,.35); overflow: hidden; transform: rotate(-5deg); }
+.tb-disc img { width: 84%; height: 84%; object-fit: contain; object-position: 50% 80%; margin-top: 12px; }
+.tb-card { position: relative; display: block; width: 210px; height: 120px; border-radius: 18px; overflow: visible; box-shadow: 0 0 0 8px #fff6e0, 0 10px 20px rgba(0,0,0,.35); transform: rotate(-3deg); background: #000; }
+.tb-card > img, .tb-card > svg { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; display: block; }
+.tb-pile .tb-card { width: 150px; height: 84px; box-shadow: 0 0 0 6px #fff6e0, 0 8px 14px rgba(0,0,0,.35); }
+
+/* bang the box: everything jolts */
+.tb-box.is-bang { animation: tb-bang .5s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes tb-bang { 0% { transform: scale(1.08, .86) translateY(10px); } 40% { transform: scale(.96, 1.06) translateY(-14px) rotate(-2deg); } 100% { transform: none; } }
+
+/* ---------- idle ---------- */
+.tb-idle { position: absolute; inset: 0; overflow: hidden; }
+.tb-idle__me { left: 400px; top: 330px; z-index: 6 !important; }
+.tb-idle__me .kd-char__pad, .tb-hopper.is-in .kd-char__pad { opacity: 0; }
+
+.tb-keep { position: absolute !important; width: 156px; height: 156px; margin: -78px 0 0 -78px; z-index: 5; display: block !important; touch-action: none;
+  transition: left .75s cubic-bezier(.3,1.35,.5,1), top .75s cubic-bezier(.3,1.35,.5,1); }
+.tb-keep__body { position: absolute; inset: 0; display: grid; place-items: center; transform: rotate(var(--r)); filter: drop-shadow(0 12px 10px rgba(0,0,0,.35)); }
+.tb-keep__body::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 2%; height: 12%; border-radius: 50%; background: rgba(0,0,0,.22); filter: blur(4px); z-index: -1; }
+.tb-keep__svg { width: 88%; height: 88%; }
+.tb-keep__img { width: 100%; height: 100%; object-fit: contain; }
+.tb-keep__body.is-hop { animation: tb-keep-hop .55s cubic-bezier(.3,1.6,.5,1) both; }
+.tb-keep__body.is-tumble { animation: tb-keep-tumble .8s cubic-bezier(.3,1.2,.5,1) both; }
+@keyframes tb-keep-hop { 0% { transform: rotate(var(--r)) scale(1.2, .8); } 40% { transform: rotate(calc(var(--r) - 14deg)) translateY(-40px) scale(.92, 1.1); } 100% { transform: rotate(var(--r)); } }
+@keyframes tb-keep-tumble { 0% { transform: rotate(var(--r)) scale(.4); } 50% { transform: rotate(calc(var(--r) + 300deg)) scale(1.1) translateY(-30px); } 100% { transform: rotate(calc(var(--r) + 360deg)); } }
+
+/* ---------- following a switch ---------- */
+.tb-travel { position: absolute; inset: 0; overflow: hidden; }
+.tb-hopper { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 6; offset-rotate: 0deg; offset-anchor: 0 0; offset-distance: var(--to); animation-timing-function: cubic-bezier(.45,.05,.55,.95); animation-fill-mode: both; }
+.tb-hopper .kd-char { left: -150px; top: -270px; }
+@keyframes tb-leg-paused { from { offset-distance: var(--from); } to { offset-distance: var(--to); } }
+@keyframes tb-leg-saving { from { offset-distance: var(--from); } to { offset-distance: var(--to); } }
+@keyframes tb-leg-cutover { from { offset-distance: var(--from); } to { offset-distance: var(--to); } }
+@keyframes tb-leg-following { from { offset-distance: var(--from); } to { offset-distance: var(--to); } }
+.tb-travel--paused .tb-hopper .kd-char__art { animation: tb-peek 2.2s ease-in-out infinite alternate both; }
+@keyframes tb-peek { 0% { transform: translateY(14px) rotate(-3deg); } 100% { transform: translateY(-6px) rotate(4deg); } }
+html.shot .tb-travel--paused .tb-hopper .kd-char__art { animation: none !important; transform: rotate(-3deg); }
+.tb-travel--saving .tb-hopper .kd-char__art, .tb-travel--cutover .tb-hopper .kd-char__art { animation: tb-tuck .65s ease-in-out infinite alternate both; }
+@keyframes tb-tuck { from { transform: scale(1.04, .94) rotate(-6deg); } to { transform: scale(.96, 1.06) rotate(6deg); } }
+html.shot .tb-travel--saving .tb-hopper .kd-char__art, html.shot .tb-travel--cutover .tb-hopper .kd-char__art { animation: none !important; transform: none; }
+
+/* the up-next pile rattles, one box after another */
+.tb-pile { animation: tb-rattle 1.8s ease-in-out infinite both; transform-origin: 50% 100%; }
+@keyframes tb-rattle { 0%, 70%, 100% { transform: none; } 76% { transform: translateY(-16px) rotate(-4deg); } 84% { transform: translateY(0) rotate(3deg); } 92% { transform: rotate(-1.5deg); } }
+html.shot .tb-pile { animation: none !important; }
+html.shot .tb-pile:nth-of-type(4n+3) { transform: translateY(-12px) rotate(-3deg); }
+
+/* seals on the old box's label: a pause sticker while choosing, a gold check once saved */
+.tb-seal { position: absolute; right: -26px; top: -26px; width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; transition: transform .4s cubic-bezier(.3,1.6,.5,1), opacity .25s; }
+.tb-seal--pause { background: #fff6e0; box-shadow: 0 5px 0 rgba(0,0,0,.25); }
+.tb-seal--check { background: #ffd23f; box-shadow: 0 5px 0 #c99a00, 0 0 0 6px #fff6e0; transform: scale(0) rotate(-40deg); opacity: 0; }
+.tb-travel:not(.tb-travel--paused) .tb-seal--pause { transform: scale(0); opacity: 0; }
+.tb-travel:not(.tb-travel--paused) .tb-seal--check { transform: scale(1.1) rotate(-8deg); opacity: 1; }
+.tb-travel--paused .tb-card--from > img { filter: saturate(.6) brightness(.85); }
+
+/* the next box drops out of the pile, then opens */
+.tb-to { animation: tb-drop .55s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes tb-drop { from { transform: translate(60px, -260px) rotate(8deg) scale(.7); opacity: 0; } 60% { opacity: 1; } }
+.tb-travel--cutover .tb-to.tb-box--back .tb-box__lidup { box-shadow: inset 0 0 0 10px color-mix(in srgb, var(--tb) 70%, #fff6e0), 0 0 60px 14px rgba(255, 230, 160, .55); }
+.tb-from { transition: opacity .5s, filter .5s; }
+.tb-travel--cutover .tb-from, .tb-travel--following .tb-from { filter: saturate(.7) brightness(.85); }
+
+/* following: the box bursts open and the game spills out to fill the iPad */
+.tb-spill { position: absolute; inset: 0; z-index: 3; clip-path: circle(150% at 910px 520px); animation: tb-spill .9s cubic-bezier(.6,0,.2,1) both; }
+.tb-spill img, .tb-spill svg { width: 100%; height: 100%; object-fit: cover; }
+@keyframes tb-spill { from { clip-path: circle(0 at 910px 520px); } }
+.tb-travel--following .tb-from { opacity: 0; }
+.tb-travel--following .tb-to { animation: tb-sink .9s .35s cubic-bezier(.5,0,.3,1) both; }
+@keyframes tb-sink { from { transform: none; } to { transform: translateY(120px); } }
+.tb-travel--following .tb-hopper { z-index: 7; }
+.tb-travel--following .tb-hopper .kd-char { animation: tb-sink .9s .35s cubic-bezier(.5,0,.3,1) both; }
+.tb-travel.is-giggle .tb-hopper .kd-char { animation: kd-giggle 0.5s ease-in-out infinite both; }
+html.shot .tb-travel.is-giggle .tb-hopper .kd-char { animation: none !important; transform: rotate(-8deg) translateY(-10px); }
+
+/* ---------- unpaired and asleep ---------- */
+.tb-unpaired { position: absolute; inset: 0; overflow: hidden; color: #b89270; }
+.tb-unpaired .tb-room__wall { filter: saturate(0) brightness(.75); }
+.tb-unpaired .tb-room__rugfill { fill: #4a3a36; }
+.tb-blank { width: 150px; height: 150px; border-radius: 50%; border: 9px dashed rgba(255, 246, 224, .55); background: rgba(0,0,0,.12); }
+.tb-unpaired.is-waiting .tb-box--front { animation: tb-rattle 1.6s ease-in-out infinite both; }
+.tb-unpaired.is-waiting .tb-glow { opacity: 1; }
+.tb-glow { position: absolute; left: 290px; top: 340px; width: 600px; height: 380px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 216, 168, .45), transparent); opacity: 0; z-index: 3; animation: kd-unpaired-breathe 2.4s ease-in-out infinite alternate both; }
+html.shot .tb-unpaired.is-waiting .tb-box--front { animation: none !important; transform: translateY(-10px) rotate(-2deg); }
+
+.tb-asleep__me { left: 350px; top: 250px; z-index: 6 !important; }
+.tb-asleep__me .kd-char__pad { opacity: 0; }
+.tb-asleep__me .kd-char__art { opacity: .85; filter: saturate(.7) drop-shadow(0 18px 20px rgba(0,0,0,.4)); }
+.tb-asleep .tb-room { filter: brightness(.45) saturate(.7); }
+.tb-asleep .tb-box { filter: brightness(.62) saturate(.8); }
+.tb-asleep .kd-asleep__charge { right: 50px; top: 120px; }
+.tb-asleep .kd-asleep__bubbles { left: 700px; top: 210px; }
+.tb-asleep .tb-blanket { position: absolute; left: 330px; top: 560px; width: 520px; height: 80px; border-radius: 40px 40px 14px 14px; z-index: 7; background: repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 70%, #fff) 0 40px, color-mix(in srgb, currentColor 50%, #fff) 40px 80px); box-shadow: inset 0 -8px 0 rgba(0,0,0,.15), 0 6px 12px rgba(0,0,0,.3); filter: brightness(.7); }
+
+/* the keepsake shelf while following */
+.tb-shelf { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.tb-shelf__side { position: absolute; top: 120px; width: 470px; height: 120px; display: flex; align-items: flex-end; justify-content: space-evenly; padding: 0 20px; }
+.tb-shelf__side--l { left: 30px; }
+.tb-shelf__side--r { right: 30px; }
+.tb-shelf__board { position: absolute; left: 0; right: 0; bottom: -18px; height: 22px; border-radius: 8px; background: linear-gradient(180deg, #a06a44, #7a4f34); box-shadow: 0 10px 18px rgba(0,0,0,.35), inset 0 4px 0 rgba(255,255,255,.18); }
+.tb-shelf__item { position: relative; width: 104px; height: 104px; display: grid; place-items: center; filter: drop-shadow(0 8px 6px rgba(0,0,0,.3)); }
+.tb-shelf__item .tb-keep__svg { width: 90%; height: 90%; }
+.tb-shelf__item .tb-keep__img { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; }
+.tb-travel--following .tb-shelf { opacity: 0; transition: opacity .4s; }
+
+/* the moment it pairs: the box takes the child's paint, the character drops in, the keepsakes tumble out */
+.kd-paired .tb-idle__me { animation: kd-paired-drop 0.9s 0.15s cubic-bezier(.3, 1.4, .5, 1) both; }
+.kd-paired .tb-keep__body { animation: tb-keep-tumble .8s .5s cubic-bezier(.3,1.2,.5,1) both; }
+.kd-paired .tb-box { animation: tb-bang .5s .9s cubic-bezier(.3,1.6,.5,1) both; }
