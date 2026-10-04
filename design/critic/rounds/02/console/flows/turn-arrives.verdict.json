@@ -1,0 +1,24 @@
+{
+  "clip": "critic/rounds/02/console/flows/turn-arrives.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "5.2–6.5s"
+    }
+  ],
+  "detections": {
+    "duration": 6.52,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 5.16,
+        "end": 6.52
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

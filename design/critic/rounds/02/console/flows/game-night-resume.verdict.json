@@ -1,0 +1,32 @@
+{
+  "clip": "critic/rounds/02/console/flows/game-night-resume.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "5.3–6.7s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.5–12.1s"
+    }
+  ],
+  "detections": {
+    "duration": 12.12,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 5.32,
+        "end": 6.68
+      },
+      {
+        "start": 10.52,
+        "end": 12.12
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

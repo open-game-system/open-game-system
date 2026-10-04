@@ -1,0 +1,64 @@
+{
+  "clip": "critic/rounds/02/console/flows/game-night.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "2.9–4.7s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.2–6.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "7.6–9.1s"
+    },
+    {
+      "code": "frozen",
+      "at": "11.5–13.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "13.8–15.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "18.7–20.0s"
+    }
+  ],
+  "detections": {
+    "duration": 21.28,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 2.88,
+        "end": 4.68
+      },
+      {
+        "start": 5.2,
+        "end": 6.4
+      },
+      {
+        "start": 7.6,
+        "end": 9.12
+      },
+      {
+        "start": 11.52,
+        "end": 13.36
+      },
+      {
+        "start": 13.84,
+        "end": 15.36
+      },
+      {
+        "start": 18.72,
+        "end": 20
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

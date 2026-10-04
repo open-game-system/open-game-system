@@ -1,0 +1,24 @@
+{
+  "clip": "critic/rounds/02/console/flows/home.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "6.0–7.6s"
+    }
+  ],
+  "detections": {
+    "duration": 7.56,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 6,
+        "end": 7.56
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

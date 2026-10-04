@@ -1,0 +1,40 @@
+{
+  "clip": "critic/rounds/02/console/flows/remote-handoff.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "6.1–7.2s"
+    },
+    {
+      "code": "frozen",
+      "at": "8.0–10.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.3–11.6s"
+    }
+  ],
+  "detections": {
+    "duration": 11.6,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 6.12,
+        "end": 7.2
+      },
+      {
+        "start": 8.04,
+        "end": 10
+      },
+      {
+        "start": 10.28,
+        "end": 11.6
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

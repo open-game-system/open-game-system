@@ -1,0 +1,40 @@
+{
+  "clip": "critic/rounds/02/console/flows/save-conflict.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "3.8–5.1s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.9–8.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "8.5–10.0s"
+    }
+  ],
+  "detections": {
+    "duration": 10.96,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 3.84,
+        "end": 5.12
+      },
+      {
+        "start": 5.92,
+        "end": 8.04
+      },
+      {
+        "start": 8.52,
+        "end": 10
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

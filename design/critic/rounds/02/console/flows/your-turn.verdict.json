@@ -1,0 +1,72 @@
+{
+  "clip": "critic/rounds/02/console/flows/your-turn.mp4",
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    {
+      "code": "frozen",
+      "at": "2.8–4.2s"
+    },
+    {
+      "code": "frozen",
+      "at": "5.2–8.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "8.0–9.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "10.3–11.4s"
+    },
+    {
+      "code": "frozen",
+      "at": "11.9–14.0s"
+    },
+    {
+      "code": "frozen",
+      "at": "14.0–15.3s"
+    },
+    {
+      "code": "frozen",
+      "at": "15.3–16.7s"
+    }
+  ],
+  "detections": {
+    "duration": 16.68,
+    "hasAudio": false,
+    "black": [],
+    "frozen": [
+      {
+        "start": 2.8,
+        "end": 4.2
+      },
+      {
+        "start": 5.16,
+        "end": 8
+      },
+      {
+        "start": 8,
+        "end": 9.04
+      },
+      {
+        "start": 10.32,
+        "end": 11.36
+      },
+      {
+        "start": 11.88,
+        "end": 13.96
+      },
+      {
+        "start": 13.96,
+        "end": 15.32
+      },
+      {
+        "start": 15.32,
+        "end": 16.68
+      }
+    ],
+    "silent": [],
+    "white": []
+  }
+}

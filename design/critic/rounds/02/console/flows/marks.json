@@ -1,0 +1,476 @@
+{
+  "home": {
+    "label": "Console home: the phone is the remote",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 0.754,
+        "text": "Console home: the phone is the remote"
+      },
+      {
+        "t": 2.269,
+        "text": "Tap Bake Shop on the phone: the TV home turns to it",
+        "device": "phone",
+        "bot": "act-bake-shop"
+      },
+      {
+        "t": 4.593,
+        "text": "Play on TV: day 4 opens, Juneau's iPad drops into his seat",
+        "device": "phone",
+        "bot": "play-on-tv"
+      }
+    ]
+  },
+  "swap": {
+    "label": "Rocket Crew mission 6 → Bake Shop day 4, every device",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 0.716,
+        "text": "Rocket Crew mission 6 → Bake Shop day 4, every device"
+      },
+      {
+        "t": 2.232,
+        "text": "Dad presses the console button: Rocket Crew pauses on the TV, the next games come up",
+        "device": "phone",
+        "bot": "console-home"
+      },
+      {
+        "t": 4.559,
+        "text": "Picks Bake Shop: mission 6 saves, the TV cuts over, Juneau's iPad follows on its own",
+        "device": "phone",
+        "bot": "next-bake-shop"
+      }
+    ]
+  },
+  "swap-undo": {
+    "label": "Changed our minds: back to Rocket Crew",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 0.718,
+        "text": "Changed our minds: back to Rocket Crew"
+      },
+      {
+        "t": 2.232,
+        "text": "Back to it: Bake Shop saves day 4, mission 6 resumes everywhere",
+        "device": "phone",
+        "bot": "undo-switch"
+      }
+    ]
+  },
+  "word-duel": {
+    "label": "Word Duel: Nana's game, play CRANE, back to the list",
+    "taps": 7,
+    "marks": [
+      {
+        "t": 0.713,
+        "text": "Word Duel: Nana's game, play CRANE, back to the list"
+      },
+      {
+        "t": 2.227,
+        "text": "Your turn against Nana",
+        "device": "phone",
+        "bot": "duel-wd-1"
+      },
+      {
+        "t": 4.17,
+        "text": "Tap tiles into the glowing squares",
+        "device": "phone",
+        "bot": "rack-C"
+      },
+      {
+        "t": 7.809,
+        "text": "CRANE on the triple word: 27",
+        "device": "phone",
+        "bot": "rack-N"
+      },
+      {
+        "t": 9.521,
+        "text": "Play it. Sent to Nana; Mom's game is next",
+        "device": "phone",
+        "bot": "play"
+      },
+      {
+        "t": 11.836,
+        "text": "Back to the list: Nana's game is now waiting on her",
+        "device": "phone",
+        "bot": "all-games"
+      }
+    ]
+  },
+  "game-night": {
+    "label": "A new Hearthisle night across three homes, while turn 14 waits",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.746,
+        "text": "A new Hearthisle night across three homes, while turn 14 waits"
+      },
+      {
+        "t": 2.257,
+        "text": "Game nights → New. The paused night (turn 14) keeps its place",
+        "device": "phone",
+        "bot": "night-new"
+      },
+      {
+        "t": 4.617,
+        "text": "Invite the Okafors and Nana & Pop. Other homes see 'The Mumms · blue', never the kids",
+        "device": "phone",
+        "bot": "invite-send"
+      },
+      {
+        "t": 6.329,
+        "text": "See what Nana & Pop see: the invite, their accept or decline",
+        "device": "phone",
+        "bot": "invite-preview"
+      },
+      {
+        "t": 9.039,
+        "text": "Both homes say yes while we look",
+        "device": "phone",
+        "bot": "preview-close"
+      },
+      {
+        "t": 10.951,
+        "text": "Seats: a seat is a person or a whole home. Jonathan + Juneau share blue",
+        "device": "phone",
+        "bot": "night-seats"
+      },
+      {
+        "t": 13.263,
+        "text": "Where each home plays: our TV, their TV, Nana & Pop on phones",
+        "device": "phone",
+        "bot": "seats-next"
+      },
+      {
+        "t": 15.574,
+        "text": "Start: turn 1 on our TV; the Okafors roll first, ours comes next",
+        "device": "phone",
+        "bot": "night-start"
+      },
+      {
+        "t": 17.689,
+        "text": "Home: two game nights, one live (the rolls go on: Nana & Pop, then us), one paused",
+        "device": "phone",
+        "bot": "night-back"
+      }
+    ]
+  },
+  "game-night-resume": {
+    "label": "Next Friday 8:00: resume turn 14, our roll, pause again",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 0.76,
+        "text": "Next Friday 8:00: resume turn 14, our roll, pause again"
+      },
+      {
+        "t": 2.274,
+        "text": "Every home is back: resume turn 14 on the TV. Nana & Pop roll",
+        "device": "phone",
+        "bot": "night-resume"
+      },
+      {
+        "t": 7.025,
+        "text": "Our roll came round; bedtime. Pause: it resumes when everyone's back",
+        "device": "phone",
+        "bot": "night-pause"
+      },
+      {
+        "t": 9.341,
+        "text": "Home: the night waits for next Friday",
+        "device": "phone",
+        "bot": "night-back"
+      }
+    ]
+  },
+  "your-turn": {
+    "label": "A push on Dad's phone → the move → next game waiting, across games",
+    "taps": 8,
+    "marks": [
+      {
+        "t": 0.714,
+        "text": "A push on Dad's phone → the move → next game waiting, across games"
+      },
+      {
+        "t": 2.225,
+        "text": "Nana played. The push lands on Dad's phone only, and opens her board",
+        "device": "phone",
+        "bot": "push-open"
+      },
+      {
+        "t": 4.144,
+        "text": "Tiles into the glowing squares",
+        "device": "phone",
+        "bot": "rack-C"
+      },
+      {
+        "t": 8.989,
+        "text": "CRANE for 27. Next waiting on you, whatever the game",
+        "device": "phone",
+        "bot": "play"
+      },
+      {
+        "t": 11.311,
+        "text": "Next: Mom's game",
+        "device": "phone",
+        "bot": "duel-next"
+      },
+      {
+        "t": 13.424,
+        "text": "Back to the list",
+        "device": "phone",
+        "bot": "duel-back"
+      }
+    ]
+  },
+  "tonight": {
+    "label": "Friday night: who's here, Play on TV, devices join by name",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 0.743,
+        "text": "Friday night: who's here, Play on TV, devices join by name"
+      },
+      {
+        "t": 2.256,
+        "text": "Who's on the couch tonight? Mom's out; Juneau and Ava are in",
+        "device": "phone",
+        "bot": "couch-who"
+      },
+      {
+        "t": 4.37,
+        "text": "Three on the couch",
+        "device": "phone",
+        "bot": "who-done"
+      },
+      {
+        "t": 5.881,
+        "text": "Play on TV: the living room TV connects, the iPads join by name",
+        "device": "phone",
+        "bot": "play-on-tv"
+      }
+    ]
+  },
+  "first-run": {
+    "label": "First run: the TV, who plays here (stickers), pair the kids' iPads",
+    "taps": 15,
+    "marks": [
+      {
+        "t": 0.712,
+        "text": "First run: the TV, who plays here (stickers), pair the kids' iPads"
+      },
+      {
+        "t": 2.224,
+        "text": "Set up the living room: the phone looks for the TV on this Wi-Fi",
+        "device": "phone",
+        "bot": "setup-start"
+      },
+      {
+        "t": 4.939,
+        "text": "Living room TV: connect once. Nothing is installed on it",
+        "device": "phone",
+        "bot": "connect-living"
+      },
+      {
+        "t": 7.447,
+        "text": "Who plays here? Jonathan is in; Family Sharing suggests the rest",
+        "device": "phone",
+        "bot": "setup-people"
+      },
+      {
+        "t": 11.38,
+        "text": "Ages decide seats: grown-ups read, kids get controls with no words",
+        "device": "phone",
+        "bot": "add-ava"
+      },
+      {
+        "t": 13.087,
+        "text": "Everyone picks a sticker; it's how every screen shows them",
+        "device": "phone",
+        "bot": "sticker-mom"
+      },
+      {
+        "t": 16.507,
+        "text": "Pair each kid's iPad once",
+        "device": "phone",
+        "bot": "setup-ipads"
+      },
+      {
+        "t": 18.015,
+        "text": "On Juneau's iPad: opengame.org, tap his dragon",
+        "device": "phone",
+        "bot": "pair-juneau"
+      },
+      {
+        "t": 19.725,
+        "text": "That's Juneau's iPad. Paired, with an Unpair any time",
+        "device": "phone",
+        "bot": "confirm-juneau"
+      },
+      {
+        "t": 24.057,
+        "text": "The living room: TV, four stickers, two iPads",
+        "device": "phone",
+        "bot": "setup-done"
+      },
+      {
+        "t": 26.168,
+        "text": "Home. Tonight starts with who's on the couch",
+        "device": "phone",
+        "bot": "setup-finish"
+      }
+    ]
+  },
+  "continue": {
+    "label": "Bake Shop: start a new bakery, keeping day 4",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 0.743,
+        "text": "Bake Shop: start a new bakery, keeping day 4"
+      },
+      {
+        "t": 2.256,
+        "text": "Continue would pick up day 4. New asks what happens to day 4 first",
+        "device": "phone",
+        "bot": "start-new"
+      },
+      {
+        "t": 4.568,
+        "text": "Replace says plainly: day 4 is gone for good",
+        "device": "phone",
+        "bot": "fate-replace"
+      },
+      {
+        "t": 6.679,
+        "text": "Keep it as a second save instead",
+        "device": "phone",
+        "bot": "fate-keep"
+      },
+      {
+        "t": 8.389,
+        "text": "A new bakery on the TV; day 4 is still there for Continue",
+        "device": "phone",
+        "bot": "new-confirm"
+      }
+    ]
+  },
+  "turn-arrives": {
+    "label": "A move arrives while Home is open",
+    "taps": 2,
+    "marks": [
+      {
+        "t": 0.739,
+        "text": "A move arrives while Home is open"
+      },
+      {
+        "t": 2.249,
+        "text": "Tunde played. His whale hops down the path onto his board; Your turn counts 3",
+        "device": "phone",
+        "bot": "turn-wd-3"
+      },
+      {
+        "t": 3.886,
+        "text": "Word Duel: his game is under Your turn, with JAZZ on his board",
+        "device": "phone",
+        "bot": "duel-back"
+      }
+    ]
+  },
+  "stream-crash": {
+    "label": "The cloud picture freezes mid mission 6; it comes back at mission 6 (0 kid taps, 1 phone tap)",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 0.71,
+        "text": "The cloud picture freezes mid mission 6; it comes back at mission 6 (0 kid taps, 1 phone tap)"
+      },
+      {
+        "t": 2.224,
+        "text": "The TV picture froze. Kids' iPads wait with their characters; the phone offers one action (OGS would also restart it by itself)",
+        "device": "phone",
+        "bot": "edge-restart"
+      }
+    ]
+  },
+  "remote-handoff": {
+    "label": "Jonathan's phone dies mid mission 6; Mom's phone picks up the remote, nothing restarts",
+    "taps": 4,
+    "marks": [
+      {
+        "t": 0.693,
+        "text": "Jonathan's phone dies mid mission 6; Mom's phone picks up the remote, nothing restarts"
+      },
+      {
+        "t": 2.207,
+        "text": "Jonathan's phone goes dark. Juneau keeps fixing the rocket: the game never stopped",
+        "device": "ipad",
+        "bot": "cell-star"
+      },
+      {
+        "t": 3.619,
+        "text": "Ava keeps helping",
+        "device": "ipad",
+        "bot": "helper-star"
+      },
+      {
+        "t": 5.029,
+        "text": "Mom's phone: a push. Rocket Crew is still going at mission 6",
+        "device": "phone",
+        "bot": "edge-push-remote"
+      },
+      {
+        "t": 7.143,
+        "text": "Take the remote: her phone becomes the remote and the captain seat",
+        "device": "phone",
+        "bot": "edge-take-remote"
+      }
+    ]
+  },
+  "save-conflict": {
+    "label": "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind",
+    "taps": 3,
+    "marks": [
+      {
+        "t": 0.715,
+        "text": "Two phones saved Bake Shop day 4 differently: pick one, the other is kept, change your mind"
+      },
+      {
+        "t": 2.234,
+        "text": "Each version says what it holds. Pick Mom's",
+        "device": "phone",
+        "bot": "edge-save-tuesday"
+      },
+      {
+        "t": 3.775,
+        "text": "No, the living room's: Mrs. Bear was already served",
+        "device": "phone",
+        "bot": "edge-save-tonight"
+      },
+      {
+        "t": 5.283,
+        "text": "Keep it; Mom's day 4 is kept in Saves",
+        "device": "phone",
+        "bot": "edge-save-keep"
+      }
+    ]
+  },
+  "home-drop": {
+    "label": "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back",
+    "taps": 1,
+    "marks": [
+      {
+        "t": 0.707,
+        "text": "The Okafors drop at Hearthisle turn 15; the host holds the board; they come back"
+      },
+      {
+        "t": 2.218,
+        "text": "We're hosting, so we decide: hold the board. Every home sees it waiting",
+        "device": "phone",
+        "bot": "edge-night-wait"
+      }
+    ]
+  }
+}
