@@ -41,3 +41,6 @@ app-example
 .stryker-tmp/
 reports/
 *.ipa
+
+# Local device builds (never commit)
+build-device/
