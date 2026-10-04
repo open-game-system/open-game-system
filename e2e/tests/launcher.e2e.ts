@@ -7,7 +7,7 @@ import { couch, household, tvPage } from "./household";
 
 const focused = '[data-focused]';
 
-describe("TV launcher, live session", { tags: ["launcher"] }, () => {
+describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"] }, () => {
   test("cast: the launcher joins the household's couch, once", async ({ app, screen, browser }) => {
     const hh = await household();
     const phone = await couch(hh.phoneToken);

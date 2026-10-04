@@ -16,8 +16,8 @@ export default {
       name: "ios",
       engine: mobile({ platform: "ios" }),
       app: {
+        // A Release simulator build with EXPO_PUBLIC_FAKE_CAST=1, EXPO_PUBLIC_OGS_API=http://localhost:8788.
         bundleId: "org.opengame.app",
-        launchArguments: ["--initialUrl", "http://localhost:8081", "-EXDevMenuShowsAtLaunch", "NO", "-EXDevMenuIsOnboardingFinished", "YES"],
       },
     },
   ],

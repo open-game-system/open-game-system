@@ -2,7 +2,7 @@
 import { describe, expect, test } from "e2e";
 import { api, household } from "./household";
 
-describe("API identity", { tags: ["api"] }, () => {
+describe("API identity", { tags: ["api"], requires: ["browser"] }, () => {
   test("a launcher token can read the library but cannot change it", async () => {
     const hh = await household();
     const read = await api(`/api/v1/households/${hh.hid}/library`, { token: hh.launcherToken });

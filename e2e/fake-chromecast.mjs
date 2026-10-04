@@ -7,6 +7,7 @@
 //   POST /load    -> { viewUrl }  (what the receiver's LOAD_VIEW would do)
 //   POST /stop    -> closes the TV page (end for tonight / cast dropped)
 //   GET  /screenshot -> PNG of the TV now
+//   GET  /launcher   -> { screen, frameApp, frameSrc, starting } read from the launcher's DOM
 import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -77,6 +78,21 @@ const server = createServer(async (req, res) => {
       page = null;
       state.viewUrl = null;
       return res.writeHead(200).end(JSON.stringify(state));
+    }
+    if (req.method === "GET" && req.url === "/launcher") {
+      const dom = page
+        ? await page.evaluate(() => {
+            const frame = document.querySelector('[data-testid="game-frame"]');
+            return {
+              screen: document.querySelector("[data-screen]")?.getAttribute("data-screen") ?? null,
+              frameApp: frame?.getAttribute("data-app") ?? null,
+              frameSrc: frame?.getAttribute("src") ?? null,
+              starting: Boolean(document.querySelector('[data-testid="starting"]')),
+              continueApps: [...document.querySelectorAll('[data-row="continue"] [data-item]')].map((e) => e.getAttribute("data-item")),
+            };
+          })
+        : null;
+      return res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ...state, dom }));
     }
     if (req.method === "GET" && req.url === "/screenshot" && page) {
       const png = await page.screenshot();
