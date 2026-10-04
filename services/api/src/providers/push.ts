@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface PushNotification {
   title: string;
   body: string;
@@ -21,6 +23,27 @@ const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 /** Expo error codes that indicate the device token is no longer valid */
 const DEVICE_INACTIVE_ERRORS = ["DeviceNotRegistered", "InvalidCredentials"];
 
+const ExpoTicketSchema = z.object({
+  status: z.enum(["ok", "error"]),
+  id: z.string().optional(),
+  message: z.string().optional(),
+  details: z.object({ error: z.string().optional() }).optional(),
+});
+const ExpoResponseSchema = z.object({ data: z.array(ExpoTicketSchema).min(1) });
+
+/** An Expo push ticket as our result; some errors mean the device's token is gone. */
+function resultOf(ticket: z.infer<typeof ExpoTicketSchema>): PushResult {
+  if (ticket.status !== "error") {
+    return { success: true, providerMessageId: ticket.id, deviceActive: true };
+  }
+  const errorCode = ticket.details?.error ?? ticket.message ?? "Unknown Expo push error";
+  return {
+    success: false,
+    error: errorCode,
+    deviceActive: !DEVICE_INACTIVE_ERRORS.includes(errorCode),
+  };
+}
+
 /**
  * Expo Push provider — sends notifications via Expo's push service,
  * which handles APNs (iOS) and FCM (Android) delivery.
@@ -35,11 +58,8 @@ export class ExpoPushProvider implements PushProvider {
   async send(pushToken: string, notification: PushNotification): Promise<PushResult> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      ...(this.accessToken && { Authorization: `Bearer ${this.accessToken}` }),
     };
-
-    if (this.accessToken) {
-      headers.Authorization = `Bearer ${this.accessToken}`;
-    }
 
     const body = {
       to: pushToken,
@@ -54,34 +74,7 @@ export class ExpoPushProvider implements PushProvider {
         headers,
         body: JSON.stringify(body),
       });
-
-      const result = (await response.json()) as {
-        data: Array<{
-          status: "ok" | "error";
-          id?: string;
-          message?: string;
-          details?: { error?: string };
-        }>;
-      };
-
-      const ticket = result.data[0];
-
-      if (ticket.status === "error") {
-        const errorCode = ticket.details?.error ?? ticket.message ?? "Unknown Expo push error";
-        const deviceActive = !DEVICE_INACTIVE_ERRORS.includes(errorCode);
-
-        return {
-          success: false,
-          error: errorCode,
-          deviceActive,
-        };
-      }
-
-      return {
-        success: true,
-        providerMessageId: ticket.id,
-        deviceActive: true,
-      };
+      return resultOf(ExpoResponseSchema.parse(await response.json()).data[0]);
     } catch (err) {
       return {
         success: false,

@@ -1,10 +1,42 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { verifyJwt } from "../lib/jwt";
-import { getProviderForPlatform } from "../providers/push";
+import { getProviderForPlatform, type PushResult } from "../providers/push";
 import { DeviceTokenPayloadSchema, SendNotificationSchema } from "../schemas";
 import type { DeviceRow, Env } from "../types";
 
-const notifications = new Hono<{ Bindings: Env }>();
+type NotificationsEnv = { Bindings: Env };
+const notifications = new Hono<NotificationsEnv>();
+
+/** The device id inside a signed device token, or why it isn't one. */
+async function deviceIdOf(
+  token: string,
+  secret: string,
+): Promise<{ deviceId: string } | { problem: string }> {
+  const payload = await verifyJwt(token, secret);
+  if (!payload) return { problem: "Device token is invalid or has been tampered with" };
+  const parsed = DeviceTokenPayloadSchema.safeParse(payload);
+  return parsed.success
+    ? { deviceId: parsed.data.sub }
+    : { problem: "Device token payload is malformed" };
+}
+
+/** 502 push_failed; a device Expo says is gone is forgotten first. */
+async function pushFailed(c: Context<NotificationsEnv>, deviceId: string, result: PushResult) {
+  if (!result.deviceActive) {
+    await c.env.DB.prepare("DELETE FROM devices WHERE ogs_device_id = ?").bind(deviceId).run();
+  }
+  return c.json(
+    {
+      error: {
+        code: "push_failed",
+        message: result.error ?? "Failed to send push notification",
+        status: 502,
+      },
+      deviceActive: result.deviceActive,
+    },
+    502,
+  );
+}
 
 /**
  * POST /api/v1/notifications/send
@@ -40,35 +72,14 @@ notifications.post("/send", async (c) => {
   const { deviceToken, notification } = parsed.data;
 
   // Verify JWT signature and extract device ID
-  const jwtPayload = await verifyJwt(deviceToken, c.env.OGS_JWT_SECRET);
-  if (!jwtPayload) {
+  const verified = await deviceIdOf(deviceToken, c.env.OGS_JWT_SECRET);
+  if ("problem" in verified) {
     return c.json(
-      {
-        error: {
-          code: "invalid_device_token",
-          message: "Device token is invalid or has been tampered with",
-          status: 401,
-        },
-      },
+      { error: { code: "invalid_device_token", message: verified.problem, status: 401 } },
       401,
     );
   }
-
-  const payloadParsed = DeviceTokenPayloadSchema.safeParse(jwtPayload);
-  if (!payloadParsed.success) {
-    return c.json(
-      {
-        error: {
-          code: "invalid_device_token",
-          message: "Device token payload is malformed",
-          status: 401,
-        },
-      },
-      401,
-    );
-  }
-
-  const deviceId = payloadParsed.data.sub;
+  const { deviceId } = verified;
 
   // Look up the device
   const device = await c.env.DB.prepare(
@@ -98,23 +109,7 @@ notifications.post("/send", async (c) => {
     data: notification.data,
   });
 
-  if (!result.success) {
-    if (!result.deviceActive) {
-      await c.env.DB.prepare("DELETE FROM devices WHERE ogs_device_id = ?").bind(deviceId).run();
-    }
-
-    return c.json(
-      {
-        error: {
-          code: "push_failed",
-          message: result.error ?? "Failed to send push notification",
-          status: 502,
-        },
-        deviceActive: result.deviceActive,
-      },
-      502,
-    );
-  }
+  if (!result.success) return pushFailed(c, deviceId, result);
 
   const notificationId = crypto.randomUUID();
 
