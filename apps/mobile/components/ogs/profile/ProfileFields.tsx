@@ -16,6 +16,8 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
   const s = useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot);
   const status = handleStatusText(s);
   const handleRef = useRef<TextInput>(null);
+  // The @id row (with its "free" check) shows with the name: typing the name fills it in.
+  const handleRow = useRef<View>(null);
   const reveal = useRevealFocused();
   const nameKey = profileReturnKey("name", form.canSubmit());
   const handleKey = profileReturnKey("handle", form.canSubmit());
@@ -57,6 +59,7 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
         placeholderTextColor={colors.cream3}
         autoCapitalize="words"
         autoCorrect={false}
+        onFocus={() => reveal(handleRow)}
         returnKeyType={nameKey.returnKeyType}
         // Keep the keyboard up: return moves on to the @id.
         submitBehavior="submit"
@@ -65,12 +68,12 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
         }}
       />
       <Text style={styles.label}>Profile id</Text>
-      <View style={styles.handleRow}>
+      <View ref={handleRow} style={styles.handleRow}>
         <Text style={styles.at}>@</Text>
         <TextInput
           ref={handleRef}
           testID="profileHandleInput"
-          onFocus={reveal}
+          onFocus={() => reveal()}
           value={s.handle}
           onChangeText={(t) => form.setHandle(t)}
           style={styles.handleInput}

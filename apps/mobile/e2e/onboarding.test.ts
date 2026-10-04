@@ -107,6 +107,10 @@ describe("Next stays above the keyboard on the profile step (no return key first
     // The keyboard is still up (the name field still has it): Next is on screen above it.
     await expect(element(by.id("profileNameInput"))).toBeFocused();
     await expect(element(by.id("profileNext"))).toBeVisible();
+    // The @id the name filled in, with its "free" check, shows whole above Next (not half under it).
+    await expect(element(by.id("profileNameInput"))).toBeVisible(100);
+    await expect(element(by.id("profileHandleInput"))).toBeVisible(100);
+    await expect(element(by.id("profileHandleStatus"))).toBeVisible(100);
     await element(by.id("profileNext")).tap();
     await waitFor(element(by.id("profileDone")))
       .toBeVisible()
@@ -127,8 +131,9 @@ describe("Next with the keyboard closed also makes the profile", () => {
     await waitFor(element(by.id("profileHandleStatus")))
       .toHaveText("free")
       .withTimeout(10000);
-    // A tap on the heading closes the keyboard.
-    await element(by.text("Make your OGS profile")).tap();
+    // A tap outside the fields closes the keyboard. (Typing the name scrolls the @id up into view,
+    // which takes the heading off the top of the page: tap the Name label, still on screen.)
+    await element(by.text("Name")).tap();
     await expect(element(by.id("profileNameInput"))).not.toBeFocused();
     await expect(element(by.id("profileNext"))).toBeVisible();
     await element(by.id("profileNext")).tap();

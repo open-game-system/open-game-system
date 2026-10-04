@@ -37,3 +37,39 @@ export function revealOffset(
   if (fieldTop < viewport.offset || field.height + 2 * margin > viewport.height) return fieldTop;
   return fieldBottom - viewport.height;
 }
+
+/** A view's place in the scroll content. */
+export interface ContentFrame {
+  top: number;
+  height: number;
+}
+
+/**
+ * The part of the scroll content to reveal for a focused field: the field itself, or the field and
+ * the one that comes with it (the @id under the name, with its "free" check), whichever is first.
+ */
+export function revealSpan(field: ContentFrame, also: ContentFrame | null): ContentFrame {
+  if (!also) return field;
+  const top = Math.min(field.top, also.top);
+  const bottom = Math.max(field.top + field.height, also.top + also.height);
+  return { top, height: bottom - top };
+}
+
+/** One frame, after a resize animation ends, before the scroll view has its final size. */
+const FRAME_MS = 16;
+
+/**
+ * How long to wait before scrolling a field into view: until the page's resize animation (ending at
+ * `settleAt`) is done, plus a frame. A scroll during it is clamped to the taller page it is leaving.
+ */
+export function settleDelay(settleAt: number, now: number): number {
+  return settleAt > now ? settleAt - now + FRAME_MS : 0;
+}
+
+/**
+ * A view's top in a scroll view's content, from window positions: its window y below the scroll
+ * view's top, plus how far the content is scrolled (`offset`).
+ */
+export function contentTop(viewWindowY: number, scrollWindowY: number, offset: number): number {
+  return viewWindowY - scrollWindowY + offset;
+}
