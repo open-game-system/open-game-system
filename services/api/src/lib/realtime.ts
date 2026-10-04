@@ -124,7 +124,7 @@ function authHeaders(appSecret: string): Record<string, string> {
  */
 export async function createSession(
   creds: RealtimeCredentials,
-  offer?: SessionDescription
+  offer?: SessionDescription,
 ): Promise<RealtimeSessionResponse> {
   const url = `${baseUrl(creds.appId)}/new`;
   const response = await fetch(url, {
@@ -140,13 +140,17 @@ export async function createSession(
 
   const json = await response.json();
   if (isRecord(json) && json.errorCode) {
-    throw new Error(`Realtime API createSession failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
+    throw new Error(
+      `Realtime API createSession failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
+    );
   }
 
   try {
     return parseSessionResponse(json);
   } catch (parseErr) {
-    throw new Error(`Realtime createSession parse failed (${response.status}): ${(parseErr as Error).message} — raw: ${JSON.stringify(json).substring(0, 300)}`);
+    throw new Error(
+      `Realtime createSession parse failed (${response.status}): ${(parseErr as Error).message} — raw: ${JSON.stringify(json).substring(0, 300)}`,
+    );
   }
 }
 
@@ -156,14 +160,16 @@ export async function createSession(
 export async function addTracks(
   creds: RealtimeCredentials,
   sessionId: string,
-  request: AddTracksRequest
+  request: AddTracksRequest,
 ): Promise<RealtimeSessionResponse> {
   const url = `${baseUrl(creds.appId)}/${sessionId}/tracks/new`;
   const response = await fetch(url, {
     method: "POST",
     headers: authHeaders(creds.appSecret),
     body: JSON.stringify({
-      ...(request.sessionDescription?.sdp ? { sessionDescription: request.sessionDescription } : {}),
+      ...(request.sessionDescription?.sdp
+        ? { sessionDescription: request.sessionDescription }
+        : {}),
       tracks: request.tracks,
     }),
   });
@@ -175,12 +181,16 @@ export async function addTracks(
 
   const json = await response.json();
   if (isRecord(json) && json.errorCode) {
-    throw new Error(`Realtime API addTracks failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
+    throw new Error(
+      `Realtime API addTracks failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
+    );
   }
 
   // addTracks returns { sessionDescription, tracks, requiresImmediateRenegotiation } — no sessionId
   if (!isRecord(json) || !json.sessionDescription) {
-    throw new Error(`Realtime addTracks: unexpected response — raw: ${JSON.stringify(json).substring(0, 300)}`);
+    throw new Error(
+      `Realtime addTracks: unexpected response — raw: ${JSON.stringify(json).substring(0, 300)}`,
+    );
   }
   return {
     sessionId: sessionId,
@@ -194,7 +204,7 @@ export async function addTracks(
 export async function renegotiate(
   creds: RealtimeCredentials,
   sessionId: string,
-  answer: SessionDescription
+  answer: SessionDescription,
 ): Promise<RealtimeSessionResponse> {
   const url = `${baseUrl(creds.appId)}/${sessionId}/renegotiate`;
   const response = await fetch(url, {
@@ -210,15 +220,18 @@ export async function renegotiate(
 
   const json = await response.json();
   if (isRecord(json) && json.errorCode) {
-    throw new Error(`Realtime API renegotiate failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`);
+    throw new Error(
+      `Realtime API renegotiate failed: ${response.status} — ${json.errorCode}: ${json.errorDescription}`,
+    );
   }
 
   // renegotiate may return only { requiresImmediateRenegotiation } — no sessionId or sessionDescription
   return {
     sessionId: sessionId,
-    sessionDescription: isRecord(json) && json.sessionDescription
-      ? parseSessionDescription(json.sessionDescription)
-      : { type: "answer" as const, sdp: "" },
+    sessionDescription:
+      isRecord(json) && json.sessionDescription
+        ? parseSessionDescription(json.sessionDescription)
+        : { type: "answer" as const, sdp: "" },
   };
 }
 
@@ -228,7 +241,7 @@ export async function renegotiate(
 export async function closeTracks(
   creds: RealtimeCredentials,
   sessionId: string,
-  trackNames: string[]
+  trackNames: string[],
 ): Promise<CloseTracksResponse> {
   const url = `${baseUrl(creds.appId)}/${sessionId}/tracks/close`;
   const response = await fetch(url, {

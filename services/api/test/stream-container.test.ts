@@ -131,9 +131,7 @@ describe("handleSfuRequest", () => {
       await handleSfuRequest(req2, state);
 
       expect(state.publisherSessionId).toBe("session-2");
-      expect(state.publisherTracks).toEqual([
-        { location: "local", trackName: "cast-audio" },
-      ]);
+      expect(state.publisherTracks).toEqual([{ location: "local", trackName: "cast-audio" }]);
     });
   });
 

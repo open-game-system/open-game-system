@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  createSession,
   addTracks,
-  renegotiate,
   closeTracks,
+  createSession,
   type RealtimeSessionResponse,
   type RealtimeTrackInfo,
+  renegotiate,
 } from "../src/lib/realtime";
 
 const mockFetch = vi.fn();
@@ -42,10 +42,7 @@ describe("Realtime SFU API client", () => {
         sdp: "v=0\r\no=- 456 2 IN IP4 127.0.0.1\r\n",
       };
 
-      const result = await createSession(
-        { appId: APP_ID, appSecret: APP_SECRET },
-        offer
-      );
+      const result = await createSession({ appId: APP_ID, appSecret: APP_SECRET }, offer);
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledOnce();
@@ -69,9 +66,9 @@ describe("Realtime SFU API client", () => {
 
       const offer = { type: "offer" as const, sdp: "invalid" };
 
-      await expect(
-        createSession({ appId: APP_ID, appSecret: APP_SECRET }, offer)
-      ).rejects.toThrow("Realtime API createSession failed: 400 — Bad Request: invalid SDP");
+      await expect(createSession({ appId: APP_ID, appSecret: APP_SECRET }, offer)).rejects.toThrow(
+        "Realtime API createSession failed: 400 — Bad Request: invalid SDP",
+      );
     });
   });
 
@@ -102,11 +99,10 @@ describe("Realtime SFU API client", () => {
         sdp: "v=0\r\nrenegotiation-offer\r\n",
       };
 
-      const result = await addTracks(
-        { appId: APP_ID, appSecret: APP_SECRET },
-        "session-123",
-        { sessionDescription: renegotiationSdp, tracks }
-      );
+      const result = await addTracks({ appId: APP_ID, appSecret: APP_SECRET }, "session-123", {
+        sessionDescription: renegotiationSdp,
+        tracks,
+      });
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledOnce();
@@ -129,14 +125,10 @@ describe("Realtime SFU API client", () => {
       });
 
       await expect(
-        addTracks(
-          { appId: APP_ID, appSecret: APP_SECRET },
-          "session-123",
-          {
-            sessionDescription: { type: "offer", sdp: "x" },
-            tracks: [],
-          }
-        )
+        addTracks({ appId: APP_ID, appSecret: APP_SECRET }, "session-123", {
+          sessionDescription: { type: "offer", sdp: "x" },
+          tracks: [],
+        }),
       ).rejects.toThrow("Realtime API addTracks failed: 404 — Session not found");
     });
   });
@@ -166,7 +158,7 @@ describe("Realtime SFU API client", () => {
       const result = await renegotiate(
         { appId: APP_ID, appSecret: APP_SECRET },
         "session-123",
-        answer
+        answer,
       );
 
       expect(result).toEqual(mockResponse);
@@ -189,11 +181,10 @@ describe("Realtime SFU API client", () => {
       });
 
       await expect(
-        renegotiate(
-          { appId: APP_ID, appSecret: APP_SECRET },
-          "session-123",
-          { type: "answer", sdp: "x" }
-        )
+        renegotiate({ appId: APP_ID, appSecret: APP_SECRET }, "session-123", {
+          type: "answer",
+          sdp: "x",
+        }),
       ).rejects.toThrow("Realtime API renegotiate failed: 500 — Internal Server Error");
     });
   });
@@ -214,11 +205,10 @@ describe("Realtime SFU API client", () => {
         text: () => Promise.resolve(JSON.stringify(mockResponse)),
       });
 
-      const result = await closeTracks(
-        { appId: APP_ID, appSecret: APP_SECRET },
-        "session-123",
-        ["cast-video", "cast-audio"]
-      );
+      const result = await closeTracks({ appId: APP_ID, appSecret: APP_SECRET }, "session-123", [
+        "cast-video",
+        "cast-audio",
+      ]);
 
       expect(result).toEqual(mockResponse);
       expect(mockFetch).toHaveBeenCalledOnce();
@@ -229,10 +219,7 @@ describe("Realtime SFU API client", () => {
       expect(opts.headers["Authorization"]).toBe(`Bearer ${APP_SECRET}`);
 
       const body = JSON.parse(opts.body);
-      expect(body.tracks).toEqual([
-        { trackName: "cast-video" },
-        { trackName: "cast-audio" },
-      ]);
+      expect(body.tracks).toEqual([{ trackName: "cast-video" }, { trackName: "cast-audio" }]);
       expect(body.force).toBe(true);
     });
 
@@ -244,11 +231,7 @@ describe("Realtime SFU API client", () => {
       });
 
       await expect(
-        closeTracks(
-          { appId: APP_ID, appSecret: APP_SECRET },
-          "session-123",
-          ["nonexistent"]
-        )
+        closeTracks({ appId: APP_ID, appSecret: APP_SECRET }, "session-123", ["nonexistent"]),
       ).rejects.toThrow("Realtime API closeTracks failed: 400 — Invalid track names");
     });
   });
@@ -263,10 +246,7 @@ describe("Realtime SFU API client", () => {
       });
 
       await expect(
-        createSession(
-          { appId: APP_ID, appSecret: APP_SECRET },
-          { type: "offer", sdp: "x" }
-        )
+        createSession({ appId: APP_ID, appSecret: APP_SECRET }, { type: "offer", sdp: "x" }),
       ).rejects.toThrow("sessionId must be a non-empty string");
     });
 
@@ -284,15 +264,12 @@ describe("Realtime SFU API client", () => {
             JSON.stringify({
               sessionId: "session-123",
               sessionDescription: "not-an-object",
-            })
+            }),
           ),
       });
 
       await expect(
-        createSession(
-          { appId: APP_ID, appSecret: APP_SECRET },
-          { type: "offer", sdp: "x" }
-        )
+        createSession({ appId: APP_ID, appSecret: APP_SECRET }, { type: "offer", sdp: "x" }),
       ).rejects.toThrow("sessionDescription must be an object");
     });
   });

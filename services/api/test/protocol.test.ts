@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  parseSessionDescription,
-  parseTrackInfo,
+  parsePublisherAnswerRequest,
   parsePublisherPrepareRequest,
   parsePublisherPrepareResponse,
-  parsePublisherAnswerRequest,
+  parseSessionDescription,
+  parseSubscribeAnswerRequest,
   parseSubscribeRequest,
   parseSubscribeResponse,
-  parseSubscribeAnswerRequest,
+  parseTrackInfo,
 } from "../src/protocol";
 
 // ---------- parseSessionDescription ----------
@@ -34,37 +34,35 @@ describe("parseSessionDescription", () => {
 
   it("throws for non-object input", () => {
     expect(() => parseSessionDescription("not an object")).toThrow(
-      "sessionDescription must be an object"
+      "sessionDescription must be an object",
     );
   });
 
   it("throws for null input", () => {
-    expect(() => parseSessionDescription(null)).toThrow(
-      "sessionDescription must be an object"
-    );
+    expect(() => parseSessionDescription(null)).toThrow("sessionDescription must be an object");
   });
 
   it("throws for invalid type", () => {
-    expect(() =>
-      parseSessionDescription({ type: "pranswer", sdp: "v=0\r\n" })
-    ).toThrow("sessionDescription.type must be 'offer' or 'answer'");
+    expect(() => parseSessionDescription({ type: "pranswer", sdp: "v=0\r\n" })).toThrow(
+      "sessionDescription.type must be 'offer' or 'answer'",
+    );
   });
 
   it("throws for missing type", () => {
     expect(() => parseSessionDescription({ sdp: "v=0\r\n" })).toThrow(
-      "sessionDescription.type must be 'offer' or 'answer'"
+      "sessionDescription.type must be 'offer' or 'answer'",
     );
   });
 
   it("throws for non-string sdp", () => {
-    expect(() =>
-      parseSessionDescription({ type: "offer", sdp: 123 })
-    ).toThrow("sessionDescription.sdp must be a string");
+    expect(() => parseSessionDescription({ type: "offer", sdp: 123 })).toThrow(
+      "sessionDescription.sdp must be a string",
+    );
   });
 
   it("throws for missing sdp", () => {
     expect(() => parseSessionDescription({ type: "offer" })).toThrow(
-      "sessionDescription.sdp must be a string"
+      "sessionDescription.sdp must be a string",
     );
   });
 });
@@ -101,27 +99,27 @@ describe("parseTrackInfo", () => {
   });
 
   it("throws for invalid location", () => {
-    expect(() =>
-      parseTrackInfo({ location: "somewhere", trackName: "test" })
-    ).toThrow("track.location must be 'local' or 'remote'");
+    expect(() => parseTrackInfo({ location: "somewhere", trackName: "test" })).toThrow(
+      "track.location must be 'local' or 'remote'",
+    );
   });
 
   it("throws for missing trackName", () => {
     expect(() => parseTrackInfo({ location: "local" })).toThrow(
-      "trackName must be a non-empty string"
+      "trackName must be a non-empty string",
     );
   });
 
   it("throws for empty trackName", () => {
-    expect(() =>
-      parseTrackInfo({ location: "local", trackName: "" })
-    ).toThrow("trackName must be a non-empty string");
+    expect(() => parseTrackInfo({ location: "local", trackName: "" })).toThrow(
+      "trackName must be a non-empty string",
+    );
   });
 
   it("throws for non-string mid", () => {
-    expect(() =>
-      parseTrackInfo({ location: "local", trackName: "v", mid: 123 })
-    ).toThrow("track.mid must be a string when provided");
+    expect(() => parseTrackInfo({ location: "local", trackName: "v", mid: 123 })).toThrow(
+      "track.mid must be a string when provided",
+    );
   });
 });
 
@@ -150,21 +148,19 @@ describe("parsePublisherPrepareRequest", () => {
   });
 
   it("throws for non-object input", () => {
-    expect(() => parsePublisherPrepareRequest("bad")).toThrow(
-      "request body must be an object"
-    );
+    expect(() => parsePublisherPrepareRequest("bad")).toThrow("request body must be an object");
   });
 
   it("throws for missing url", () => {
     expect(() => parsePublisherPrepareRequest({ iceServers: [] })).toThrow(
-      "url must be a non-empty string"
+      "url must be a non-empty string",
     );
   });
 
   it("throws for empty url", () => {
-    expect(() =>
-      parsePublisherPrepareRequest({ url: "", iceServers: [] })
-    ).toThrow("url must be a non-empty string");
+    expect(() => parsePublisherPrepareRequest({ url: "", iceServers: [] })).toThrow(
+      "url must be a non-empty string",
+    );
   });
 });
 
@@ -185,15 +181,13 @@ describe("parsePublisherPrepareResponse", () => {
   });
 
   it("throws for non-object input", () => {
-    expect(() => parsePublisherPrepareResponse(null)).toThrow(
-      "response body must be an object"
-    );
+    expect(() => parsePublisherPrepareResponse(null)).toThrow("response body must be an object");
   });
 
   it("throws for missing sessionDescription", () => {
-    expect(() =>
-      parsePublisherPrepareResponse({ tracks: [], traceId: "x" })
-    ).toThrow("sessionDescription must be an object");
+    expect(() => parsePublisherPrepareResponse({ tracks: [], traceId: "x" })).toThrow(
+      "sessionDescription must be an object",
+    );
   });
 
   it("throws for non-array tracks", () => {
@@ -202,7 +196,7 @@ describe("parsePublisherPrepareResponse", () => {
         sessionDescription: { type: "offer", sdp: "v=0\r\n" },
         tracks: "not-array",
         traceId: "x",
-      })
+      }),
     ).toThrow("tracks must be an array");
   });
 
@@ -211,7 +205,7 @@ describe("parsePublisherPrepareResponse", () => {
       parsePublisherPrepareResponse({
         sessionDescription: { type: "offer", sdp: "v=0\r\n" },
         tracks: [],
-      })
+      }),
     ).toThrow("traceId must be a non-empty string");
   });
 });
@@ -229,15 +223,11 @@ describe("parsePublisherAnswerRequest", () => {
   });
 
   it("throws for non-object input", () => {
-    expect(() => parsePublisherAnswerRequest(123)).toThrow(
-      "request body must be an object"
-    );
+    expect(() => parsePublisherAnswerRequest(123)).toThrow("request body must be an object");
   });
 
   it("throws for missing sessionDescription", () => {
-    expect(() => parsePublisherAnswerRequest({})).toThrow(
-      "sessionDescription must be an object"
-    );
+    expect(() => parsePublisherAnswerRequest({})).toThrow("sessionDescription must be an object");
   });
 });
 
@@ -252,21 +242,19 @@ describe("parseSubscribeRequest", () => {
   });
 
   it("throws for non-object input", () => {
-    expect(() => parseSubscribeRequest(null)).toThrow(
-      "request body must be an object"
-    );
+    expect(() => parseSubscribeRequest(null)).toThrow("request body must be an object");
   });
 
   it("throws for missing publisherSessionId", () => {
     expect(() => parseSubscribeRequest({})).toThrow(
-      "publisherSessionId must be a non-empty string"
+      "publisherSessionId must be a non-empty string",
     );
   });
 
   it("throws for empty publisherSessionId", () => {
-    expect(() =>
-      parseSubscribeRequest({ publisherSessionId: "" })
-    ).toThrow("publisherSessionId must be a non-empty string");
+    expect(() => parseSubscribeRequest({ publisherSessionId: "" })).toThrow(
+      "publisherSessionId must be a non-empty string",
+    );
   });
 });
 
@@ -285,14 +273,12 @@ describe("parseSubscribeResponse", () => {
   });
 
   it("throws for non-object input", () => {
-    expect(() => parseSubscribeResponse("bad")).toThrow(
-      "response body must be an object"
-    );
+    expect(() => parseSubscribeResponse("bad")).toThrow("response body must be an object");
   });
 
   it("throws for missing sessionDescription", () => {
     expect(() => parseSubscribeResponse({ sessionId: "x" })).toThrow(
-      "sessionDescription must be an object"
+      "sessionDescription must be an object",
     );
   });
 
@@ -300,7 +286,7 @@ describe("parseSubscribeResponse", () => {
     expect(() =>
       parseSubscribeResponse({
         sessionDescription: { type: "offer", sdp: "v=0\r\n" },
-      })
+      }),
     ).toThrow("sessionId must be a non-empty string");
   });
 
@@ -309,7 +295,7 @@ describe("parseSubscribeResponse", () => {
       parseSubscribeResponse({
         sessionDescription: { type: "offer", sdp: "v=0\r\n" },
         sessionId: "",
-      })
+      }),
     ).toThrow("sessionId must be a non-empty string");
   });
 });
@@ -329,22 +315,20 @@ describe("parseSubscribeAnswerRequest", () => {
   });
 
   it("throws for non-object input", () => {
-    expect(() => parseSubscribeAnswerRequest(null)).toThrow(
-      "request body must be an object"
-    );
+    expect(() => parseSubscribeAnswerRequest(null)).toThrow("request body must be an object");
   });
 
   it("throws for missing sessionDescription", () => {
-    expect(() =>
-      parseSubscribeAnswerRequest({ subscriberSessionId: "x" })
-    ).toThrow("sessionDescription must be an object");
+    expect(() => parseSubscribeAnswerRequest({ subscriberSessionId: "x" })).toThrow(
+      "sessionDescription must be an object",
+    );
   });
 
   it("throws for missing subscriberSessionId", () => {
     expect(() =>
       parseSubscribeAnswerRequest({
         sessionDescription: { type: "answer", sdp: "v=0\r\n" },
-      })
+      }),
     ).toThrow("subscriberSessionId must be a non-empty string");
   });
 
@@ -353,7 +337,7 @@ describe("parseSubscribeAnswerRequest", () => {
       parseSubscribeAnswerRequest({
         sessionDescription: { type: "answer", sdp: "v=0\r\n" },
         subscriberSessionId: "  ",
-      })
+      }),
     ).toThrow("subscriberSessionId must be a non-empty string");
   });
 });

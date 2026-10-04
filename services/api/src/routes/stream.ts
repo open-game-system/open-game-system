@@ -1,17 +1,12 @@
-import { Hono, type Context } from "hono";
-import type { Env } from "../types";
+import { type Context, Hono } from "hono";
+import { addTracks, createSession, type RealtimeCredentials, renegotiate } from "../lib/realtime";
 import {
-  parseTurnCredentialsResponse,
+  type IceServerConfig,
   parsePublisherPrepareResponse,
   parseSessionDescription,
-  type IceServerConfig,
+  parseTurnCredentialsResponse,
 } from "../protocol";
-import {
-  createSession,
-  addTracks,
-  renegotiate,
-  type RealtimeCredentials,
-} from "../lib/realtime";
+import type { Env } from "../types";
 
 type StreamEnv = { Bindings: Env };
 
@@ -21,7 +16,9 @@ const TURN_TTL_SECONDS = 300;
 
 function getRealtimeCredentials(env: Env): RealtimeCredentials {
   if (!env.CLOUDFLARE_REALTIME_APP_ID || !env.CLOUDFLARE_REALTIME_APP_SECRET) {
-    throw new Error("CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured");
+    throw new Error(
+      "CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured",
+    );
   }
   return {
     appId: env.CLOUDFLARE_REALTIME_APP_ID,
@@ -40,25 +37,27 @@ function logTrace(traceId: string, event: string, details?: Record<string, unkno
 }
 
 export function normalizeIceServers(iceServers: IceServerConfig[]): IceServerConfig[] {
-  return iceServers.map((server) => {
-    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
-    const filteredUrls = urls.filter((url) => {
-      const normalizedUrl = url.toLowerCase();
-      return !(
-        normalizedUrl.includes(":53?") ||
-        normalizedUrl.endsWith(":53") ||
-        normalizedUrl.includes(":53#") ||
-        normalizedUrl.includes(":53/")
-      );
+  return iceServers
+    .map((server) => {
+      const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+      const filteredUrls = urls.filter((url) => {
+        const normalizedUrl = url.toLowerCase();
+        return !(
+          normalizedUrl.includes(":53?") ||
+          normalizedUrl.endsWith(":53") ||
+          normalizedUrl.includes(":53#") ||
+          normalizedUrl.includes(":53/")
+        );
+      });
+      return {
+        ...server,
+        urls: filteredUrls,
+      };
+    })
+    .filter((server) => {
+      const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+      return urls.length > 0;
     });
-    return {
-      ...server,
-      urls: filteredUrls,
-    };
-  }).filter((server) => {
-    const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
-    return urls.length > 0;
-  });
 }
 
 function timingSafeMatches(actual: string, expected: string): boolean {
@@ -78,7 +77,10 @@ function timingSafeMatches(actual: string, expected: string): boolean {
   return result === 0;
 }
 
-export function isDebugRequestAuthorized(debugStateToken: string | undefined, providedToken: string | null): boolean {
+export function isDebugRequestAuthorized(
+  debugStateToken: string | undefined,
+  providedToken: string | null,
+): boolean {
   if (!debugStateToken) {
     return true;
   }
@@ -103,10 +105,7 @@ export function resolveSessionId(sessionIdHeader: string | null): string | null 
   return normalizedSessionId;
 }
 
-async function generateTurnIceServers(
-  env: Env,
-  traceId: string
-): Promise<IceServerConfig[]> {
+async function generateTurnIceServers(env: Env, traceId: string): Promise<IceServerConfig[]> {
   const apiToken = env.CLOUDFLARE_TURN_API_TOKEN;
   const turnKeyId = env.CLOUDFLARE_TURN_KEY_ID;
 
@@ -124,7 +123,7 @@ async function generateTurnIceServers(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ ttl: TURN_TTL_SECONDS }),
-    }
+    },
   );
 
   const bodyText = await response.text();
@@ -276,14 +275,22 @@ stream.post("/start-stream", async (c) => {
       const stub = c.env.STREAM_CONTAINER.get(id);
       const doUrl = new URL(c.req.url);
       doUrl.pathname = path;
-      return stub.fetch(new Request(doUrl.toString(), {
-        method: "POST",
-        headers: new Headers({ "Content-Type": "application/json", "x-stream-trace-id": traceId }),
-        body: JSON.stringify(body),
-      }));
+      return stub.fetch(
+        new Request(doUrl.toString(), {
+          method: "POST",
+          headers: new Headers({
+            "Content-Type": "application/json",
+            "x-stream-trace-id": traceId,
+          }),
+          body: JSON.stringify(body),
+        }),
+      );
     }
 
-    const prepareRes = await containerFetch("/publisher/prepare", { url: requestBody.url, iceServers });
+    const prepareRes = await containerFetch("/publisher/prepare", {
+      url: requestBody.url,
+      iceServers,
+    });
     if (!prepareRes.ok) {
       const errBody = await prepareRes.text();
       logTrace(traceId, "publisher_prepare_failed", { status: prepareRes.status, body: errBody });
@@ -297,7 +304,9 @@ stream.post("/start-stream", async (c) => {
     logTrace(traceId, "sfu_session_created", { sfuSessionId: sfuSession.sessionId });
 
     // Step 3: Apply SFU answer to container FIRST — PeerConnection must connect before adding tracks
-    const answerRes = await containerFetch("/publisher/answer", { sessionDescription: sfuSession.sessionDescription });
+    const answerRes = await containerFetch("/publisher/answer", {
+      sessionDescription: sfuSession.sessionDescription,
+    });
     if (!answerRes.ok) {
       const errBody = await answerRes.text();
       logTrace(traceId, "publisher_answer_failed", { status: answerRes.status, body: errBody });
@@ -319,7 +328,9 @@ stream.post("/start-stream", async (c) => {
 
     // Step 6: Apply renegotiated answer to container (tracks/new returns updated SDP)
     if (sfuTracks.sessionDescription) {
-      await containerFetch("/publisher/answer", { sessionDescription: sfuTracks.sessionDescription });
+      await containerFetch("/publisher/answer", {
+        sessionDescription: sfuTracks.sessionDescription,
+      });
       logTrace(traceId, "publisher_reanswer_applied");
     }
 
@@ -357,7 +368,9 @@ stream.post("/subscribe", async (c) => {
     // Create subscriber session with NO SDP (per CF Realtime example)
     // The SFU generates the offer when we add remote tracks
     const subscriberSession = await createSession(creds);
-    logTrace(traceId, "subscriber_session_created", { subscriberSessionId: subscriberSession.sessionId });
+    logTrace(traceId, "subscriber_session_created", {
+      subscriberSessionId: subscriberSession.sessionId,
+    });
 
     // Pull the publisher's tracks — SFU generates an offer for the subscriber
     const subResult = await addTracks(creds, subscriberSession.sessionId, {
@@ -441,7 +454,9 @@ stream.get("/debug-state", async (c) => {
   const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
   const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
 
-  if (!isDebugRequestAuthorized(c.env.DEBUG_STATE_TOKEN, c.req.header(DEBUG_TOKEN_HEADER) ?? null)) {
+  if (
+    !isDebugRequestAuthorized(c.env.DEBUG_STATE_TOKEN, c.req.header(DEBUG_TOKEN_HEADER) ?? null)
+  ) {
     return c.json({ error: "Forbidden", traceId }, 403);
   }
 

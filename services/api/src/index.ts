@@ -36,10 +36,9 @@ app.route("/api/v1/stream", stream);
 
 export default app;
 
+// Durable Object export — Cloudflare requires DO classes exported from the entry point.
+export { StreamContainer } from "./stream-container";
 // Cloudflare Workers scheduled event handler — exported for wrangler cron triggers.
 // In production, wrangler.jsonc wires this via the module's `scheduled` export.
 // Tests import handleScheduled directly from ./scheduled.
 export { handleScheduled };
-
-// Durable Object export — Cloudflare requires DO classes exported from the entry point.
-export { StreamContainer } from "./stream-container";
