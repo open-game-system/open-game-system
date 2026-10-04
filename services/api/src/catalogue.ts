@@ -25,7 +25,7 @@ const SEED: ManifestInput[] = [
     ],
     art: {
       tile: "/art/rocket-crew/tv.jpg",
-      hero: "/art/rocket-crew/alt.jpg",
+      hero: "/art/rocket-crew/tv.jpg",
       safe: { scale: 1.17, ox: 50, oy: 100 },
     },
     shop: { ages: "4+", minutes: [10, 20], players: "2" },
