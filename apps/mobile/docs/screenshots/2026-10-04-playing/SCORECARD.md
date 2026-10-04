@@ -44,3 +44,25 @@ Per round: both critics' scores, then the minimum per row.
 | 04 | product (Claude Opus) | 7 | 6 | 7 | 5 | 6 | 5 | 6 | 6 | 6 | 5 |
 | 04 | visual (Codex gpt-5.6-sol, medium) | 7 | 6 | 7 | 6 | 6 | 5 | 6 | 5 | 6 | 5 |
 | 04 | **min per row** | 7 | 6 | 7 | 5 | 6 | 5 | 6 | 5 | 6 | **5** |
+| 05 | product (Codex gpt-5.6-sol, medium) | 7 | 6 | 8 | 7 | 7 | 5 | 6 | 6 | 6 | 5 |
+| 05 | visual (Claude Opus) | 7 | 7 | 7 | 6 | 6 | 5 | 6 | 6 | 6 | 5 |
+| 05 | **min per row** | 7 | 6 | 7 | 6 | 6 | 5 | 6 | 6 | 6 | **5** |
+
+Trend of the minimum: 2 → 4 → 5 → 4\* → 5 → 5. Stopped at the plateau (stop rule: min flat).
+
+## Where it's stuck and why
+
+- **Edge (5)**: loading is a bare spinner (no skeleton); offline and no-games float mid-screen;
+  no-games offers Add games even when the catalogue itself is empty (critic: untruthful). All
+  local and cheap: skeleton hero + rows, top-anchored notices, keep the TV strip offline,
+  no-games without catalogue = Try again.
+- **Sittings (6)**: two sittings of one game share one icon (the art kit has one icon per game),
+  and a sitting without a game-reported label is titled "Started 7:42 PM" (owner's rule). Both
+  lift when games report sitting labels / art (slice 3).
+- **Visual (6)**: the list below the hero is still a uniform row template; critics want
+  per-sitting art, a stateful TV strip (tinted when cast) and fewer rounded dark containers.
+- **Primary (6)**: the empty state's outline Start game reads as disabled next to Cast to TV;
+  the friend card's copy ("Nana is casting on Nana's TV / Nana's games") is the friends
+  component's.
+
+Sheets: before-r00-sheet.jpg (baseline), r01..r05-sheet.jpg (r05 = after).
