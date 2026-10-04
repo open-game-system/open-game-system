@@ -1,16 +1,11 @@
 import { by, device, element, expect, waitFor } from "detox";
+import { skipOnboarding } from "./helpers";
 
 describe("App Launch (onboarding completed)", () => {
   beforeAll(async () => {
-    // Complete onboarding first
+    // Complete onboarding first (skip the intro, make a profile)
     await device.launchApp({ newInstance: true, delete: true });
-    await waitFor(element(by.id("onboardingSkipButton")))
-      .toBeVisible()
-      .withTimeout(5000);
-    await element(by.id("onboardingSkipButton")).tap();
-    await waitFor(element(by.id("libraryScreen")))
-      .toExist()
-      .withTimeout(5000);
+    await skipOnboarding();
   });
 
   beforeEach(async () => {

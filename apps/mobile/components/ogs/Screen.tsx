@@ -20,7 +20,11 @@ export function Screen({
   return (
     <View style={styles.root} testID={testID}>
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+        // A tap on a button with the keyboard up presses it (not just closes the keyboard).
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           <Text style={styles.title} accessibilityRole="header">
             {title}
