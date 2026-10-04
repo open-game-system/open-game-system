@@ -46,8 +46,8 @@ Feature: Cast-first OGS app with games inside one stream
   Scenario: Library shows the games you have, art first
     When Jonathan opens the Library tab
     Then the first game is a hero: its clean key art with its logo and one button
-    And below it "All Games" shows every other game once as its 2:3 cover, three across, in library order
-    And no game appears twice and no tile has a tagline
+    And below it "All Games" shows every game as its 2:3 cover, three across, in library order
+    And no tile has a tagline
     And nothing reads "Needs a TV"
     And there is no "+ Add games" row and no household chip
 
@@ -55,14 +55,20 @@ Feature: Cast-first OGS app with games inside one stream
     Given Jonathan has never played anything
     When Jonathan opens the Library tab
     Then the hero is the first game in his library and its button reads "Start game"
-    And All Games lists the other games in library order
+    And All Games lists every game in library order
 
   Scenario: The hero is the game you played last, one tap to rejoin
     Given Jonathan played Rocket Crew, then Bake Shop, then Night Flight
     When Jonathan opens the Library tab
     Then the hero is Night Flight
     And its button reads "Rejoin" and rejoins Night Flight's newest sitting
-    And All Games keeps library order without Night Flight, whatever was played
+    And All Games keeps library order, whatever was played
+
+  Scenario: The hero never repeats the return pill's Rejoin
+    Given Jonathan swiped back from Night Flight, so the return pill reads "Night Flight · Rejoin"
+    When Jonathan opens the Library tab
+    Then the hero is Night Flight with no button of its own
+    And tapping its art opens Night Flight's page
 
   Scenario: The game on the TV is the hero
     Given Story Nook is on the TV now
@@ -81,8 +87,8 @@ Feature: Cast-first OGS app with games inside one stream
   Scenario: The game's page lists your sittings as cards, each with Rejoin
     Given Rocket Crew is paused at "Mission 6"
     When Jonathan opens Rocket Crew's page
-    Then it lists one sitting under "In progress" headed "Mission 6" with when it was last played
-    And "Rejoin" is pinned at the bottom with "Start game" under it
+    Then it lists one sitting under "In progress" headed "Mission 6" with when it was last played and its own "Rejoin"
+    And that Rejoin is the page's one filled button, with "Start game" as the secondary button at the bottom
     And Rejoin opens that sitting's own room
 
   Scenario: A sitting with no resume point is named by when it started
@@ -96,7 +102,7 @@ Feature: Cast-first OGS app with games inside one stream
     Given Jonathan started Rocket Crew and swiped back
     When he starts a new game of Rocket Crew from its page and swipes back
     Then he is back on Rocket Crew's page
-    And it lists two sittings, most recent first, each with its own Rejoin (the newest one's is the pinned button)
+    And it lists two sittings, most recent first, each with its own Rejoin (the newest one's filled)
     And Playing lists both, each as its own row with Rejoin
 
   Scenario: Play a game without a TV

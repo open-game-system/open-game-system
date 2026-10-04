@@ -1,6 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { artUrl } from "../GameArt";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, TARGET } from "../theme";
 import { artKit } from "./art-kit";
 import { GameLogo, KeyArt } from "./KeyArt";
@@ -10,15 +9,18 @@ import { usePlay } from "./use-play";
 /**
  * The Library's big game (Steam's "continue playing"): its clean key art with the logo in the
  * left third, and one action: Rejoin its newest sitting, else Start game. A tap on the art opens
- * the game's page. The art, blurred, tints the top of the page.
+ * the game's page.
  */
 export function LibraryHero({
   hero,
+  action,
   width,
   onOpen,
   testID,
 }: {
   hero: Hero;
+  /** Its one button (see heroAction); null when the return pill already rejoins it. */
+  action: "rejoin" | "start" | null;
   width: number;
   onOpen: () => void;
   testID?: string;
@@ -27,24 +29,13 @@ export function LibraryHero({
   const play = usePlay(game);
   const kit = artKit(game);
   const eyebrow = heroEyebrow(hero);
-  const label = play.busy ? "Casting…" : sitting ? "Rejoin" : "Start game";
+  const verb = action === "rejoin" ? "Rejoin" : "Start game";
+  const label = play.busy ? "Casting…" : verb;
   const height = Math.round((width * 9) / 16);
   // The clean hero leaves its left third for the logo; a capture gets a scrim and the logo low.
   const clean = kit.heroClean !== null;
   return (
     <View style={styles.root}>
-      <View style={styles.ambient} pointerEvents="none">
-        <Image
-          source={{ uri: artUrl(kit.heroClean ?? kit.hero) }}
-          style={styles.fill}
-          blurRadius={40}
-        />
-        <LinearGradient
-          colors={["rgba(18,15,34,0.35)", colors.dusk0]}
-          locations={[0, 0.95]}
-          style={StyleSheet.absoluteFill}
-        />
-      </View>
       <Pressable
         testID={testID}
         accessibilityRole="button"
@@ -91,17 +82,19 @@ export function LibraryHero({
           </View>
         )}
       </Pressable>
-      <Pressable
-        testID="libraryHeroPlay"
-        accessibilityRole="button"
-        accessibilityLabel={`${sitting ? "Rejoin" : "Start game"} ${game.name}`}
-        disabled={play.busy}
-        onPress={() => (sitting ? play.rejoin(sitting) : play.startNew())}
-        style={({ pressed }) => [styles.play, (pressed || play.busy) && styles.playPressed]}
-      >
-        <View style={styles.triangle} />
-        <Text style={styles.playText}>{label}</Text>
-      </Pressable>
+      {action ? (
+        <Pressable
+          testID="libraryHeroPlay"
+          accessibilityRole="button"
+          accessibilityLabel={`${verb} ${game.name}`}
+          disabled={play.busy}
+          onPress={() => (action === "rejoin" && sitting ? play.rejoin(sitting) : play.startNew())}
+          style={({ pressed }) => [styles.play, (pressed || play.busy) && styles.playPressed]}
+        >
+          <View style={styles.triangle} />
+          <Text style={styles.playText}>{label}</Text>
+        </Pressable>
+      ) : null}
       {play.note ? <Text style={styles.note}>{play.note}</Text> : null}
     </View>
   );
@@ -109,8 +102,6 @@ export function LibraryHero({
 
 const styles = StyleSheet.create({
   root: { gap: 14, marginBottom: 6 },
-  ambient: { position: "absolute", top: -160, left: -20, right: -20, bottom: -40 },
-  fill: { width: "100%", height: "100%", opacity: 0.55 },
   card: { borderRadius: 22, overflow: "hidden" },
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
   scrim: { ...StyleSheet.absoluteFillObject, borderRadius: 22 },

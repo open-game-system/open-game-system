@@ -10,7 +10,7 @@ export interface LibraryHero {
   playedAt: number | null;
 }
 
-/** The Library, Steam-style: one hero, then the grid: every other game once, in library order. */
+/** The Library, Steam-style: one hero (a feature, not a move), then All Games in library order. */
 export interface LibraryShelves {
   hero: LibraryHero | null;
   grid: Manifest[];
@@ -47,7 +47,7 @@ export function libraryShelves(
       sitting: sittingsFor(heroGame, instances, session, now)[0] ?? null,
       playedAt: top?.at ?? null,
     },
-    grid: library.filter((g) => g !== heroGame),
+    grid: library,
   };
 }
 
@@ -58,4 +58,16 @@ export function libraryShelves(
 export function heroEyebrow(hero: LibraryHero): string | null {
   if (hero.sitting?.live) return "On the TV now";
   return hero.sitting?.label || null;
+}
+
+/**
+ * The hero's one button: Rejoin its newest sitting, else Start game. None when the return pill
+ * (above the tab bar) already rejoins this game, so a screen never shows the same Rejoin twice.
+ */
+export function heroAction(
+  hero: LibraryHero,
+  pill: { appId: string | null } | null,
+): "rejoin" | "start" | null {
+  if (!hero.sitting) return "start";
+  return pill?.appId === hero.game.appId ? null : "rejoin";
 }

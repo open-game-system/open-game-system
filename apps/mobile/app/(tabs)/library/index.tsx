@@ -8,9 +8,9 @@ import { ErrorLine } from "../../../components/ogs/ErrorLine";
 import { shelfShape } from "../../../components/ogs/library/art-kit";
 import { GameCapsule } from "../../../components/ogs/library/GameCapsule";
 import { LibraryHero } from "../../../components/ogs/library/LibraryHero";
-import { libraryShelves } from "../../../components/ogs/library/shelves";
-import { Screen, SectionTitle } from "../../../components/ogs/Screen";
-import { colors } from "../../../components/ogs/theme";
+import { heroAction, libraryShelves } from "../../../components/ogs/library/shelves";
+import { Screen } from "../../../components/ogs/Screen";
+import { colors, fonts } from "../../../components/ogs/theme";
 import { appState, useApp, useCouch } from "../../../services/runtime";
 
 const GUTTER = 20;
@@ -18,8 +18,9 @@ const GAP = 14;
 
 /**
  * Library, Steam-style: the game you played last (or the one on the TV) as a big hero with one
- * action (Rejoin, else Start game), then All Games: every other game once, as art with its name on
- * it, in a stable library order. A tap on any art opens the game's page in this tab's stack.
+ * action (Rejoin, else Start game; none when the return pill already rejoins it), then All Games:
+ * every game as its cover, in a stable library order. A tap on any art opens the game's page in
+ * this tab's stack.
  */
 export default function LibraryScreen() {
   const router = useRouter();
@@ -56,18 +57,19 @@ export default function LibraryScreen() {
           </View>
         ) : null}
         {hero ? (
-          <View style={styles.heroLayer}>
-            <LibraryHero
-              hero={hero}
-              width={content}
-              testID={`libraryGame-${hero.game.appId}`}
-              onOpen={() => open(hero.game)}
-            />
-          </View>
+          <LibraryHero
+            hero={hero}
+            action={heroAction(hero, app.pill)}
+            width={content}
+            testID="libraryHero"
+            onOpen={() => open(hero.game)}
+          />
         ) : null}
         {grid.length > 0 ? (
           <View testID="libraryAll">
-            <SectionTitle>All Games</SectionTitle>
+            <Text style={styles.heading} accessibilityRole="header">
+              All Games
+            </Text>
             <View style={[styles.grid, { gap }]}>
               {grid.map((game) => (
                 <GameCapsule
@@ -106,8 +108,13 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dusk0 },
   topFade: { position: "absolute", top: 0, left: 0, right: 0 },
   bottomFade: { position: "absolute", bottom: 0, left: 0, right: 0, height: 28 },
-  // The hero's blurred art tints the page behind the title.
-  heroLayer: { zIndex: -1 },
+  heading: {
+    fontFamily: fonts.display,
+    fontSize: 26,
+    color: colors.cream,
+    marginTop: 26,
+    marginBottom: 12,
+  },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
   empty: { color: colors.cream2, fontSize: 16, marginBottom: 8 },
   notice: {

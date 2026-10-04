@@ -4,7 +4,7 @@ import {
   type Manifest,
   type SessionState,
 } from "@open-game-system/ogs-protocol";
-import { heroEyebrow, libraryShelves } from "../shelves";
+import { heroAction, heroEyebrow, libraryShelves } from "../shelves";
 
 const MIN = 60 * 1000;
 const H = 60 * MIN;
@@ -45,17 +45,17 @@ const session = (patch: Partial<SessionState>): SessionState => ({
 const ids = (games: Manifest[]) => games.map((g) => g.appId);
 const library = ["a", "b", "c", "d", "e"].map(game);
 
-describe("libraryShelves: the Library's hero and the grid (each game once, in a stable order)", () => {
+describe("libraryShelves: the Library's hero and All Games (every game, in a stable order)", () => {
   it("is empty for an empty library", () => {
     expect(libraryShelves([], [], null, NOW)).toEqual({ hero: null, grid: [] });
   });
 
-  it("first run: the first game is the hero with nothing to rejoin; the grid is the rest in library order", () => {
+  it("first run: the first game is the hero with nothing to rejoin; the grid is every game in library order", () => {
     const shelves = libraryShelves(library, [], null, NOW);
     expect(shelves.hero?.game.appId).toBe("a");
     expect(shelves.hero?.sitting).toBeNull();
     expect(shelves.hero?.playedAt).toBeNull();
-    expect(ids(shelves.grid)).toEqual(["b", "c", "d", "e"]);
+    expect(ids(shelves.grid)).toEqual(["a", "b", "c", "d", "e"]);
   });
 
   it("the most recently played game is the hero, with its newest sitting to rejoin", () => {
@@ -70,7 +70,7 @@ describe("libraryShelves: the Library's hero and the grid (each game once, in a 
     expect(shelves.hero?.playedAt).toBe(NOW - 2 * H);
   });
 
-  it("the grid keeps library order whatever was played (only the hero leaves it)", () => {
+  it("the grid keeps library order and every game whatever was played", () => {
     const shelves = libraryShelves(
       library,
       [inst("e", 5 * H), inst("b", H), inst("a", 2 * DAY), inst("d", 3 * H)],
@@ -78,7 +78,7 @@ describe("libraryShelves: the Library's hero and the grid (each game once, in a 
       NOW,
     );
     expect(shelves.hero?.game.appId).toBe("b");
-    expect(ids(shelves.grid)).toEqual(["a", "c", "d", "e"]);
+    expect(ids(shelves.grid)).toEqual(["a", "b", "c", "d", "e"]);
   });
 
   it("a finished game still counts as played (hero without a sitting: Start game)", () => {
@@ -104,7 +104,7 @@ describe("libraryShelves: the Library's hero and the grid (each game once, in a 
     const shelves = libraryShelves(library, [inst("a", MIN)], live, NOW);
     expect(shelves.hero?.game.appId).toBe("e");
     expect(shelves.hero?.sitting?.live).toBe(true);
-    expect(ids(shelves.grid)).toEqual(["a", "b", "c", "d"]);
+    expect(ids(shelves.grid)).toEqual(["a", "b", "c", "d", "e"]);
   });
 
   it("a game paused on the couch session counts as played at its pause time", () => {
@@ -120,16 +120,15 @@ describe("libraryShelves: the Library's hero and the grid (each game once, in a 
   it("ignores instances and sessions of games not in the library", () => {
     const shelves = libraryShelves(library.slice(0, 2), [inst("zzz", MIN)], null, NOW);
     expect(shelves.hero?.game.appId).toBe("a");
-    expect(ids(shelves.grid)).toEqual(["b"]);
+    expect(ids(shelves.grid)).toEqual(["a", "b"]);
   });
 
-  it("scales to 30 games: hero plus 29 in the grid, each once, in library order", () => {
+  it("scales to 30 games: all 30 in the grid in library order", () => {
     const many = Array.from({ length: 30 }, (_, i) => game(`g${i}`));
     const played = many.filter((_, i) => i % 2 === 0).map((g, k) => inst(g.appId, (30 - k) * H));
     const shelves = libraryShelves(many, played, null, NOW);
     expect(shelves.hero?.game.appId).toBe("g28");
-    expect(shelves.grid).toHaveLength(29);
-    expect(ids(shelves.grid)).toEqual(ids(many.filter((g) => g.appId !== "g28")));
+    expect(ids(shelves.grid)).toEqual(ids(many));
   });
 });
 
@@ -163,5 +162,31 @@ describe("heroEyebrow: the line above the hero's name", () => {
     expect(heroEyebrow(hero({ playedAt: NOW, sitting: sitting(true, "Level 3") }))).toBe(
       "On the TV now",
     );
+  });
+});
+
+describe("heroAction: the hero's one button, never a second Rejoin beside the return pill", () => {
+  const hero = (sitting: boolean) => ({
+    game: game("a"),
+    sitting: sitting
+      ? { instanceId: "a-1", label: "", at: NOW - H, resumeUrl: undefined, live: false }
+      : null,
+    playedAt: sitting ? NOW - H : null,
+  });
+  const pill = (appId: string | null) => ({ appId, name: "A", url: "https://a.example/", at: NOW });
+
+  it("Start game when there's nothing to rejoin", () => {
+    expect(heroAction(hero(false), null)).toBe("start");
+    expect(heroAction(hero(false), pill("a"))).toBe("start");
+  });
+  it("Rejoin when there's a sitting and no pill", () => {
+    expect(heroAction(hero(true), null)).toBe("rejoin");
+  });
+  it("Rejoin when the pill points at another game", () => {
+    expect(heroAction(hero(true), pill("b"))).toBe("rejoin");
+    expect(heroAction(hero(true), pill(null))).toBe("rejoin");
+  });
+  it("no button when the pill already rejoins this game", () => {
+    expect(heroAction(hero(true), pill("a"))).toBeNull();
   });
 });
