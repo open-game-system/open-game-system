@@ -2,6 +2,7 @@ import { type Context, Hono } from "hono";
 import { addTracks, createSession, type RealtimeCredentials, renegotiate } from "../lib/realtime";
 import {
   type IceServerConfig,
+  type PublisherPrepareResponse,
   parsePublisherPrepareResponse,
   parseSessionDescription,
   parseTurnCredentialsResponse,
@@ -232,6 +233,83 @@ stream.get("/health", async (c) => {
   return response;
 });
 
+/** The session id header (when valid) and the StreamContainer instance it names. */
+function streamTarget(c: Context<StreamEnv>) {
+  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
+  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
+  return { sessionId, streamInstanceName };
+}
+
+type ContainerPost = (path: string, body: unknown) => Promise<Response>;
+
+/** POSTs JSON to the stream server: directly (STREAM_SERVER_URL) or via the session's DO. */
+function containerPoster(
+  c: Context<StreamEnv>,
+  traceId: string,
+  streamInstanceName: string,
+): ContainerPost {
+  return (path, body) => {
+    const init = {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-stream-trace-id": traceId },
+      body: JSON.stringify(body),
+    };
+    if (c.env.STREAM_SERVER_URL) {
+      const url = `${c.env.STREAM_SERVER_URL}${path}`;
+      logTrace(traceId, "container_direct_fetch", { url });
+      return fetch(url, init);
+    }
+    const stub = c.env.STREAM_CONTAINER.get(c.env.STREAM_CONTAINER.idFromName(streamInstanceName));
+    const doUrl = new URL(c.req.url);
+    doUrl.pathname = path;
+    return stub.fetch(new Request(doUrl.toString(), init));
+  };
+}
+
+/** TURN servers when configured and reachable, else none. */
+async function optionalIceServers(env: Env, traceId: string): Promise<IceServerConfig[]> {
+  try {
+    return await generateTurnIceServers(env, traceId);
+  } catch {
+    logTrace(traceId, "turn_not_configured_using_defaults");
+    return [];
+  }
+}
+
+/** The error body of a failed container step (logged), or null when it succeeded. */
+async function failure(res: Response, traceId: string, event: string): Promise<string | null> {
+  if (res.ok) return null;
+  const body = await res.text();
+  logTrace(traceId, event, { status: res.status, body });
+  return body;
+}
+
+/**
+ * Steps 5–6: once the PeerConnection is up, push the publisher's tracks to the SFU and apply the
+ * renegotiated answer (tracks/new always returns one).
+ */
+async function publishTracks(
+  creds: RealtimeCredentials,
+  sfuSessionId: string,
+  prepared: PublisherPrepareResponse,
+  post: ContainerPost,
+  traceId: string,
+) {
+  // Small delay to ensure PeerConnection is fully established
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  const sfuTracks = await addTracks(creds, sfuSessionId, {
+    sessionDescription: prepared.sessionDescription,
+    tracks: prepared.tracks.map((t) => ({
+      location: "local" as const,
+      trackName: t.trackName,
+      mid: t.mid,
+    })),
+  });
+  logTrace(traceId, "sfu_tracks_added");
+  await post("/publisher/answer", { sessionDescription: sfuTracks.sessionDescription });
+  logTrace(traceId, "publisher_reanswer_applied");
+}
+
 /**
  * POST /api/v1/stream/start-stream
  * Two-phase SFU flow:
@@ -242,60 +320,20 @@ stream.get("/health", async (c) => {
  */
 stream.post("/start-stream", async (c) => {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
+  const { sessionId, streamInstanceName } = streamTarget(c);
 
   try {
     const creds = getRealtimeCredentials(c.env);
     logTrace(traceId, "start_stream_begin", { sessionId, streamInstanceName });
+    const post = containerPoster(c, traceId, streamInstanceName);
 
-    // Step 1: Ask container to prepare publisher
-    // ICE servers are optional — SFU provides its own TURN
-    let iceServers: IceServerConfig[] = [];
-    try {
-      iceServers = await generateTurnIceServers(c.env, traceId);
-    } catch {
-      logTrace(traceId, "turn_not_configured_using_defaults");
-    }
-
+    // Step 1: Ask container to prepare publisher (ICE servers optional — SFU provides its own TURN)
+    const iceServers = await optionalIceServers(c.env, traceId);
     const requestBody = await c.req.json();
-
-    // Helper: route to container directly (STREAM_SERVER_URL) or via DO
-    async function containerFetch(path: string, body: unknown): Promise<Response> {
-      if (c.env.STREAM_SERVER_URL) {
-        const url = `${c.env.STREAM_SERVER_URL}${path}`;
-        logTrace(traceId, "container_direct_fetch", { url });
-        return fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-stream-trace-id": traceId },
-          body: JSON.stringify(body),
-        });
-      }
-      const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-      const stub = c.env.STREAM_CONTAINER.get(id);
-      const doUrl = new URL(c.req.url);
-      doUrl.pathname = path;
-      return stub.fetch(
-        new Request(doUrl.toString(), {
-          method: "POST",
-          headers: new Headers({
-            "Content-Type": "application/json",
-            "x-stream-trace-id": traceId,
-          }),
-          body: JSON.stringify(body),
-        }),
-      );
-    }
-
-    const prepareRes = await containerFetch("/publisher/prepare", {
-      url: requestBody.url,
-      iceServers,
-    });
-    if (!prepareRes.ok) {
-      const errBody = await prepareRes.text();
-      logTrace(traceId, "publisher_prepare_failed", { status: prepareRes.status, body: errBody });
-      return c.json({ error: "Publisher prepare failed", details: errBody, traceId }, 500);
-    }
+    const prepareRes = await post("/publisher/prepare", { url: requestBody.url, iceServers });
+    const prepareError = await failure(prepareRes, traceId, "publisher_prepare_failed");
+    if (prepareError !== null)
+      return c.json({ error: "Publisher prepare failed", details: prepareError, traceId }, 500);
     const prepareData = parsePublisherPrepareResponse(await prepareRes.json());
     logTrace(traceId, "publisher_prepared", { trackCount: prepareData.tracks.length });
 
@@ -304,36 +342,14 @@ stream.post("/start-stream", async (c) => {
     logTrace(traceId, "sfu_session_created", { sfuSessionId: sfuSession.sessionId });
 
     // Step 3: Apply SFU answer to container FIRST — PeerConnection must connect before adding tracks
-    const answerRes = await containerFetch("/publisher/answer", {
+    const answerRes = await post("/publisher/answer", {
       sessionDescription: sfuSession.sessionDescription,
     });
-    if (!answerRes.ok) {
-      const errBody = await answerRes.text();
-      logTrace(traceId, "publisher_answer_failed", { status: answerRes.status, body: errBody });
-      return c.json({ error: "Publisher answer failed", details: errBody, traceId }, 500);
-    }
+    const answerError = await failure(answerRes, traceId, "publisher_answer_failed");
+    if (answerError !== null)
+      return c.json({ error: "Publisher answer failed", details: answerError, traceId }, 500);
 
-    // Step 5: Now add tracks — PeerConnection is connected so SFU can accept them
-    // Small delay to ensure PeerConnection is fully established
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    const sfuTracks = await addTracks(creds, sfuSession.sessionId, {
-      sessionDescription: prepareData.sessionDescription,
-      tracks: prepareData.tracks.map((t) => ({
-        location: "local" as const,
-        trackName: t.trackName,
-        mid: t.mid,
-      })),
-    });
-    logTrace(traceId, "sfu_tracks_added");
-
-    // Step 6: Apply renegotiated answer to container (tracks/new returns updated SDP)
-    if (sfuTracks.sessionDescription) {
-      await containerFetch("/publisher/answer", {
-        sessionDescription: sfuTracks.sessionDescription,
-      });
-      logTrace(traceId, "publisher_reanswer_applied");
-    }
-
+    await publishTracks(creds, sfuSession.sessionId, prepareData, post, traceId);
     logTrace(traceId, "start_stream_complete", { sfuSessionId: sfuSession.sessionId });
     return c.json({
       status: "success",
