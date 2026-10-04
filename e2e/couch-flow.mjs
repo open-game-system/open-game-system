@@ -9,7 +9,7 @@
 import { writeFileSync } from "node:fs";
 import WebSocket from "ws";
 
-const API = process.env.OGS_API ?? "http://localhost:8787";
+const API = process.env.OGS_API ?? "http://localhost:8788";
 const TV = process.env.OGS_TV ?? "http://localhost:5180";
 const CAST = process.env.FAKE_CAST ?? "http://localhost:5181";
 const GAME = process.env.FIXTURE_GAME ?? "http://localhost:5190";
