@@ -8,7 +8,7 @@ import { ErrorLine } from "../../../components/ogs/ErrorLine";
 import { shelfShape } from "../../../components/ogs/library/art-kit";
 import { GameCapsule } from "../../../components/ogs/library/GameCapsule";
 import { LibraryHero } from "../../../components/ogs/library/LibraryHero";
-import { heroAction, libraryShelves } from "../../../components/ogs/library/shelves";
+import { libraryShelves } from "../../../components/ogs/library/shelves";
 import { Screen } from "../../../components/ogs/Screen";
 import { colors, fonts } from "../../../components/ogs/theme";
 import { appState, useApp, useCouch } from "../../../services/runtime";
@@ -18,7 +18,7 @@ const GAP = 14;
 
 /**
  * Library, Steam-style: the game you played last (or the one on the TV) as a big hero with one
- * action (Rejoin, else Start game; none when the return pill already rejoins it), then All Games:
+ * action (Rejoin, else Start game, or Cast to play when the TV isn't cast), then All Games:
  * every game as its cover, in a stable library order. A tap on any art opens the game's page in
  * this tab's stack.
  */
@@ -59,7 +59,6 @@ export default function LibraryScreen() {
         {hero ? (
           <LibraryHero
             hero={hero}
-            action={heroAction(hero, app.pill)}
             width={content}
             testID="libraryHero"
             onOpen={() => open(hero.game)}

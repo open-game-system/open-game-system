@@ -87,20 +87,18 @@ describe("sittingTitles: a game page's cards never read the same", () => {
     ]);
   });
 
-  it("two started the same minute are numbered by start order, the time moving to the second line", () => {
+  it("two started the same minute are numbered by start order; the second line is short: time · ago", () => {
     const older = sitting({ instanceId: id(at(11, 3)), at: NOW - 10 * MIN });
     const newer = sitting({ instanceId: id(at(11, 3) + 20_000), at: NOW - MIN });
     const titles = sittingTitles([newer, older], "catan", NOW);
     expect(titles.map((t) => t.headline)).toEqual(["Game 2", "Game 1"]);
-    expect(titles[0].detail).toMatch(/^Started 11:03\s?AM · played 1 min ago$/);
-    expect(titles[1].detail).toMatch(/^Started 11:03\s?AM · played 10 min ago$/);
+    expect(titles[0].detail).toMatch(/^11:03\s?AM · 1 min ago$/);
+    expect(titles[1].detail).toMatch(/^11:03\s?AM · 10 min ago$/);
   });
 
   it("a live one keeps 'On the TV now' on its second line", () => {
     const a = sitting({ instanceId: id(at(11, 3)), live: true });
     const b = sitting({ instanceId: id(at(11, 3) + 1000) });
-    expect(sittingTitles([a, b], "catan", NOW)[0].detail).toMatch(
-      /^Started 11:03\s?AM · On the TV now$/,
-    );
+    expect(sittingTitles([a, b], "catan", NOW)[0].detail).toMatch(/^11:03\s?AM · on the TV now$/);
   });
 });

@@ -150,8 +150,8 @@ describe("heroEyebrow: the line above the hero's name", () => {
   it("is nothing for a game never played", () => {
     expect(heroEyebrow(hero({}))).toBeNull();
   });
-  it("is nothing for a game merely played before: Library shows games, not their state", () => {
-    expect(heroEyebrow(hero({ playedAt: NOW - 2 * H }))).toBeNull();
+  it("names its role for a game played before, without the time (Library shows games, not state)", () => {
+    expect(heroEyebrow(hero({ playedAt: NOW - 2 * H }))).toBe("Last played");
   });
   it("names the resume point when the game gave one", () => {
     expect(heroEyebrow(hero({ playedAt: NOW - H, sitting: sitting(false, "Level 3") }))).toBe(
@@ -165,7 +165,7 @@ describe("heroEyebrow: the line above the hero's name", () => {
   });
 });
 
-describe("heroAction: the hero's one button, never a second Rejoin beside the return pill", () => {
+describe("heroAction: the hero's one button, the same verb the game's page uses", () => {
   const hero = (sitting: boolean) => ({
     game: game("a"),
     sitting: sitting
@@ -173,20 +173,15 @@ describe("heroAction: the hero's one button, never a second Rejoin beside the re
       : null,
     playedAt: sitting ? NOW - H : null,
   });
-  const pill = (appId: string | null) => ({ appId, name: "A", url: "https://a.example/", at: NOW });
 
-  it("Start game when there's nothing to rejoin", () => {
-    expect(heroAction(hero(false), null)).toBe("start");
-    expect(heroAction(hero(false), pill("a"))).toBe("start");
+  it("Start game when there's nothing to rejoin and the TV is ready", () => {
+    expect(heroAction(hero(false), false)).toBe("start");
   });
-  it("Rejoin when there's a sitting and no pill", () => {
-    expect(heroAction(hero(true), null)).toBe("rejoin");
+  it("Rejoin when there's a sitting, cast or not (a Rejoin casts first)", () => {
+    expect(heroAction(hero(true), false)).toBe("rejoin");
+    expect(heroAction(hero(true), true)).toBe("rejoin");
   });
-  it("Rejoin when the pill points at another game", () => {
-    expect(heroAction(hero(true), pill("b"))).toBe("rejoin");
-    expect(heroAction(hero(true), pill(null))).toBe("rejoin");
-  });
-  it("no button when the pill already rejoins this game", () => {
-    expect(heroAction(hero(true), pill("a"))).toBeNull();
+  it("Cast to play when a TV game has nothing to rejoin and the TV isn't cast", () => {
+    expect(heroAction(hero(false), true)).toBe("cast");
   });
 });

@@ -66,8 +66,8 @@ export function GameCapsule({
 }
 
 const styles = StyleSheet.create({
-  pressed: { transform: [{ scale: 0.96 }] },
-  frame: { borderRadius: 16, borderWidth: 2, borderColor: "transparent", margin: -2 },
+  pressed: { transform: [{ scale: 0.95 }], opacity: 0.9 },
+  frame: { borderRadius: 17, borderWidth: 3, borderColor: "transparent", margin: -3 },
   ring: { borderColor: colors.lamp },
   art: { width: "100%", aspectRatio: 16 / 9, borderRadius: 14 },
   cover: { aspectRatio: 2 / 3, overflow: "hidden", backgroundColor: colors.dusk2 },

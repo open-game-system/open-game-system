@@ -52,22 +52,21 @@ export function libraryShelves(
 }
 
 /**
- * What the hero says above the name: on the TV now, or the resume point its Rejoin goes back to.
- * Nothing for a game merely played before: Library shows games, the Playing tab their state.
+ * What the hero says above its art: "On the TV now", the resume point its Rejoin goes back to, or
+ * "Last played" (its role, not a time: Library shows games, the Playing tab their state).
  */
 export function heroEyebrow(hero: LibraryHero): string | null {
   if (hero.sitting?.live) return "On the TV now";
-  return hero.sitting?.label || null;
+  if (hero.sitting?.label) return hero.sitting.label;
+  return hero.playedAt === null ? null : "Last played";
 }
 
 /**
- * The hero's one button: Rejoin its newest sitting, else Start game. None when the return pill
- * (above the tab bar) already rejoins this game, so a screen never shows the same Rejoin twice.
+ * The hero's one button, with the verb the game's page uses: Rejoin its newest sitting (a Rejoin
+ * casts first when it must), else Cast to play when the game needs a TV that isn't cast, else
+ * Start game.
  */
-export function heroAction(
-  hero: LibraryHero,
-  pill: { appId: string | null } | null,
-): "rejoin" | "start" | null {
-  if (!hero.sitting) return "start";
-  return pill?.appId === hero.game.appId ? null : "rejoin";
+export function heroAction(hero: LibraryHero, needsCast: boolean): "rejoin" | "start" | "cast" {
+  if (hero.sitting) return "rejoin";
+  return needsCast ? "cast" : "start";
 }

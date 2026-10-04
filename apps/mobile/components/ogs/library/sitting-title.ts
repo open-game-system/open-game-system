@@ -60,7 +60,10 @@ export function sittingTitles(
   return sittings.map((s, i) => {
     const t = titles[i];
     if ((counts.get(t.headline) ?? 0) < 2) return t;
-    const detail = s.live ? t.detail : t.detail.replace(/^Played/, "played");
-    return { headline: `Game ${byStart.indexOf(s) + 1}`, detail: `${t.headline} · ${detail}` };
+    const when = s.live ? "on the TV now" : playedAgo(s.at, now).toLowerCase();
+    return {
+      headline: `Game ${byStart.indexOf(s) + 1}`,
+      detail: `${clock(startedAt(s, appId, now))} · ${when}`,
+    };
   });
 }

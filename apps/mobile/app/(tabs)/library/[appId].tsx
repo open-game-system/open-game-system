@@ -51,7 +51,7 @@ function GamePageBody({ game }: { game: Manifest }) {
   const kit = artKit(game);
   const facts = gameFacts(game.shop);
   // The art fills the page when there's nothing to list; sittings get the room when there are.
-  const artHeight = Math.round(height * (sittings.length > 0 ? 0.34 : 0.54));
+  const artHeight = Math.round(height * (sittings.length > 0 ? (height < 850 ? 0.32 : 0.4) : 0.54));
   // One filled action per page: the newest sitting's Rejoin, else the footer.
   const footerPrimary = sittings.length === 0 || needsCast;
 

@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, TARGET } from "../theme";
 import { artKit } from "./art-kit";
 import { GameLogo, KeyArt } from "./KeyArt";
-import { type LibraryHero as Hero, heroEyebrow } from "./shelves";
+import { type LibraryHero as Hero, heroAction, heroEyebrow } from "./shelves";
 import { usePlay } from "./use-play";
 
 /**
@@ -13,14 +13,11 @@ import { usePlay } from "./use-play";
  */
 export function LibraryHero({
   hero,
-  action,
   width,
   onOpen,
   testID,
 }: {
   hero: Hero;
-  /** Its one button (see heroAction); null when the return pill already rejoins it. */
-  action: "rejoin" | "start" | null;
   width: number;
   onOpen: () => void;
   testID?: string;
@@ -29,7 +26,8 @@ export function LibraryHero({
   const play = usePlay(game);
   const kit = artKit(game);
   const eyebrow = heroEyebrow(hero);
-  const verb = action === "rejoin" ? "Rejoin" : "Start game";
+  const action = heroAction(hero, play.needsCast);
+  const verb = { rejoin: "Rejoin", start: "Start game", cast: "Cast to play" }[action];
   const label = play.busy ? "Casting…" : verb;
   const height = Math.round((width * 9) / 16);
   // The clean hero leaves its left third for the logo; a capture gets a scrim and the logo low.
@@ -82,19 +80,17 @@ export function LibraryHero({
           </View>
         )}
       </Pressable>
-      {action ? (
-        <Pressable
-          testID="libraryHeroPlay"
-          accessibilityRole="button"
-          accessibilityLabel={`${verb} ${game.name}`}
-          disabled={play.busy}
-          onPress={() => (action === "rejoin" && sitting ? play.rejoin(sitting) : play.startNew())}
-          style={({ pressed }) => [styles.play, (pressed || play.busy) && styles.playPressed]}
-        >
-          <View style={styles.triangle} />
-          <Text style={styles.playText}>{label}</Text>
-        </Pressable>
-      ) : null}
+      <Pressable
+        testID="libraryHeroPlay"
+        accessibilityRole="button"
+        accessibilityLabel={`${verb} ${game.name}`}
+        disabled={play.busy}
+        onPress={() => (action === "rejoin" && sitting ? play.rejoin(sitting) : play.startNew())}
+        style={({ pressed }) => [styles.play, (pressed || play.busy) && styles.playPressed]}
+      >
+        <View style={styles.triangle} />
+        <Text style={styles.playText}>{label}</Text>
+      </Pressable>
       {play.note ? <Text style={styles.note}>{play.note}</Text> : null}
     </View>
   );
