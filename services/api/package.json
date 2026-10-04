@@ -11,7 +11,9 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:watch": "vitest",
     "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "db:local": "wrangler d1 execute opengame-api-db --local --file=schema.sql",
+    "dev:local": "wrangler dev --enable-containers=false"
   },
   "dependencies": {
     "@cloudflare/containers": "^0.1.1",
