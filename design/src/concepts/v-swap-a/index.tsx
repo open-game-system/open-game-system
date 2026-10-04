@@ -10,6 +10,7 @@ import { fontFaces } from "./fonts";
 import { DevSurface } from "./dev/DevSurface";
 import { EdgeLayer } from "./edge/EdgeLayer";
 import edgeCss from "./edge.css?raw";
+import shelfCss from "./shelf/shelf.css?raw";
 import { edgeFlows } from "./flows-edge";
 import { edgeScenarios } from "./scenarios-edge";
 import { KidSurface } from "./ipad/KidSurface";
@@ -36,7 +37,7 @@ export const concept = defineConcept<S>({
   name: "Swap A · Shelf swap",
   brief: "OGS is the family's console: one library for every game, TV-first. When a TV is cast it is the home screen; the phone is the remote and controller; paired kid iPads follow by name.",
   // concept.css is the phone/model owner's; tv.css and kid.css load after it and belong to those owners.
-  css: fontFaces + css + tvCss + kidCss + devCss + edgeCss,
+  css: fontFaces + css + tvCss + kidCss + devCss + edgeCss + shelfCss,
   Surface,
   // One scenario file per owner (phone/model, TV, kid) so parallel fix passes never collide.
   scenarios: [...scenarios, ...tvScenarios, ...kidScenarios, ...devScenarios, ...edgeScenarios],

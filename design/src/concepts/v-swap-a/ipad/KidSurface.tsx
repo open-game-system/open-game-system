@@ -12,7 +12,7 @@ import { KidAsleep } from "./KidAsleep";
 import { KidIdle } from "./KidIdle";
 import { KidTag } from "./KidTag";
 import { mashing } from "./mash";
-import { KidTravel } from "./KidTravel";
+import { KidBoxes } from "./KidBoxes";
 import { isUnpaired, KidUnpaired } from "./KidUnpaired";
 
 /** `seat` is whose iPad this is (from the harness stage); scenarios without one use `s.ipad`. */
@@ -45,8 +45,8 @@ function KidScreen({ s, who }: { s: S; who: Person }) {
   if (device && s.asleep.includes(device.id)) return <KidAsleep who={who} battery={device.battery ?? 0} />;
   // Menu (TV paused) and the switch are one continuous journey: same component, keyed by the game
   // being left, so the character keeps walking from "paused" through "following" without a cut.
-  if (s.switching) return <KidTravel key={s.switching.from} from={s.switching.from} to={s.switching.to} phase={s.switching.phase} who={who} mashDemo={mashing.has(s)} />;
-  if (s.menu && s.onTv) return <KidTravel key={s.onTv} from={s.onTv} to={null} phase="paused" who={who} />;
+  if (s.switching) return <KidBoxes key={s.switching.from} from={s.switching.from} to={s.switching.to} phase={s.switching.phase} who={who} mashDemo={mashing.has(s)} />;
+  if (s.menu && s.onTv) return <KidBoxes key={s.onTv} from={s.onTv} to={null} phase="paused" who={who} />;
   if (s.onTv) {
     const place = seatPlan(gameById(s.onTv)).find((x) => x.person.id === who.id);
     if (place) {

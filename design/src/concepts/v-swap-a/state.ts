@@ -246,9 +246,12 @@ export function advance(s: S): S {
     onTv: sw.to,
     tvFocus: sw.to,
     left: { gameId: sw.from, undone: sw.undo },
-    savedTonight: { ...s.savedTonight, [sw.from]: sw.undo ? "7:16 pm" : "7:14 pm" },
+    savedTonight: { ...s.savedTonight, [sw.from]: savedAt(sw) },
   };
 }
+
+/** The time a switch writes on the old game's spine (the session's clock is fixed at 7:1x pm). */
+export const savedAt = (sw: Switching): string => (sw.undo ? "7:16 pm" : "7:14 pm");
 
 export const gameName = (id: string): string => gameById(id).name;
 

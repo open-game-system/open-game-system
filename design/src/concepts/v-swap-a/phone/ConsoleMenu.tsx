@@ -1,61 +1,52 @@
-// The console menu (the phone's Home button): pause this game and pick the next one.
-// Picking a game IS the switch: the current game saves itself, and undo is one tap afterwards,
-// so there is no confirm step.
+// The console menu (the phone's Home button), Shelf swap: the phone is the hand at the shelf.
+// The box in the console is open at the top (its resume point about to go on its spine); below,
+// the shelf, every other game standing spine-out with its own resume point written on it.
+// Taking a box down IS the switch: the open one is closed and put back in its place, and undo is
+// one tap afterwards, so there is no confirm step.
 import type { Store } from "../../../harness/store";
-import { GAMES, HOME, gameById } from "../../../world";
+import { HOME, gameById } from "../../../world";
 import { closeMenu, pointIn, seatPlan, startSwitch, type S } from "../state";
-import { couchLine, couchStatus } from "../status";
-import { Portrait } from "../ui/Brand";
-import { Chip } from "../ui/Chip";
+import { shelfOf, spineText } from "../shelf/model";
+import { Spine, spineStyle } from "../shelf/Spine";
 import { GameArt } from "../ui/GameArt";
-import { Battery, Chevron } from "../ui/Icons";
+import { Battery } from "../ui/Icons";
 
 export function ConsoleMenu({ s, store }: { s: S; store: Store<S> }) {
   const current = s.onTv;
-  const next = GAMES.filter((g) => g.shape === "couch" && g.id !== current);
+  const shelf = shelfOf(current);
   const low = HOME.devices.find((d) => d.kind === "ipad" && (d.battery ?? 1) < 0.15);
   return (
     <div className="cx-sheetwrap">
       <button className="cx-scrim" aria-label="Close menu" data-bot="menu-close" onClick={() => store.update(closeMenu)} />
-      <div className="cx-sheet" role="dialog" aria-label="Console menu">
+      <div className="cx-sheet psh" role="dialog" aria-label="Console menu">
         <div className="cx-sheet__grab" />
         {current && (
-          <div className="cx-sheet__now">
-            <span className="cx-sheet__kicker">Paused on the TV</span>
-            <b>
-              {gameById(current).name} · {pointIn(s, current)}
-            </b>
-            <span>Switching saves it here. Back to it any time tonight.</span>
+          <div className="psh-open" style={spineStyle(current)}>
+            <span className="psh-open__tray" aria-hidden>
+              <GameArt gameId={current} />
+            </span>
+            <span className="psh-open__front">
+              <span className="psh-k">In the console · paused</span>
+              <b className="ogs-display">{gameById(current).name}</b>
+              <span>
+                {pointIn(s, current)} goes on its spine when you take another box down.
+              </span>
+            </span>
           </div>
         )}
-        <h3 className="cx-sheet__h">Play next on Living room TV</h3>
+        <h3 className="psh-h">The shelf · tap a box to take it down</h3>
         {low && (
-          <p className="cx-next__warn">
-            <Battery size={20} level={low.battery ?? 0} /> {low.name} is at {Math.round((low.battery ?? 0) * 100)}%. It keeps its seat if it falls asleep.
+          <p className="psh-warn">
+            <Battery size={20} level={low.battery ?? 0} /> {low.name} is at {Math.round((low.battery ?? 0) * 100)}%. If it sleeps, Ava's seat waits in the box.
           </p>
         )}
-        <div className="cx-next">
-          {next.map((g) => {
-            const seats = seatPlan(g);
-            return (
-              <button key={g.id} className="cx-next__row" data-bot={`next-${g.id}`} onClick={() => store.update((x) => startSwitch(x, g.id))}>
-                <span className="cx-next__art">
-                  <GameArt gameId={g.id} alt />
-                </span>
-                <span className="cx-next__text">
-                  <b>{g.name}</b>
-                  <span>{couchLine(g.id, null, s.savedTonight)}</span>
-                  <span className="cx-next__seats">
-                    <Chip status={couchStatus(g.id, null, s.savedTonight)} />
-                    {seats.map((x) => (
-                      <Portrait key={x.person.id} person={x.person} size={20} />
-                    ))}
-                  </span>
-                </span>
-                <Chevron size={18} />
-              </button>
-            );
-          })}
+        <div className="psh-shelf">
+          {shelf.map((id) => (
+            <button key={id} className="psh-shelf__box" data-bot={`next-${id}`} aria-label={`Take down ${gameById(id).name}`} onClick={() => store.update((x) => startSwitch(x, id))}>
+              <Spine gameId={id} text={spineText(s, id)} people={seatPlan(gameById(id)).map((x) => x.person)} sticker={24} className="sp--phone" />
+            </button>
+          ))}
+          <span className="psh-shelf__plank" aria-hidden />
         </div>
         <div className="cx-sheet__foot">
           <button className="cx-btn cx-btn--ghost" data-bot="menu-console-home"><span>Console home on TV</span></button>

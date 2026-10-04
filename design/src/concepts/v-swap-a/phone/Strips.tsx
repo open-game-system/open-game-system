@@ -1,7 +1,9 @@
 // Console strips: one line between the OGS bar and the game. Never inside the game's view.
 import type { Store } from "../../../harness/store";
 import { HOME, gameById } from "../../../world";
-import { pointIn, saveOf, seatPlan, undoSwitch, type S } from "../state";
+import { saveOf, seatPlan, undoSwitch, type S } from "../state";
+import { spineText } from "../shelf/model";
+import { Spine } from "../shelf/Spine";
 import { Portrait } from "../ui/Brand";
 import { Battery, Bell, Check, Undo } from "../ui/Icons";
 
@@ -68,35 +70,26 @@ export function Strips({ s, store }: { s: S; store: Store<S> }) {
       </div>
     );
   }
-  if (s.left && !s.left.undone) {
+  if (s.left) {
+    // Shelf swap: the box you just put away, on the shelf with its resume point on the spine.
+    // Tapping the spine takes it back down (the undo); after an undo, the other box is shelved.
     const left = gameById(s.left.gameId);
-    return (
-      <div className="cx-strip" role="status">
-        <span className="cx-strip__text">
-          <b>
-            {left.name} saved at {pointIn(s, left.id).toLowerCase()}
-          </b>
-          <span>Everyone moved to {game.name}.</span>
-        </span>
-        <button className="cx-btn cx-btn--sm cx-btn--dark" data-bot="undo-switch" onClick={() => store.update(undoSwitch)}>
-          <Undo size={16} /> <span>Back to it</span>
-        </button>
-      </div>
-    );
-  }
-  if (s.left && s.left.undone) {
-    const left = gameById(s.left.gameId);
-    return (
-      <div className="cx-strip" role="status">
-        <span className="cx-strip__text">
-          <b>
-            Back on {game.name} · {pointIn(s, game.id).toLowerCase()}
-          </b>
-          <span>
-            {left.name} kept {pointIn(s, left.id).toLowerCase()} for later, in Jump back in.
+    const text = spineText(s, left.id);
+    if (!s.left.undone) {
+      return (
+        <button className="cx-strip psh-undo" data-bot="undo-switch" aria-label={`Take ${left.name} back down`} onClick={() => store.update(undoSwitch)}>
+          <span className="psh-undo__row">
+            <span className="psh-undo__k">On the shelf</span>
+            <span className="psh-undo__go"><Undo size={18} /> Back to it</span>
           </span>
-        </span>
-        <Check size={22} />
+          <Spine gameId={left.id} text={text} className="sp--phone" />
+        </button>
+      );
+    }
+    return (
+      <div className="cx-strip psh-undo psh-undo--done" role="status">
+        <span className="psh-undo__k">Back on the shelf</span>
+        <Spine gameId={left.id} text={text} className="sp--phone" tail={<span className="psh-undo__ok"><Check size={18} /></span>} />
       </div>
     );
   }
