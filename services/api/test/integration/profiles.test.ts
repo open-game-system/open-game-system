@@ -21,12 +21,6 @@ const HandleSchema = z.object({
   available: z.boolean(),
   suggestion: z.string(),
 });
-const NotificationsSchema = z.object({
-  friendCasting: z.boolean(),
-  friendJoined: z.boolean(),
-  yourTurn: z.boolean(),
-});
-
 const postProfile = (body: unknown) =>
   SELF.fetch(`${BASE}/profiles`, { method: "POST", headers: json, body: JSON.stringify(body) });
 const handles = async (query: string) => {
@@ -231,56 +225,5 @@ describe("profile token errors", () => {
     const res = await SELF.fetch(`${BASE}/me`, { headers: bearer(s.token) });
     expect(res.status).toBe(403);
     expect(await errorCode(res)).toBe("profile_token_required");
-  });
-});
-
-describe("/me/notifications — a switch per push type", () => {
-  it("every switch is on until changed", async () => {
-    const p = await createProfile();
-    const res = await SELF.fetch(`${BASE}/me/notifications`, { headers: bearer(p.token) });
-    expect(res.status).toBe(200);
-    expect(NotificationsSchema.parse(await res.json())).toEqual({
-      friendCasting: true,
-      friendJoined: true,
-      yourTurn: true,
-    });
-  });
-
-  it("keeps what PUT stores, per profile", async () => {
-    const [a, b] = [await createProfile(), await createProfile()];
-    const settings = { friendCasting: false, friendJoined: true, yourTurn: false };
-    const put = await SELF.fetch(`${BASE}/me/notifications`, {
-      method: "PUT",
-      headers: bearer(a.token),
-      body: JSON.stringify(settings),
-    });
-    expect(put.status).toBe(200);
-    expect(NotificationsSchema.parse(await put.json())).toEqual(settings);
-    const get = async (token: string) =>
-      NotificationsSchema.parse(
-        await (await SELF.fetch(`${BASE}/me/notifications`, { headers: bearer(token) })).json(),
-      );
-    expect(await get(a.token)).toEqual(settings);
-    expect(await get(b.token)).toEqual({ friendCasting: true, friendJoined: true, yourTurn: true });
-    const again = { friendCasting: true, friendJoined: false, yourTurn: true };
-    await SELF.fetch(`${BASE}/me/notifications`, {
-      method: "PUT",
-      headers: bearer(a.token),
-      body: JSON.stringify(again),
-    });
-    expect(await get(a.token)).toEqual(again);
-  });
-
-  it("rejects a partial or non-boolean body (400 invalid_body)", async () => {
-    const p = await createProfile();
-    for (const body of [{ friendCasting: false }, { friendCasting: "no", friendJoined: true, yourTurn: true }]) {
-      const res = await SELF.fetch(`${BASE}/me/notifications`, {
-        method: "PUT",
-        headers: bearer(p.token),
-        body: JSON.stringify(body),
-      });
-      expect(res.status).toBe(400);
-      expect(await errorCode(res)).toBe("invalid_body");
-    }
   });
 });

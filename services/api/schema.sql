@@ -68,14 +68,6 @@ CREATE TABLE IF NOT EXISTS email_codes (
   attempts INTEGER NOT NULL DEFAULT 0
 );
 
--- Push switches per profile (1 = on). A missing row means all on.
-CREATE TABLE IF NOT EXISTS notification_settings (
-  profile_id TEXT PRIMARY KEY REFERENCES profiles(id),
-  friend_casting INTEGER NOT NULL DEFAULT 1,
-  friend_joined INTEGER NOT NULL DEFAULT 1,
-  your_turn INTEGER NOT NULL DEFAULT 1
-);
-
 -- Couch sessions: one per cast, owned by the caster (host). code: the TV code others join with.
 -- created_at: ms since epoch (a session lives as long as its 12 h launcher token).
 CREATE TABLE IF NOT EXISTS couch_sessions (

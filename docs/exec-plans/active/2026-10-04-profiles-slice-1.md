@@ -8,11 +8,12 @@ shimmed; local data may be wiped.
 ## Scope
 
 In: profiles (name, unique @id, sticker), one profile per device, sign-in to back up and to restore
-on a new device (Apple, Google, email code), notification switches stored per profile, couch
+on a new device (Apple, Google, email code), couch
 sessions owned by the caster, joining a session with the TV code, TV title
 "<TV> · <host>'s games", couch = members who joined.
 
-Out (later slices): friends, friend Join, pushes for "friend is casting" (slice 2); per-game game
+Out (later slices): push notifications and their switches (deferred by the owner 2026-10-04; the
+future trigger is "a friend starts a new game"), friends, friend Join (slice 2); per-game game
 tokens, `profile-kit`, `/.well-known/jwks.json`, game ids (slice 3); profile switching on one
 device and Family (later; nothing here blocks them: identity is `{ profile, deviceToken }` for the
 one active profile).
@@ -39,10 +40,10 @@ one active profile).
 
 ## API (services/api)
 
-Tables: `profiles`, `profile_devices`, `profile_logins`, `email_codes`, `notification_settings`,
+Tables: `profiles`, `profile_devices`, `profile_logins`, `email_codes`,
 `couch_sessions`, `session_members`; `instances` keyed by `profile_id`; households tables deleted.
 Routes: `POST /profiles`, `GET /profiles/handle-suggestion`, `GET/PATCH /me`, `GET/PUT /me/library`,
-`GET/POST /me/instances`, `GET/PUT /me/notifications`, `POST /sessions`, `GET /sessions/:sid`,
+`GET/POST /me/instances`, `POST /sessions`, `GET /sessions/:sid`,
 `POST /sessions/join`, `POST /auth/apple`, `POST /auth/google`, `POST /auth/email/start`,
 `POST /auth/email/verify`, WS `/couch/ws?token=&session=`. Apple/Google ID tokens are verified
 (RS256) against the issuer's discovery document + JWKS; issuers and the Resend base URL come from
@@ -68,12 +69,12 @@ Back up vs sign in: an auth call **with** a profile token links the login to tha
 1. Protocol: claims + session + instance unit tests (renamed fields; new: launcher needs `sid`,
    members on hello). Stryker `npx stryker run` in `packages/ogs-protocol` ≥ 95%.
 2. API unit + `test:integration` (vitest-pool-workers): profiles/handles, /me, library, instances,
-   notifications, sessions + join code, couch WS (host, member, stranger refused, launcher),
+   sessions + join code, couch WS (host, member, stranger refused, launcher),
    auth with emulate (Apple + Google ID tokens minted by the emulator, email code read from the
    emulated Resend inbox). The emulator is started by the integration config's global setup on
    fixed test ports.
 3. TV: unit tests for data/params/copy + Playwright `test:e2e` (title, members, join code).
-4. Mobile: Jest (onboarding profile step, identity, api client, profile view, notifications),
+4. Mobile: Jest (onboarding profile step, identity, api client, profile view),
    Detox Release (onboarding makes a profile), tester.army e2e (launcher, api, ios).
 5. Cross-surface: `e2e/couch-flow.mjs` with profiles + TV code; new e2e: make profile → back up
    with email (emulated inbox) → clear app → sign in with email → same @id.
@@ -102,8 +103,6 @@ All under `/api/v1`. Errors keep the contract `{ error: { code, message, status 
 | PUT | `/me/library` | phone/tablet | `{ appIds }` → `{ appIds }` |
 | GET | `/me/instances` | phone/tablet/launcher (host's) | → `Instance[]` (`profileId`) newest first |
 | POST | `/me/instances` | phone/tablet | `InstanceReport & { source }` → `Instance` |
-| GET | `/me/notifications` | phone/tablet | → `{ friendCasting, friendJoined, yourTurn }` (booleans, default true) |
-| PUT | `/me/notifications` | phone/tablet | same shape → same |
 | POST | `/sessions` | phone/tablet | `{ tvName }` → 201 `{ sessionId, code, token, tvName, host: Profile }` (`token` = launcher token, 12 h; `code` = 6-char TV code) |
 | GET | `/sessions/:sid` | that session's launcher, its host or a member | → `{ sessionId, code, tvName, host: Profile }` |
 | POST | `/sessions/join` | phone/tablet | `{ code }` → `{ sessionId, code, tvName, host: Profile }`; 404 `session_not_found` |

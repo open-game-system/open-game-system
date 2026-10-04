@@ -138,7 +138,6 @@ route → 403 `profile_token_required`.
 | GET / PATCH | `/api/v1/me` | phone/tablet | → `Me` / `{ name?, handle?, sticker? }` → `Me`; 409 `handle_taken` |
 | GET / PUT | `/api/v1/me/library` | GET any (launcher = host's), PUT phone/tablet | `{ appIds }` (whole catalogue until changed) |
 | GET / POST | `/api/v1/me/instances` | any (launcher = host's) | `Instance[]` newest first / `InstanceReport & { source: bridge\|visit }` → `Instance` |
-| GET / PUT | `/api/v1/me/notifications` | phone/tablet | `{ friendCasting, friendJoined, yourTurn }` (all true until changed) |
 | POST | `/api/v1/sessions` | phone/tablet | `{ tvName }` → 201 `{ sessionId, code, tvName, host, token }` (launcher token) |
 | GET | `/api/v1/sessions/:sid` | its launcher, host or a member | → `{ sessionId, code, tvName, host }`; 403 `not_a_member`, 404 `session_not_found` |
 | POST | `/api/v1/sessions/join` | phone/tablet | `{ code }` (TV code; case, spaces, dashes ignored) → session view; 404 `session_not_found` |
@@ -189,7 +188,6 @@ Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `in
 | `profile_devices` | `device_id` | profile_id, kind (phone/tablet), name, created_at | One profile per device |
 | `profile_logins` | `(provider, subject)` | profile_id, email, created_at | Back-up logins: apple/google (OIDC sub) or email |
 | `email_codes` | `email` | code_hash (SHA-256), expires_at (ms), attempts | Pending email sign-in codes |
-| `notification_settings` | `profile_id` | friend_casting, friend_joined, your_turn (0/1) | Missing row = all on |
 | `couch_sessions` | `id` | host_profile_id, code (unique TV code), tv_name, created_at (ms) | One per cast, 12 h |
 | `session_members` | `(session_id, profile_id)` | joined_at (ms) | Who joined with the TV code |
 | `instances` | `(profile_id, instance_id)` | app_id, status, title, detail, your_turn, starts_at, resume_url, source, updated_at (ms) | ogs-protocol `InstanceSchema` |

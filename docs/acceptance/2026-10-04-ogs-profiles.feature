@@ -50,11 +50,6 @@ Feature: OGS profiles
     Then the Profile tab shows "Jon"
     And the server has the new name
 
-  Scenario: Notification switches are stored with the profile
-    When Jonathan turns off "A friend starts casting"
-    Then GET /me/notifications says friendCasting is false
-    And the switch is still off after reopening the app
-
   # --- Back up and sign in ---
 
   Scenario Outline: Back up with <provider>
@@ -127,7 +122,7 @@ Feature: OGS profiles
   Scenario: Friend sees Join while you cast
 
   @later
-  Scenario: Casting push respects its switch
+  Scenario: "A friend starts a new game" push respects its switch (push deferred, owner 2026-10-04)
 
   @later
   Scenario: A game gets the name, no form
