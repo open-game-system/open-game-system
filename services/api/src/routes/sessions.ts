@@ -33,21 +33,7 @@ sessions.post("/", deviceOnly, async (c) => {
   const host = await getProfile(db, hostId);
   if (!host) return apiError(c, 404, "profile_not_found", "Profile not found");
   const sessionId = crypto.randomUUID();
-  let code = newCode();
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await db
-        .prepare(
-          "INSERT INTO couch_sessions (id, host_profile_id, code, tv_name, created_at) VALUES (?, ?, ?, ?, ?)",
-        )
-        .bind(sessionId, hostId, code, body.tvName, Date.now())
-        .run();
-      break;
-    } catch (e) {
-      if (attempt >= 4 || !isUniqueViolation(e, "code")) throw e;
-      code = newCode();
-    }
-  }
+  const code = await insertWithFreeCode(db, sessionId, hostId, body.tvName);
   const token = await issueToken(
     { sub: hostId, did: `launcher-${crypto.randomUUID()}`, kind: "launcher", sid: sessionId },
     c.env.OGS_JWT_SECRET,
@@ -55,6 +41,29 @@ sessions.post("/", deviceOnly, async (c) => {
   );
   return c.json({ sessionId, code, tvName: body.tvName, host, token }, 201);
 });
+
+/** Inserts the session under a fresh TV code, drawing again (up to 5 codes) while one is in use. */
+async function insertWithFreeCode(
+  db: D1Database,
+  sessionId: string,
+  hostId: string,
+  tvName: string,
+): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    const code = newCode();
+    try {
+      await db
+        .prepare(
+          "INSERT INTO couch_sessions (id, host_profile_id, code, tv_name, created_at) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(sessionId, hostId, code, tvName, Date.now())
+        .run();
+      return code;
+    } catch (e) {
+      if (attempt >= 4 || !isUniqueViolation(e, "code")) throw e;
+    }
+  }
+}
 
 /** POST /sessions/join — join with the TV code; the joiner becomes a member. */
 sessions.post("/join", deviceOnly, async (c) => {
