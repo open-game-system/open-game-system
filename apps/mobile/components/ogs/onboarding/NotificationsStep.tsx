@@ -1,10 +1,10 @@
 import * as Notifications from "expo-notifications";
 import { SymbolView } from "expo-symbols";
 import { useCallback } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { Button } from "../Button";
-import { Sticker } from "../Sticker";
 import { colors, fonts } from "../theme";
+import { TvHero } from "./TvHero";
 
 const BENEFITS = [
   "Turn alerts for board games",
@@ -14,6 +14,7 @@ const BENEFITS = [
 
 /** Onboarding's notifications page: ask, or Maybe Later. Either way on to the profile step. */
 export function NotificationsStep({ onNext }: { onNext: () => void }) {
+  const small = useWindowDimensions().width < 380;
   const enable = useCallback(async () => {
     await Notifications.requestPermissionsAsync();
     onNext();
@@ -21,27 +22,31 @@ export function NotificationsStep({ onNext }: { onNext: () => void }) {
 
   return (
     <View style={styles.page}>
-      <View style={styles.hero}>
-        <Sticker id="owl" size={96} />
+      <View style={[styles.hero, small && styles.heroSmall]}>
+        <TvHero
+          compact={small}
+          sitters={["owl"]}
+          stickerSize={small ? 44 : 72}
+          chip="Your turn"
+          chipIcon="bell.fill"
+          maxWidth={small ? 168 : 280}
+        />
       </View>
-      <Text style={styles.heading} accessibilityRole="header">
+      <Text style={[styles.heading, small && styles.headingSmall]} accessibilityRole="header">
         Stay in the game
       </Text>
-      <Text style={styles.body}>
-        Get notified when it's your turn, when friends invite you, or when a live game is about to
-        start.
-      </Text>
-      <View style={styles.benefits}>
+      <Text style={styles.body}>We'll tell you when it's your turn.</Text>
+      <View style={[styles.benefits, small && styles.benefitsSmall]}>
         {BENEFITS.map((text) => (
           <View key={text} style={styles.benefit}>
-            <View style={styles.check}>
+            <View style={[styles.check, small && styles.checkSmall]}>
               <SymbolView name="checkmark" size={15} tintColor={colors.mint} />
             </View>
             <Text style={styles.benefitText}>{text}</Text>
           </View>
         ))}
       </View>
-      <View style={styles.actions}>
+      <View style={[styles.actions, small && styles.actionsSmall]}>
         <Button
           label="Turn on notifications"
           testID="onboardingEnableNotificationsButton"
@@ -76,7 +81,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 10,
   },
-  benefits: { gap: 14, marginTop: 28, paddingHorizontal: 8 },
+  headingSmall: { fontSize: 30, lineHeight: 36 },
+  heroSmall: { marginBottom: 4 },
+  benefits: { gap: 14, marginTop: 24, paddingHorizontal: 8, alignSelf: "center" },
+  benefitsSmall: { gap: 4, marginTop: 12 },
+  actionsSmall: { marginTop: 14 },
+  checkSmall: { width: 28, height: 28, borderRadius: 14 },
   benefit: { flexDirection: "row", alignItems: "center", gap: 14 },
   check: {
     width: 34,

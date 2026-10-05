@@ -1,0 +1,13 @@
+| Row | Version A | Version B | Better | Evidence |
+|---|---:|---:|---|---|
+| A. First impression | 8 | 8 | Same | Welcome explains the TV-console concept within three seconds. |
+| B. Identity | 8 | 8 | Same | Warm storybook type, space art, and animal stickers feel ownable. |
+| C. Two-path hierarchy | 9 | 9 | Same | “Make my profile” is unmistakably primary; existing-profile path remains clear. |
+| D. Craft | 8 | 7 | A | A’s notification page has better rhythm and a purposeful game/alert vignette; B’s oversized owl creates dead space. |
+| E. Fits both sizes | 8 | 7 | A | A adapts more gracefully; B’s centered notification copy wraps heavily on SE. |
+| F. Copy | 9 | 7 | A | A’s “We’ll tell you when it’s your turn” is direct and benefit-led. B repeats the checklist in paragraph form. |
+| G. Cross-page consistency | 8 | 7 | A | A connects the notification request to actual gameplay while retaining the same visual language. |
+
+**OVERALL: A**
+
+**Largest gap:** The typing screen leaves the large bear visibly clipped at the top. Remove that redundant hero while the keyboard is open and move the sticker selector/form upward as one deliberate compact state.

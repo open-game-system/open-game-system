@@ -1,5 +1,6 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Keyboard, Pressable, StyleSheet, Text } from "react-native";
+import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
 import { createProfileForm } from "../../../services/profile-form";
 import { api, appState } from "../../../services/runtime";
 import type { UserMessage } from "../../../services/user-message";
@@ -36,51 +37,70 @@ export function ProfileStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
   };
 
   return (
-    <KeyboardFooterScroll
-      contentContainerStyle={styles.page}
-      footerStyle={styles.footer}
-      testID="profileStep"
-      footer={
-        <>
-          <ErrorLine
-            text={error?.text ?? null}
-            action={error?.action}
-            onRetry={() => void next()}
-            testID="profileStepError"
-          />
-          <Button
-            label={busy ? "Making your profile…" : "Next"}
-            testID="profileNext"
-            disabled={busy || !form.canSubmit()}
-            onPress={() => void next()}
-          />
-          <Pressable
-            testID="profileStepSignIn"
-            accessibilityRole="button"
-            accessibilityLabel="Already have a profile? Sign in"
-            disabled={busy}
-            onPress={() => {
-              Keyboard.dismiss();
-              onSignIn();
-            }}
-            style={({ pressed }) => [styles.signIn, pressed && { opacity: 0.6 }]}
-          >
-            <Text style={styles.signInText}>
-              Already have a profile? <Text style={styles.signInLink}>Sign in</Text>
-            </Text>
-          </Pressable>
-        </>
-      }
-    >
-      <Text style={styles.heading}>Make your OGS profile</Text>
-      <Text style={styles.body}>Games use this name when you join.</Text>
-      <ProfileFields form={form} onSubmit={() => void next()} />
-    </KeyboardFooterScroll>
+    <View style={styles.root}>
+      <KeyboardFooterScroll
+        contentContainerStyle={styles.page}
+        footerStyle={styles.footer}
+        testID="profileStep"
+        footer={
+          <>
+            <ErrorLine
+              text={error?.text ?? null}
+              action={error?.action}
+              onRetry={() => void next()}
+              testID="profileStepError"
+            />
+            <Button
+              label={busy ? "Making your profile…" : "Next"}
+              testID="profileNext"
+              disabled={busy || !form.canSubmit()}
+              onPress={() => void next()}
+            />
+            <Pressable
+              testID="profileStepSignIn"
+              accessibilityRole="button"
+              accessibilityLabel="Already have a profile? Sign in"
+              disabled={busy}
+              onPress={() => {
+                Keyboard.dismiss();
+                onSignIn();
+              }}
+              style={({ pressed }) => [styles.signIn, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.signInText}>
+                Already have a profile? <Text style={styles.signInLink}>Sign in</Text>
+              </Text>
+            </Pressable>
+          </>
+        }
+      >
+        <Text style={styles.heading}>Make your OGS profile</Text>
+        <Text style={styles.body}>Games use this name when you join.</Text>
+        <ProfileFields form={form} onSubmit={() => void next()} />
+      </KeyboardFooterScroll>
+      {/* Content scrolled up (the keyboard's reveal) fades under the Back bar, never a hard cut. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[colors.dusk0, "rgba(18, 15, 34, 0)"]}
+        style={styles.topFade}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { paddingHorizontal: 24, paddingBottom: 16, gap: 10 },
+  root: { flex: 1 },
+  // Short pages (keyboard down): the form sits in the middle, not stuck to the top over a gap.
+  page: {
+    paddingHorizontal: 24,
+    // At rest the fade above covers only this padding, never the heading.
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 10,
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  topFade: { position: "absolute", top: 0, left: 0, right: 0, height: 16 },
   footer: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4, gap: 4 },
   signIn: { minHeight: TARGET, alignItems: "center", justifyContent: "center" },
   signInText: { color: colors.cream2, fontSize: 15 },

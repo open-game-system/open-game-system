@@ -1,10 +1,11 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useRef, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { STICKERS } from "../../../services/identity";
 import { handleStatusText, type ProfileForm } from "../../../services/profile-form";
 import { useRevealFocused } from "../KeyboardFooter";
 import { Sticker } from "../Sticker";
-import { colors, fonts, TARGET } from "../theme";
+import { colors, TARGET } from "../theme";
 import { profileReturnKey } from "./profile-view";
 
 /**
@@ -26,28 +27,38 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
       <View style={styles.big}>
         <Sticker id={s.sticker} size={96} />
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.stickers}
-        // With the keyboard up, a sticker tap picks it (not just closes the keyboard).
-        keyboardShouldPersistTaps="handled"
-        testID="profileStickers"
-      >
-        {STICKERS.map((st) => (
-          <Pressable
-            key={st.id}
-            testID={`profileSticker-${st.id}`}
-            accessibilityRole="radio"
-            accessibilityLabel={st.label}
-            accessibilityState={{ selected: s.sticker === st.id }}
-            onPress={() => form.setSticker(st.id)}
-            style={[styles.pick, s.sticker === st.id && styles.pickOn]}
-          >
-            <Sticker id={st.id} size={44} />
-          </Pressable>
-        ))}
-      </ScrollView>
+      <View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.stickers}
+          // With the keyboard up, a sticker tap picks it (not just closes the keyboard).
+          keyboardShouldPersistTaps="handled"
+          testID="profileStickers"
+        >
+          {STICKERS.map((st) => (
+            <Pressable
+              key={st.id}
+              testID={`profileSticker-${st.id}`}
+              accessibilityRole="radio"
+              accessibilityLabel={st.label}
+              accessibilityState={{ selected: s.sticker === st.id }}
+              onPress={() => form.setSticker(st.id)}
+              style={[styles.pick, s.sticker === st.id && styles.pickOn]}
+            >
+              <Sticker id={st.id} size={44} />
+            </Pressable>
+          ))}
+        </ScrollView>
+        {/* More stickers off to the right: they fade out at the edge, not cut. */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={["rgba(18, 15, 34, 0)", colors.dusk0]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.more}
+        />
+      </View>
       <Text style={styles.label}>Name</Text>
       <TextInput
         testID="profileNameInput"
@@ -114,7 +125,8 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
 const styles = StyleSheet.create({
   wrap: { gap: 10 },
   big: { alignItems: "center", marginBottom: 4 },
-  stickers: { gap: 8, paddingVertical: 4 },
+  stickers: { gap: 8, paddingVertical: 4, paddingRight: 28 },
+  more: { position: "absolute", top: 0, bottom: 0, right: 0, width: 36 },
   pick: {
     width: TARGET + 12,
     height: TARGET + 12,
@@ -153,5 +165,5 @@ const styles = StyleSheet.create({
   taken: { color: colors.ember },
   suggestion: { minHeight: TARGET, justifyContent: "center" },
   suggestionText: { color: colors.cream2, fontSize: 15 },
-  bold: { fontWeight: "800", color: colors.peach, fontFamily: fonts.display },
+  bold: { fontWeight: "800", color: colors.peach },
 });

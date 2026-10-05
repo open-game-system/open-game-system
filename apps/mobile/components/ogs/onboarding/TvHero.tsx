@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { SymbolView } from "expo-symbols";
+import { type SFSymbol, SymbolView } from "expo-symbols";
 import { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -52,6 +52,7 @@ export function TvHero({
   sitters = COUCH,
   stickerSize,
   chip = "Cast from your phone",
+  chipIcon = "iphone.radiowaves.left.and.right",
   maxWidth = 360,
 }: {
   compact: boolean;
@@ -60,6 +61,8 @@ export function TvHero({
   stickerSize?: number;
   /** The label on the TV's corner chip; null for none. */
   chip?: string | null;
+  /** An SF Symbol for the chip. */
+  chipIcon?: SFSymbol;
   maxWidth?: number;
 }) {
   const [shown, setShown] = useState(0);
@@ -99,7 +102,7 @@ export function TvHero({
       accessible
       accessibilityLabel="A game on the TV, the family on the couch"
     >
-      <View style={[styles.tv, { maxWidth }]}>
+      <View style={[styles.tv, { width: maxWidth }]}>
         <View style={styles.screen}>
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
             <Image source={game.hero} style={styles.art} resizeMode="cover" />
@@ -114,12 +117,7 @@ export function TvHero({
         </View>
         {chip ? (
           <View style={styles.castChip}>
-            <SymbolView
-              name="iphone.radiowaves.left.and.right"
-              size={13}
-              tintColor={colors.ink}
-              weight="semibold"
-            />
+            <SymbolView name={chipIcon} size={13} tintColor={colors.ink} weight="semibold" />
             <Text style={styles.castText}>{chip}</Text>
           </View>
         ) : null}
@@ -141,9 +139,9 @@ export function TvHero({
 
 const styles = StyleSheet.create({
   root: { alignItems: "center", alignSelf: "stretch" },
+  // Its width is maxWidth, never wider than the page (aspectRatio needs a definite width).
   tv: {
-    width: "100%",
-    maxWidth: 360,
+    maxWidth: "100%",
     aspectRatio: 16 / 9.6,
     borderRadius: 14,
     padding: 5,
