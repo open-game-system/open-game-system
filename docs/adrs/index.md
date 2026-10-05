@@ -11,3 +11,4 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-03-14 | [JWT device tokens for push notifications](2026-03-14-device-token-jwt.md) | Accepted |
 | 2026-03-14 | [Cast-kit must use app-bridge for state sync](2026-03-14-cast-kit-uses-app-bridge.md) | Accepted |
 | 2026-10-04 | [TV platforms: web launcher where the device can run it, WebRTC stream where it can't; no phone rendering, no HLS (Roku not supported)](2026-10-04-tv-platforms.md) | Accepted |
+| 2026-10-04 | [The OGS game contract: one spec for game developers; games integrate through profile-kit, never cast](2026-10-04-ogs-game-contract.md) | Accepted |

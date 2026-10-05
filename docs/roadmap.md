@@ -45,5 +45,6 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 ## Decisions behind this
 
 - [TV platforms ADR](adrs/2026-10-04-tv-platforms.md)
+- [The OGS game contract](specification.md) (what a game does to run in OGS; [ADR](adrs/2026-10-04-ogs-game-contract.md))
 - [Cast-kit uses app-bridge + stream-kit](adrs/2026-03-14-cast-kit-uses-app-bridge.md)
 - Briefing with tonight's decisions: `exec-plans/active/2026-10-04-afternoon-briefing.md`
