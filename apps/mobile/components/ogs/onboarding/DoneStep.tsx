@@ -35,13 +35,16 @@ export function DoneStep({ onDone, onBackUp }: { onDone: () => void; onBackUp: (
             {backup.label}
           </Text>
         ) : (
-          <Button
-            label="Back up your profile"
-            kind="ghost"
-            testID="profileDoneBackUp"
-            onPress={onBackUp}
-            style={styles.second}
-          />
+          <>
+            <Button
+              label="Back up your profile"
+              kind="ghost"
+              testID="profileDoneBackUp"
+              onPress={onBackUp}
+              style={styles.second}
+            />
+            <Text style={styles.why}>So you can sign in on a new phone.</Text>
+          </>
         )}
       </View>
     </View>
@@ -54,6 +57,7 @@ const styles = StyleSheet.create({
   handle: { color: colors.peach, fontSize: 18, fontWeight: "700" },
   body: { color: colors.cream2, fontSize: 16, lineHeight: 22, textAlign: "center", maxWidth: 280 },
   actions: { alignSelf: "stretch", gap: 12, marginTop: 28 },
+  why: { color: colors.cream3, fontSize: 14, textAlign: "center" },
   second: { borderColor: "rgba(251, 242, 228, 0.28)", backgroundColor: colors.dusk2 },
   backed: { color: colors.mint, fontSize: 15, fontWeight: "700", textAlign: "center" },
 });

@@ -95,7 +95,7 @@ export function TvHero({
   }, [fade]);
 
   const game = GAMES[shown];
-  const sticker = stickerSize ?? (compact ? 48 : 58);
+  const sticker = stickerSize ?? (compact ? 48 : 66);
   return (
     <View
       style={styles.root}

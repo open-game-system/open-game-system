@@ -1,0 +1,13 @@
+| Row | Version A | Version B | Better | Evidence |
+|---|---:|---:|:---:|---|
+| A — First impression | 7 | 7 | Same | “TV is the console” is immediate, though Rocket Crew initially reads as the product. |
+| B — Identity | 7 | 7 | Same | Warm serif, peach accent, and painted stickers feel cohesive, but OGS branding is understated. |
+| C — Two-path hierarchy | 9 | 9 | Same | New profile is unmistakably primary; existing-profile path remains prominent. |
+| D — Craft | 7 | 8 | B | The final page has better vertical balance and a more resolved backup section. |
+| E — Both phone sizes | 8 | 8 | Same | Strong adaptation to SE; keyboard and controls remain comfortably usable. |
+| F — Copy | 7 | 8 | B | “So you can sign in on a new phone” explains an otherwise ambiguous backup action. |
+| G — Cross-page consistency | 8 | 8 | Same | Typography, controls, spacing language, illustration treatment, and navigation stay coherent. |
+
+**OVERALL: B**, narrowly. It reaches first-party sign-off in hierarchy, responsiveness, copy, and consistency, but not yet Apple/Nintendo distinction.
+
+**Largest gap:** Rocket Crew visually dominates OGS, so the welcome can read as onboarding for one rocket game. Make the TV artwork clearly demonstrate a broader OGS game library or casting experience while keeping one featured game as secondary proof.

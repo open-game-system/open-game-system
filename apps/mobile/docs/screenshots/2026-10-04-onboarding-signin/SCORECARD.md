@@ -20,3 +20,29 @@ per device. Judges see the sheets only, never code or the author's notes.
 
 Stop: every row >= 8 after >= 3 rounds, or min flat two rounds after one pivot.
 Keep/revert: blind pairwise before/after (A/B random), majority prefers after, no row drops >= 2.
+
+## Result (rounds 00-05, all kept; log in log.tsv, sheets in rNN/)
+
+| Judge | r00 min | r05 rows (A B C D E F G) | r05 min |
+|---|---|---|---|
+| Codex (gpt-5.6-sol) | 6 | 7 7 9 8 8 8 8 | 7 |
+| Claude critic (fresh each round) | 6 | 7.5 7 8 6.5 7 7 6.5 | 6.5 |
+
+Round 01 was judged twice: the first Codex verdict preferred r00 partly because the rig's shared
+API took the typed @id mid-run (another agent's tests). The rig now types a unique name and taps
+Next again on "taken"; both rounds were reshot and rejudged.
+
+Stuck rows and why:
+- B Identity / A first impression (Codex): Rocket Crew's art dominates the TV, so the welcome can
+  read as one game's onboarding. Structural: the hero shows one game at a time (frozen for shots;
+  live it cycles five games every 3.6 s).
+- D Craft / G Consistency (Claude): the hero is a different size on every page, and tall phones
+  leave loose vertical bands. Structural: each page is laid out on its own.
+
+Next directions (recommendation first):
+1. One shared page grid for all four pages: a fixed-height hero zone (same TV size, only the
+   sitter and chip change), the title block under it, actions pinned to the bottom.
+2. Make the TV say "a library", not "one game": a launcher-like row of covers on the TV, or the
+   cycling games with a visible "5 games" cue, with OGS's wordmark on the TV bezel.
+3. Copy pass the judges asked for that touches the spec/acceptance: "free" -> "available",
+   "Let's go" -> "Start playing", "Turn alerts for board games" -> "Your turn in board games".

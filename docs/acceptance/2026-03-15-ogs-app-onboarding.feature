@@ -107,7 +107,7 @@ Feature: OGS App Onboarding
     Then the done page says "Hi, Jonathan" with "@jonathan.m"
     And it shows the welcome's TV with Jonathan's sticker on the couch in front of it
     And a "Let's go" button is displayed
-    And a "Back up your profile" button is displayed
+    And a "Back up your profile" button is displayed, with "So you can sign in on a new phone."
     And page dots show position 4 of 4
 
   Scenario: Back up from the done page
