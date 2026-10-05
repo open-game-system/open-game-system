@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
+import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { createProfileForm } from "../../../services/profile-form";
 import { api, appState } from "../../../services/runtime";
 import type { UserMessage } from "../../../services/user-message";
@@ -23,6 +23,7 @@ export function ProfileStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
   const [error, setError] = useState<UserMessage | null>(null);
   // The form's debounce timer must not outlive the page.
   useEffect(() => () => form.dispose(), [form]);
+  const typing = useKeyboardUp();
 
   const next = async () => {
     if (busy || !form.canSubmit()) return;
@@ -76,7 +77,8 @@ export function ProfileStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
       >
         <Text style={styles.heading}>Make your OGS profile</Text>
         <Text style={styles.body}>Games use this name when you join.</Text>
-        <ProfileFields form={form} onSubmit={() => void next()} />
+        {/* While typing, the big sticker steps aside: nothing half-scrolled under the Back bar. */}
+        <ProfileFields form={form} onSubmit={() => void next()} showPreview={!typing} />
       </KeyboardFooterScroll>
       {/* Content scrolled up (the keyboard's reveal) fades under the Back bar, never a hard cut. */}
       <LinearGradient
@@ -88,17 +90,33 @@ export function ProfileStep({ onNext, onSignIn }: { onNext: () => void; onSignIn
   );
 }
 
+/** Whether the keyboard is up (an external system: an effect follows it). */
+function useKeyboardUp(): boolean {
+  const [up, setUp] = useState(false);
+  useEffect(() => {
+    const subs = [
+      Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () =>
+        setUp(true),
+      ),
+      Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide", () =>
+        setUp(false),
+      ),
+    ];
+    return () => {
+      for (const sub of subs) sub.remove();
+    };
+  }, []);
+  return up;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // Short pages (keyboard down): the form sits in the middle, not stuck to the top over a gap.
   page: {
     paddingHorizontal: 24,
     // At rest the fade above covers only this padding, never the heading.
     paddingTop: 8,
     paddingBottom: 16,
     gap: 10,
-    flexGrow: 1,
-    justifyContent: "center",
   },
   topFade: { position: "absolute", top: 0, left: 0, right: 0, height: 16 },
   footer: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 4, gap: 4 },

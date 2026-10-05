@@ -59,7 +59,7 @@ describe("Onboarding: make your OGS profile", () => {
       .whileElement(by.id("profileStep"))
       .scroll(150, "down");
     await element(by.id("profileNext")).tap();
-    await waitFor(element(by.id("profileDone")))
+    await waitFor(element(by.id("profileDoneGreeting")))
       .toBeVisible()
       .withTimeout(10000);
     await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Jonathan");
@@ -115,7 +115,7 @@ describe("Next stays above the keyboard on the profile step (no return key first
     await expect(element(by.id("profileHandleInput"))).toBeVisible(100);
     await expect(element(by.id("profileHandleStatus"))).toBeVisible(100);
     await element(by.id("profileNext")).tap();
-    await waitFor(element(by.id("profileDone")))
+    await waitFor(element(by.id("profileDoneGreeting")))
       .toBeVisible()
       .withTimeout(10000);
     await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Keyboard");
@@ -140,7 +140,7 @@ describe("Next with the keyboard closed also makes the profile", () => {
     await expect(element(by.id("profileNameInput"))).not.toBeFocused();
     await expect(element(by.id("profileNext"))).toBeVisible();
     await element(by.id("profileNext")).tap();
-    await waitFor(element(by.id("profileDone")))
+    await waitFor(element(by.id("profileDoneGreeting")))
       .toBeVisible()
       .withTimeout(10000);
     await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Closed");
@@ -162,7 +162,7 @@ describe("The profile step's return keys: name → @id → make the profile", ()
       .toHaveText("free")
       .withTimeout(10000);
     await element(by.id("profileHandleInput")).tapReturnKey();
-    await waitFor(element(by.id("profileDone")))
+    await waitFor(element(by.id("profileDoneGreeting")))
       .toBeVisible()
       .withTimeout(10000);
     await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Return");
@@ -249,7 +249,7 @@ describe("Back on onboarding returns a step and keeps what was typed", () => {
       .whileElement(by.id("profileStep"))
       .scroll(150, "down");
     await element(by.id("profileNext")).tap();
-    await waitFor(element(by.id("profileDone")))
+    await waitFor(element(by.id("profileDoneGreeting")))
       .toBeVisible()
       .withTimeout(10000);
     await expect(element(by.id("profileDoneGreeting"))).toHaveText("Hi, Back");

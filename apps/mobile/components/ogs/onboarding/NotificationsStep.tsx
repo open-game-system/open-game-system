@@ -26,10 +26,10 @@ export function NotificationsStep({ onNext }: { onNext: () => void }) {
         <TvHero
           compact={small}
           sitters={["owl"]}
-          stickerSize={small ? 44 : 72}
+          stickerSize={small ? 48 : 72}
           chip="Your turn"
           chipIcon="bell.fill"
-          maxWidth={small ? 168 : 280}
+          maxWidth={small ? 190 : 280}
         />
       </View>
       <Text style={[styles.heading, small && styles.headingSmall]} accessibilityRole="header">
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   headingSmall: { fontSize: 30, lineHeight: 36 },
   heroSmall: { marginBottom: 4 },
   benefits: { gap: 14, marginTop: 24, paddingHorizontal: 8, alignSelf: "center" },
-  benefitsSmall: { gap: 4, marginTop: 12 },
+  benefitsSmall: { gap: 6, marginTop: 16 },
   actionsSmall: { marginTop: 14 },
   checkSmall: { width: 28, height: 28, borderRadius: 14 },
   benefit: { flexDirection: "row", alignItems: "center", gap: 14 },

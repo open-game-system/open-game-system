@@ -65,7 +65,9 @@ export async function makeProfile(name: string): Promise<void> {
     .whileElement(by.id("profileStep"))
     .scroll(150, "down");
   await element(by.id("profileNext")).tap();
-  await waitFor(element(by.id("profileDone")))
+  // The done page: its greeting (the page view itself, mostly a picture of a TV and empty dusk,
+  // fails Detox's 75% pixel check though it is on screen).
+  await waitFor(element(by.id("profileDoneGreeting")))
     .toBeVisible()
     .withTimeout(10000);
 }

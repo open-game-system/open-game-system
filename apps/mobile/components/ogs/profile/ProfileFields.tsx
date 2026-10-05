@@ -13,7 +13,16 @@ import { profileReturnKey } from "./profile-view";
  * changeable): onboarding's "Make your OGS profile" and the Profile tab's Edit.
  * Return on the name moves to the @id; return on the @id submits (`onSubmit`) once it can.
  */
-export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?: () => void }) {
+export function ProfileFields({
+  form,
+  onSubmit,
+  showPreview = true,
+}: {
+  form: ProfileForm;
+  onSubmit?: () => void;
+  /** The big sticker above the picker (the picker's ring shows the choice without it). */
+  showPreview?: boolean;
+}) {
   const s = useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot);
   const status = handleStatusText(s);
   const handleRef = useRef<TextInput>(null);
@@ -24,9 +33,11 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
   const handleKey = profileReturnKey("handle", form.canSubmit());
   return (
     <View style={styles.wrap}>
-      <View style={styles.big}>
-        <Sticker id={s.sticker} size={96} />
-      </View>
+      {showPreview ? (
+        <View style={styles.big}>
+          <Sticker id={s.sticker} size={96} />
+        </View>
+      ) : null}
       <View>
         <ScrollView
           horizontal
@@ -78,7 +89,7 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
           if (nameKey.action === "focusHandle") handleRef.current?.focus();
         }}
       />
-      <Text style={styles.label}>Profile id</Text>
+      <Text style={styles.label}>Your @id</Text>
       <View ref={handleRow} style={styles.handleRow}>
         <Text style={styles.at}>@</Text>
         <TextInput
@@ -88,7 +99,7 @@ export function ProfileFields({ form, onSubmit }: { form: ProfileForm; onSubmit?
           value={s.handle}
           onChangeText={(t) => form.setHandle(t)}
           style={styles.handleInput}
-          accessibilityLabel="Profile id"
+          accessibilityLabel="Your @id"
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="your.id"

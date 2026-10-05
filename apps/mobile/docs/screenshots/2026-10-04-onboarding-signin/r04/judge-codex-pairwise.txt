@@ -1,0 +1,13 @@
+| Row | Version A | Version B | Better |
+|---|---:|---:|---|
+| A. First impression | 8 | 8 | Same — TV-as-console concept lands quickly |
+| B. Identity | 8 | 8 | Same — cohesive, ownable storybook-space aesthetic |
+| C. Two-path hierarchy | 9 | 9 | Same — creation primary, sign-in clearly secondary |
+| D. Craft | 7 | 8 | B — tighter rhythm; restores the typing-page title on Pro |
+| E. Fits both sizes | 7 | 8 | B — better use of Pro’s vertical space without hurting SE |
+| F. Copy | 8 | 8 | Same — concise and reassuring; “Your @id” is slightly awkward |
+| G. Cross-page consistency | 7 | 8 | B — profile screens feel more structurally continuous |
+
+**OVERALL: B**
+
+**Largest gap:** The profile ID language still feels technical and inconsistent. Rename the label to **“Username”**, while keeping `@maya.b23` as the displayed value.
