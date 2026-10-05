@@ -2,7 +2,7 @@ import { by, element, expect, waitFor } from "detox";
 import { freshLaunchWithOnboardingDone, startFromGamePage } from "./helpers";
 
 // Spec v3, In a game: full screen, no tabs; swiping back from the left edge returns to the tab
-// and leaves the return pill. Games open from Library (the Game Directory is gone). Cast with
+// and leaves the return pill (owner, 2026-10-04: on TV, Friends and Profile only). Games open from Library (the Game Directory is gone). Cast with
 // EXPO_PUBLIC_FAKE_CAST=1 so a TV-required game opens as the controller.
 // e2e/setup.ts reloads React Native before every test, so each test opens the game itself.
 describe("Game Screen", () => {
@@ -39,7 +39,7 @@ describe("Game Screen", () => {
     await expect(element(by.id("tabLibrary"))).not.toBeVisible();
   });
 
-  it("swipes back to the game's page, which lists the sitting; the tabs show a Rejoin pill", async () => {
+  it("swipes back to the game's page, which lists the sitting; TV, Friends and Profile show a Rejoin pill", async () => {
     // The first-visit hint covers the game and teaches the swipe; swiping on it must work.
     await waitFor(element(by.id("swipeHintOverlay")))
       .toBeVisible()
@@ -55,8 +55,13 @@ describe("Game Screen", () => {
     await waitFor(element(by.id("libraryScreen")))
       .toExist()
       .withTimeout(5000);
-    await expect(element(by.id("returnPill"))).toBeVisible();
+    // Owner, 2026-10-04: no pill on Library or Playing, which already offer Rejoin.
+    await expect(element(by.id("returnPill"))).not.toExist();
     await element(by.id("tabPlaying")).tap();
-    await expect(element(by.id("returnPill"))).toBeVisible();
+    await expect(element(by.id("returnPill"))).not.toExist();
+    for (const tab of ["tabTV", "tabFriends", "tabProfile"]) {
+      await element(by.id(tab)).tap();
+      await expect(element(by.id("returnPill"))).toBeVisible();
+    }
   });
 });

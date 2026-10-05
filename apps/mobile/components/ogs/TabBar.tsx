@@ -11,6 +11,7 @@ import {
   usePlaying,
 } from "../../services/runtime";
 import { profileView } from "./profile/profile-view";
+import { showsReturnPill } from "./return-pill";
 import { Sticker } from "./Sticker";
 import { tabAccessibilityLabel, tabItem } from "./tab-items";
 import { colors, fonts, TARGET } from "./theme";
@@ -19,7 +20,8 @@ const ICON = 24;
 
 /**
  * Playing · TV · Library · Friends · Profile (always all five): a small icon over each label
- * (Profile is your sticker), with the return pill and the remote offer above.
+ * (Profile is your sticker), with the remote offer above, and the return pill on TV, Friends and
+ * Profile (owner, 2026-10-04: Playing and Library already offer Rejoin).
  */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -28,6 +30,8 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const cast = useOgsCast();
   const { badge } = usePlaying();
   const sticker = profileView(identity)?.sticker ?? "bear";
+  const activeRoute = state.routes[state.index]?.name;
+  const shownPill = showsReturnPill({ hasPill: Boolean(pill), activeRoute }) ? pill : null;
 
   return (
     // Icons and labels sit wholly above the home indicator; with no indicator (SE), a small margin.
@@ -56,17 +60,17 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
           </Pressable>
         </View>
       ) : null}
-      {pill ? (
+      {shownPill ? (
         <Pressable
           testID="returnPill"
           accessibilityRole="button"
-          accessibilityLabel={`Rejoin ${pill.name}`}
+          accessibilityLabel={`Rejoin ${shownPill.name}`}
           style={styles.pill}
-          onPress={() => openPill(pill)}
+          onPress={() => openPill(shownPill)}
         >
           <View style={styles.pillDot} />
           <Text style={styles.pillName} numberOfLines={1}>
-            {pill.name}
+            {shownPill.name}
           </Text>
           <Text style={styles.pillAction}>Rejoin</Text>
         </Pressable>

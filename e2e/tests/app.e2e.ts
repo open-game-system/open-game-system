@@ -118,7 +118,11 @@ describe("OGS app, cast-first", {
     screen,
   }) => {
     const loads = (await tv()).loads;
+    // Owner, 2026-10-04: the pill shows on TV, Friends and Profile, not on Library or Playing.
+    await expect(screen.getByTestId("libraryScreen")).toBeVisible();
+    await expect(screen.getByTestId("returnPill")).toHaveCount(0);
     const rejoin = async () => {
+      await screen.getByTestId("tabTV").tap();
       await expect(screen.getByTestId("returnPill")).toBeVisible();
       await screen.getByTestId("returnPill").tap();
       await expect(screen.getByTestId("gameScreen")).toBeVisible();
@@ -135,7 +139,8 @@ describe("OGS app, cast-first", {
     };
     const backOut = async () => {
       await screen.swipe({ from: { x: 10, y: 450 }, to: { x: 340, y: 450 } });
-      await expect(screen.getByTestId("libraryScreen")).toBeVisible();
+      // Back on the TV tab the pill was tapped from.
+      await expect(screen.getByTestId("tvRemote")).toBeVisible();
       await expect.poll(async () => (await tv()).dom?.screen, { timeout: 15_000 }).toBe("home");
     };
     const first = await rejoin();

@@ -2,7 +2,7 @@ import { by, element, expect, waitFor } from "detox";
 import { freshLaunchWithOnboardingDone } from "./helpers";
 
 // Spec v3, Getting back in: after swiping back from a game, a "Rejoin" return pill sits above
-// the tabs on every tab. Replaces the Continue list (last 20 URLs), which spec v3 retires in
+// the tabs on TV, Friends and Profile (owner, 2026-10-04). Replaces the Continue list (last 20 URLs), which spec v3 retires in
 // favour of instances. Needs the local API (EXPO_PUBLIC_OGS_API) for the Library's games.
 async function openRocketCrewPage(): Promise<void> {
   await waitFor(element(by.id("libraryGame-rocket-crew")))
@@ -31,6 +31,10 @@ describe("Rejoin", () => {
   });
 
   it("no return pill before any game was opened", async () => {
-    await expect(element(by.id("returnPill"))).not.toExist();
+    // On the tabs that would show it (owner, 2026-10-04: TV, Friends and Profile).
+    for (const tab of ["tabTV", "tabFriends", "tabProfile"]) {
+      await element(by.id(tab)).tap();
+      await expect(element(by.id("returnPill"))).not.toExist();
+    }
   });
 });

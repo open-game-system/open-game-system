@@ -256,7 +256,9 @@ Feature: Cast-first OGS app with games inside one stream
     Given Rocket Crew is live and reported its resume point "Mission 6"
     When Jonathan swipes back from the left edge of the game screen
     Then the TV shows the launcher with Rocket Crew paused at "Mission 6"
-    And a "Rejoin" pill shows on every tab
+    # Owner, 2026-10-04: the pill shows on TV, Friends and Profile only (supersedes "every tab").
+    And a "Rejoin" pill shows on the TV, Friends and Profile tabs
+    And no pill shows on Library or Playing, which already offer Rejoin
     And Rocket Crew's page lists that sitting as "Mission 6" with Rejoin
 
   Scenario: Rejoin returns to the same room
