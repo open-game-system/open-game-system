@@ -41,3 +41,38 @@ Per round: both judges' scores; the keep/revert call is a blind A/B (before vs a
 | 04 | Codex (gpt-5.6-sol, medium) | 7 | 8 | 7 | 8 | 7 | 7 | 10 | 7 |
 | 05 | Claude (Opus) | 7 | 7 | 7 | 8 | 7 | 7 | 7 | 7 |
 | 05 | Codex (gpt-5.6-sol, medium) | 8 | 8 | 8 | 9 | 7 | 8 | 10 | 7 |
+| 06 (reverted) | Claude (Opus) | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 |
+| 06 (reverted) | Codex (gpt-5.6-sol, medium) | 7 | 7 | 7 | 8 | 7 | 7 | 9 | 7 |
+| 07 pivot (reverted) | Claude (Opus) | 7 | 7 | 8 | 7 | 7 | 7 | 8 | 7 |
+| 07 pivot (reverted) | Codex (gpt-5.6-sol, medium) | 8 | 8 | 8 | 9 | 7 | 8 | 10 | 7 |
+
+Keep/revert (blind A/B, order counterbalanced between judges): r01–r05 both judges preferred
+"after" and were kept; r06 (Start game sized to its words, centred) split 1–1 and was reverted;
+r07, the pivot (the newest sitting as a "jump back in" tile on the game's own capture), split
+1–1 and was reverted. Minimum per round (lower of the two judges): 5 → 5 → 6 → 6 → 7 → 7, then
+flat through the pivot: stopped.
+
+## Method
+
+Release builds on a fresh iPhone 17 Pro (402 pt) and iPhone SE 3rd gen (375 pt) simulator, the
+local API, a fake Chromecast and the real catalogue. A Detox script onboards, shoots Rocket Crew
+with no sittings (Play), Play while not cast (the cast prompt), Peekaboo Garden (the longest
+tagline), then casts, reports Bake Shop sittings through the API with the TV's launcher token
+("Day 3", then an unnamed one), and shoots one, two and two-scrolled. Each round two fresh judges
+(Codex gpt-5.6-sol medium, a Claude Opus subagent) saw only the sheets and the brief.
+
+## Sheets
+
+`r00-before-sheet.jpg` (baseline) · `r01`–`r05-sheet.jpg` (kept; r05 = after) ·
+`r06-reverted-sheet.jpg` · `r07-pivot-reverted-sheet.jpg`.
+
+## Where it's stuck and why
+
+- **Primary (7)**: with sittings, the filled action is the newest sitting's Rejoin and Start game
+  is an outline (the acceptance spec: "that Rejoin is the page's one filled button, with Start
+  game as the secondary button"). Every judge, every round, asks which is the main action. Tonal
+  read disabled, full-width outline reads loud, word-sized outline split the judges. Owner call.
+- **Sittings (7–8)**: the seeded sittings are both "played just now" (the API stamps updatedAt on
+  report), so the fixture itself makes them look alike; real evenings differ more.
+- **Craft (7)**: judges want the secondary type (facts, sitting detail, tab labels) a step larger
+  and the Bake Shop logo off the bear's body (needs a per-game focal point in the art kit).
