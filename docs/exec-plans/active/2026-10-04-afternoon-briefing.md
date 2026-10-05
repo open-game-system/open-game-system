@@ -95,8 +95,8 @@ Everything in your goal is done and committed on `design/ogs-app-hillclimb` (plu
 
 - **Regenerate the iOS project for Sign in with Apple** (an agent's `expo prebuild` was refused by the permission check, so I didn't route around it). Until then Continue with Apple can't work in builds (the app doesn't crash; the module loads optionally). Run:
   `cd ~/src/open-game-system/apps/mobile && pnpm exec expo prebuild -p ios`
-  then pod install with the rbenv Ruby (the Homebrew pod has a gem conflict):
-  `cd ios && PATH=~/.rbenv/versions/3.2.2/bin:$PATH GEM_HOME=~/.gem/ruby/3.2.2 GEM_PATH=~/.gem/ruby/3.2.2:~/.rbenv/versions/3.2.2/lib/ruby/gems/3.2.0 ruby ~/.gem/ruby/3.2.2/bin/pod install`
+  then pod install with the rbenv Ruby (the Homebrew pod has a gem conflict) — **done by you + me on 2026-10-04**:
+  `cd ios && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 PATH=~/.rbenv/versions/3.2.2/bin:$PATH GEM_HOME=~/.gem/ruby/3.2.2 GEM_PATH=~/.gem/ruby/3.2.2:~/.rbenv/versions/3.2.2/lib/ruby/gems/3.2.0 ruby ~/.gem/ruby/3.2.2/bin/pod install`
 
 - **Rejoin pill on every tab?** Spec v3 says yes; the design critics say it's a third copy of Rejoin on Library and Playing (which list sittings with their own Rejoin). Recommendation: show it only on TV, Friends and Profile.
 
@@ -107,3 +107,13 @@ Everything in your goal is done and committed on `design/ogs-app-hillclimb` (plu
 - An in-app QR scanner needs `expo-camera` + a prebuild (today the iPhone Camera app opens the invite link).
 - Deploy order when you're ready: the OGS API first (with the signing key: `node scripts/game-key.mjs --print | wrangler secret put OGS_GAME_SIGNING_KEY`, run in services/api), then the app, then the games (`pnpm deploy` / `pnpm run deploy` in each repo; Bake Shop needs its first commit). Confirm the production URLs `tv.opengame.org` (avatars) and `api.opengame.org` (JWKS).
 - Earlier asks still open: deploy the four games without in-game cast UI; Bake Shop's first commit; push + deploy previews (real Chromecast, real devices); D1 reset on deploy (old tables conflict).
+
+## After the goal: owner feedback rounds (evening)
+
+- **Onboarding** (3fad332d … 24e2c61d and later): two equal paths on the welcome ("Make my profile" / "I already have a profile"), "Already have a profile? Sign in" on the profile step above the keyboard, Back on every step before the profile exists (keeps what you typed), a new welcome (a TV cycling the five games' art, the family on a couch; "Your TV is the console"). Hill-climb: 5 rounds, both judges preferred every round; floor 6 → 7. Detox onboarding 11/11 on both phone sizes. Changed testIDs: `onboardingNextButton` → `onboardingMakeProfile`, `onboardingSignInButton` → `onboardingSignIn` (only the onboarding spec used them). App-wide: a disabled primary button is now a dark pill, not a faded peach.
+- **Play, not "Cast to play"** (7e3979d3): Play everywhere; if not casting, a sheet asks which TV with a **Cast** button and starts the game once cast; "Not now" closes it; already casting → starts at once. Owner rule: a button says Play or Cast, never both. Library hero is full bleed with Play over the art. Changed expectations (named in the commit): shelves/playing-home wording, `castToPlay` → `gamePlay`.
+- **TV launcher: each fact once** (3768a53e, ee4158bc): status and tagline only in the spotlight; cards show the sitting name ("Day 4", "Started 7:42 PM") or a short time; the focused card doesn't repeat the spotlight's resume point. Phone and TV now share one sitting-naming rule (`sittingName` in ogs-protocol). Both blind judges preferred it.
+- **Game page hill-climb** (cb45ede2 … ad44f20e): art is the page (full bleed, fades into the page, no hard edge), content stacks over the fade, Start game a clear outline, two sittings told apart by start time. 5 kept rounds, 2 reverted on split votes; floor 5 → 7.
+  - Your call: when sittings exist, the spec makes the newest sitting's Rejoin the one filled button and Start game secondary; every judge asked which is the main action. Making Start game filled and every Rejoin outlined would change the spec.
+- **iOS project regenerated** by you; I ran `pod install` (needs `LANG=en_US.UTF-8`; command in the summary updated). The Sign in with Apple module is in the build; real Apple sign-in needs the capability on the App ID.
+- **Platforms:** roadmap (`docs/roadmap.md`) and ADR (`docs/adrs/2026-10-04-tv-platforms.md`): direct web launcher where the device can run it, WebRTC cloud stream otherwise (Chromecast, Apple TV); no phone rendering, no HLS, so Roku waits.
