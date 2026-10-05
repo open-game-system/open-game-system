@@ -108,3 +108,9 @@ Persistent project knowledge. Review at the start of each task.
   the framed game. Record at 960×540 (`recordVideo.size`) to keep the files small.
 - **ffmpeg `xstack` with a `color` filler runs forever**: cap the output with `-t` (the longest tile's
   offset + length), or a 3-tile run never ends.
+- **Detox reloads the app before every test** (`e2e/setup.ts`: `beforeEach` → `reloadReactNative`), and
+  a cold start opens Library unless this phone is playing. A phone that must stay on a screen while
+  another process works (multi-couch's Mumm phone on Playing) waits inside the same `it`. The jump looked
+  like an app bug in the video; a revert of a "fix" in `app/index.tsx` records the mistake.
+- **A stuck `simctl io recordVideo`** ("Host recording is already in progress") survives a killed parent:
+  shut the simulator down and boot it again before the next recorded run.
