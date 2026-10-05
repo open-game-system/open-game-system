@@ -128,6 +128,27 @@ const SEED: ManifestInput[] = [
     },
     shop: { ages: "3+", minutes: [10, 20], players: "2-4" },
   },
+  {
+    appId: "trivia-jam",
+    name: "Trivia Jam",
+    tagline: "Every answer is a number: closest guess wins.",
+    shape: "couch",
+    tv: "required",
+    startUrl: workers("trivia-jam"),
+    roles: [
+      { id: "host", label: "Quizmaster", audience: "grownup" },
+      { id: "player", label: "Player", audience: "kid" },
+    ],
+    art: {
+      icon: "/art/trivia-jam/icon.png",
+      cover: "/art/trivia-jam/cover.jpg",
+      logo: "/art/trivia-jam/logo.png",
+      heroClean: "/art/trivia-jam/hero-clean.jpg",
+      tile: "/art/trivia-jam/tv.jpg",
+      hero: "/art/trivia-jam/tv.jpg",
+    },
+    shop: { ages: "5+", minutes: [10, 25], players: "2-10" },
+  },
 ];
 
 export const CATALOGUE: readonly Manifest[] = SEED.map((m) => RoomGameManifestSchema.parse(m));

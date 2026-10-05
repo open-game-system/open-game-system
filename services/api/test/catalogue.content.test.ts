@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
  * parses throws while the module loads, and that must fail a test rather than skip the file.
  */
 describe("catalogue content", () => {
-  it("is exactly the five games as published", async () => {
+  it("is exactly the six games as published", async () => {
     const { CATALOGUE } = await import("../src/catalogue");
     expect(CATALOGUE).toMatchSnapshot();
   });

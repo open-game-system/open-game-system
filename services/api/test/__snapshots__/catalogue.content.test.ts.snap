@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`catalogue content > is exactly the five games as published 1`] = `
+exports[`catalogue content > is exactly the six games as published 1`] = `
 [
   {
     "appId": "rocket-crew",
@@ -231,6 +231,43 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
     },
     "startUrl": "https://night-flight.jonathanrmumm.workers.dev/",
     "tagline": "Fly through the night sky together.",
+    "tv": "required",
+  },
+  {
+    "appId": "trivia-jam",
+    "art": {
+      "cover": "/art/trivia-jam/cover.jpg",
+      "hero": "/art/trivia-jam/tv.jpg",
+      "heroClean": "/art/trivia-jam/hero-clean.jpg",
+      "icon": "/art/trivia-jam/icon.png",
+      "logo": "/art/trivia-jam/logo.png",
+      "tile": "/art/trivia-jam/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Trivia Jam",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "host",
+        "label": "Quizmaster",
+      },
+      {
+        "audience": "kid",
+        "id": "player",
+        "label": "Player",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "5+",
+      "minutes": [
+        10,
+        25,
+      ],
+      "players": "2-10",
+    },
+    "startUrl": "https://trivia-jam.jonathanrmumm.workers.dev/",
+    "tagline": "Every answer is a number: closest guess wins.",
     "tv": "required",
   },
 ]

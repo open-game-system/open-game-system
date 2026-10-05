@@ -3,10 +3,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATALOGUE, catalogueIds, findManifest } from "../src/catalogue";
 
-const GAMES = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight"];
+const GAMES = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight", "trivia-jam"];
 
 describe("catalogue", () => {
-  it("lists the five deployed games in order", () => {
+  it("lists the six deployed games in order", () => {
     expect(CATALOGUE.map((m) => m.appId)).toEqual(GAMES);
     expect(catalogueIds()).toEqual(GAMES);
   });
