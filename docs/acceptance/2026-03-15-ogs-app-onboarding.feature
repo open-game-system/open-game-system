@@ -140,7 +140,9 @@ Feature: OGS App Onboarding
 
   Scenario: Signing in to an existing profile skips making one
     Given the user is on onboarding page 1
-    When the user taps "I already have a profile" and signs in with a backed-up login
+    When the user taps "I already have a profile"
+    Then the sign-in sheet opens on the email field (email is the only way in for now)
+    When the user signs in with a backed-up email and its 6-digit code
     Then the Library is displayed with that profile
 
   Scenario: The profile step offers Sign in too
@@ -148,7 +150,7 @@ Feature: OGS App Onboarding
     Then "Already have a profile? Sign in" is displayed without scrolling
     When the user types a name
     Then "Already have a profile? Sign in" is still above the keyboard
-    When the user taps it and signs in with a backed-up login
+    When the user taps it and signs in with a backed-up email and its 6-digit code
     Then the Library is displayed with that profile
 
   Scenario: A login no profile has offers Make a profile

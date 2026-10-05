@@ -181,7 +181,7 @@ td.area { font-weight: 700; white-space: nowrap }
 <section>
   <span class="kicker">1 · Onboarding</span>
   <h2>One step: name, @id, sticker. Sign-in comes later</h2>
-  <p class="sub">Replaces "Who's in your family?". Everyone gets the same full profile. A grown-up can set one up on a kid's iPad; no sign-in needed. Already have a profile? The welcome ("Make my profile" or "I already have a profile", equal buttons) and this step ("Already have a profile? Sign in") open sign in (Apple, Google or email code), which restores it.</p>
+  <p class="sub">Replaces "Who's in your family?". Everyone gets the same full profile. A grown-up can set one up on a kid's iPad; no sign-in needed. Already have a profile? The welcome ("Make my profile" or "I already have a profile", equal buttons) and this step ("Already have a profile? Sign in") open sign in (email code; Apple and Google later), which restores it.</p>
   <div class="screens">
     <div class="shot"><span class="n">01 · Your profile</span>
       <div class="phone">
@@ -229,14 +229,13 @@ td.area { font-weight: 700; white-space: nowrap }
         <div class="ttl">Back up your profile</div>
         <div class="t">Keep your @id and friends on a new phone.</div>
         <div class="grow"></div>
-        <div class="btn">Continue with Apple</div>
-        <div class="btn">Continue with Google</div>
-        <div class="btn">Continue with email</div>
-        <div class="t" style="text-align:center">Email: we send a link and a 6-digit code.</div>
+        <div class="btn ghost">you@example.com</div>
+        <div class="btn">Send code</div>
+        <div class="t" style="text-align:center">We'll send a 6-digit code.</div>
         <div class="grow"></div>
         <div class="btn ghost">Not now</div>
       </div>
-      <span class="cap">From onboarding or the Profile tab. Sign in on a new phone restores the profile.</span>
+      <span class="cap">From onboarding or the Profile tab. Email only for now (owner, 2026-10-04); Apple and Google later. Sign in on a new phone restores the profile.</span>
     </div>
   </div>
   <div class="grid">
@@ -497,7 +496,7 @@ GOOGLE_ISSUER=http://localhost:…/google</pre>
       <tr><td class="area">schema.sql</td><td class="del"><code>households</code>, <code>household_people</code>, <code>household_devices</code></td><td class="new"><code>profiles(id, handle, name, sticker)</code>, <code>profile_logins(provider, subject, profile_id)</code>, <code>profile_devices</code>, <code>friendships</code>, <code>friend_invites</code>, <code>notification_settings</code>; library and instances keyed by profile</td></tr>
       <tr><td class="area">CouchSession DO</td><td><code>idFromName(hid)</code></td><td><code>idFromName(sessionId)</code>; join allowed for host, host's friends, or holder of the TV code</td></tr>
       <tr><td class="area">Push</td><td>Turn pushes only</td><td>Later (not in the first slices): "a friend started a new game", behind its own setting</td></tr>
-      <tr><td class="area">Mobile app</td><td class="del"><code>FamilyStep</code>, <code>DEFAULT_FAMILY</code>, "Our family", three tabs</td><td class="new"><code>ProfileStep</code>, five tabs (Friends, Profile added), Add a friend, Join card, Back up (Apple, Google, email), notification switches; <code>Identity = { profile, token }</code></td></tr>
+      <tr><td class="area">Mobile app</td><td class="del"><code>FamilyStep</code>, <code>DEFAULT_FAMILY</code>, "Our family", three tabs</td><td class="new"><code>ProfileStep</code>, five tabs (Friends, Profile added), Add a friend, Join card, Back up (email; Apple and Google later), notification switches; <code>Identity = { profile, token }</code></td></tr>
       <tr><td class="area">TV launcher</td><td>"&lt;household&gt;'s living room"</td><td>"&lt;TV&gt; · &lt;host&gt;'s games", members who joined, join QR in the corner</td></tr>
       <tr><td class="area">Rocket Crew</td><td>NameGate always</td><td>NameGate only when <code>useOgsProfile()</code> is null</td></tr>
     </tbody>
@@ -524,7 +523,7 @@ GOOGLE_ISSUER=http://localhost:…/google</pre>
     <div class="panel"><span class="qn">Q3</span><div><b>No automatic joining</b> <span class="t2">friends tap Join, others use the TV code; pushes later ("a friend started a new game")</span></div></div>
     <div class="panel"><span class="qn">Q4</span><div><b>Games get your profile id, @id, name and avatar</b> <span class="t2">tokens stay scoped to one game</span></div></div>
     <div class="panel"><span class="qn">Q5</span><div><b>No age to games</b> <span class="t2">name and sticker only</span></div></div>
-    <div class="panel"><span class="qn">Q6</span><div><b>Apple, Google or email</b> <span class="t2">offered after onboarding, not required</span></div></div>
+    <div class="panel"><span class="qn">Q6</span><div><b>Email now; Apple and Google later</b> <span class="t2">offered after onboarding, not required (owner, 2026-10-04: email through Cloudflare for now)</span></div></div>
   </div>
 </section>
 

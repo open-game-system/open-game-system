@@ -2,6 +2,8 @@
 # Replaces "Who's in your family?" and households. Friends (slice 2) and game tokens (slice 3)
 # scenarios are listed at the end as @later and are not implemented yet.
 # One profile per device for now (owner, 2026-10-04); profile switching comes later.
+# The app signs in with email only for now (owner, 2026-10-04: "email auth through Cloudflare for
+# now; we can do Google and Apple later"). The API keeps /auth/apple and /auth/google.
 
 Feature: OGS profiles
 
@@ -54,7 +56,7 @@ Feature: OGS profiles
     Then the welcome offers "Make my profile" and "I already have a profile" as equal buttons
     And "Make your OGS profile" offers "Already have a profile? Sign in"
     When either one is tapped
-    Then the sign-in flow opens (Apple, Google or email code)
+    Then the sign-in flow opens on the email field (address, then a 6-digit code)
     And signing in with a backed-up login lands on the Library with that profile
 
   Scenario: There is no family step
@@ -77,17 +79,24 @@ Feature: OGS profiles
 
   # --- Back up and sign in ---
 
-  Scenario Outline: Back up with <provider>
+  Scenario: Back up and sign in are email only
+    When "Back up your profile" or "Sign in" opens
+    Then it opens on the email field, with "We'll send a 6-digit code."
+    And there are no Apple or Google buttons, and nothing "coming soon"
+
+  Scenario: Back up with email
     Given Jonathan's profile is not backed up
-    When he backs up with <provider> (emulated)
-    Then the API verifies the login against the emulator
-    And the Profile tab says "Backed up" with <provider>
+    When he backs up with email (the code read from the emulated inbox)
+    Then the Profile tab says "Backed up with email"
+
+  Scenario Outline: The API verifies <provider> ID tokens (the app doesn't offer them yet)
+    When a profile is backed up through POST /auth/<route> with an emulated <provider> ID token
+    Then the API verifies it against the emulator and links the login
 
     Examples:
-      | provider |
-      | Apple    |
-      | Google   |
-      | email    |
+      | provider | route  |
+      | Apple    | apple  |
+      | Google   | google |
 
   Scenario: Email back-up uses a 6-digit code
     When Jonathan backs up with email "jonathan@example.com"
@@ -103,8 +112,8 @@ Feature: OGS profiles
     And the new phone has its own device token
 
   Scenario: A login belongs to one profile
-    Given Jonathan backed up with Google
-    When Mom tries to back up with the same Google account
+    Given Jonathan backed up with "jonathan@example.com"
+    When Mom tries to back up with the same email
     Then the API refuses with login_in_use
 
   Scenario: Signing in with a login no profile has
@@ -145,6 +154,10 @@ Feature: OGS profiles
 
   @later
   Scenario: "A friend starts a new game" push respects its switch (push deferred, owner 2026-10-04)
+
+  @later
+  Scenario: Back up and sign in with Apple or Google in the app (deferred, owner 2026-10-04)
+    # App code removed in 5cf8ab40; restore from its parent. Needs prebuild for Sign in with Apple.
 
   # Games know who you are (slice 3) moved to 2026-10-04-games-know-you.feature. Owner Q4: a game
   # gets the profile id (not a different id per game), @id, name and avatar.

@@ -159,6 +159,9 @@ route → 403 `profile_token_required`.
 | GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 
+The mobile app currently signs in with email only (owner, 2026-10-04); `/auth/apple` and
+`/auth/google` stay in the API, tested, for when the app adds them back (see `roadmap.md`).
+
 Sign-in config (wrangler `vars`, `.dev.vars.example`): `APPLE_ISSUER`, `APPLE_CLIENT_IDS`,
 `GOOGLE_ISSUER`, `GOOGLE_CLIENT_IDS`, `EMAIL_FROM`. ID tokens are verified RS256 against the
 issuer's discovery document → JWKS, plus `iss`, `aud` (one of the client ids), `exp`, and `nonce`
