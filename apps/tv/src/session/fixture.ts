@@ -26,6 +26,7 @@ const game = (
     cover: `/art/${appId}/cover.jpg`,
     logo: `/art/${appId}/logo.png`,
     heroClean: `/art/${appId}/hero-clean.jpg`,
+    theme: `/art/${appId}/theme.m4a`,
   },
   shop: { ages },
   instanceTtlMs: 7 * 24 * 60 * 60 * 1000,
@@ -46,7 +47,7 @@ export const FIXTURE_GAMES: Manifest[] = [
   ),
   {
     ...game("hearthisle", "Hearthisle", "Settle the island", "optional", "live", "10+"),
-    // No art kit yet: the launcher falls back to its captures.
+    // No art kit and no theme yet: the launcher falls back to its captures, and Home is silent on it.
     art: { tile: "/art/hearthisle/tv.jpg", hero: "/art/hearthisle/dusk.jpg" },
   },
 ];
