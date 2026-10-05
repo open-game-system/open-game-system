@@ -158,6 +158,8 @@ route → 403 `profile_token_required`.
 | POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
 | GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
+| GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url, container }, realtime, turn }`; 200 ready / 503 not (needs a renderer — `STREAM_SERVER_URL` or the `STREAM_CONTAINER` binding — plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
+| POST | `/api/v1/stream/start-stream` · `/subscribe` · PUT `/subscribe/:id/answer` · POST `/heartbeat` · GET `/ice-servers` | none (the TV) | The receiver's stream flow (`routes/stream.ts`). Errors carry the contract plus `traceId` (and `details`, the stream server's words): 400 `invalid_body`, 403 `forbidden` (debug-state), 500 `stream_not_configured` / `stream_start_failed` / `publisher_prepare_failed` / `publisher_answer_failed` / `subscribe_failed` / `subscribe_answer_failed`; heartbeat answers `{ ok }` (502 when the server is down, 410 `{ expired }` when it ended the stream) |
 
 The mobile app currently signs in with email only (owner, 2026-10-04); `/auth/apple` and
 `/auth/google` stay in the API, tested, for when the app adds them back (see `roadmap.md`).
@@ -219,7 +221,7 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`
 
 ## Database Schema (D1/SQLite)
 

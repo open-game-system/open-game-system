@@ -21,7 +21,7 @@ Grade each package/domain. Update after major changes.
 | stream-kit-testing | C | passing | — | Mock client tested, missing publishConfig |
 | cast-kit-core | C | has tests | configured | Stryker configured. Sparse test coverage. |
 | cast-kit-react | C | has tests | configured | Stryker configured. Sparse test coverage. |
-| apps/web | D | no tests | — | Marketing site, build only. No test infrastructure. |
+| apps/web | C | 22 e2e (receiver) | — | Marketing site: build only. `public/receiver.html` (the Cast receiver) has 22 deterministic e2e tests (`e2e/tests/receiver-*.e2e.ts`: LOAD_VIEW, PEER_OFFER + HUD, stops); see docs/testing/e2e.md. |
 | apps/mobile | B | passing (Jest) | configured | Services tested, Stryker configured. No E2E yet. |
 
 ## Grading Scale
