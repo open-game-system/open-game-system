@@ -30,6 +30,8 @@ export interface Env {
   CATALOGUE_START_URLS?: string;
   /** Friend invite links and QR codes: `<base>/<token>` (default https://opengame.org/add). */
   INVITE_BASE_URL?: string;
+  /** Game invite links: `<base>/play/<appId>?room=` (default https://opengame.org). */
+  PLAY_BASE_URL?: string;
 }
 
 export interface DeviceRow {

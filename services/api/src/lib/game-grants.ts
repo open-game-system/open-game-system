@@ -1,4 +1,4 @@
-import type { GamePlayer } from "@open-game-system/ogs-protocol";
+import type { CouchClaim, GamePlayer } from "@open-game-system/ogs-protocol";
 import type { Context } from "hono";
 import { z } from "zod";
 import { findManifest } from "../catalogue";
@@ -23,6 +23,7 @@ export async function grantFor(
   appId: string,
   profile: Profile,
   session?: { sid: string; players: GamePlayer[] },
+  couch?: CouchClaim,
 ): Promise<Grant | Response> {
   if (!findManifest(appId)) return apiError(c, 404, "game_not_found", "No game with that appId");
   const key = parseSigningKey(c.env.OGS_GAME_SIGNING_KEY);
@@ -34,6 +35,7 @@ export async function grantFor(
     avatarBase: avatarBase(c.env),
     now: Date.now(),
     session,
+    couch,
   });
   return { token: await signGameToken(claims, key), expiresAt: claims.exp * 1000 };
 }

@@ -2,12 +2,14 @@ import {
   type CastingFriend,
   type Friend,
   type FriendRequest,
+  type FriendRoom,
   formatInviteCode,
   INVITE_TTL_MS,
   type PublicProfile,
   sortFriends,
 } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
+import { findManifest } from "../catalogue";
 import { gameRef, presenceOf } from "./presence";
 import { SESSION_TTL_MS } from "./sessions";
 
@@ -319,5 +321,69 @@ export async function friendsCasting(
       host: { id: r.id, handle: r.handle, name: r.name, sticker: r.sticker },
       game: gameRef(r.app_id),
       joined: r.joined === 1,
+    }));
+}
+
+// --- Friends' rooms (several couches, one room: spec §7) ---
+
+const RoomRowSchema = z.object({
+  app_id: z.string(),
+  room: z.string(),
+  since: z.number(),
+  session_id: z.string(),
+  mine: z.number(),
+  friend: z.number(),
+  id: z.string(),
+  handle: z.string(),
+  name: z.string(),
+  sticker: z.string(),
+});
+type RoomRow = z.infer<typeof RoomRowSchema>;
+
+/**
+ * Rooms of multiCouch games that a friend's live TV is in (Join with your couch on Playing),
+ * newest first. Each lists its couches (my friends' and my own, first to arrive first); a couch
+ * is labelled with its host's name.
+ */
+export async function friendsRooms(db: D1Database, me: string, now: number): Promise<FriendRoom[]> {
+  const { results } = await db
+    .prepare(
+      `${FRIENDS_CTE}
+       SELECT sr.app_id, sr.room, sr.since, cs.id AS session_id,
+         (cs.host_profile_id = ?1 OR EXISTS (
+           SELECT 1 FROM session_members sm WHERE sm.session_id = cs.id AND sm.profile_id = ?1)) AS mine,
+         (cs.host_profile_id IN (SELECT id FROM f)) AS friend,
+         p.id, p.handle, p.name, p.sticker
+       FROM session_rooms sr
+       JOIN session_live sl ON sl.session_id = sr.session_id AND sl.app_id = sr.app_id
+       JOIN couch_sessions cs ON cs.id = sr.session_id
+       JOIN profiles p ON p.id = cs.host_profile_id
+       WHERE cs.created_at > ?2
+       ORDER BY sr.since, cs.id`,
+    )
+    .bind(me, now - SESSION_TTL_MS)
+    .all();
+  const rows = z
+    .array(RoomRowSchema)
+    .parse(results)
+    .filter((r) => (r.mine || r.friend) && findManifest(r.app_id)?.multiCouch === true);
+  const groups = new Map<string, RoomRow[]>();
+  for (const r of rows) {
+    const key = JSON.stringify([r.app_id, r.room]);
+    groups.set(key, [...(groups.get(key) ?? []), r]);
+  }
+  return [...groups.values()]
+    .filter((g) => g.some((r) => r.friend === 1))
+    .sort((a, b) => Math.max(...b.map((r) => r.since)) - Math.max(...a.map((r) => r.since)))
+    .map((g) => ({
+      appId: g[0].app_id,
+      game: { appId: g[0].app_id, name: findManifest(g[0].app_id)?.name ?? g[0].app_id },
+      room: g[0].room,
+      couches: g.map((r) => ({
+        sessionId: r.session_id,
+        label: r.name,
+        host: { id: r.id, handle: r.handle, name: r.name, sticker: r.sticker },
+      })),
+      joined: g.some((r) => r.mine === 1),
     }));
 }
