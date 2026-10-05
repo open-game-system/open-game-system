@@ -1,4 +1,5 @@
 import { type Context, Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { addTracks, createSession, type RealtimeCredentials, renegotiate } from "../lib/realtime";
 import {
   type IceServerConfig,
@@ -15,9 +16,40 @@ const stream = new Hono<StreamEnv>();
 
 const TURN_TTL_SECONDS = 300;
 
+/** A secret this Worker needs is missing (reported as `stream_not_configured`). */
+class NotConfigured extends Error {}
+
+/**
+ * The API's error contract (`{ error: { code, message, status } }`), plus the stream routes' trace
+ * id and, for a failed stream server step, its own words (`details`).
+ */
+function streamError(
+  c: Context<StreamEnv>,
+  status: ContentfulStatusCode,
+  code: string,
+  message: string,
+  traceId: string,
+  details?: string,
+) {
+  const extra = details === undefined ? {} : { details };
+  return c.json({ error: { code, message, status }, ...extra, traceId }, status);
+}
+
+/** A thrown step: missing config, or the code of the route that failed. */
+function thrown(c: Context<StreamEnv>, error: unknown, code: string, traceId: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  return streamError(
+    c,
+    500,
+    error instanceof NotConfigured ? "stream_not_configured" : code,
+    message,
+    traceId,
+  );
+}
+
 function getRealtimeCredentials(env: Env): RealtimeCredentials {
   if (!env.CLOUDFLARE_REALTIME_APP_ID || !env.CLOUDFLARE_REALTIME_APP_SECRET) {
-    throw new Error(
+    throw new NotConfigured(
       "CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured",
     );
   }
@@ -210,6 +242,25 @@ stream.get("/ice-servers", async (c) => {
 });
 
 /**
+ * GET /api/v1/stream/ready
+ * Post-deploy readiness (scripts/stream-ready.mjs): which parts a cast needs are configured — a
+ * renderer (the Cloud Run URL, or the container binding), Realtime (the SFU) and TURN (the GPU
+ * publisher reaches the SFU through it). Booleans only, never values; nothing is called or started.
+ */
+stream.get("/ready", (c) => {
+  const set = (value: unknown) => typeof value === "string" && value.length > 0;
+  const renderer = {
+    url: set(c.env.STREAM_SERVER_URL),
+    container: Boolean(c.env.STREAM_CONTAINER),
+  };
+  const realtime =
+    set(c.env.CLOUDFLARE_REALTIME_APP_ID) && set(c.env.CLOUDFLARE_REALTIME_APP_SECRET);
+  const turn = set(c.env.CLOUDFLARE_TURN_API_TOKEN) && set(c.env.CLOUDFLARE_TURN_KEY_ID);
+  const ready = (renderer.url || renderer.container) && realtime && turn;
+  return c.json({ ready, renderer, realtime, turn }, ready ? 200 : 503);
+});
+
+/**
  * GET /api/v1/stream/health
  * Container health check — forwards to the StreamContainer DO.
  */
@@ -333,7 +384,14 @@ stream.post("/start-stream", async (c) => {
     const prepareRes = await post("/publisher/prepare", { url: requestBody.url, iceServers });
     const prepareError = await failure(prepareRes, traceId, "publisher_prepare_failed");
     if (prepareError !== null)
-      return c.json({ error: "Publisher prepare failed", details: prepareError, traceId }, 500);
+      return streamError(
+        c,
+        500,
+        "publisher_prepare_failed",
+        "Publisher prepare failed",
+        traceId,
+        prepareError,
+      );
     const prepareData = parsePublisherPrepareResponse(await prepareRes.json());
     logTrace(traceId, "publisher_prepared", { trackCount: prepareData.tracks.length });
 
@@ -347,7 +405,14 @@ stream.post("/start-stream", async (c) => {
     });
     const answerError = await failure(answerRes, traceId, "publisher_answer_failed");
     if (answerError !== null)
-      return c.json({ error: "Publisher answer failed", details: answerError, traceId }, 500);
+      return streamError(
+        c,
+        500,
+        "publisher_answer_failed",
+        "Publisher answer failed",
+        traceId,
+        answerError,
+      );
 
     await publishTracks(creds, sfuSession.sessionId, prepareData, post, traceId);
     logTrace(traceId, "start_stream_complete", { sfuSessionId: sfuSession.sessionId });
@@ -358,8 +423,8 @@ stream.post("/start-stream", async (c) => {
       tracks: prepareData.tracks,
     });
   } catch (error) {
-    logTrace(traceId, "start_stream_error", { message: (error as Error).message });
-    return c.json({ error: (error as Error).message, traceId }, 500);
+    logTrace(traceId, "start_stream_error", { message: String(error) });
+    return thrown(c, error, "stream_start_failed", traceId);
   }
 });
 
@@ -376,7 +441,7 @@ stream.post("/subscribe", async (c) => {
     const body = await c.req.json();
     const publisherSessionId = body.publisherSessionId;
     if (!publisherSessionId || typeof publisherSessionId !== "string") {
-      return c.json({ error: "publisherSessionId is required", traceId }, 400);
+      return streamError(c, 400, "invalid_body", "publisherSessionId is required", traceId);
     }
     const trackNames: string[] = body.trackNames ?? ["cast-video", "cast-audio"];
     logTrace(traceId, "subscribe_begin", { publisherSessionId, trackNames });
@@ -404,8 +469,8 @@ stream.post("/subscribe", async (c) => {
       traceId,
     });
   } catch (error) {
-    logTrace(traceId, "subscribe_error", { message: (error as Error).message });
-    return c.json({ error: (error as Error).message, traceId }, 500);
+    logTrace(traceId, "subscribe_error", { message: String(error) });
+    return thrown(c, error, "subscribe_failed", traceId);
   }
 });
 
@@ -432,8 +497,8 @@ stream.put("/subscribe/:subscriberSessionId/answer", async (c) => {
       traceId,
     });
   } catch (error) {
-    logTrace(traceId, "subscribe_answer_error", { message: (error as Error).message });
-    return c.json({ error: (error as Error).message, traceId }, 500);
+    logTrace(traceId, "subscribe_answer_error", { message: String(error) });
+    return thrown(c, error, "subscribe_answer_failed", traceId);
   }
 });
 
@@ -473,7 +538,7 @@ stream.get("/debug-state", async (c) => {
   if (
     !isDebugRequestAuthorized(c.env.DEBUG_STATE_TOKEN, c.req.header(DEBUG_TOKEN_HEADER) ?? null)
   ) {
-    return c.json({ error: "Forbidden", traceId }, 403);
+    return streamError(c, 403, "forbidden", "A valid x-debug-token is required", traceId);
   }
 
   const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
