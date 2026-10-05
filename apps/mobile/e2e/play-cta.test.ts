@@ -161,4 +161,48 @@ describe("Play, then cast if not casting", () => {
     // Swapping games never recasts.
     if (after.loads !== before.loads) throw new Error(`recast: ${before.loads} → ${after.loads}`);
   });
+
+  it("Stop casting: the TV tab says Stopped casting the moment it's confirmed, and the TV closes", async () => {
+    // Cast again after setup.ts's reload (as above).
+    await element(by.id("tabTV")).tap();
+    try {
+      await waitFor(element(by.id("castButton")))
+        .toBeVisible()
+        .withTimeout(2000);
+      await element(by.id("castButton")).tap();
+    } catch {}
+    await waitFor(element(by.id("remoteEnd")))
+      .toBeVisible()
+      .withTimeout(15000);
+    // After the reload the remote can show from the couch session alone, with no cast session of
+    // this phone's: pick Living room TV so this phone casts to it (and Stop casting can name it).
+    await element(by.id("tvPickerOpen")).tap();
+    await waitFor(element(by.id("tvPickerDevice-fake-living-room")))
+      .toBeVisible()
+      .withTimeout(5000);
+    await element(by.id("tvPickerDevice-fake-living-room")).tap();
+    await waitFor(element(by.id("tvPicker")))
+      .not.toBeVisible()
+      .withTimeout(15000);
+    await element(by.id("remoteEnd")).tap();
+    await waitFor(element(by.id("remoteEndConfirm")))
+      .toBeVisible()
+      .withTimeout(5000);
+    // Detox would wait for the stop's network reply before looking: look without waiting, so this
+    // measures what the phone shows, not when the TV answers (the fake TV takes ~2.6 s).
+    await device.disableSynchronization();
+    try {
+      await element(by.id("remoteEndConfirm")).tap();
+      await waitFor(element(by.id("castStopped")))
+        .toBeVisible()
+        .withTimeout(1000);
+      await expect(element(by.id("tvRemote"))).not.toExist();
+    } finally {
+      await device.enableSynchronization();
+    }
+    await expect(element(by.text("Stopped casting on\nLiving room TV"))).toBeVisible();
+    await shot("05-stopped-casting");
+    const closed = await until(tv, (t) => t.dom === null, 10000);
+    if (closed.dom !== null) throw new Error(`the TV is still open: ${JSON.stringify(closed.dom)}`);
+  });
 });
