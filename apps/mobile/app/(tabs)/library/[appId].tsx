@@ -48,40 +48,41 @@ function GamePageBody({ game }: { game: Manifest }) {
   const now = Date.now();
   const sittings = sittingsFor(game, app.instances, state, now);
   const titles = sittingTitles(sittings, game.appId, now);
-  const kit = artKit(game);
   const facts = gameFacts(game.shop);
-  // The art fills the page when there's nothing to list; sittings get the room when there are.
-  const artHeight = Math.round(height * (sittings.length > 0 ? (height < 850 ? 0.32 : 0.4) : 0.54));
+  // The art is the page (as on the Library hero): it runs from under the status bar and fades
+  // into the page colour, and the logo, facts, tagline and sittings stack up from the bottom over
+  // its fade, so the page never has an empty band. The art always shows at least `reveal`.
+  const artHeight = Math.round(height * 0.72);
+  const reveal = insets.top + Math.round(height * (sittings.length > 0 ? 0.16 : 0.3));
   // One filled action per page: the newest sitting's Rejoin, else the footer's Play.
   const footerPrimary = sittings.length === 0;
 
   return (
     <View style={styles.root} testID="gamePage">
       <StatusBar style="light" />
-      <Image
-        source={{ uri: artUrl(kit.heroClean ?? kit.hero) }}
-        style={styles.tint}
-        blurRadius={60}
-      />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.scroll}>
-        <View>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.art, { height: artHeight }]} pointerEvents="none">
           <KeyArt game={game} width={width} height={artHeight} />
           <LinearGradient
             colors={["rgba(18,15,34,0.7)", "rgba(18,15,34,0)"]}
-            style={[styles.topScrim, { height: insets.top + 56 }]}
-            pointerEvents="none"
+            style={[styles.topScrim, { height: insets.top + 64 }]}
           />
           <LinearGradient
-            colors={["rgba(18,15,34,0)", "rgba(18,15,34,0.82)"]}
-            locations={[0.25, 1]}
+            colors={["rgba(18,15,34,0)", "rgba(18,15,34,0.78)", colors.dusk0]}
+            locations={[0, 0.6, 1]}
             style={styles.bottomScrim}
-            pointerEvents="none"
           />
+        </View>
+        <View style={[styles.body, { paddingTop: reveal }]}>
           <View style={styles.caption}>
             <GameLogo
               game={game}
-              width={width * 0.56}
-              height={Math.min(artHeight * 0.34, 120)}
+              width={Math.round(width * 0.56)}
+              height={Math.round(width * 0.26)}
               nameStyle={styles.name}
             />
             {facts.length > 0 ? (
@@ -90,9 +91,6 @@ function GamePageBody({ game }: { game: Manifest }) {
               </Text>
             ) : null}
           </View>
-        </View>
-
-        <View style={styles.body}>
           {game.tagline ? <Text style={styles.tagline}>{game.tagline}</Text> : null}
           {sittings.length > 0 ? (
             <View testID="gameSittings" style={styles.sittings}>
@@ -207,15 +205,22 @@ const BAR = TARGET + 12;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.dusk0 },
   flex: { flex: 1 },
-  // The page takes the game's colours: its art, blurred far past recognition, under everything.
-  tint: { ...StyleSheet.absoluteFillObject, width: "100%", height: "100%", opacity: 0.32 },
-  scroll: { paddingBottom: 20 },
+  // Short content sits at the bottom, over the art's fade; long content scrolls.
+  scroll: { flexGrow: 1, paddingBottom: 12 },
+  art: { position: "absolute", top: 0, left: 0, right: 0 },
   topScrim: { position: "absolute", top: 0, left: 0, right: 0 },
-  bottomScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "60%" },
-  caption: { position: "absolute", left: 20, right: 20, bottom: 14, gap: 8 },
+  bottomScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "62%" },
+  caption: { gap: 8, alignItems: "flex-start" },
   name: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: colors.cream },
-  facts: { color: colors.cream, fontSize: 14, fontWeight: "600", letterSpacing: 0.2 },
-  body: { paddingHorizontal: 20, paddingTop: 12, gap: 8 },
+  facts: {
+    color: colors.cream,
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+    textShadowColor: "rgba(0,0,0,0.45)",
+    textShadowRadius: 6,
+  },
+  body: { flexGrow: 1, justifyContent: "flex-end", paddingHorizontal: 20, gap: 10 },
   tagline: { color: colors.cream2, fontSize: 17, lineHeight: 24 },
   heading: {
     fontFamily: fonts.display,
@@ -258,11 +263,13 @@ const styles = StyleSheet.create({
     width: TARGET,
     height: TARGET,
     borderRadius: TARGET / 2,
-    backgroundColor: "rgba(18,15,34,0.55)",
+    backgroundColor: "rgba(18,15,34,0.78)",
+    borderWidth: 1,
+    borderColor: "rgba(251,242,228,0.22)",
     alignItems: "center",
     justifyContent: "center",
   },
-  backPressed: { backgroundColor: "rgba(18,15,34,0.85)" },
+  backPressed: { backgroundColor: "rgba(18,15,34,0.95)" },
   backChevron: {
     width: 12,
     height: 12,
