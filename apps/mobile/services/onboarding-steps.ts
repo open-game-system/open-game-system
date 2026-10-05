@@ -36,3 +36,12 @@ export function backFrom(page: number, notificationsGranted: boolean): number {
   const back = page - 1;
   return back === NOTIFICATIONS && notificationsGranted ? 0 : back;
 }
+
+/**
+ * Whether the pager slides from `from` to `to`: only to the page next door. A move that passes over
+ * a page (the granted notifications page, on Make my profile, Skip and Back) jumps instead, so the
+ * page it passes never shows.
+ */
+export function animatesMove(from: number, to: number): boolean {
+  return Math.abs(to - from) === 1;
+}

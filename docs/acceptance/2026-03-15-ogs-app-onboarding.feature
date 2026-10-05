@@ -41,6 +41,8 @@ Feature: OGS App Onboarding
     Given notification permission is already granted
     When the user taps "Make my profile" on page 1
     Then "Make your OGS profile" is displayed
+    And "Stay in the game" never shows on the way, not even for a frame (the pager jumps over a
+      page it passes; it slides only to the page next door)
 
   # --- Page 2: Notifications ---
 

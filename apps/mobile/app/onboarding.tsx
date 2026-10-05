@@ -23,6 +23,7 @@ import { WelcomeStep } from "../components/ogs/onboarding/WelcomeStep";
 import { colors, fonts, TARGET } from "../components/ogs/theme";
 import { markOnboardingComplete } from "../services/onboarding";
 import {
+  animatesMove,
   backFrom,
   nextFrom,
   ONBOARDING_PAGES,
@@ -83,15 +84,18 @@ export default function OnboardingScreen() {
     router.replace("/");
   }, [router]);
 
-  const scrollTo = useCallback((index: number) => {
-    flatListRef.current?.scrollToIndex({ index, animated: true });
+  // Slides to the page next door; jumps across a page it passes over (e.g. granted notifications).
+  const scrollTo = useCallback((from: number, index: number) => {
+    const animated = animatesMove(from, index);
+    flatListRef.current?.scrollToIndex({ index, animated });
+    if (!animated) setCurrentPage(index);
   }, []);
 
   const goNext = useCallback(
     (from: number) => {
       const next = nextFrom(from, notificationsAlreadyGranted);
       if (next === "finish") void handleComplete();
-      else scrollTo(next);
+      else scrollTo(from, next);
     },
     [handleComplete, notificationsAlreadyGranted, scrollTo],
   );
@@ -100,9 +104,9 @@ export default function OnboardingScreen() {
   // The keyboard goes with the page it was typing on (it would cover the page Back returns to).
   const handleBack = useCallback(() => {
     Keyboard.dismiss();
-    scrollTo(backFrom(currentPage, notificationsAlreadyGranted));
+    scrollTo(currentPage, backFrom(currentPage, notificationsAlreadyGranted));
   }, [currentPage, notificationsAlreadyGranted, scrollTo]);
-  const handleSkip = useCallback(() => scrollTo(skipTo()), [scrollTo]);
+  const handleSkip = useCallback(() => scrollTo(currentPage, skipTo()), [currentPage, scrollTo]);
   const handleSignIn = useCallback(() => {
     router.push({ pathname: "/sign-in", params: { mode: "signin" } });
   }, [router]);

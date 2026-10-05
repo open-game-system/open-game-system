@@ -1,4 +1,5 @@
 import {
+  animatesMove,
   backFrom,
   nextFrom,
   ONBOARDING_PAGES,
@@ -58,6 +59,24 @@ describe("onboarding steps", () => {
     });
     it("never leaves the done page (one profile per device)", () => {
       expect(backFrom(3, false)).toBe(3);
+    });
+  });
+
+  describe("moving between pages", () => {
+    it("slides to the page next door (Next, Back)", () => {
+      expect(animatesMove(0, 1)).toBe(true);
+      expect(animatesMove(2, 3)).toBe(true);
+      expect(animatesMove(2, 1)).toBe(true);
+    });
+    it("jumps without sliding across a page it passes over: it never shows, not even for a moment", () => {
+      // Make my profile with notifications granted (welcome to profile), Skip, and Back.
+      expect(nextFrom(0, true)).toBe(2);
+      expect(animatesMove(0, 2)).toBe(false);
+      expect(animatesMove(0, skipTo())).toBe(false);
+      expect(animatesMove(2, backFrom(2, true))).toBe(false);
+    });
+    it("staying put is not a move", () => {
+      expect(animatesMove(3, backFrom(3, false))).toBe(false);
     });
   });
 });
