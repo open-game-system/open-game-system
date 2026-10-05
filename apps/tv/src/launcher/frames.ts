@@ -117,6 +117,7 @@ export function readFrameMessage(
 export function toSessionMessages(msg: GameToLauncher, appId: string): ClientMessage[] {
   if (msg.type === "ogs:resume-point")
     return [{ type: "game.resume-point", appId, label: msg.label }];
+  if (msg.type === "ogs:room") return [{ type: "game.room", appId, room: msg.room }];
   if (msg.type === "ogs:instance" && msg.report.title)
     return [{ type: "game.resume-point", appId, label: msg.report.title }];
   return [];
@@ -141,6 +142,7 @@ export function startMessage(current: CurrentGame, grant?: StartGrant | null): L
     mode: current.mode,
     roster: current.roster,
     token: grant?.token ?? "",
+    ...(current.room ? { room: current.room } : {}),
   };
   return grant === undefined ? start : { ...start, players: grant?.players ?? [] };
 }
