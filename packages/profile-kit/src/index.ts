@@ -7,11 +7,13 @@ import {
   type Source,
 } from "./profile";
 import { type InstanceReportInput, type OgsStores, reportOgsInstance } from "./report";
+import { postOgsRoom } from "./room";
 import { createSessionSource, type SessionSnapshot } from "./session";
 
 export { listenForPause } from "./pause";
 export * from "./profile";
 export * from "./report";
+export { ogsRoomFromUrl } from "./room";
 export * from "./session";
 export { readGameToken } from "./token";
 
@@ -56,4 +58,13 @@ export function reportOgsSitting(report: InstanceReportInput): "bridge" | "launc
 export function onOgsPause(onPause: (paused: boolean) => void): () => void {
   if (typeof window === "undefined") return () => {};
   return listenForPause(onPause, window);
+}
+
+/**
+ * The TV page of a multiCouch game says which room it shows (spec §7): OGS keeps it on the
+ * sitting so friends can join it. Framed by the launcher: ogs:room; elsewhere nowhere.
+ */
+export function reportOgsRoom(room: string): "launcher" | "none" {
+  if (typeof window === "undefined") return "none";
+  return postOgsRoom(room, window);
 }

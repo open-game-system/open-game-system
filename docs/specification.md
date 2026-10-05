@@ -95,6 +95,7 @@ With profile-kit (§4) a game doesn't post these by hand:
 | Who's on the couch, the session's game token | `useOgsSession()` (react) or `getOgsSessionSource()`: `undefined` while waiting, `null` when not framed by OGS (300 ms), else `{ players, token, instanceId, mode }`. Says `ogs:ready` itself |
 | Go silent when parked | `onOgsPause((paused) => …)`: `true` on `ogs:suspend`, `false` on `ogs:resume`; never fires in a plain browser |
 | The sitting's label | `reportOgsSitting({ instanceId, appId, status, title })`: `ogs:instance` to the launcher on the TV, the app bridge in the WebView, nothing in a plain browser |
+| Several couches (§7) | `reportOgsRoom(room)` (TV page: `ogs:room`); `useOgsSession()` gives `room` when this couch joins another's; `ogsRoomFromUrl(location.href)` on the phone page; `verifyOgsToken` returns `couch: { sid, label }` |
 
 **Parked means silent.** A parked frame stays loaded so Continue is instant, so its audio keeps
 playing unless the game stops it. Suspend the `AudioContext` and pause media on `onOgsPause(true)`; resume

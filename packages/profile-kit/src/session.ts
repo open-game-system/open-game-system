@@ -12,6 +12,8 @@ export interface OgsSession {
   /** The OGS sitting and whether it continues or starts new. */
   instanceId: string;
   mode: "continue" | "new";
+  /** The room to join (another couch made it; multiCouch games). Absent: make your own. */
+  room?: string;
 }
 
 /** undefined = waiting for the launcher · null = not on an OGS TV · the session. */
@@ -58,8 +60,8 @@ export function createSessionSource(opts: {
     if (ev.source !== parent) return;
     const parsed = LauncherToGameSchema.safeParse(ev.data);
     if (!parsed.success || parsed.data.type !== "ogs:start") return;
-    const { players, token, instanceId, mode } = parsed.data;
-    set({ players: players ?? [], token, instanceId, mode });
+    const { players, token, instanceId, mode, room } = parsed.data;
+    set({ players: players ?? [], token, instanceId, mode, ...(room ? { room } : {}) });
   });
   parent.postMessage({ type: "ogs:ready" }, "*");
   setTimeout(() => {
