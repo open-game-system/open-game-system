@@ -2,18 +2,8 @@ import type { Manifest } from "@open-game-system/ogs-protocol";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { artUrl } from "../../../components/ogs/GameArt";
-import { artKit } from "../../../components/ogs/library/art-kit";
 import { gameFacts } from "../../../components/ogs/library/game-facts";
 import { GameLogo, KeyArt } from "../../../components/ogs/library/KeyArt";
 import { sittingTitles } from "../../../components/ogs/library/sitting-title";
@@ -52,8 +42,10 @@ function GamePageBody({ game }: { game: Manifest }) {
   // The art is the page (as on the Library hero): it runs from under the status bar and fades
   // into the page colour, and the logo, facts, tagline and sittings stack up from the bottom over
   // its fade, so the page never has an empty band. The art always shows at least `reveal`.
-  const artHeight = Math.round(height * 0.72);
-  const reveal = insets.top + Math.round(height * (sittings.length > 0 ? 0.16 : 0.3));
+  // With sittings the art gives them the room: shorter, and the logo a size down.
+  const listing = sittings.length > 0;
+  const artHeight = Math.round(height * (listing ? 0.56 : 0.72));
+  const reveal = insets.top + Math.round(height * (listing ? 0.12 : 0.3));
   // One filled action per page: the newest sitting's Rejoin, else the footer's Play.
   const footerPrimary = sittings.length === 0;
 
@@ -72,8 +64,13 @@ function GamePageBody({ game }: { game: Manifest }) {
             style={[styles.topScrim, { height: insets.top + 64 }]}
           />
           <LinearGradient
-            colors={["rgba(18,15,34,0)", "rgba(18,15,34,0.78)", colors.dusk0]}
-            locations={[0, 0.6, 1]}
+            colors={[
+              "rgba(18,15,34,0)",
+              "rgba(18,15,34,0.62)",
+              "rgba(18,15,34,0.92)",
+              colors.dusk0,
+            ]}
+            locations={[0, 0.4, 0.75, 1]}
             style={styles.bottomScrim}
           />
         </View>
@@ -82,7 +79,7 @@ function GamePageBody({ game }: { game: Manifest }) {
             <GameLogo
               game={game}
               width={Math.round(width * 0.56)}
-              height={Math.round(width * 0.26)}
+              height={Math.round(width * (listing ? 0.2 : 0.26))}
               nameStyle={styles.name}
             />
             {facts.length > 0 ? (
@@ -163,10 +160,12 @@ function SittingCard({
   onRejoin: () => void;
 }) {
   const { headline, detail } = title;
-  const icon = artKit(game).icon;
+  // No game icon: every card on this page is this game. The newest is lit, as its Rejoin is.
   return (
-    <View style={styles.card} testID={`gameSitting-${sitting.instanceId}`}>
-      {icon ? <Image source={{ uri: artUrl(icon) }} style={styles.icon} /> : null}
+    <View
+      style={[styles.card, primary && styles.cardNewest]}
+      testID={`gameSitting-${sitting.instanceId}`}
+    >
       <View style={styles.cardText}>
         <Text
           style={styles.cardHeadline}
@@ -214,8 +213,8 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: colors.cream },
   facts: {
     color: colors.cream,
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     letterSpacing: 0.2,
     textShadowColor: "rgba(0,0,0,0.45)",
     textShadowRadius: 6,
@@ -235,11 +234,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     minHeight: 76,
-    padding: 12,
+    paddingVertical: 12,
+    paddingLeft: 18,
+    paddingRight: 12,
     borderRadius: 20,
-    backgroundColor: "rgba(18,15,34,0.62)",
+    borderWidth: 1,
+    borderColor: "rgba(251,242,228,0.1)",
+    backgroundColor: "rgba(251,242,228,0.06)",
   },
-  icon: { width: 52, height: 52, borderRadius: 14 },
+  cardNewest: { borderColor: "rgba(255,200,97,0.45)", backgroundColor: "rgba(255,200,97,0.1)" },
   cardText: { flex: 1, minWidth: 0, gap: 3 },
   cardHeadline: { color: colors.cream, fontSize: 18, fontWeight: "700" },
   cardDetailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
@@ -290,7 +293,8 @@ const styles = StyleSheet.create({
     borderRadius: BAR / 2,
   },
   actionPrimary: { backgroundColor: colors.lamp },
-  actionQuiet: { borderWidth: 1.5, borderColor: colors.cream3 },
+  // Start game beside a lit Rejoin: filled, but tonal, so it never reads as disabled.
+  actionQuiet: { backgroundColor: "rgba(251,242,228,0.14)" },
   pressed: { opacity: 0.8, transform: [{ scale: 0.97 }] },
   triangle: {
     width: 0,
