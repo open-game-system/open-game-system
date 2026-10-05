@@ -23,6 +23,8 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 
 ## Later
 
+- **One API for streaming too:** for now (owner, 2026-10-04 — not a live service yet) the phone app streams through the PR-5 preview Worker, which already has `STREAM_SERVER_URL` → Cloud Run `stream-gpu` and TURN. Build the app with `EXPO_PUBLIC_OGS_STREAM=https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream`. To move streaming onto `opengame-api`: merge `main` (stream-server #16), set `STREAM_SERVER_URL` + the TURN secrets there, drop the override.
+
 - **Pushes:** "a friend started a new game", with a setting. (Deferred by owner.)
 - **Google and Apple sign-in** in the app (deferred by owner, 2026-10-04: email through Cloudflare for now). App code removed in 5cf8ab40; restore from there (`git show 5cf8ab40^:apps/mobile/services/sign-in-providers.ts` etc., plus `expo-apple-authentication`, `usesAppleSignIn` and a prebuild). The API's `/auth/apple` and `/auth/google` are still in place.
 - **Profile switching** on one device (Netflix/YouTube style).
