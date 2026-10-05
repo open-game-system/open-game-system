@@ -3,7 +3,7 @@
 Owner-decided direction as of 2026-10-04. Detail lives in the linked specs and ADRs; this page is the order of work.
 Statuses: **Done** (committed and verified locally) · **Next** · **Later** · **Not planned**.
 
-## The product today (Done, on `design/ogs-app-hillclimb`, not deployed)
+## The product today (Done, on `design/ogs-app-hillclimb`; API, launcher and games deployed 2026-10-04)
 
 - Cast once; the TV launcher frames each game in one stream; swap without recasting; swipe back = Home; Rejoin returns to the same room. Spec: `product-specs/ogs-app-v3.html`.
 - Five tabs: Playing · TV · Library · Friends · Profile. Library = All Games (covers) → game page with sittings + Start game.
@@ -14,9 +14,9 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 
 ## Next: make it real for the family
 
-1. **Deploy and test on real devices** (owner approval): API (signing key, D1 reset), launcher, app build for your phone and the kids' iPads, then the games. Confirm production URLs (`tv.opengame.org`, `api.opengame.org`).
+1. **Test on real devices:** API (`opengame-api.jonathanrmumm.workers.dev`), launcher (`ogs-tv.pages.dev`) and the five games are deployed. Still to do: the app on your phone and the kids' iPads (needs Xcode signed in), real Chromecast casting (stream server wiring), custom domains (`api.opengame.org`, `tv.opengame.org`).
 2. **Owner setup:** regenerate the iOS project (`expo prebuild -p ios` + `pod install`) so it drops the Sign in with Apple entitlement; Cloudflare Email Sending on opengame.org.
-3. **Open decisions:** Rejoin pill on every tab (spec) vs only TV/Friends/Profile (critics); holder placement on the remote; react-native-svg for a physical pad.
+3. **Open decisions:** holder placement on the remote; react-native-svg for a physical pad. (Decided: Rejoin pill only on TV/Friends/Profile; Start game is the game page's filled button.)
 4. **Friends follow-ups:** `opengame.org/add/<token>` web route (opens the app or the store); in-app QR scanner (expo-camera + prebuild).
 5. **Web + browser TVs (direct mode):** the app as a website; any browser or laptop on HDMI as the TV via `tv.opengame.org` and the TV code; Chrome Cast from desktop/Android Chrome as a bonus; `profile-kit` web transport (postMessage from the host page).
 6. **Google / Android TV:** Cast already works; decide direct vs stream after a device test.
