@@ -65,7 +65,9 @@ describe("game-directory", () => {
     });
 
     it("recognizes Bake Shop pages after it redirects to /join", () => {
-      expect(findGameByUrl("https://bake-shop.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe("bake-shop");
+      expect(findGameByUrl("https://bake-shop.jonathanrmumm.workers.dev/join/ABCD?t=x")?.id).toBe(
+        "bake-shop",
+      );
     });
 
     it("returns undefined for unknown ID", () => {
