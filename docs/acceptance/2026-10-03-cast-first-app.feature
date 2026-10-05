@@ -85,7 +85,8 @@ Feature: Cast-first OGS app with games inside one stream
     Given Rocket Crew is paused at "Mission 6"
     When Jonathan opens Rocket Crew's page
     Then it lists one sitting under "In progress" headed "Mission 6" with when it was last played and its own "Rejoin"
-    And that Rejoin is the page's one filled button, with "Start game" as the secondary button at the bottom
+    # Owner, 2026-10-04: "Start game" is the one filled button; every Rejoin is outlined.
+    And "Start game" at the bottom is the page's one filled button, and that Rejoin is outlined
     And Rejoin opens that sitting's own room
 
   Scenario: A sitting with no resume point is named by when it started
@@ -106,7 +107,8 @@ Feature: Cast-first OGS app with games inside one stream
     Given Jonathan started Rocket Crew and swiped back
     When he starts a new game of Rocket Crew from its page and swipes back
     Then he is back on Rocket Crew's page
-    And it lists two sittings, most recent first, each with its own Rejoin (the newest one's filled)
+    And it lists two sittings, most recent first, each with its own outlined Rejoin
+    And "Start game" at the bottom is the page's one filled button
     And Playing lists both, each as its own row with Rejoin
 
   Scenario: Play a game without a TV

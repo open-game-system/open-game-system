@@ -5,6 +5,10 @@ import { StatusBar } from "expo-status-bar";
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { gameFacts } from "../../../components/ogs/library/game-facts";
+import {
+  type ButtonLook,
+  gamePageButtons,
+} from "../../../components/ogs/library/game-page-buttons";
 import { GameLogo, KeyArt } from "../../../components/ogs/library/KeyArt";
 import { sittingTitles } from "../../../components/ogs/library/sitting-title";
 import { usePlay } from "../../../components/ogs/library/use-play";
@@ -14,9 +18,9 @@ import { type Sitting, sittingsFor } from "../../../services/sittings";
 
 /**
  * A game's page, in the Library tab's stack (the tab bar stays): its key art with the logo, the
- * page tinted by the art, and your in-progress sittings as cards, each with its own Rejoin (two
- * games of Catan are two cards; the newest one's Rejoin is the page's primary). The footer, in
- * thumb reach, is Play when there's nothing to rejoin, else Start game as the secondary. Owner,
+ * page tinted by the art, and your in-progress sittings as cards, each with its own outlined
+ * Rejoin (two games of Catan are two cards). The footer, in thumb reach, is the page's one filled
+ * button: Play when there's nothing to rejoin, else Start game (owner, 2026-10-04). Owner,
  * 2026-10-04: Play (and Rejoin) ask to cast first when the game needs the TV (usePlay).
  */
 export default function GamePage() {
@@ -46,8 +50,9 @@ function GamePageBody({ game }: { game: Manifest }) {
   const listing = sittings.length > 0;
   const artHeight = Math.round(height * (listing ? 0.64 : 0.72));
   const reveal = insets.top + Math.round(height * (listing ? 0.12 : 0.3));
-  // One filled action per page: the newest sitting's Rejoin, else the footer's Play.
-  const footerPrimary = sittings.length === 0;
+  // One filled action per page: the footer (Play, or Start game beside sittings).
+  const buttons = gamePageButtons(sittings.length);
+  const { footer } = buttons;
 
   return (
     <View style={styles.root} testID="gamePage">
@@ -109,7 +114,8 @@ function GamePageBody({ game }: { game: Manifest }) {
                     sitting={s}
                     title={titles[i]}
                     game={game}
-                    primary={i === 0}
+                    newest={i === 0}
+                    look={buttons.rejoin}
                     onRejoin={() => rejoin(s)}
                   />
                 ))}
@@ -136,19 +142,19 @@ function GamePageBody({ game }: { game: Manifest }) {
 
       <View style={styles.footer}>
         <Pressable
-          testID={footerPrimary ? "gamePlay" : "gameNew"}
+          testID={footer.testID}
           accessibilityRole="button"
-          accessibilityLabel={footerPrimary ? `Play ${game.name}` : "Start game"}
+          accessibilityLabel={footer.kind === "play" ? `Play ${game.name}` : footer.label}
           onPress={startNew}
           style={({ pressed }) => [
             styles.action,
-            footerPrimary ? styles.actionPrimary : styles.actionQuiet,
+            footer.look === "filled" ? styles.actionPrimary : styles.actionQuiet,
             pressed && styles.pressed,
           ]}
         >
-          {footerPrimary ? <View style={styles.triangle} /> : null}
-          <Text style={[styles.actionText, !footerPrimary && styles.actionTextQuiet]}>
-            {footerPrimary ? "Play" : "Start game"}
+          {footer.kind === "play" ? <View style={styles.triangle} /> : null}
+          <Text style={[styles.actionText, footer.look !== "filled" && styles.actionTextQuiet]}>
+            {footer.label}
           </Text>
         </Pressable>
       </View>
@@ -160,20 +166,23 @@ function SittingCard({
   sitting,
   title,
   game,
-  primary,
+  newest,
+  look,
   onRejoin,
 }: {
   sitting: Sitting;
   title: { headline: string; detail: string };
   game: Manifest;
-  primary: boolean;
+  newest: boolean;
+  look: ButtonLook;
   onRejoin: () => void;
 }) {
   const { headline, detail } = title;
-  // No game icon: every card on this page is this game. The newest is lit, as its Rejoin is.
+  const filled = look === "filled";
+  // No game icon: every card on this page is this game. The newest card is lit.
   return (
     <View
-      style={[styles.card, primary && styles.cardNewest]}
+      style={[styles.card, newest && styles.cardNewest]}
       testID={`gameSitting-${sitting.instanceId}`}
     >
       <View style={styles.cardText}>
@@ -199,11 +208,11 @@ function SittingCard({
         onPress={onRejoin}
         style={({ pressed }) => [
           styles.rejoin,
-          primary ? styles.rejoinPrimary : styles.rejoinQuiet,
+          filled ? styles.rejoinPrimary : styles.rejoinQuiet,
           pressed && styles.pressed,
         ]}
       >
-        <Text style={[styles.rejoinText, !primary && styles.rejoinTextQuiet]}>Rejoin</Text>
+        <Text style={[styles.rejoinText, !filled && styles.rejoinTextQuiet]}>Rejoin</Text>
       </Pressable>
     </View>
   );
@@ -305,7 +314,6 @@ const styles = StyleSheet.create({
     borderRadius: BAR / 2,
   },
   actionPrimary: { backgroundColor: colors.lamp },
-  // Start game beside a lit Rejoin: a full cream outline, so it reads as live but second.
   actionQuiet: { borderWidth: 2, borderColor: colors.cream },
   pressed: { opacity: 0.8, transform: [{ scale: 0.97 }] },
   triangle: {
