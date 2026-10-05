@@ -101,4 +101,32 @@ describe("sittingTitles: a game page's cards never read the same", () => {
     const b = sitting({ instanceId: id(at(11, 3) + 1000) });
     expect(sittingTitles([a, b], "catan", NOW)[0].detail).toMatch(/^11:03\s?AM · on the TV now$/);
   });
+
+  it("two played at the same time: a named one's second line also says when it started", () => {
+    const named = sitting({ instanceId: id(at(13, 42)), label: "Day 3", at: NOW - 10_000 });
+    const unnamed = sitting({ instanceId: id(at(20, 20)), at: NOW - 20_000 });
+    const titles = sittingTitles([unnamed, named], "catan", NOW);
+    expect(titles[0].headline).toMatch(/^Started 8:20\s?PM$/);
+    expect(titles[0].detail).toBe("Played just now");
+    expect(titles[1].headline).toBe("Day 3");
+    expect(titles[1].detail).toMatch(/^Started 1:42\s?PM · just now$/);
+  });
+
+  it("started on another day: the second line says which", () => {
+    const a = sitting({ instanceId: id(at(13, 0, 1)), label: "Day 3" });
+    const b = sitting({ instanceId: id(at(9, 0, 3)), label: "Day 1" });
+    expect(sittingTitles([a, b], "catan", NOW).map((t) => t.detail)).toEqual([
+      "Started yesterday · 5 min ago",
+      "Started 3 days ago · 5 min ago",
+    ]);
+  });
+
+  it("second lines that already differ stay as they are", () => {
+    const a = sitting({ instanceId: id(at(13, 0)), label: "Day 3", at: NOW - 5 * MIN });
+    const b = sitting({ instanceId: id(at(9, 0)), label: "Day 1", at: NOW - 2 * H });
+    expect(sittingTitles([a, b], "catan", NOW).map((t) => t.detail)).toEqual([
+      "Played 5 min ago",
+      "Played 2 hours ago",
+    ]);
+  });
 });

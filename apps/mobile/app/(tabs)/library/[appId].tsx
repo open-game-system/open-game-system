@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   cardText: { flex: 1, minWidth: 0, gap: 3 },
   cardHeadline: { color: colors.cream, fontSize: 18, fontWeight: "700" },
   cardDetailRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  cardDetail: { color: colors.cream3, fontSize: 14, fontWeight: "600" },
+  cardDetail: { color: colors.cream2, fontSize: 15, fontWeight: "600" },
   cardLive: { color: colors.ember },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.ember },
   rejoin: {

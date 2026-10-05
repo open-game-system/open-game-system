@@ -39,3 +39,5 @@ Per round: both judges' scores; the keep/revert call is a blind A/B (before vs a
 | 03 | Codex (gpt-5.6-sol, medium) | 8 | 8 | 7 | 8 | 7 | 8 | 10 | 7 |
 | 04 | Claude (Opus) | 7 | 7 | 7 | 7 | 7 | 7 | 8 | 7 |
 | 04 | Codex (gpt-5.6-sol, medium) | 7 | 8 | 7 | 8 | 7 | 7 | 10 | 7 |
+| 05 | Claude (Opus) | 7 | 7 | 7 | 8 | 7 | 7 | 7 | 7 |
+| 05 | Codex (gpt-5.6-sol, medium) | 8 | 8 | 8 | 9 | 7 | 8 | 10 | 7 |

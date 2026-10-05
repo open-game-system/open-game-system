@@ -95,6 +95,13 @@ Feature: Cast-first OGS app with games inside one stream
     And its second line says when it was last played, or "On the TV now"
     And two sittings started the same minute read "Game 1" and "Game 2" with the time on the second line
 
+  Scenario: Two sittings last played at the same time still read apart
+    Given Bake Shop has "Day 3" started at 1:42 PM and an unnamed sitting started at 4:42 PM
+    And both were last played just now
+    When Jonathan opens Bake Shop's page
+    Then the unnamed one reads "Started 4:42 PM" over "Played just now"
+    And "Day 3" reads "Started 1:42 PM · just now" on its second line
+
   Scenario: Several sittings of one game
     Given Jonathan started Rocket Crew and swiped back
     When he starts a new game of Rocket Crew from its page and swipes back
