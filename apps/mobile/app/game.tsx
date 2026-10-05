@@ -14,6 +14,7 @@ import { colors, fonts } from "../components/ogs/theme";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import type { CastStores } from "../services/cast-store";
 import { exitGame } from "../services/game-exit";
+import { loadingCaption } from "../services/game-loading";
 import type { ProfileStores } from "../services/game-profile";
 import { latestGameUrl, sittingId } from "../services/game-rejoin";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
@@ -94,6 +95,7 @@ export default function GameScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const caption = loadingCaption(game ?? null, uri);
   const originDomain = useMemo(() => {
     try {
       return new URL(uri).hostname;
@@ -236,7 +238,7 @@ export default function GameScreen() {
             <View style={styles.loading} testID="gameLoading">
               {game ? <GameArt game={game} style={styles.loadingArt} /> : null}
               <Text style={styles.loadingName}>{name}</Text>
-              <Text style={styles.loadingOrigin}>{originDomain}</Text>
+              {caption ? <Text style={styles.loadingOrigin}>{caption}</Text> : null}
             </View>
           )}
         </Animated.View>
@@ -260,5 +262,5 @@ const styles = StyleSheet.create({
   },
   loadingArt: { width: "80%", aspectRatio: 16 / 10 },
   loadingName: { fontFamily: fonts.display, fontSize: 30, color: colors.cream, marginTop: 8 },
-  loadingOrigin: { color: colors.cream3, fontSize: 14 },
+  loadingOrigin: { color: colors.cream3, fontSize: 14, textAlign: "center", marginHorizontal: 32 },
 });
