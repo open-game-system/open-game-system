@@ -554,8 +554,12 @@ try {
 setStep("done");
 if (detox) await detox.done;
 if (simRec) {
-  simRec.kill("SIGINT");
-  await new Promise((r) => simRec.on("exit", r));
+  // The recorder may have stopped already (an exit before we listen would never fire again).
+  if (simRec.exitCode === null && simRec.signalCode === null) {
+    const exited = new Promise((r) => simRec.on("exit", r));
+    simRec.kill("SIGINT");
+    await Promise.race([exited, sleep(15000)]);
+  }
 }
 const videos = {};
 const ends = {};
