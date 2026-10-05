@@ -1,13 +1,13 @@
 import type { Credential } from "./ogs-api";
 
 /**
- * The "Back up your profile" / "Sign in" screen (spec ogs-profiles, 1 · 04): Continue with Apple,
- * Google or email (address → 6-digit code). Back up links the login to this device's profile;
+ * The "Back up your profile" / "Sign in" screen (spec ogs-profiles, 1 · 04): email only (address →
+ * 6-digit code), so it opens on the address. Back up links the login to this device's profile;
  * sign in takes the profile that has it (onboarding's "I already have a profile").
  */
 
 export type SignInMode = "backup" | "signin";
-export type SignInStep = "choose" | "email" | "code" | "done" | "not_found";
+export type SignInStep = "email" | "code" | "done" | "not_found";
 
 export interface SignInState {
   step: SignInStep;
@@ -26,17 +26,12 @@ export interface SignInDeps {
     backUp(c: Credential): Promise<Result>;
     signIn(c: Credential): Promise<Result>;
   };
-  /** Each opens the provider's sheet and resolves its ID token, or null when cancelled. */
-  providers: { apple(): Promise<string | null>; google(): Promise<string | null> };
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** A provider sheet that failed (not cancelled): its own error is logged, not shown. */
-const PROVIDER_FAILED = "That sign-in didn't go through. Try again.";
-
 export function createSignInFlow(deps: SignInDeps) {
-  let state: SignInState = { step: "choose", email: "", busy: false, error: null };
+  let state: SignInState = { step: "email", email: "", busy: false, error: null };
   const listeners = new Set<() => void>();
   const set = (patch: Partial<SignInState>) => {
     state = { ...state, ...patch };
@@ -62,25 +57,6 @@ export function createSignInFlow(deps: SignInDeps) {
         listeners.delete(listener);
       };
     },
-    async continueWith(provider: "apple" | "google") {
-      set({ busy: true, error: null });
-      let idToken: string | null;
-      try {
-        idToken = await deps.providers[provider]();
-      } catch (err) {
-        console.warn(`[ogs] ${provider} sign-in failed: ${String(err)}`);
-        set({ busy: false, error: PROVIDER_FAILED });
-        return;
-      }
-      if (!idToken) {
-        set({ busy: false });
-        return;
-      }
-      await finish({ provider, idToken }, "choose");
-    },
-    chooseEmail() {
-      set({ step: "email", error: null });
-    },
     async sendCode(text: string) {
       const email = text.trim();
       if (!EMAIL.test(email)) {
@@ -101,9 +77,9 @@ export function createSignInFlow(deps: SignInDeps) {
       set({ busy: true, error: null });
       await finish({ provider: "email", email: state.email, code }, "code");
     },
+    /** From the code back to the address ("Use another email"). */
     back() {
-      if (state.step === "code") set({ step: "email", error: null });
-      else set({ step: "choose", error: null });
+      set({ step: "email", error: null });
     },
   };
 }

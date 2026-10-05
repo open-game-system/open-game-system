@@ -92,13 +92,15 @@ export async function skipOnboarding(name = "Tester"): Promise<void> {
     .withTimeout(10000);
 }
 
-/** Back up / sign in with email: address, then the code the local API's email binding sent. */
+/**
+ * Back up / sign in with email: address, then the code the local API's email binding sent. Email is
+ * the only way in, so the sheet opens on the address field (no "Continue with email" tap).
+ */
 export async function continueWithEmail(email: string): Promise<void> {
-  // The sheet's root is transparent (Detox's pixel check can't see it on an SE): its button can.
-  await waitFor(element(by.id("signInEmail")))
+  // The sheet's root is transparent (Detox's pixel check can't see it on an SE): its field can.
+  await waitFor(element(by.id("signInEmailInput")))
     .toBeVisible()
     .withTimeout(5000);
-  await element(by.id("signInEmail")).tap();
   await typeAndReturn("signInEmailInput", email);
   const since = Date.now();
   await element(by.id("signInSendCode")).tap();

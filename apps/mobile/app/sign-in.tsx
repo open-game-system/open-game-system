@@ -8,11 +8,11 @@ import { colors, TARGET } from "../components/ogs/theme";
 import { markOnboardingComplete } from "../services/onboarding";
 import { appState } from "../services/runtime";
 import { createSignInFlow, type SignInMode } from "../services/sign-in-flow";
-import { appleAvailable, providers } from "../services/sign-in-providers";
 
 /**
  * Back up your profile (from onboarding's last page or the Profile tab) or sign in to an existing
- * one (onboarding's "I already have a profile"). Spec ogs-profiles, 1 · 04.
+ * one (onboarding's "I already have a profile"). Email only for now: it opens on the address.
+ * Spec ogs-profiles, 1 · 04.
  */
 export default function SignInScreen() {
   const router = useRouter();
@@ -26,18 +26,11 @@ export default function SignInScreen() {
         backUp: (c) => appState.backUp(c),
         signIn: (c) => appState.signIn(c),
       },
-      providers,
     }),
   );
   const s = useSyncExternalStore(flow.subscribe, flow.getSnapshot, flow.getSnapshot);
-  const [apple, setApple] = useState(false);
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-
-  // Whether this device can Sign in with Apple is a native query (an effect is the sync point).
-  useEffect(() => {
-    void appleAvailable().then(setApple);
-  }, []);
 
   // Done: a backed-up profile returns where it came from; a signed-in device starts the app.
   useEffect(() => {
@@ -50,36 +43,11 @@ export default function SignInScreen() {
   const lead =
     mode === "backup"
       ? "Keep your @id and friends on a new phone."
-      : "Sign in with the login you backed up your profile with.";
+      : "Sign in with the email you backed up your profile with.";
 
   return (
     <Screen title={title} testID="signInScreen">
       <Text style={styles.lead}>{lead}</Text>
-      {s.step === "choose" ? (
-        <View style={styles.stack}>
-          {apple ? (
-            <Button
-              label="Continue with Apple"
-              testID="signInApple"
-              disabled={s.busy}
-              onPress={() => void flow.continueWith("apple")}
-            />
-          ) : null}
-          <Button
-            label="Continue with Google"
-            testID="signInGoogle"
-            disabled={s.busy}
-            onPress={() => void flow.continueWith("google")}
-          />
-          <Button
-            label="Continue with email"
-            testID="signInEmail"
-            disabled={s.busy}
-            onPress={() => flow.chooseEmail()}
-          />
-          <Text style={styles.hint}>Email: we send a 6-digit code.</Text>
-        </View>
-      ) : null}
       {s.step === "email" ? (
         <View style={styles.stack}>
           <TextInput
@@ -100,7 +68,7 @@ export default function SignInScreen() {
             disabled={s.busy}
             onPress={() => void flow.sendCode(email)}
           />
-          <Button label="Back" kind="ghost" onPress={() => flow.back()} />
+          <Text style={styles.hint}>We'll send a 6-digit code.</Text>
         </View>
       ) : null}
       {s.step === "code" ? (

@@ -16,8 +16,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocalNetworkUsageDescription": "OGS needs local network access to discover and connect to Chromecast and AirPlay devices for TV casting.",
         "NSBonjourServices": ["_googlecast._tcp"]
-      },
-      "usesAppleSignIn": true
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -48,7 +47,6 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-apple-authentication",
       [
         "expo-notifications",
         {
