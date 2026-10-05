@@ -30,6 +30,7 @@ import { createGoogleCastBackend } from "./google-cast-backend";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
 import { createOgsApi } from "./ogs-api";
+import { createRoomJoiner, roomStartUrl } from "./rooms";
 import { sittingToOpen } from "./sittings";
 
 /**
@@ -70,7 +71,13 @@ export const api = createOgsApi({ baseUrl: config.apiBase, fetch: fetchImpl, aut
 
 /** The game WebView's `profile` store: a token for the open game only (slice 3). */
 export const gameProfile = createGameProfile({
-  fetchToken: createGameTokenClient({ baseUrl: config.apiBase, fetch: fetchImpl, auth }),
+  fetchToken: createGameTokenClient({
+    baseUrl: config.apiBase,
+    fetch: fetchImpl,
+    auth,
+    // The couch this phone is on, so a multiCouch game knows which household it sits with.
+    sessionId: () => appState.getSnapshot().session?.sessionId ?? null,
+  }),
 });
 
 /** App storage (wiped with the app), unlike the Keychain behind SecureStore. */
@@ -154,12 +161,14 @@ function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
     deviceId: deviceIdOfMine,
     createSocket: webSocket,
     // A game started from the TV with the remote: this phone hosts it, so open its start page.
-    onFollowHost: ({ appId, instanceId }) => {
+    onFollowHost: ({ appId, instanceId, room }) => {
       const game = appState.getSnapshot().library.find((g) => g.appId === appId);
-      // Continuing a paused game hosts its same room again, not a fresh one from the start page.
+      // Continuing a paused game hosts its same room again, not a fresh one from the start page;
+      // a sitting in another couch's room (spec §7) starts by joining that room.
+      const start = (g: Manifest) => (room ? roomStartUrl(g.startUrl, room) : g.startUrl);
       if (game)
         gamePresence.followHost(appId, () =>
-          pushGame(game, rejoinUrlFor(appId, instanceId) ?? game.startUrl),
+          pushGame(game, rejoinUrlFor(appId, instanceId) ?? start(game)),
         );
     },
   });
@@ -253,6 +262,29 @@ export function openPill(pill: ReturnPill) {
   if (game) openGame(game, { resumeUrl: pill.url, instanceId: pill.instanceId });
   else router.push({ pathname: "/game", params: { url: pill.url, name: pill.name } });
 }
+
+/**
+ * Several couches, one room (spec §7): an invite link or Join with your couch starts the game in
+ * that room on this couch's TV, at once while cast, else as soon as the TV is cast.
+ */
+export const roomJoiner = createRoomJoiner({
+  find: (appId) => {
+    const { library, catalogue } = appState.getSnapshot();
+    return [...library, ...catalogue].find((g) => g.appId === appId);
+  },
+  isCast: ogsCastNow,
+  subscribeCast: (listener) => {
+    const offCast = castStore.subscribe(listener);
+    const offCouch = couchHub.subscribe(listener);
+    return () => {
+      offCast();
+      offCouch();
+    };
+  },
+  deviceId,
+  send: (msg) => couchHub.send(msg),
+  open: (game, url) => pushGame(game, url),
+});
 
 /** Cast: a new couch session hosted by this profile, named for the TV. */
 export async function castNow(tv: { id: string; name: string }) {

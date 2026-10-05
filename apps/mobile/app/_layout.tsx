@@ -1,6 +1,7 @@
+import { readPlayLink } from "@open-game-system/ogs-protocol";
 import { useFonts } from "expo-font";
 import * as Notifications from "expo-notifications";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { colors } from "../components/ogs/theme";
 import { addDeepLinkListener, getInitialGameUrl } from "../services/deep-links";
@@ -48,7 +49,10 @@ export default function RootLayout() {
     const tokenSub = addPushTokenListener(ogsDeviceId);
     const notificationSub = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = getGameUrlFromNotification(response.notification);
-      if (url) setGameUrl(url);
+      // A game invite (spec §7) starts the game in that room on this couch's TV.
+      const play = url ? readPlayLink(url) : null;
+      if (play) router.push(`/play/${play.appId}?room=${encodeURIComponent(play.room)}`);
+      else if (url) setGameUrl(url);
     });
     return () => {
       tokenSub.remove();
@@ -72,6 +76,8 @@ export default function RootLayout() {
       <Stack.Screen name="settings" />
       <Stack.Screen name="sign-in" options={{ presentation: "modal" }} />
       <Stack.Screen name="edit-profile" options={{ presentation: "modal" }} />
+      <Stack.Screen name="invite-friends" options={{ presentation: "modal" }} />
+      <Stack.Screen name="play/[appId]" />
       <Stack.Screen name="dev-tools" />
       <Stack.Screen name="[...unmatched]" />
     </Stack>

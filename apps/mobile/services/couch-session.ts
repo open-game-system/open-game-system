@@ -26,6 +26,7 @@ const ServerMessageSchema = z.discriminatedUnion("type", [
         appId: z.string(),
         instanceId: z.string(),
         roleId: z.string(),
+        room: z.string().optional(),
       }),
     ]),
   }),
@@ -48,7 +49,7 @@ function readServerFrame(data: unknown): ServerMessage | null {
 /** What a server message changes: the snapshot, and/or a game this phone should open as host. */
 interface Effect {
   patch?: Partial<CouchSnapshot>;
-  followHost?: { appId: string; instanceId: string };
+  followHost?: { appId: string; instanceId: string; room?: string };
 }
 
 function effectOf(msg: ServerMessage): Effect {
@@ -69,7 +70,8 @@ function effectOf(msg: ServerMessage): Effect {
 /** Only a host follow into a game opens anything on the phone. */
 function followEffect(target: Extract<ServerMessage, { type: "follow" }>["target"]): Effect {
   if (target.kind !== "game" || target.roleId !== "host") return {};
-  return { followHost: { appId: target.appId, instanceId: target.instanceId } };
+  const { appId, instanceId, room } = target;
+  return { followHost: { appId, instanceId, ...(room ? { room } : {}) } };
 }
 
 export type CouchStatus = "connecting" | "open" | "reconnecting" | "closed";
@@ -97,7 +99,7 @@ export interface CouchSessionOptions {
   deviceId: string;
   createSocket: (url: string) => SocketLike;
   /** The session made this phone the host of a game (e.g. OK pressed on the TV): open it. */
-  onFollowHost?: (game: { appId: string; instanceId: string }) => void;
+  onFollowHost?: (game: { appId: string; instanceId: string; room?: string }) => void;
 }
 
 const OPEN = 1;
