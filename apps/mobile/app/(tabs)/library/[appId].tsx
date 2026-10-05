@@ -75,37 +75,47 @@ function GamePageBody({ game }: { game: Manifest }) {
           />
         </View>
         <View style={[styles.body, { paddingTop: reveal }]}>
-          <View style={styles.caption}>
-            <GameLogo
-              game={game}
-              width={Math.round(width * 0.56)}
-              height={Math.round(width * (listing ? 0.2 : 0.26))}
-              nameStyle={styles.name}
+          {/* A scrim that follows the text, wherever the stack starts: the words never sit on
+              bright art, and the art above them stays untouched. */}
+          <View style={styles.stack}>
+            <LinearGradient
+              colors={["rgba(18,15,34,0)", "rgba(18,15,34,0.7)", "rgba(18,15,34,0.9)"]}
+              locations={[0, 0.3, 0.55]}
+              style={styles.stackScrim}
+              pointerEvents="none"
             />
-            {facts.length > 0 ? (
-              <Text style={styles.facts} numberOfLines={1}>
-                {facts.join("  ·  ")}
-              </Text>
+            <View style={styles.caption}>
+              <GameLogo
+                game={game}
+                width={Math.round(width * 0.56)}
+                height={Math.round(width * (listing ? 0.2 : 0.26))}
+                nameStyle={styles.name}
+              />
+              {facts.length > 0 ? (
+                <Text style={styles.facts} numberOfLines={1}>
+                  {facts.join("  ·  ")}
+                </Text>
+              ) : null}
+            </View>
+            {game.tagline ? <Text style={styles.tagline}>{game.tagline}</Text> : null}
+            {sittings.length > 0 ? (
+              <View testID="gameSittings" style={styles.sittings}>
+                <Text style={styles.heading} accessibilityRole="header">
+                  In progress
+                </Text>
+                {sittings.map((s, i) => (
+                  <SittingCard
+                    key={s.instanceId}
+                    sitting={s}
+                    title={titles[i]}
+                    game={game}
+                    primary={i === 0}
+                    onRejoin={() => rejoin(s)}
+                  />
+                ))}
+              </View>
             ) : null}
           </View>
-          {game.tagline ? <Text style={styles.tagline}>{game.tagline}</Text> : null}
-          {sittings.length > 0 ? (
-            <View testID="gameSittings" style={styles.sittings}>
-              <Text style={styles.heading} accessibilityRole="header">
-                In progress
-              </Text>
-              {sittings.map((s, i) => (
-                <SittingCard
-                  key={s.instanceId}
-                  sitting={s}
-                  title={titles[i]}
-                  game={game}
-                  primary={i === 0}
-                  onRejoin={() => rejoin(s)}
-                />
-              ))}
-            </View>
-          ) : null}
         </View>
       </ScrollView>
 
@@ -209,6 +219,8 @@ const styles = StyleSheet.create({
   art: { position: "absolute", top: 0, left: 0, right: 0 },
   topScrim: { position: "absolute", top: 0, left: 0, right: 0 },
   bottomScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "62%" },
+  stack: { gap: 10 },
+  stackScrim: { position: "absolute", top: -120, bottom: 0, left: -20, right: -20 },
   caption: { gap: 10, alignItems: "flex-start" },
   name: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: colors.cream },
   facts: {
@@ -266,9 +278,9 @@ const styles = StyleSheet.create({
     width: TARGET,
     height: TARGET,
     borderRadius: TARGET / 2,
-    backgroundColor: "rgba(18,15,34,0.78)",
+    backgroundColor: "rgba(18,15,34,0.86)",
     borderWidth: 1,
-    borderColor: "rgba(251,242,228,0.22)",
+    borderColor: "rgba(251,242,228,0.3)",
     alignItems: "center",
     justifyContent: "center",
   },
