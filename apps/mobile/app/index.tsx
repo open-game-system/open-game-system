@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { Redirect } from "expo-router";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { colors } from "../components/ogs/theme";
 import { decideOpeningTab, type TabName } from "../services/opening-tab";
@@ -33,16 +33,8 @@ export default function Index() {
     };
   }, []);
 
-  // Navigate once. expo-router's <Redirect> replaces on every focus of this screen, so a later
-  // focus (it stays mounted under the tabs) jumped the app to the opening tab mid-evening.
-  const router = useRouter();
-  const sent = useRef(false);
-  useEffect(() => {
-    if (!target || sent.current) return;
-    sent.current = true;
-    router.replace(target === "onboarding" ? "/onboarding" : `/${target}`);
-  }, [target, router]);
-
+  if (target === "onboarding") return <Redirect href="/onboarding" />;
+  if (target) return <Redirect href={`/${target}`} />;
   return (
     <View style={styles.root} testID="launching">
       <ActivityIndicator color={colors.cream3} />
