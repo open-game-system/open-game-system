@@ -45,7 +45,18 @@ jobs:
         working-directory: services/api
         run: npx wrangler deploy
 
+      # The cast renderer is the Cloud Run GPU stream server (stream-gpu, us-east4), set by hand with
+      # `wrangler secret put STREAM_SERVER_URL`; this only overwrites it when the repo variable
+      # STREAM_SERVER_URL is set. (It used to force bun-stream-server, a March Worker with no GPU.)
+      # TURN: the GPU publisher on Cloud Run has only private addresses and reaches the SFU through
+      # a TURN relay, as the PR previews do.
       - name: Set secrets
         working-directory: services/api
+        env:
+          STREAM_SERVER_URL: ${{ vars.STREAM_SERVER_URL }}
+          TURN_API_TOKEN: ${{ secrets.CLOUDFLARE_TURN_API_TOKEN }}
+          TURN_KEY_ID: ${{ secrets.CLOUDFLARE_TURN_KEY_ID }}
         run: |
-          printf '%s' "https://bun-stream-server.jonathanrmumm.workers.dev" | npx wrangler secret put STREAM_SERVER_URL || true
+          if [ -n "$STREAM_SERVER_URL" ]; then printf '%s' "$STREAM_SERVER_URL" | npx wrangler secret put STREAM_SERVER_URL; fi
+          if [ -n "$TURN_API_TOKEN" ]; then printf '%s' "$TURN_API_TOKEN" | npx wrangler secret put CLOUDFLARE_TURN_API_TOKEN; fi
+          if [ -n "$TURN_KEY_ID" ]; then printf '%s' "$TURN_KEY_ID" | npx wrangler secret put CLOUDFLARE_TURN_KEY_ID; fi

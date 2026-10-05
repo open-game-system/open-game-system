@@ -293,3 +293,16 @@ Feature: Cast-first OGS app with games inside one stream
     And Mom's phone is connected
     When Jonathan's phone disconnects
     Then Mom's phone is offered the remote
+
+  Scenario: A cast left on with nobody around ends after 20 minutes
+    Given the launcher is cast and streamed from the cloud GPU
+    And Jonathan's phone, Mom's phone and Juneau's iPad are on the couch session
+    When every phone and tablet leaves the couch session
+    And nothing changes in the session and nobody presses the remote for 20 minutes
+    Then the stream server ends the stream at the next heartbeat (window.__ogsActivityAt is over 20 minutes old)
+    But while any phone or tablet stays on the couch session, the stream keeps running (up to the 3-hour cap)
+
+  Scenario: The game's loading card says what the game is, not where it's served from
+    Given Rocket Crew is in the catalogue with its tagline
+    When Jonathan opens Rocket Crew
+    Then the loading card shows "Rocket Crew" and its tagline, never its host
