@@ -17,7 +17,7 @@
     // Email sign-in codes go out from this address through SEND_EMAIL (below).
     "EMAIL_FROM": "sign-in@opengame.org",
     // Game tokens: avatars are the launcher's painted stickers (<base>/art/story-nook/char-<sticker>.webp).
-    "AVATAR_BASE_URL": "https://tv.opengame.org"
+    "AVATAR_BASE_URL": "https://ogs-tv.pages.dev"
   },
 
   // Cloudflare Email Service (Email Sending): env.SEND_EMAIL.send({ from, to, subject, text, html }).
