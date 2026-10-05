@@ -1,3 +1,4 @@
+import { initialSession } from "@open-game-system/ogs-protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { boot } from "./boot";
 import { FIXTURE_GAMES, FIXTURE_SESSION } from "./session/fixture";
@@ -115,6 +116,25 @@ describe("boot, fake mode", () => {
 });
 
 describe("boot, live mode", () => {
+  it("keeps window.__ogsActivityAt for the stream server's idle stop: the cast's start, then each session change", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 4, 19, 0));
+    vi.stubGlobal("fetch", api().fetch);
+    boot(LIVE, "");
+    const started = Date.now();
+    expect(window.__ogsActivityAt).toBe(started);
+    vi.advanceTimersByTime(25 * 60 * 1000);
+    // Nobody on the couch session yet: the start is still the last activity.
+    expect(window.__ogsActivityAt).toBe(started);
+    const ws = BrowserWs.all[0]!;
+    ws.readyState = 1;
+    ws.onopen?.();
+    ws.onmessage?.({
+      data: JSON.stringify({ type: "state", state: initialSession("s 1", "jonathan") }),
+    });
+    expect(window.__ogsActivityAt).toBe(Date.now());
+  });
+
   it("opens the couch socket and loads the launcher data with the token", async () => {
     const { fetch, calls } = api();
     vi.stubGlobal("fetch", fetch);

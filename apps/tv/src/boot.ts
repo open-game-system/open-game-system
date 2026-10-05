@@ -2,6 +2,7 @@ import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol
 import type { StartGrant } from "./launcher/frames";
 import { createGameGrants } from "./launcher/game-grants";
 import { frameTimeoutMs, type LauncherParams, viewTimeoutMs, wsUrl } from "./params";
+import { watchActivity } from "./session/activity";
 import type { SessionClient } from "./session/client";
 import { fetchLauncherData, type LauncherData, libraryGames } from "./session/data";
 import { createFakeClient } from "./session/fake-client";
@@ -17,6 +18,8 @@ declare global {
   interface Window {
     /** Set once per page load: a game swap must never change it (the stream never reloads). */
     __launcherBootId?: string;
+    /** When players were last around (ms since epoch); the stream server's idle stop reads it. */
+    __ogsActivityAt?: number;
     /** Fake mode only: drive the in-browser couch session from tests. */
     __ogsFake?: {
       send(msg: ClientMessage): void;
@@ -57,6 +60,7 @@ export function boot(params: LauncherParams, search: string): Boot {
   const viewTimeout = viewTimeoutMs(search);
   if (params.mode === "fake") {
     const fake = createFakeClient({ hold: params.hold, fresh: params.fresh === true });
+    watchActivity(fake, { target: window });
     window.__ogsFake = {
       send: (m) => fake.send(m),
       state: () => fake.getSnapshot().state,
@@ -77,8 +81,10 @@ export function boot(params: LauncherParams, search: string): Boot {
       grants: async () => null,
     };
   }
+  const client = createWsClient({ url: wsUrl(params.api, params.token) });
+  watchActivity(client, { target: window });
   return {
-    client: createWsClient({ url: wsUrl(params.api, params.token) }),
+    client,
     data: loadWithRetry(() =>
       fetchLauncherData({ api: params.api, token: params.token, sessionId: params.sessionId }),
     ),
