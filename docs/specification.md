@@ -127,7 +127,9 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
   `POST /api/v1/sessions/:sid/game-token` (the launcher, for the TV).
 - On the game's server: `verifyOgsToken(token, { appId })` from `@open-game-system/profile-kit/server`
   checks signature, `aud` and expiry and returns the claims or `null`. `jwksUrl` overrides the default
-  (`OGS_JWKS_URL`) for local and test key sets. Anything that matters (seats, scores) uses the verified
+  (`OGS_JWKS_URL`, `https://api.opengame.org/.well-known/jwks.json`, a custom domain not yet confirmed
+  on 2026-10-04); Rocket Crew sets it per environment as a Worker var (`OGS_JWKS_URL` in its
+  `wrangler.toml`), which also lets seam tests use a local key set. Anything that matters (seats, scores) uses the verified
   claims; `readGameToken` in the page only decodes, for display.
 
 ## 5. Rules
