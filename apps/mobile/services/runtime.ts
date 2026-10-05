@@ -9,6 +9,7 @@ import { useSyncExternalStore } from "react";
 import { createAppState } from "./app-state";
 import type { CastBackend } from "./cast-backend";
 import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-flow";
+import { createCastStop } from "./cast-stop";
 import { createCastStore } from "./cast-store";
 import { castCommands, startCastSync } from "./cast-sync";
 import { OGS_STREAM_SERVER_URL } from "./cast-view";
@@ -173,6 +174,11 @@ export function ogsCastNow(): boolean {
   });
 }
 
+/** Stop casting as the phone shows it: done at the confirm, not when the TV's reply comes back. */
+export const castStop = createCastStop({ isCast: ogsCastNow });
+castStore.subscribe(() => castStop.castChanged());
+couchHub.subscribe(() => castStop.castChanged());
+
 export const deviceId = () => appState.getSnapshot().identity?.deviceId ?? "this-phone";
 
 export const gamePresence = createGamePresence();
@@ -245,6 +251,7 @@ export function openPill(pill: ReturnPill) {
 
 /** Cast: a new couch session hosted by this profile, named for the TV. */
 export async function castNow(tv: { id: string; name: string }) {
+  castStop.reset();
   const launcher = { launcherToken: () => appState.startSession(tv.name) };
   return castToTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
 }
@@ -258,10 +265,17 @@ export async function moveToTv(tv: { id: string; name: string }) {
   return switchTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
 }
 
-export async function endTonight() {
-  await endForTonight({ send: couchHub.send, sessionManager: castBackend.sessionManager });
-  appState.setPill(null);
-  await appState.leaveSession();
+/** Remote → Stop casting: the TV tab shows the Cast screen at once (castStop), then the cast ends. */
+export function endTonight() {
+  return castStop.stop(async () => {
+    const result = await endForTonight({
+      send: couchHub.send,
+      sessionManager: castBackend.sessionManager,
+    });
+    appState.setPill(null);
+    await appState.leaveSession();
+    return result;
+  });
 }
 
 /** The cast store a game page sees (game.view to the session while cast through OGS). */
@@ -281,6 +295,9 @@ export const useCouch = () =>
   useSyncExternalStore(couchHub.subscribe, couchHub.getSnapshot, couchHub.getSnapshot);
 export const useCast = () =>
   useSyncExternalStore(castStore.subscribe, castStore.getSnapshot, castStore.getSnapshot);
+
+export const useCastStopping = () =>
+  useSyncExternalStore(castStop.subscribe, castStop.isStopping, castStop.isStopping);
 
 export function useOgsCast(): boolean {
   useCouch();

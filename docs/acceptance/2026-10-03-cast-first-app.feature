@@ -202,7 +202,13 @@ Feature: Cast-first OGS app with games inside one stream
     Then he is asked to confirm, and the TV is still cast
     When he confirms
     Then the session ends, the cast stops and the TV tab says "Stopped casting on Living room TV"
+    And the TV tab says it the moment he confirms, without waiting for the TV's reply
     And one tap on Cast again casts to "Living room TV"
+
+  Scenario: A Stop casting that fails brings the remote back
+    Given Jonathan confirmed Stop casting and the TV tab says "Stopped casting on Living room TV"
+    When the stop fails and the TV is still cast
+    Then the TV tab shows the remote again
 
   Scenario: A phone that joined someone else's TV leaves it, never stops it
     Given Jonathan joined Mom's "Den TV" with the code on the TV

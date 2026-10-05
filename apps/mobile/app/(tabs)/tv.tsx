@@ -22,6 +22,7 @@ import { TvPicker } from "../../components/ogs/remote/TvPicker";
 import { tvMirror } from "../../components/ogs/remote/tv-mirror";
 import { Screen } from "../../components/ogs/Screen";
 import { colors, fonts, TARGET } from "../../components/ogs/theme";
+import { tvTabShows } from "../../services/cast-stop";
 import type { CastDevice } from "../../services/cast-store";
 import { remotePress } from "../../services/remote";
 import {
@@ -34,6 +35,7 @@ import {
   moveToTv,
   useApp,
   useCast,
+  useCastStopping,
   useCouch,
   useOgsCast,
 } from "../../services/runtime";
@@ -57,7 +59,10 @@ const useDevices = () =>
 export default function TvScreen() {
   const cast = useOgsCast();
   const castState = useCast();
-  if (cast) return <Remote castDeviceName={castState.session.deviceName} />;
+  // Stop casting shows "Stopped casting" at the confirm, not after the TV's reply.
+  const stopping = useCastStopping();
+  if (tvTabShows({ ogsCast: cast, stopping }) === "remote")
+    return <Remote castDeviceName={castState.session.deviceName} />;
   return <NotCast connecting={castState.session.status === "connecting"} />;
 }
 

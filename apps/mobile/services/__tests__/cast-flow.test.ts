@@ -205,6 +205,20 @@ describe("cast flow edges", () => {
     expect(end).toHaveBeenCalledWith(true);
   });
 
+  it("Stop casting says whether the cast stopped", async () => {
+    const t = setup();
+    const ok = { ...t.backend.sessionManager, endCurrentSession: async () => {} };
+    const failing = {
+      ...t.backend.sessionManager,
+      endCurrentSession: async () => {
+        throw new Error("no session");
+      },
+    };
+    await expect(endForTonight({ send: t.send, sessionManager: ok })).resolves.toBe("stopped");
+    await expect(endForTonight({ send: t.send, sessionManager: failing })).resolves.toBe("failed");
+    expect(t.sent).toEqual([{ type: "end" }, { type: "end" }]);
+  });
+
   it("the game's store resets and reports events through the app's cast store", () => {
     const t = setup();
     const gameStore = createGameCastStore(

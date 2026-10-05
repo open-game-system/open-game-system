@@ -1,5 +1,6 @@
 import type { Store } from "@open-game-system/app-bridge-types";
 import type { ClientMessage } from "@open-game-system/ogs-protocol";
+import type { StopResult } from "./cast-stop";
 import type { NativeCastEvents, NativeCastState } from "./cast-store";
 import type { SessionManagerLike } from "./cast-sync";
 import { type AppConfig, launcherUrl } from "./config";
@@ -43,9 +44,12 @@ export async function switchTv(
 export async function endForTonight(input: {
   send: (msg: ClientMessage) => void;
   sessionManager: SessionManagerLike;
-}): Promise<void> {
+}): Promise<StopResult> {
   input.send({ type: "end" });
-  await input.sessionManager.endCurrentSession(true).catch(() => {});
+  return input.sessionManager.endCurrentSession(true).then(
+    (): StopResult => "stopped",
+    (): StopResult => "failed",
+  );
 }
 
 /**
