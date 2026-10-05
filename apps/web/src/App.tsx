@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Collective from "./pages/Collective";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Play from "./pages/Play";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/collective" element={<Collective />} />
+          <Route path="/play/:appId" element={<Play />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
