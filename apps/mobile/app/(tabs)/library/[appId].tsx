@@ -44,7 +44,7 @@ function GamePageBody({ game }: { game: Manifest }) {
   // its fade, so the page never has an empty band. The art always shows at least `reveal`.
   // With sittings the art gives them the room: shorter, and the logo a size down.
   const listing = sittings.length > 0;
-  const artHeight = Math.round(height * (listing ? 0.56 : 0.72));
+  const artHeight = Math.round(height * (listing ? 0.64 : 0.72));
   const reveal = insets.top + Math.round(height * (listing ? 0.12 : 0.3));
   // One filled action per page: the newest sitting's Rejoin, else the footer's Play.
   const footerPrimary = sittings.length === 0;
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   art: { position: "absolute", top: 0, left: 0, right: 0 },
   topScrim: { position: "absolute", top: 0, left: 0, right: 0 },
   bottomScrim: { position: "absolute", left: 0, right: 0, bottom: 0, height: "62%" },
-  caption: { gap: 8, alignItems: "flex-start" },
+  caption: { gap: 10, alignItems: "flex-start" },
   name: { fontFamily: fonts.display, fontSize: 40, lineHeight: 44, color: colors.cream },
   facts: {
     color: colors.cream,
@@ -293,8 +293,8 @@ const styles = StyleSheet.create({
     borderRadius: BAR / 2,
   },
   actionPrimary: { backgroundColor: colors.lamp },
-  // Start game beside a lit Rejoin: filled, but tonal, so it never reads as disabled.
-  actionQuiet: { backgroundColor: "rgba(251,242,228,0.14)" },
+  // Start game beside a lit Rejoin: a full cream outline, so it reads as live but second.
+  actionQuiet: { borderWidth: 2, borderColor: colors.cream },
   pressed: { opacity: 0.8, transform: [{ scale: 0.97 }] },
   triangle: {
     width: 0,
