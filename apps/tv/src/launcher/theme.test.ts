@@ -8,8 +8,11 @@ import { themeFor } from "./theme";
 const NOW = new Date(2026, 9, 4, 19, 0).getTime();
 const home = (games: Manifest[] = FIXTURE_GAMES): HomeModel =>
   buildHome({ games, instances: fixtureInstances(NOW), suspended: [], now: NOW, surpriseSeed: 0 });
-const themed = (h: HomeModel, focus: string | null, screen: "home" | "game-page" | "game" = "home") =>
-  themeFor({ screen, focus, home: h, games: FIXTURE_GAMES });
+const themed = (
+  h: HomeModel,
+  focus: string | null,
+  screen: "home" | "game-page" | "game" = "home",
+) => themeFor({ screen, focus, home: h, games: FIXTURE_GAMES });
 
 describe("themeFor: which theme the launcher plays", () => {
   it("on Home, a focused game icon plays its game's theme", () => {
@@ -48,8 +51,6 @@ describe("themeFor: which theme the launcher plays", () => {
 
   it("a focused icon whose game isn't in the list is silence", () => {
     const h = home();
-    expect(
-      themeFor({ screen: "home", focus: "game:bake-shop", home: h, games: [] }),
-    ).toBeNull();
+    expect(themeFor({ screen: "home", focus: "game:bake-shop", home: h, games: [] })).toBeNull();
   });
 });
