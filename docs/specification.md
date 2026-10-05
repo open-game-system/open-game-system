@@ -38,6 +38,7 @@ reads it from there. `apps/mobile/services/game-directory.ts` is the old static 
 | `art` | See the art kit below |
 | `shop` | `ages`, `minutes: [min, max]`, `players` |
 | `instanceTtlMs` | How long a silent sitting lives (default 7 days) |
+| `multiCouch` | `true`: several couches may join one room (§7). Default `false` |
 
 `catalogueFor(env)` swaps in local `startUrl`s from `CATALOGUE_START_URLS` (JSON `{ appId: url }`) for
 dev stacks and e2e runs; it never adds games.
@@ -68,11 +69,12 @@ a game that answers nothing still runs.
 
 | Direction | Message | Payload | When |
 |---|---|---|---|
-| launcher → game | `ogs:start` | `instanceId`, `mode` (`continue` \| `new`), `roster`, `token`, `players?` | On the frame's load, and again whenever the game says `ogs:ready` |
+| launcher → game | `ogs:start` | `instanceId`, `mode` (`continue` \| `new`), `roster`, `token`, `players?`, `room?` (§7) | On the frame's load, and again whenever the game says `ogs:ready` |
 | game → launcher | `ogs:ready` | none | The page started listening (possibly after load); the launcher re-sends `ogs:start` for the current sitting |
 | launcher → game | `ogs:suspend` | none | Home, or a swap to another game: the frame is **parked**, still loaded |
 | launcher → game | `ogs:resume` | none | Continue of the parked sitting: the same frame comes back, no reload |
 | game → launcher | `ogs:resume-point` | `label` | The sitting's label ("Mission 6") |
+| game → launcher | `ogs:room` | `room` | The room the TV page shows (`multiCouch` games, §7) |
 | game → launcher | `ogs:instance` | `report` (`InstanceReportSchema`) | Same purpose; the launcher uses `report.title` as the label |
 
 - `token` is a **game token** for this game and this couch session (`aud` = appId, `sid`, `players`), or
@@ -121,7 +123,7 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 - Game tokens are **ES256** JWTs signed by OGS, `aud` = the game's appId, valid 1 hour
   (`GameTokenSchema`, `GAME_TOKEN_TTL_S` in `packages/ogs-protocol/src/game-token.ts`). Claims: `iss`,
   `aud`, `sub` (profile id; the host's for a TV token), `handle`, `name`, `avatar`, `iat`, `exp`, plus
-  `sid` and `players` on TV tokens. Never friends, other games, device ids, push tokens or age.
+  `sid` and `players` on TV tokens, and `couch` (`{ sid, label }`) on every token issued for a couch (§7). Never friends, other games, device ids, push tokens or age.
 - Public keys: `GET /.well-known/jwks.json` on the OGS API.
 - Issued by `POST /api/v1/games/:appId/token` (the app, for a phone) and
   `POST /api/v1/sessions/:sid/game-token` (the launcher, for the TV).
@@ -153,6 +155,37 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 - **OGS side:** `packages/profile-kit/src/*.test.ts`, `apps/tv/src/launcher/frames.test.ts`,
   `services/api/test/catalogue.test.ts`; cross-surface suites in [testing/e2e.md](testing/e2e.md).
 
+## 7. Several couches, one room (`multiCouch`)
+
+Each living room keeps its own couch session, TV launcher and phones. Several couches can play one
+**room** of a game: the game makes the room, the other couches join it, and the game groups players by
+couch. Decision: [ADR 2026-10-05 couches join the game's room](adrs/2026-10-05-couches-join-the-games-room.md).
+Acceptance: [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature).
+
+| Piece | Contract |
+|---|---|
+| Manifest | `multiCouch: true` (default `false`): the game accepts players from several couches in one room. OGS offers Invite and Join with your couch only for these games. |
+| Room id | The game's own room code (`[A-Za-z0-9_-]{1,64}`, e.g. Night Flight's `KQTP`). OGS never makes one. |
+| Game → launcher | `ogs:room` `{ room }`: the TV page says which room it shows (on create and whenever it changes). The launcher forwards it to the couch session as `game.room`; the sitting keeps it, and friends' presence shows it. profile-kit: `reportOgsRoom(room)`. |
+| Couch session | `game.start` takes `room?`. Starting a game with a room opens (or resumes) this couch's sitting **in that room**; without one the game makes its own as before. `current.room` and each paused sitting's `room` keep it, so Continue goes back into the same room. |
+| Launcher → game | `ogs:start` carries `room` when the sitting names one: join that room, don't create one. |
+| Phone page | When the sitting names a room, the app opens `startUrl` with `ogsRoom=<room>` added to its query (profile-kit: `ogsRoomFromUrl(location.href)`), so the host phone joins the room too. |
+| Game token | Every token issued for a couch (the TV's, and a phone's when it asks with its session id) carries `couch: { sid, label }`: the couch session id and its label (the host's name). Players with the same `couch.sid` sit on the same couch. A token without `couch` is a phone with no couch (plain WebView): the game seats it with its TV's couch, or alone. |
+| Leaving | Home on one TV parks only that couch's frame (`ogs:suspend`); the game marks that couch away and keeps the turn order going for the others. `ogs:resume` brings it back in the same room. |
+
+**Invites.** `POST /api/v1/games/:appId/invites` `{ room, to: [profileId…] }` (a phone in a couch
+session; only friends; only `multiCouch` games) sends each friend a push ("Jonathan invites you to Night
+Flight") and answers the link `https://opengame.org/play/<appId>?room=<room>` (`PLAY_BASE_URL` overrides
+the origin). The app opens that link (and `opengame://play/<appId>?room=<room>`): with a TV cast it sends
+`game.start { appId, room }`, else it asks to cast first and then starts. opengame.org/play/… is a web page
+that opens the app, or says how to get it.
+
+**Join with your couch.** `GET /api/v1/friends/rooms` lists the rooms of `multiCouch` games your friends'
+TVs are in: `{ appId, game, room, couches: [{ sessionId, label, host }], joined }`. Playing shows each as
+"Jonathan and Sam are playing Night Flight" with **Join with your couch** (the same start as the link).
+Presence (`casting`/`playing`) carries the `room` too. Join a friend's cast (sitting on *their* couch) is
+unchanged.
+
 ## Acceptance
 
 - [ogs-game-contract.feature](acceptance/2026-10-04-ogs-game-contract.feature): the TV page contract
@@ -161,3 +194,4 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 - [cast-first-app.feature](acceptance/2026-10-03-cast-first-app.feature): cast once, launcher, swaps,
   instances
 - [ogs-profiles.feature](acceptance/2026-10-04-ogs-profiles.feature): profiles and joining with the TV code
+- [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature): several couches in one room (§7)
