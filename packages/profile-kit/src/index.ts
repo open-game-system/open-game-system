@@ -1,4 +1,5 @@
 import { createWebBridge } from "@open-game-system/app-bridge-web";
+import { listenForPause } from "./pause";
 import {
   createProfileSource,
   type ProfileSnapshot,
@@ -8,6 +9,7 @@ import {
 import { type InstanceReportInput, type OgsStores, reportOgsInstance } from "./report";
 import { createSessionSource, type SessionSnapshot } from "./session";
 
+export { listenForPause } from "./pause";
 export * from "./profile";
 export * from "./report";
 export * from "./session";
@@ -45,4 +47,13 @@ export function getOgsSessionSource(): Source<SessionSnapshot> {
 export function reportOgsSitting(report: InstanceReportInput): "bridge" | "launcher" | "none" {
   if (typeof window === "undefined") return "none";
   return reportOgsInstance(report, { bridge: sharedBridge(), win: window });
+}
+
+/**
+ * The OGS launcher parked this game (Home, or another game) or brought it back (Continue): silence
+ * the game while `paused`. Returns a function that stops listening; a plain browser never pauses.
+ */
+export function onOgsPause(onPause: (paused: boolean) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  return listenForPause(onPause, window);
 }
