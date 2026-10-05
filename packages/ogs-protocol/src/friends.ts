@@ -25,12 +25,15 @@ export const PresenceSchema = z.discriminatedUnion("kind", [
     sessionId: z.string(),
     tvName: z.string(),
     game: GameRefSchema.nullable(),
+    /** The game's room on that TV (multiCouch games). */
+    room: z.string().optional(),
   }),
   z.object({
     kind: z.literal("playing"),
     sessionId: z.string(),
     tvName: z.string(),
     game: GameRefSchema,
+    room: z.string().optional(),
   }),
   z.object({ kind: z.literal("online") }),
   z.object({ kind: z.literal("offline"), lastSeenAt: z.number().nullable() }),
@@ -128,6 +131,8 @@ export interface LiveSession {
   sessionId: string;
   tvName: string;
   game: GameRef | null;
+  /** The game's room on that TV, when it named one. */
+  room?: string;
 }
 
 /**

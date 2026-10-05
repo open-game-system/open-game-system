@@ -1,8 +1,16 @@
 // Several couches, one room (docs/specification.md §7, acceptance 2026-10-05-multi-couch.feature).
 import { describe, expect, it } from "vitest";
 import { GameToLauncherSchema, LauncherToGameSchema } from "./frame";
+import { PresenceSchema } from "./friends";
 import { CouchClaimSchema, GameTokenSchema } from "./game-token";
 import { ManifestSchema } from "./manifest";
+import {
+  FriendRoomSchema,
+  GameInviteRequestSchema,
+  playLink,
+  readPlayLink,
+  whoIsPlaying,
+} from "./rooms";
 import {
   type ClientMessage,
   ClientMessageSchema,
@@ -227,5 +235,91 @@ describe("couch session: rooms", () => {
   it("a session with rooms round-trips through its schema", () => {
     const s = run([...couch(), start("KQTP"), { type: "home" }, start("ZZZZ")]).s;
     expect(SessionStateSchema.parse(s)).toEqual(s);
+  });
+});
+
+describe("play links", () => {
+  it("builds the invite link for a game's room", () => {
+    expect(playLink("https://opengame.org", "night-flight", "KQTP")).toBe(
+      "https://opengame.org/play/night-flight?room=KQTP",
+    );
+    expect(playLink("http://localhost:5173/", "night-flight", "KQTP")).toBe(
+      "http://localhost:5173/play/night-flight?room=KQTP",
+    );
+  });
+
+  it.each([
+    ["https://opengame.org/play/night-flight?room=KQTP", { appId: "night-flight", room: "KQTP" }],
+    [
+      "https://opengame.org/play/night-flight/?room=KQTP&x=1",
+      { appId: "night-flight", room: "KQTP" },
+    ],
+    ["opengame://play/night-flight?room=KQTP", { appId: "night-flight", room: "KQTP" }],
+    ["opengameapp://play/night-flight?room=KQTP", { appId: "night-flight", room: "KQTP" }],
+    ["http://localhost:5173/play/trivia-jam?room=ab_9", { appId: "trivia-jam", room: "ab_9" }],
+  ])("reads %s", (url, want) => {
+    expect(readPlayLink(url)).toEqual(want);
+  });
+
+  it.each([
+    "https://opengame.org/play/night-flight",
+    "https://opengame.org/play/night-flight?room=",
+    "https://opengame.org/play/Night_Flight?room=KQTP",
+    "https://opengame.org/play/night-flight?room=a%20b",
+    "https://opengame.org/add/abcdefghijklmnopqrst",
+    "not a url",
+  ])("ignores %s", (url) => {
+    expect(readPlayLink(url)).toBeNull();
+  });
+});
+
+describe("invites and rooms over the API", () => {
+  it("an invite names the room and one to twenty friends", () => {
+    expect(GameInviteRequestSchema.parse({ room: "KQTP", to: ["p1"] })).toEqual({
+      room: "KQTP",
+      to: ["p1"],
+    });
+    expect(GameInviteRequestSchema.safeParse({ room: "KQTP", to: [] }).success).toBe(false);
+    expect(
+      GameInviteRequestSchema.safeParse({ room: "KQTP", to: Array(21).fill("p") }).success,
+    ).toBe(false);
+    expect(GameInviteRequestSchema.safeParse({ room: "a b", to: ["p1"] }).success).toBe(false);
+  });
+
+  it("a friends' room lists its couches", () => {
+    const room = {
+      appId: "night-flight",
+      game: { appId: "night-flight", name: "Night Flight" },
+      room: "KQTP",
+      couches: [
+        {
+          sessionId: "s-mumm",
+          label: "Jonathan",
+          host: { id: "jon", handle: "jonathan.m", name: "Jonathan", sticker: "bear" },
+        },
+      ],
+      joined: false,
+    };
+    expect(FriendRoomSchema.parse(room)).toEqual(room);
+  });
+
+  it.each([
+    [[], ""],
+    [["Jonathan"], "Jonathan is playing"],
+    [["Jonathan", "Sam"], "Jonathan and Sam are playing"],
+    [["Jonathan", "Sam", "Kim"], "Jonathan, Sam and Kim are playing"],
+  ])("%j: %s", (labels, line) => {
+    expect(whoIsPlaying(labels)).toBe(line);
+  });
+
+  it("presence may carry the room", () => {
+    const casting = {
+      kind: "casting",
+      sessionId: "s",
+      tvName: "TV",
+      game: { appId: "night-flight", name: "Night Flight" },
+      room: "KQTP",
+    };
+    expect(PresenceSchema.parse(casting)).toEqual(casting);
   });
 });

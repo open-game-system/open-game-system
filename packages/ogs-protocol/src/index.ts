@@ -3,6 +3,7 @@ export * from "./friends";
 export * from "./game-token";
 export * from "./instance";
 export * from "./manifest";
+export * from "./rooms";
 export * from "./session";
 export * from "./sitting";
 export * from "./token";
