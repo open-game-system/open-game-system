@@ -12,7 +12,7 @@ import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-f
 import { createCastStop } from "./cast-stop";
 import { createCastStore } from "./cast-store";
 import { castCommands, startCastSync } from "./cast-sync";
-import { OGS_STREAM_SERVER_URL } from "./cast-view";
+import { streamServerUrl } from "./cast-view";
 import { appConfig, isLauncherView } from "./config";
 import {
   type CouchSession,
@@ -53,7 +53,12 @@ export const castBackend: CastBackend =
 
 const commands = castCommands(() => castBackend.showCastDialog());
 export const castStore = createCastStore(commands);
-startCastSync(castStore, castBackend.sessionManager, commands, OGS_STREAM_SERVER_URL);
+/** Metro inlines EXPO_PUBLIC_* only for literal reads. */
+const streamServer = streamServerUrl(
+  { EXPO_PUBLIC_OGS_STREAM: process.env.EXPO_PUBLIC_OGS_STREAM },
+  config.apiBase,
+);
+startCastSync(castStore, castBackend.sessionManager, commands, streamServer);
 castBackend.subscribeDevices((devices) => castStore.dispatch({ type: "DEVICES_UPDATED", devices }));
 
 const auth = () => {

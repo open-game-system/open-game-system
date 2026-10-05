@@ -1,4 +1,9 @@
-import { CAST_VIEW_NAMESPACE, connectViewChannel, OGS_STREAM_SERVER_URL } from "../cast-view";
+import {
+  CAST_VIEW_NAMESPACE,
+  connectViewChannel,
+  OGS_STREAM_SERVER_URL,
+  streamServerUrl,
+} from "../cast-view";
 
 type Msg = Record<string, unknown> | string;
 
@@ -92,9 +97,9 @@ describe("connectViewChannel", () => {
 describe("the view channel when things go wrong", () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it("defaults to the OGS stream server the receiver also uses", () => {
+  it("defaults to the production OGS API's stream route, which the receiver also uses", () => {
     expect(OGS_STREAM_SERVER_URL).toBe(
-      "https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream",
+      "https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream",
     );
   });
 
@@ -135,5 +140,28 @@ describe("the view channel when things go wrong", () => {
       STREAM,
     );
     expect(warn).toHaveBeenCalledWith("[Cast] Could not open the view channel:", err);
+  });
+});
+
+describe("which stream server the app sends the receiver", () => {
+  it("is the stream route of the API the app was built against", () => {
+    expect(streamServerUrl({}, "https://opengame-api.jonathanrmumm.workers.dev")).toBe(
+      "https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream",
+    );
+  });
+
+  it("EXPO_PUBLIC_OGS_STREAM overrides it (trailing slashes trimmed)", () => {
+    expect(
+      streamServerUrl(
+        { EXPO_PUBLIC_OGS_STREAM: "https://stream.example/api/v1/stream/" },
+        "https://api.example",
+      ),
+    ).toBe("https://stream.example/api/v1/stream");
+  });
+
+  it("an empty override falls back to the API's stream route", () => {
+    expect(streamServerUrl({ EXPO_PUBLIC_OGS_STREAM: "" }, "https://api.example")).toBe(
+      "https://api.example/api/v1/stream",
+    );
   });
 });

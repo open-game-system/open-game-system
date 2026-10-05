@@ -8,9 +8,21 @@ import { z } from "zod";
  */
 export const CAST_VIEW_NAMESPACE = "urn:x-cast:org.opengame.view";
 
-/** Default OGS stream server (the receiver uses the same default). */
-export const OGS_STREAM_SERVER_URL =
-  "https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream";
+/** The production OGS API's stream route (the receiver's default when a sender names none). */
+export const OGS_STREAM_SERVER_URL = "https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream";
+
+/**
+ * The stream server the app names in LOAD_VIEW: EXPO_PUBLIC_OGS_STREAM when set, else the stream
+ * route of the API the app was built against (EXPO_PUBLIC_OGS_API), so a production build casts
+ * through the production API.
+ */
+export function streamServerUrl(
+  env: { EXPO_PUBLIC_OGS_STREAM?: string | undefined },
+  apiBase: string,
+): string {
+  const url = env.EXPO_PUBLIC_OGS_STREAM || `${apiBase}/api/v1/stream`;
+  return url.replace(/\/+$/, "");
+}
 
 type ChannelMessage = Record<string, unknown> | string;
 
