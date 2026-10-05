@@ -32,6 +32,7 @@ and a laptop page; every other request is aborted and must stay empty (`rx.block
 | Mobile app (Detox) | `pnpm --filter @open-game-system/mobile e2e` (`e2e:build`, `e2e:test`) | `DETOX_IOS_BINARY`, `DETOX_SIM_NAME`, `E2E_OGS_API`, `FAKE_CAST` |
 | Fake Chromecast (for Detox/iOS runs) | `cd e2e && node fake-chromecast.mjs [--port 5181]` | Playwright Chromium |
 | Couch flow across devices | `cd e2e && node couch-flow.mjs` | API (8788), launcher (5180), fake Chromecast (5181), fixture game (5190) |
+| Several households, one room (multiCouch): three couches, three recorded launchers, Night Flight; the Mumm phone in the simulator under Detox taps Invite; a Smith card moves every TV; Home/Continue on one TV; synced 2×2 video | `cd e2e && node multi-couch.mjs` (`MUMM_PHONE=scripted` without the simulator) | below |
 | 4. API stream routes against a mock renderer, Realtime and TURN (start, publisher answer forwarding, subscribe/answer, heartbeat 410/502, ice-servers fallback, readiness, error contract) | `cd services/api && pnpm exec vitest run test/stream-sfu.test.ts test/stream-routes.test.ts test/stream-ready.test.ts test/stream-ready-check.test.ts` (part of `pnpm test`) | nothing (fetch stubbed) |
 | 5. Post-deploy stream readiness | `pnpm --filter @open-game-system/api stream:ready <apiBase>` (below) | network, `gcloud` (optional) |
 | API integration (workerd) | `pnpm --filter @open-game-system/api test:integration` | emulators started by its global setup |
@@ -45,3 +46,34 @@ configured (booleans), and Cloud Run's control plane (`gcloud run services descr
 says the renderer is Ready. Starts no stream and no instance. `--probe-renderer` also calls the
 renderer's `/health` (no Chrome launch, but on a scaled-to-zero GPU service it cold-starts a billed
 L4 instance). Hard limit 20 s; prints results only, never values.
+
+## Several households, one room (`e2e/multi-couch.mjs`)
+
+Everything local (no Cloud Run, no GPU, no SFU), on ports of its own so the shared 8788/5180/5181 stay
+untouched:
+
+```bash
+SP=<scratch dir>
+# API (8798): containers off, its own D1, Night Flight's start page local
+cd services/api && pnpm exec wrangler d1 execute opengame-api-db --local --persist-to $SP/api --file=schema.sql
+pnpm exec wrangler dev --enable-containers=false --port 8798 --persist-to $SP/api \
+  --var 'CATALOGUE_START_URLS:{"night-flight":"http://localhost:8797/"}' --var AVATAR_BASE_URL:http://localhost:5280
+# Night Flight (8797), verifying game tokens with that API
+cd ~/src/night-flight-owls && pnpm exec wrangler dev --port 8797 --persist-to $SP/nf \
+  --var OGS_JWKS_URL:http://localhost:8798/.well-known/jwks.json
+# Launcher (5280)
+pnpm --filter @open-game-system/tv build && (cd apps/tv && pnpm exec vite preview --port 5280 --strictPort)
+# The app (Release, simulator) pointed at them; the script is the fake Chromecast on 5281
+cd apps/mobile && EXTRA_PACKAGER_ARGS=--reset-cache EXPO_PUBLIC_OGS_API=http://localhost:8798 \
+  EXPO_PUBLIC_OGS_TV=http://localhost:5280 EXPO_PUBLIC_FAKE_CAST=1 EXPO_PUBLIC_FAKE_CAST_URL=http://localhost:5281/load \
+  xcodebuild -workspace ios/opengameapp.xcworkspace -scheme opengameapp -configuration Release \
+  -sdk iphonesimulator -derivedDataPath $SP/dd -quiet
+# Run (a simulator of your own)
+cd e2e && DETOX_IOS_BINARY=$SP/dd/Build/Products/Release-iphonesimulator/opengameapp.app \
+  DETOX_SIM_NAME="OGS Multi-couch e2e" node multi-couch.mjs
+```
+
+The script spawns `detox test e2e/multi-couch.test.ts` (apps/mobile) and talks to it over
+`/step/<name>` and `/wait/<name>` on 5281; it records the three TV contexts (Playwright `recordVideo`)
+and the simulator (`simctl io recordVideo`), and writes `multi-couch-2x2.mp4`, screenshots and
+`results.json` to `docs/exec-plans/active/evidence/2026-10-05-multi-couch/`.

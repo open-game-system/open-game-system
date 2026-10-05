@@ -153,9 +153,11 @@ route → 403 `profile_token_required`.
 | GET | `/api/v1/friends` | phone/tablet | → `Friend[]` = `{ id, handle, name, sticker, presence, since }`; presence `casting{sessionId,tvName,game}` · `playing{sessionId,tvName,game}` · `online` (seen < 5 min) · `offline{lastSeenAt}`; sorted by presence then name |
 | DELETE | `/api/v1/friends/:profileId` | phone/tablet | → 204 (mutual); 404 `friend_not_found` |
 | GET | `/api/v1/friends/casting` | phone/tablet | → `CastingFriend[] { sessionId, tvName, host, game, joined }`: friends hosting a session whose TV is connected, newest first |
+| GET | `/api/v1/friends/rooms` | phone/tablet | → `FriendRoom[] { appId, game, room, couches: [{ sessionId, label, host }], joined }`: rooms of `multiCouch` games a friend's live TV is in (Join with your couch), newest first; couches first to arrive first (spec §7) |
 | GET | `/api/v1/catalogue` | none | → `Manifest[]` (the five deployed games, `services/api/src/catalogue.ts`; local dev/e2e may point start URLs at local servers with `CATALOGUE_START_URLS` = JSON `{ appId: url }`) |
-| POST | `/api/v1/games/:appId/token` | phone/tablet | Game token for the app's WebView → `{ token, profile: { id, handle, name, avatar }, expiresAt }`; 404 `game_not_found`, 403 `profile_token_required` (launcher), 503 `game_tokens_unavailable` |
-| POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
+| POST | `/api/v1/games/:appId/token` | phone/tablet | Game token for the app's WebView → `{ token, profile: { id, handle, name, avatar }, expiresAt }`. Optional `{ sid }`: the couch this phone is on, so the token carries `couch: { sid, label }`. 404 `game_not_found` / `session_not_found`, 403 `profile_token_required` (launcher) / `not_a_member`, 400 `invalid_body`, 503 `game_tokens_unavailable` |
+| POST | `/api/v1/games/:appId/invites` | phone/tablet | Invite friends to this game's room: `{ room, to: [profileId] }` → 201 `{ link, invited: [{ profileId, pushed }] }`; a push to each friend's devices, link `<PLAY_BASE_URL>/play/<appId>?room=` (default opengame.org). 403 `not_a_friend`, 409 `not_multi_couch`, 404 `game_not_found`, 400 `invalid_body` (spec §7) |
+| POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined, `couch: { sid, label: host's name }`); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
 | GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 | GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url, container }, realtime, turn }`; 200 ready / 503 not (needs a renderer — `STREAM_SERVER_URL` or the `STREAM_CONTAINER` binding — plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
@@ -213,6 +215,13 @@ frames: `{ type: "state", state }`, `{ type: "focus.move", dir }` (launcher),
 `{ type: "error", code: invalid_json|invalid_message|identity_from_token, message }`. Connect errors
 are HTTP: 401 `missing_auth`/`invalid_token`, 426 `upgrade_required`.
 
+**Several couches, one room** (spec §7, [ADR](adrs/2026-10-05-couches-join-the-games-room.md)): each
+couch keeps its own CouchSession. `game.start` may name the game's `room` (opens or resumes this
+couch's sitting in it; one paused sitting per game and room), the launcher forwards the TV page's
+`ogs:room` as `game.room`, and `current.room` / `suspended[].room` / host follows carry it. After every
+message the DO writes `session_rooms` when the live room changes (`roomChange` in `lib/presence.ts`),
+which presence (`casting`/`playing` gain `room`) and `GET /friends/rooms` read.
+
 ## Error Contract
 
 All API errors use this shape (no exceptions):
@@ -221,7 +230,7 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`
 
 ## Database Schema (D1/SQLite)
 
@@ -241,6 +250,7 @@ Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `in
 | `friend_invites` | `id` | profile_id, code, link_token, qr_token (each unique), expires_at, used_at, used_by | 10 min, single use; QR accepts at once |
 | `profile_seen` | `profile_id` | last_seen_at (ms) | Presence "online": written by `anyToken` and the couch WS (≤ 1/min) |
 | `session_live` | `session_id` | app_id, since (ms) | Row while the session's TV launcher is connected; written by the CouchSession DO |
+| `session_rooms` | `session_id` | app_id, room, since (ms) | The game's room on the session's TV (multiCouch, spec §7), while the TV is connected and the sitting names one; written by the CouchSession DO |
 | `instances` | `(profile_id, instance_id)` | app_id, status, title, detail, your_turn, starts_at, resume_url, source, updated_at (ms) | ogs-protocol `InstanceSchema` |
 
 Canonical schema: `services/api/schema.sql`

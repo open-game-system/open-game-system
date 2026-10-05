@@ -11,6 +11,7 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 - Friends: add by QR, code, link or @id; requests; presence; Join a friend's cast.
 - Games know you: game-scoped ES256 tokens, `profile-kit`; Rocket Crew skips its name form; every game reports a sitting label.
 - Art kit per game; PS5-style TV launcher; redesigned remote, Playing, Library.
+- **Several households play one game** (2026-10-05, local; not deployed): `multiCouch` games; couches join the game's room; invites (push + `opengame.org/play/<appId>?room=`), Join with your couch on Playing, game tokens name the couch; Night Flight gives each household its own owl. Spec §7, [ADR](adrs/2026-10-05-couches-join-the-games-room.md), e2e `e2e/multi-couch.mjs`.
 
 ## Next: make it real for the family
 
@@ -22,6 +23,8 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 6. **Google / Android TV:** Cast already works; decide direct vs stream after a device test.
 
 ## Later
+
+- **Several households, next:** deploy (API, launcher, opengame.org `/play`, Night Flight); a household setting for the couch label (now the host's name); real pushes need devices registered with Expo; join a room mid-game (Night Flight seats only in the lobby); Trivia Jam as the second multiCouch game.
 
 - **One API for streaming too:** for now (owner, 2026-10-04 — not a live service yet) the phone app streams through the PR-5 preview Worker, which already has `STREAM_SERVER_URL` → Cloud Run `stream-gpu` and TURN. Build the app with `EXPO_PUBLIC_OGS_STREAM=https://opengame-api-pr-5.jonathanrmumm.workers.dev/api/v1/stream`. To move streaming onto `opengame-api`: merge `main` (stream-server #16), set `STREAM_SERVER_URL` + the TURN secrets there, drop the override.
 

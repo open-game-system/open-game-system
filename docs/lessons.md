@@ -84,3 +84,27 @@ Persistent project knowledge. Review at the start of each task.
 - **Playwright's clock is per context and `runFor` replays every timer**: with a 30 fps canvas publisher in another page, `runFor(3 min)` took 27 s and 3 hours never finished. Step `fastForward(1 min)` instead (each due timer fires once per step, so a 1-minute heartbeat still counts right). The clock also runs with real time: allow for the seconds a WebRTC answer takes before asserting a 20 s timeout.
 - **A receiver stop must end the heartbeat itself**: the heartbeat is what keeps a GPU stream server up. A failed start, the no-phone stop and the 3-hour cap now all stop it (`endCast` / `cleanup`), instead of trusting `context.stop()` to close the page.
 - **Production API had no TURN on 2026-10-04**: `pnpm stream:ready https://opengame-api.jonathanrmumm.workers.dev` got only the STUN fallback from `/stream/ice-servers` (the PR-5 preview returns 6 TURN urls). The GPU publisher reaches the SFU through TURN, so set `CLOUDFLARE_TURN_API_TOKEN` / `CLOUDFLARE_TURN_KEY_ID` on production before casting through it.
+
+## Several households, one room (2026-10-05)
+
+- **A local API copy needs `--enable-containers=false`**: plain `wrangler dev` in `services/api` builds the
+  stream container image with Docker and then hangs every request (the port listens, nothing answers).
+  `pnpm dev:local` already passes the flag; a second copy on another port must too.
+- **A joining household's phone must declare its own TV page**: Night Flight only rendered
+  `useCastViewUrl` for the room's host, so the Smiths' phone joined the room but their TV never framed
+  it. In a multiCouch game, every phone that started its couch's TV (`?tv=` on Night Flight) declares
+  it, host or not. The e2e found this; the unit tests could not.
+- **actor-kit's DO `send` RPC type has no `caller`, but the machine reads it**: the worker passes a
+  service event built in a variable (`{ ...event, caller: { type: "service" } }`) so the room's guard
+  can tell OGS (a verified token) from a client, without a cast. Its HTTP router sends any event with
+  the client's caller, so guards on service events must check `caller.type === "service"`.
+- **Phone pages in a fake OGS WebView for cross-surface e2e**: `window.ReactNativeWebView` answering
+  `BRIDGE_READY` with `STATE_INIT` for `cast`, `ogs` and `profile` (a real game token from the local API)
+  gives a game page everything the app gives it; read `SET_VIEW_URL` from what it posted and send
+  `game.view` to the couch, as the app does (`e2e/multi-couch.mjs`).
+- **Playwright never sees a bobbing card as "stable"**: Night Flight's playable cards animate, so the
+  e2e clicks them with `{ force: true }`.
+- **Record launchers at 1920×1080**: the launcher lays out for the TV's size; a 1280×720 viewport crops
+  the framed game. Record at 960×540 (`recordVideo.size`) to keep the files small.
+- **ffmpeg `xstack` with a `color` filler runs forever**: cap the output with `-t` (the longest tile's
+  offset + length), or a 3-tile run never ends.
