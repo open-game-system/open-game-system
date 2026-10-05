@@ -44,14 +44,19 @@ async function joinRocketCrew(): Promise<void> {
     set.call(input, "Dad");
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }`;
-  for (let i = 0; i < 30; i++) {
+  // Inside OGS, Rocket Crew joins with the OGS profile and shows no name form (slice 3); a build
+  // of the game without that (or a plain browser) still asks for a name, so fill it only if asked.
+  let asked = false;
+  for (let i = 0; i < 15; i++) {
     try {
       await page.element(by.web.cssSelector("input")).runScript(fill);
+      asked = true;
       break;
     } catch {
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
+  if (!asked) return;
   await new Promise((r) => setTimeout(r, 500));
   await page
     .element(by.web.xpath("//button[contains(translate(., 'join', 'JOIN'), 'JOIN')]"))
