@@ -40,6 +40,8 @@ export const ManifestSchema = z.object({
       players: z.string().optional(),
     })
     .default({}),
+  /** Several couches may join one room of this game (spec §7). Absent = single couch. */
+  multiCouch: z.boolean().optional(),
   /** How long an instance may stay silent before it expires (ms). */
   instanceTtlMs: z
     .number()

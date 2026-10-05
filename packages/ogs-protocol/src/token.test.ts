@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { ClaimsSchema } from "./token";
 
 const device = () => ({ sub: "juneau", did: "ipad-juneau", kind: "tablet", exp: 1_900_000_000 });
-const launcher = () => ({ sub: "jonathan", did: "launcher-1", kind: "launcher", sid: "s-1", exp: 1_900_000_000 });
+const launcher = () => ({
+  sub: "jonathan",
+  did: "launcher-1",
+  kind: "launcher",
+  sid: "s-1",
+  exp: 1_900_000_000,
+});
 
 describe("profile token claims", () => {
   it("accepts a phone or tablet token for a profile", () => {
@@ -49,7 +55,9 @@ describe("profile token claims", () => {
   });
 
   it("household claims are not profile claims", () => {
-    expect(ClaimsSchema.safeParse({ hid: "hh", did: "d", kind: "phone", exp: 1_900_000_000 }).success).toBe(false);
+    expect(
+      ClaimsSchema.safeParse({ hid: "hh", did: "d", kind: "phone", exp: 1_900_000_000 }).success,
+    ).toBe(false);
   });
 
   it.each([0, -1, 1.5])("an expiry of %s is rejected", (exp) => {
