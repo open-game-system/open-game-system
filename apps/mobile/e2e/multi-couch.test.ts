@@ -122,9 +122,8 @@ describe("Several households: the Mumm phone", () => {
     await new Promise((r) => setTimeout(r, 1500));
     await element(by.id("inviteDoneButton")).tap();
     await expect(element(by.id("nowPlaying"))).toExist();
-  });
-
-  it("stays on Playing while the other households join", async () => {
+    // Stay on Playing while the other households join, in this same test: e2e/setup.ts reloads
+    // React Native before every test, and a cold start opens Library.
     await wait("done");
   });
 });
