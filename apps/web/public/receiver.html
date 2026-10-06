@@ -169,6 +169,50 @@
     }
 
     /**
+     * Wide events: this receiver's key steps go to POST /api/v1/client-events on its stream
+     * server's API (Workers Logs), with no credentials (it has none; the API marks them
+     * unauthenticated). Batched every few seconds, at once when the cast ends or fails. Never the
+     * view URL (its query carries the launcher token): only hosts.
+     */
+    const RX_VERSION = 'receiver-2026-10-05';
+    const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
+    const rxRun = 'rx-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
+    let rxEvents = [];
+    let rxFlushTimer = null;
+    function hostOf(url) {
+      try { return new URL(url).host; } catch (e) { return 'unknown'; }
+    }
+    /** The OGS API behind a stream server URL (<api>/api/v1/stream), else the production API. */
+    function apiOf(streamServerUrl) {
+      const m = String(streamServerUrl || '').match(/^(https?:\/\/[^/]+)\/api\/v1\/stream\/?$/);
+      return m ? m[1] : DEFAULT_API;
+    }
+    function rxLog(name, fields = {}) {
+      const event = { name: 'receiver.' + name, at: Date.now(), level: fields.level || (fields.error ? 'error' : 'info'), attemptId: rxRun };
+      if (fields.error) event.error = String(fields.error).slice(0, 1000);
+      if (fields.durationMs != null) event.durationMs = Math.max(0, Math.round(fields.durationMs));
+      if (fields.data) event.data = fields.data;
+      rxEvents.push(event);
+      if (rxEvents.length > 200) rxEvents = rxEvents.slice(-200);
+      if (fields.now) rxFlush();
+      else if (!rxFlushTimer) rxFlushTimer = setTimeout(rxFlush, 3000);
+    }
+    function rxFlush() {
+      clearTimeout(rxFlushTimer);
+      rxFlushTimer = null;
+      const api = apiOf(getLaunchParams().streamServerUrl);
+      while (rxEvents.length) {
+        const events = rxEvents.splice(0, 50);
+        fetch(api + '/api/v1/client-events', {
+          method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ context: { app: 'receiver', version: RX_VERSION, platform: rxPlatform }, events }),
+        }).catch(() => { /* logs are best effort */ });
+      }
+    }
+    window.addEventListener('pagehide', rxFlush);
+
+    /**
      * Debugging: mirror receiver logs and status back to whoever cast us (the OGS app or a CLI),
      * so a TV's view of each step is visible without remote-debugging the device.
      */
@@ -234,9 +278,15 @@
           .then((res) => {
             // 410: the server ended a stream that ran past its maximum lifetime or saw no player
             // activity. Stop pinging (so the GPU can scale to zero) and close the receiver on the TV.
-            if (res.status === 410) endCast('the stream server ended the stream');
+            if (res.status === 410) {
+              rxLog('heartbeat.ended', { level: 'warn', data: { status: 410 } });
+              endCast('the stream server ended the stream');
+            }
           })
-          .catch((e) => console.warn('[Receiver] heartbeat failed', e));
+          .catch((e) => {
+            console.warn('[Receiver] heartbeat failed', e);
+            rxLog('heartbeat.failed', { level: 'warn', error: (e && e.message) || e });
+          });
       }, HEARTBEAT_MS);
     }
     function stopHeartbeat() {
@@ -251,6 +301,7 @@
      */
     function endCast(why) {
       console.log('[Receiver] Ending the cast:', why);
+      rxLog('cast.ended', { data: { why }, now: true });
       cleanup();
       clearPeerTimer();
       isConnected = false;
@@ -517,6 +568,7 @@
 
       setStatus('Connecting to game stream...');
       startConnectionTimeout();
+      const t0 = Date.now();
 
       try {
         const baseUrl = streamServerUrl.replace(/\/$/, '');
@@ -628,6 +680,7 @@
         }
 
         console.log('[Receiver] Answer sent, waiting for media...');
+        rxLog('stream.started', { durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) } });
         // Only show waiting status if tracks haven't arrived yet
         if (!isConnected) {
           setStatus('Waiting for video stream...');
@@ -635,6 +688,7 @@
 
       } catch (err) {
         console.error('[Receiver] Failed to start stream:', err);
+        rxLog('stream.failed', { error: (err && err.message) || err, durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) }, now: true });
         // Nothing is streaming: stop the heartbeat too, or it keeps the (GPU) stream server up.
         cleanup();
         setStatus('Unable to connect to game stream', false);
@@ -698,6 +752,7 @@
       if (!data) return;
       senderSpoke = true;
       if (data.type === 'LOAD_VIEW' && data.viewUrl) {
+        rxLog('load_view.received', { data: { view: hostOf(data.viewUrl), stream: hostOf(data.streamServerUrl || DEFAULT_STREAM_SERVER) } });
         clearPeerTimer();
         peerReply = null;
         removeHud();

@@ -149,11 +149,19 @@ export interface StreamServer {
   subscribe: (() => Reply) | null;
 }
 
+export interface ClientEventPost {
+  url: string;
+  authorization: string | undefined;
+  body: unknown;
+}
+
 export interface Receiver {
   page: Page;
   stream: StreamServer;
   /** Requests the harness refused (anything not faked here). Must stay empty. */
   blocked: string[];
+  /** The receiver's POSTs to /api/v1/client-events (its wide events), in order. */
+  events: ClientEventPost[];
   /** Creates the second page: the SFU behind the mock stream server, or a laptop sender. */
   publisherPage: () => Promise<Page>;
   sent: () => Promise<Sent[]>;
@@ -180,6 +188,7 @@ export async function openReceiver(
   { query = "", clock = false }: { query?: string; clock?: boolean } = {},
 ): Promise<Receiver> {
   const blocked: string[] = [];
+  const events: ClientEventPost[] = [];
   let sfu: Page | null = null;
   const stream: StreamServer = {
     calls: [],
@@ -231,6 +240,17 @@ export async function openReceiver(
 
   await browser.route("**/*", async (route) => {
     const url = route.request.url;
+    // The receiver's wide events (POST /api/v1/client-events on its stream server's API): recorded.
+    if (new URL(url).pathname === "/api/v1/client-events") {
+      const { method, headers, postData } = route.request;
+      if (method === "POST")
+        events.push({
+          url,
+          authorization: headers.authorization,
+          body: postData ? JSON.parse(postData) : undefined,
+        });
+      return route.fulfill({ status: method === "POST" ? 202 : 204, json: { accepted: 1 } });
+    }
     const base = STREAM_BASES.find((b) => url.startsWith(`${b}/`));
     if (base) {
       const reply = await streamReply(base, route);
@@ -269,6 +289,7 @@ export async function openReceiver(
     page,
     stream,
     blocked,
+    events,
     publisherPage,
     sent,
     ofType: async (type) => (await sent()).filter((m) => m.payload.type === type),
