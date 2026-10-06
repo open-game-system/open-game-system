@@ -161,3 +161,10 @@ Persistent project knowledge. Review at the start of each task.
 - **Story Nook's start page makes a room it never uses**: in the app `/` redirects to `/tv/<new code>`
   (spawning that room) before the page sends itself to `/host`, which makes the real one. Invisible to OGS
   (that room never reports), but every start leaves an empty room behind.
+
+## Observability (2026-10-05)
+
+- **Hono logs unhandled errors itself**: without `app.onError`, Hono answers a plain-text 500 and calls `console.error(err)`, a second, unstructured error line next to the wide event. `app.onError` answers the error contract and the `wideEvent` middleware reads `c.error` (Hono sets it before `onError` runs), so each failure is one line.
+- **Request lines use `console.info`, client-event lines `console.log`**: the client-events tests spy on `console.log` and expect exactly the client lines, so the request middleware writes its ok line at info level (Workers Logs level `info`). Errors from both go to `console.error`; sre-agent reads only error level.
+- **`routePath(c, -1)` (hono/route) gives the matched pattern in middleware**: log it, never `c.req.path` (ids) or the URL (couch WebSocket upgrades carry `?token=`).
+- **A Worker module needs a `scheduled` export for its cron**: `services/api` exports the Hono app as default, which has `fetch` but no `scheduled`, and exports `handleScheduled` by name only, so the `*/5` cron trigger in wrangler.jsonc most likely never runs it (unverified against production logs). Wiring it would start ending idle cast sessions in production: decide before wiring.
