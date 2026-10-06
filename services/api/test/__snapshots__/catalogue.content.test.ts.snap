@@ -252,14 +252,14 @@ exports[`catalogue content > is exactly the six games as published 1`] = `
         "label": "Quizmaster",
       },
       {
-        "audience": "kid",
+        "audience": "grownup",
         "id": "player",
         "label": "Player",
       },
     ],
     "shape": "couch",
     "shop": {
-      "ages": "5+",
+      "ages": "12+",
       "minutes": [
         10,
         25,
@@ -267,7 +267,7 @@ exports[`catalogue content > is exactly the six games as published 1`] = `
       "players": "2-10",
     },
     "startUrl": "https://trivia-jam.jonathanrmumm.workers.dev/",
-    "tagline": "Every answer is a number: closest guess wins.",
+    "tagline": "Every answer is a number. Closest guess wins, fastest breaks the tie.",
     "tv": "required",
   },
 ]

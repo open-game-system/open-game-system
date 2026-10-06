@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATALOGUE, catalogueIds, findManifest } from "../src/catalogue";
 
+/** Adult party games: no kid seat (Jon, 2026-10-06: Trivia Jam is for adults). */
+const ADULT_GAMES = ["trivia-jam"];
 const GAMES = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight", "trivia-jam"];
 
 describe("catalogue", () => {
@@ -20,7 +22,14 @@ describe("catalogue", () => {
     expect(m?.startUrl).toBe(`https://${appId}.jonathanrmumm.workers.dev/`);
     expect(m?.art.tile).toBe(`/art/${appId}/tv.jpg`);
     expect(m?.roles.some((r) => r.audience === "grownup")).toBe(true);
-    expect(m?.roles.some((r) => r.audience === "kid")).toBe(true);
+    // Family games have a kid seat; adult party games (trivia-jam) deliberately don't.
+    if (!ADULT_GAMES.includes(appId)) expect(m?.roles.some((r) => r.audience === "kid")).toBe(true);
+  });
+
+  it.each(ADULT_GAMES)("%s is an adult party game: every role is a grown-up", (appId) => {
+    const m = findManifest(appId);
+    expect(m?.roles.length).toBeGreaterThan(0);
+    expect(m?.roles.every((r) => r.audience === "grownup")).toBe(true);
   });
 
   it("does not know other games", () => {

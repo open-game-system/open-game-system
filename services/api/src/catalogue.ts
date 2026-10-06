@@ -131,13 +131,13 @@ const SEED: ManifestInput[] = [
   {
     appId: "trivia-jam",
     name: "Trivia Jam",
-    tagline: "Every answer is a number: closest guess wins.",
+    tagline: "Every answer is a number. Closest guess wins, fastest breaks the tie.",
     shape: "couch",
     tv: "required",
     startUrl: workers("trivia-jam"),
     roles: [
       { id: "host", label: "Quizmaster", audience: "grownup" },
-      { id: "player", label: "Player", audience: "kid" },
+      { id: "player", label: "Player", audience: "grownup" },
     ],
     art: {
       icon: "/art/trivia-jam/icon.png",
@@ -147,7 +147,7 @@ const SEED: ManifestInput[] = [
       tile: "/art/trivia-jam/tv.jpg",
       hero: "/art/trivia-jam/tv.jpg",
     },
-    shop: { ages: "5+", minutes: [10, 25], players: "2-10" },
+    shop: { ages: "12+", minutes: [10, 25], players: "2-10" },
   },
 ];
 
