@@ -1,18 +1,23 @@
 import type { ClientMessage, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
+import { Platform, AppState as RNAppState } from "react-native";
 import { createAppState } from "./app-state";
 import type { CastBackend } from "./cast-backend";
 import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-flow";
 import { createCastStop } from "./cast-stop";
 import { createCastStore } from "./cast-store";
+import { createCastSwitch } from "./cast-switch";
 import { castCommands, startCastSync } from "./cast-sync";
+import { createCastTrace } from "./cast-trace";
 import { streamServerUrl } from "./cast-view";
+import { type ClientLogContext, clientEventsSender, createClientLog, hashId } from "./client-log";
 import { appConfig, isLauncherView } from "./config";
 import {
   type CouchSession,
@@ -21,7 +26,7 @@ import {
   createCouchSession,
   type SocketLike,
 } from "./couch-session";
-import { createFakeCastBackend } from "./fake-cast";
+import { createFakeCastBackend, fakeCastOptions } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
 import { createGamePresence } from "./game-presence";
 import { createGameProfile, createGameTokenClient } from "./game-profile";
@@ -43,23 +48,58 @@ export const config = appConfig;
 
 const fetchImpl = (url: string, init?: RequestInit) => fetch(url, init);
 
+// --- Client log (wide events → POST /api/v1/client-events → Workers Logs) -------------------
+
+/** Who is logging: filled in once appState exists (below); events before that go without it. */
+let logIdentity: () => Pick<ClientLogContext, "profileId" | "sessionId" | "deviceHash"> =
+  () => ({});
+let logAuth: () => { token: string } | null = () => null;
+const appVersion = Constants.expoConfig?.version;
+const appBuild =
+  Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode;
+
+export const clientLog = createClientLog({
+  send: clientEventsSender({ baseUrl: config.apiBase, fetch: fetchImpl, auth: () => logAuth() }),
+  context: () => ({
+    app: "mobile",
+    version: appVersion,
+    build: `${appBuild ?? "dev"}${config.fakeCast === "off" ? "" : "+fake-cast"}`,
+    platform: `${Platform.OS} ${Platform.Version}`,
+    ...logIdentity(),
+  }),
+  now: Date.now,
+  storage: AsyncStorage,
+});
+void clientLog.restore();
+// Flush on background (and keep what couldn't be sent for the next launch).
+RNAppState.addEventListener("change", (state) => {
+  if (state === "background") void clientLog.background();
+});
+
+/** The cast lifecycle's log, one correlation id per cast attempt. */
+export const castTrace = createCastTrace(clientLog);
+
 export const castBackend: CastBackend =
   config.fakeCast === "off"
-    ? createGoogleCastBackend()
+    ? createGoogleCastBackend(castTrace)
     : createFakeCastBackend({
         mode: config.fakeCast,
         loadUrl: config.fakeCastUrl,
         fetch: fetchImpl,
+        ...fakeCastOptions({
+          EXPO_PUBLIC_FAKE_CAST_END_MS: process.env.EXPO_PUBLIC_FAKE_CAST_END_MS,
+          EXPO_PUBLIC_FAKE_CAST_URL_2: process.env.EXPO_PUBLIC_FAKE_CAST_URL_2,
+        }),
       });
 
-const commands = castCommands(() => castBackend.showCastDialog());
+const commands = castCommands(() => castBackend.showCastDialog(), castTrace);
 export const castStore = createCastStore(commands);
 /** Metro inlines EXPO_PUBLIC_* only for literal reads. */
 const streamServer = streamServerUrl(
   { EXPO_PUBLIC_OGS_STREAM: process.env.EXPO_PUBLIC_OGS_STREAM },
   config.apiBase,
 );
-startCastSync(castStore, castBackend.sessionManager, commands, streamServer);
+startCastSync(castStore, castBackend.sessionManager, commands, streamServer, castTrace);
 castBackend.subscribeDevices((devices) => castStore.dispatch({ type: "DEVICES_UPDATED", devices }));
 
 const auth = () => {
@@ -96,6 +136,16 @@ export const appState = createAppState({
     markLaunched: () => AsyncStorage.setItem(INSTALLED_KEY, "true"),
   },
 });
+
+logAuth = auth;
+logIdentity = () => {
+  const { identity: id, session } = appState.getSnapshot();
+  return {
+    profileId: id?.profile.id,
+    sessionId: session?.sessionId,
+    deviceHash: id ? hashId(id.deviceId) : undefined,
+  };
+};
 
 // --- Couch session -------------------------------------------------------------------------
 
@@ -289,9 +339,20 @@ export const roomJoiner = createRoomJoiner({
 /** Cast: a new couch session hosted by this profile, named for the TV. */
 export async function castNow(tv: { id: string; name: string }) {
   castStop.reset();
+  castSwitch.dismiss();
   const launcher = { launcherToken: () => appState.startSession(tv.name) };
-  return castToTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
+  return castToTv({
+    api: launcher,
+    config,
+    castStore,
+    backend: castBackend,
+    deviceId: tv.id,
+    trace: castTrace,
+  });
 }
+
+/** Remote → TV picker: "Switching to <TV>…" until the new TV is connected, one switch at a time. */
+export const castSwitch = createCastSwitch({ castStore });
 
 /** Remote → TV picker: the same session (its launcher token) moves to another TV. */
 export async function moveToTv(tv: { id: string; name: string }) {
@@ -299,7 +360,16 @@ export async function moveToTv(tv: { id: string; name: string }) {
     launcherToken: async () =>
       appState.getSnapshot().session?.launcherToken ?? appState.startSession(tv.name),
   };
-  return switchTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
+  return castSwitch.run(tv, () =>
+    switchTv({
+      api: launcher,
+      config,
+      castStore,
+      backend: castBackend,
+      deviceId: tv.id,
+      trace: castTrace,
+    }),
+  );
 }
 
 /** Remote → Stop casting: the TV tab shows the Cast screen at once (castStop), then the cast ends. */
@@ -308,6 +378,7 @@ export function endTonight() {
     const result = await endForTonight({
       send: couchHub.send,
       sessionManager: castBackend.sessionManager,
+      trace: castTrace,
     });
     appState.setPill(null);
     await appState.leaveSession();
@@ -332,6 +403,9 @@ export const useCouch = () =>
   useSyncExternalStore(couchHub.subscribe, couchHub.getSnapshot, couchHub.getSnapshot);
 export const useCast = () =>
   useSyncExternalStore(castStore.subscribe, castStore.getSnapshot, castStore.getSnapshot);
+
+export const useCastSwitch = () =>
+  useSyncExternalStore(castSwitch.subscribe, castSwitch.getSnapshot, castSwitch.getSnapshot);
 
 export const useCastStopping = () =>
   useSyncExternalStore(castStop.subscribe, castStop.isStopping, castStop.isStopping);

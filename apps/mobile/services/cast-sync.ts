@@ -2,7 +2,9 @@ import type { Store } from "@open-game-system/app-bridge-types";
 import GoogleCast from "react-native-google-cast";
 import { sessionConnectedEvent } from "./cast-session-device";
 import type { CastCommands, CastDevice, NativeCastEvents, NativeCastState } from "./cast-store";
+import { type CastTrace, noTrace } from "./cast-trace";
 import { connectViewChannel, type ViewChannelSession } from "./cast-view";
+import { hashId } from "./client-log";
 
 type Subscription = { remove(): void };
 type Session = ViewChannelSession & {
@@ -19,7 +21,10 @@ export type SessionManagerLike = {
   onSessionStartFailed(handler: (session: Session, error: string) => void): Subscription;
   onSessionSuspended(handler: () => void): Subscription;
   onSessionResumed(handler: (session: Session) => void): Subscription;
-  onSessionEnded(handler: () => void): Subscription;
+  /** The session is ending (GCK willEndCastSession); it stays current until ended. */
+  onSessionEnding?(handler: () => void): Subscription;
+  /** Ended (GCK didEndCastSession), with the error that ended it, if any. */
+  onSessionEnded(handler: (session?: unknown, error?: string | null) => void): Subscription;
 };
 
 /**
@@ -28,6 +33,7 @@ export type SessionManagerLike = {
  */
 export function castCommands(
   showCastDialog: () => void = () => GoogleCast.showCastDialog(),
+  trace: CastTrace = noTrace,
 ): CastCommands & { bind(sm: SessionManagerLike): void } {
   let sm: SessionManagerLike | null = null;
   return {
@@ -36,12 +42,17 @@ export function castCommands(
     },
     startCasting(deviceId: string, devices: CastDevice[]) {
       if (sm && devices.some((d) => d.id === deviceId))
-        void sm.startSession(deviceId).catch(() => showCastDialog());
+        void sm.startSession(deviceId).catch((err: unknown) => {
+          trace.event("game_start.rejected", { error: err, data: { tv: hashId(deviceId) } });
+          showCastDialog();
+        });
       else showCastDialog();
     },
     stopCasting() {
       // true: also stop the receiver app on the TV, not just disconnect this phone.
-      void sm?.endCurrentSession(true).catch(() => {});
+      void sm
+        ?.endCurrentSession(true)
+        .catch((err: unknown) => trace.event("game_stop.rejected", { error: err }));
     },
   };
 }
@@ -56,6 +67,7 @@ export function startCastSync(
   sm: SessionManagerLike,
   commands: { bind(sm: SessionManagerLike): void },
   streamServerUrl: string,
+  trace: CastTrace = noTrace,
 ): () => void {
   commands.bind(sm);
   let channel: { send(): Promise<void> } | null = null;
@@ -67,15 +79,25 @@ export function startCastSync(
     if (stopped) return;
     const mine = ++generation;
     channel = null;
-    void connectViewChannel(session, () => store.getSnapshot().viewUrl, streamServerUrl).then(
-      (c) => {
-        if (mine === generation) channel = c;
-      },
-    );
+    void connectViewChannel(
+      session,
+      () => store.getSnapshot().viewUrl,
+      streamServerUrl,
+      trace,
+    ).then((c) => {
+      if (mine === generation) channel = c;
+    });
     void session
       .getCastDevice()
       .catch(() => null)
       .then((device) => {
+        trace.event("session.connected", {
+          level: mine === generation ? "info" : "warn",
+          data: {
+            tv: device ? hashId(device.deviceId) : null,
+            ...(mine === generation ? {} : { stale: true }),
+          },
+        });
         if (mine === generation)
           store.dispatch(sessionConnectedEvent(device, store.getSnapshot().devices));
       });
@@ -87,16 +109,33 @@ export function startCastSync(
   };
 
   const subs: Subscription[] = [
-    sm.onSessionStarting(() => store.dispatch({ type: "SESSION_STARTING" })),
-    sm.onSessionStarted(connected),
-    sm.onSessionResumed(connected),
-    sm.onSessionSuspended(() => store.dispatch({ type: "SESSION_STARTING" })),
+    sm.onSessionStarting(() => {
+      trace.event("session.starting");
+      store.dispatch({ type: "SESSION_STARTING" });
+    }),
+    sm.onSessionStarted((session) => {
+      trace.event("session.started");
+      connected(session);
+    }),
+    sm.onSessionResumed((session) => {
+      trace.event("session.resumed");
+      connected(session);
+    }),
+    sm.onSessionSuspended(() => {
+      trace.event("session.suspended", { level: "warn" });
+      store.dispatch({ type: "SESSION_STARTING" });
+    }),
     sm.onSessionStartFailed((_session, error) => {
+      trace.event("session.start_failed", { error });
       ended();
       store.dispatch({ type: "SET_ERROR", error: `Couldn't start casting: ${error}` });
     }),
-    sm.onSessionEnded(ended),
+    sm.onSessionEnded((_session, error) => {
+      trace.event("session.ended", error ? { error, level: "warn" } : {});
+      ended();
+    }),
   ];
+  if (sm.onSessionEnding) subs.push(sm.onSessionEnding(() => trace.event("session.ending")));
 
   // The game's TV page changed (e.g. a new room): tell the receiver.
   let lastViewUrl = store.getSnapshot().viewUrl;
@@ -111,9 +150,11 @@ export function startCastSync(
   void sm
     .getCurrentCastSession()
     .then((session) => {
-      if (session) connected(session);
+      if (!session) return;
+      trace.event("session.found");
+      connected(session);
     })
-    .catch(() => {});
+    .catch((err: unknown) => trace.event("session.lookup_failed", { error: err, level: "warn" }));
 
   return () => {
     stopped = true;

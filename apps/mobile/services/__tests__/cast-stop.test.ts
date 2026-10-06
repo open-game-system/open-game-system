@@ -22,6 +22,12 @@ describe("the TV tab while Stop casting runs", () => {
     expect(tvTabShows({ ogsCast: false, stopping: true })).toBe("not-cast");
   });
 
+  it("while switching TVs the remote stays (the old TV is gone before the new one is cast)", () => {
+    expect(tvTabShows({ ogsCast: false, stopping: false, switching: true })).toBe("remote");
+    expect(tvTabShows({ ogsCast: true, stopping: false, switching: true })).toBe("remote");
+    expect(tvTabShows({ ogsCast: false, stopping: false, switching: false })).toBe("not-cast");
+  });
+
   it("is stopping the moment Stop casting is confirmed, before the stop finishes", () => {
     let cast = true;
     const stop = createCastStop({ isCast: () => cast });
