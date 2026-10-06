@@ -147,9 +147,6 @@
 
     const VIEW_NAMESPACE = 'urn:x-cast:org.opengame.view';
     const DEFAULT_STREAM_SERVER = 'https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream';
-    const DEFAULT_VIEW_URL = 'https://triviajam.tv';
-    /** How long to wait for the sender to say what to show before falling back to the default. */
-    const VIEW_WAIT_MS = 8000;
     const PLAYOUT_BUFFER_MS = 200;
     const PEER_PLAYOUT_BUFFER_MS = 60;
     const NO_SENDER_STOP_MS = 20 * 60 * 1000;
@@ -163,7 +160,7 @@
       const params = new URLSearchParams(window.location.search);
       return {
         streamServerUrl: params.get('streamServerUrl') || params.get('streamUrl') || DEFAULT_STREAM_SERVER,
-        viewUrl: params.get('viewUrl') || DEFAULT_VIEW_URL,
+        viewUrl: params.get('viewUrl') || '',
         publisherSessionId: params.get('publisherSessionId') || '',
       };
     }
@@ -728,9 +725,12 @@
       window.__ogsSignalIn = (data) => onViewMessage(typeof data === 'string' ? JSON.parse(data) : data, out);
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : out({ type: 'REQUEST_VIEW', accepts: ACCEPTS })), 500);
       setStatus('Waiting for the game...');
-    } else if (urlParams.get('viewUrl') || !hasCast) {
-      // Opened directly (testing), or not on a Cast device.
+    } else if (urlParams.get('viewUrl')) {
+      // Opened directly with a view (testing).
       begin(getLaunchParams());
+    } else if (!hasCast) {
+      // Not on a Cast device and nothing to show: say so rather than stream an empty view.
+      setStatus('Cast to this TV from the OGS app');
     } else {
       const context = cast.framework.CastReceiverContext.getInstance();
       castContext = context;
@@ -778,11 +778,8 @@
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : requestView(undefined)), 1500);
       context.start(options);
       setStatus('Waiting for the game...');
-      setTimeout(() => {
-        // Only when no sender has said anything: a laptop preparing its offer must not be overtaken
-        // by the default page (which would also start a cloud stream).
-        if (!started && !senderSpoke) begin(getLaunchParams());
-      }, VIEW_WAIT_MS);
+      // No default page: the TV only shows what a sender asks for (owner, 2026-10-05: a slow phone
+      // made it open an old default, Trivia Jam, on a cloud stream). It keeps asking until one does.
     }
   </script>
 </body>

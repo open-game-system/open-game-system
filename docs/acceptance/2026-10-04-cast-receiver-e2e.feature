@@ -24,9 +24,11 @@ Feature: Cast receiver
     When the receiver is opened with viewUrl (and streamServerUrl, streamUrl or publisherSessionId)
     Then it starts at once on those and asks no sender
 
-  Scenario: The default view after 8 seconds of silence
-    When no sender says anything for 8 seconds
-    Then it shows the default view from its default stream server
+  # Owner, 2026-10-05: the old default view (Trivia Jam) opened on a real TV when the phone was slow.
+  Scenario: No default view: the TV only shows what a sender asks for
+    When no sender says anything for a minute
+    Then it starts no stream
+    And it still says "Waiting for the game..." and keeps asking for a view
     But any sender message, even GET_STATE, keeps the default from starting
 
   Scenario: A failed start shows an error, not a black screen

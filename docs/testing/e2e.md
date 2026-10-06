@@ -11,7 +11,7 @@ Run: `cd e2e && pnpm exec e2e run tests/<file>.e2e.ts --target <launcher|ios> --
 
 | Flow | Test file | Target | Needs |
 |------|-----------|--------|-------|
-| 1. Receiver, phone path: REQUEST_VIEW until a view, LOAD_VIEW → start-stream/subscribe/answer on the sender's stream server, real frames; URL params override; default view after 8 s; failed or unreachable start shows the error and stops the heartbeat | `tests/receiver-view.e2e.ts` | `launcher` | nothing running (all faked in the page) |
+| 1. Receiver, phone path: REQUEST_VIEW until a view, LOAD_VIEW → start-stream/subscribe/answer on the sender's stream server, real frames; URL params override; no default view (it waits for a sender, never streams on its own); failed or unreachable start shows the error and stops the heartbeat | `tests/receiver-view.e2e.ts` | `launcher` | nothing running (all faked in the page) |
 | 2. Receiver, laptop path: PEER_OFFER → PEER_ANSWER over Cast, loopback WebRTC frames, HUD iframe for `peer-canvas` (HUD_READY, HUD_MESSAGE), 20 s no-picture timeout → PEER_ERROR, bad offer, PEER_STOP | `tests/receiver-laptop.e2e.ts` | `launcher` | nothing running |
 | 3. Receiver stops: heartbeat each minute; renderer idle stop (20 min without `__ogsActivityAt` activity, the renderer's own `isIdle`) via 410; no phone for 20 min; 3-hour cap; activity / a phone returning resets | `tests/receiver-stops.e2e.ts` | `launcher` | nothing running |
 | TV launcher, live session | `tests/launcher.e2e.ts`, `friends.e2e.ts`, `games-know-you.e2e.ts` | `launcher` | API (`OGS_API`, 8788), launcher (`OGS_LAUNCHER`, 5180), fixture game (`FIXTURE_GAME`, 5190) |

@@ -4,7 +4,7 @@
 // real WebRTC peer, so the video plays real frames. Deterministic: no model, no network.
 import { test } from "@e2e-dev/web";
 import { describe, expect } from "e2e";
-import { DEFAULT_STREAM, MIN, OTHER_STREAM, openReceiver, STREAM, until } from "./receiver-kit";
+import { MIN, OTHER_STREAM, openReceiver, STREAM, until } from "./receiver-kit";
 
 const VIEW = "https://game.ogs.test/tv?room=ABCD";
 const ACCEPTS = ["view", "peer", "peer-canvas"];
@@ -122,15 +122,15 @@ describe("TV receiver, a phone's cast (LOAD_VIEW)", {
     expect(rx.callsTo("/subscribe")[0].body).toMatchObject({ publisherSessionId: "pub-9" });
   });
 
-  test("with no sender after 8 s it shows the default view from its default stream server", async ({
+  // Owner, 2026-10-05: a slow phone made the TV open an old default page (Trivia Jam) on the
+  // production stream server. The TV only ever shows what a sender asks for.
+  test("with no sender it never starts a stream on its own, and keeps waiting for the phone", async ({
     browser,
   }) => {
     const rx = await openReceiver(browser, { clock: true });
-    await rx.page.clock.runFor(7_900);
-    expect(rx.callsTo("/start-stream")).toEqual([]);
-    await rx.page.clock.runFor(200);
-    const start = await until(() => rx.callsTo("/start-stream")[0], "start");
-    expect([start.base, start.body]).toEqual([DEFAULT_STREAM, { url: "https://triviajam.tv" }]);
+    await rx.page.clock.runFor(60_000);
+    expect(rx.stream.calls).toEqual([]);
+    expect(await rx.page.locator("#status-text").textContent()).toBe("Waiting for the game...");
   });
 
   test("a sender that spoke (even only GET_STATE) keeps the default view from starting", async ({

@@ -121,3 +121,5 @@ Persistent project knowledge. Review at the start of each task.
   like an app bug in the video; a revert of a "fix" in `app/index.tsx` records the mistake.
 - **A stuck `simctl io recordVideo`** ("Host recording is already in progress") survives a killed parent:
   shut the simulator down and boot it again before the next recorded run.
+
+- **The Cast receiver must never show anything a sender didn't ask for (2026-10-05).** `receiver.html` used to fall back to `https://triviajam.tv` on the production stream server when no LOAD_VIEW arrived within 8 s. A slow launcher token or a racy TV switch on a real phone hit that window, so the TV opened an old game (and started a cloud stream nobody asked for). It now waits and keeps sending REQUEST_VIEW; only a `?viewUrl=` in the receiver's own URL starts a view without a sender.
