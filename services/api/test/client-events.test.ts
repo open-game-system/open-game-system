@@ -109,6 +109,23 @@ describe("POST /api/v1/client-events", () => {
     expect(lines(err)[0]).toMatchObject({ name: "cast.start.rejected", error: "boom" });
   });
 
+  it("each line has a message without ids (Workers Logs' message, the SRE agent's fingerprint)", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await post(
+      {
+        context: context(),
+        events: [
+          event({ attemptId: "a1", data: { tv: "h:1" } }),
+          event({ name: "cast.start.rejected", level: "error", error: "No device" }),
+        ],
+      },
+      { token: await phone() },
+    );
+    expect(lines(log)[0].message).toBe("client mobile cast.start.resolved");
+    expect(lines(err)[0].message).toBe("client mobile cast.start.rejected: No device");
+  });
+
   it("never writes a token: token= in URLs and JWT-looking strings are redacted, secret-named keys dropped", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const jwt = await phone();

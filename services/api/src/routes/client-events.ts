@@ -106,7 +106,10 @@ clientEvents.post("/", async (c) => {
 
   const receivedAt = Date.now();
   for (const event of events) {
+    const error = event.error === undefined ? undefined : redact(event.error);
     const line = JSON.stringify({
+      // Workers Logs' $metadata.message: what the SRE agent fingerprints (no ids in it).
+      message: `client ${context.app} ${event.name}${error === undefined ? "" : `: ${error}`}`,
       kind: "client_event",
       source: context.app,
       authenticated: profileId !== undefined,
@@ -123,7 +126,7 @@ clientEvents.post("/", async (c) => {
       at: event.at,
       attemptId: event.attemptId,
       durationMs: event.durationMs,
-      error: event.error === undefined ? undefined : redact(event.error),
+      error,
       data: redactData(event.data),
     });
     if (event.level === "error") console.error(line);
