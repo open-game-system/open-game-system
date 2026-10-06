@@ -114,3 +114,18 @@ Persistent project knowledge. Review at the start of each task.
   like an app bug in the video; a revert of a "fix" in `app/index.tsx` records the mistake.
 - **A stuck `simctl io recordVideo`** ("Host recording is already in progress") survives a killed parent:
   shut the simulator down and boot it again before the next recorded run.
+
+## One start, one sitting (2026-10-05)
+
+- **A game's bridge report labels OGS's sitting, it doesn't make one**: every game reports its sitting from
+  the phone page with its own id (`story-nook:XJNE`, `rocket-crew:KQTP`), while a cast start opens the couch
+  session's sitting (`story-nook-<time>`). The app posted the phone's report under the game's id, so one
+  Play was two sittings on the game's page ("Game 1", "Game 2", same minute). The launcher already used
+  the TV's `ogs:instance` only as a label; the app now files a bridge report under the couch's live sitting
+  of that game (`reportSittingFor`), and under the game's id only when playing on the phone alone.
+- **Detox on iOS can't match a RegExp id**: `by.id(/^gameSitting-/)` reaches the app as the literal string
+  and finds nothing (`by.text` inside a Pressable with an `accessibilityLabel` finds nothing either). Check
+  ids by name.
+- **Story Nook's start page makes a room it never uses**: in the app `/` redirects to `/tv/<new code>`
+  (spawning that room) before the page sends itself to `/host`, which makes the real one. Invisible to OGS
+  (that room never reports), but every start leaves an empty room behind.

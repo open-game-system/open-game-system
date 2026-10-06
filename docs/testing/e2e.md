@@ -30,6 +30,7 @@ and a laptop page; every other request is aborted and must stay empty (`rx.block
 |-------|---------|-------|
 | TV launcher (Vitest + Playwright), incl. idle (`__ogsActivityAt` on a virtual clock) | `pnpm --filter @open-game-system/tv test:e2e` | builds/serves itself (`apps/tv/e2e/global-setup.ts`) |
 | Mobile app (Detox) | `pnpm --filter @open-game-system/mobile e2e` (`e2e:build`, `e2e:test`) | `DETOX_IOS_BINARY`, `DETOX_SIM_NAME`, `E2E_OGS_API`, `FAKE_CAST` |
+| One start is one sitting (Story Nook: Play → Cast; the game's page lists one sitting, the API one instance under the couch's id) | `e2e/one-sitting.test.ts` (Detox, in apps/mobile) | the build against a local API with `CATALOGUE_START_URLS={"story-nook":"http://localhost:8821/"}`, Story Nook `pnpm dev` on 8821 (lobby only, no narration), launcher, `node fake-chromecast.mjs --port <p>` (`EXPO_PUBLIC_FAKE_CAST=2`) |
 | Fake Chromecast (for Detox/iOS runs) | `cd e2e && node fake-chromecast.mjs [--port 5181]` | Playwright Chromium |
 | Couch flow across devices | `cd e2e && node couch-flow.mjs` | API (8788), launcher (5180), fake Chromecast (5181), fixture game (5190) |
 | Several households, one room (multiCouch): three couches, three recorded launchers, Night Flight; the Mumm phone in the simulator under Detox taps Invite; a Smith card moves every TV; Home/Continue on one TV; synced 2×2 video | `cd e2e && node multi-couch.mjs` (`MUMM_PHONE=scripted` without the simulator) | below |

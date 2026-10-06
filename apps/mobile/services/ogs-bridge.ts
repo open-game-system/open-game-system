@@ -20,9 +20,13 @@ type Internal = { type: "REPORTED"; appId: string };
 /**
  * The `ogs` app-bridge store: a game page in the app's WebView calls INSTANCE_REPORT
  * (ogs.instance({ id, status, title, detail })) and the app posts it to OGS with source "bridge".
+ * The report labels the sitting the game screen holds (`sittingFor`, e.g. the couch session's live
+ * one), so it is filed under that sitting's id; under the game's own id (`story-nook:XJNE`) only
+ * when the screen holds none. Otherwise one start is two sittings: the couch's and the game's.
  */
 export function createOgsBridgeStore(
   post: (report: InstanceReport, source: InstanceSource) => Promise<unknown>,
+  sittingFor: (appId: string) => string | null = () => null,
 ): Store<OgsBridgeState, UntrustedEvent> {
   const inner = createStore<OgsBridgeState, Internal>({
     initialState: { reported: [] },
@@ -40,7 +44,8 @@ export function createOgsBridgeStore(
       if (!parsed.success) return;
       const { report } = parsed.data;
       inner.dispatch({ type: "REPORTED", appId: report.appId });
-      post(report, "bridge").catch((err: unknown) => {
+      const instanceId = sittingFor(report.appId) ?? report.instanceId;
+      post({ ...report, instanceId }, "bridge").catch((err: unknown) => {
         console.warn("[ogs] could not post the game's instance report:", err);
       });
     },

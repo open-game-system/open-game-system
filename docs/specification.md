@@ -118,6 +118,10 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 - **Sitting labels:** `reportOgsSitting(...)` goes through the app's `ogs` bridge store as
   `INSTANCE_REPORT`, so two sittings of one game read apart in Playing. When nothing is reported, OGS
   names a sitting by when it started (`sittingName` in `packages/ogs-protocol/src/sitting.ts`).
+  While cast, the report labels the couch session's live sitting of the game (the app files it under
+  that sitting's id, as the launcher does with the TV page's `ogs:instance`), so the phone page and the
+  TV page may both report: one start is one sitting. The game's own `instanceId` is used only when
+  the phone plays alone.
 
 ## 4. Server: verify the token
 
