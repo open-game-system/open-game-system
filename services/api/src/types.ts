@@ -52,15 +52,3 @@ export interface ApiKeyRow {
   game_name: string;
   created_at: string;
 }
-
-export interface CastSessionRow {
-  session_id: string;
-  game_id: string;
-  device_id: string;
-  view_url: string;
-  stream_session_id: string | null;
-  stream_url: string | null;
-  status: "pending" | "active" | "idle" | "ended";
-  created_at: string;
-  updated_at: string;
-}

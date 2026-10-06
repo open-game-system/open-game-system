@@ -1,5 +1,11 @@
 # TV Casting
 
+> **Status (2026-10-06):** the v1 cast-session API below (`/api/v1/cast/*`, one Cloudflare
+> Container per cast) is removed. Today the phone casts the OGS TV launcher, the API's
+> `/api/v1/stream/*` routes drive the Cloud Run GPU renderer (`stream-gpu`) and the Realtime SFU,
+> and the receiver plays the SFU's video. See `docs/architecture.md` and
+> `docs/adrs/2026-10-06-streaming-cloud-run-only.md`. The rest of this spec is kept as history.
+
 ## Overview
 
 OGS enables web games to cast a dedicated TV view to Chromecast and AirPlay devices. The TV displays a server-rendered video stream — not a browser running on the TV hardware. This ensures consistent rendering quality regardless of the display device.
@@ -165,12 +171,8 @@ Events dispatched from web → native:
 
 ## API Endpoints
 
-| Method | Path | Auth | Purpose |
-|--------|------|------|---------|
-| POST | `/api/v1/cast/sessions` | API key | Create session (provisions stream-kit container) |
-| GET | `/api/v1/cast/sessions/:id` | API key | Get session status |
-| POST | `/api/v1/cast/sessions/:id/state` | API key | Push game state to container |
-| DELETE | `/api/v1/cast/sessions/:id` | API key | End session (tears down container) |
+The v1 cast-session endpoints (`/api/v1/cast/sessions*`, `/api/v1/cast/stream/*`) were removed on
+2026-10-06. Casting uses the stream routes (`/api/v1/stream/*`, `docs/architecture.md`).
 
 ## Non-Functional Requirements
 

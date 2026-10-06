@@ -38,8 +38,8 @@ describe("CORS — Workers Runtime", () => {
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
     });
 
-    it("allows DELETE method in preflight for cast sessions", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/cast/sessions/some-id", {
+    it("allows DELETE method in preflight (removing a friend)", async () => {
+      const res = await SELF.fetch("https://api.test/api/v1/friends/some-id", {
         method: "OPTIONS",
         headers: {
           Origin: "https://triviajam.tv",

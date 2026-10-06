@@ -322,13 +322,5 @@ describe("Notification Flow — Full Integration", () => {
       expect(res.status).toBe(401);
     });
 
-    it("cast session stream proxy does NOT require API key", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/cast/stream/fake-session/ice-servers", {
-        method: "GET",
-      });
-
-      // Should not be 401 (might be 502 since no container, but not auth failure)
-      expect(res.status).not.toBe(401);
-    });
   });
 });
