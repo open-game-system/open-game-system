@@ -77,6 +77,15 @@
     }
   ],
 
+  // POST /api/v1/client-events: 120 batches a minute per profile (the cast receiver: per IP).
+  "ratelimits": [
+    {
+      "name": "CLIENT_EVENTS_LIMITER",
+      "namespace_id": "1101",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ],
+
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1

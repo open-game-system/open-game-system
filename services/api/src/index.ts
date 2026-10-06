@@ -5,6 +5,7 @@ import { anyToken } from "./middleware/profile-auth";
 import auth from "./routes/auth";
 import cast from "./routes/cast";
 import catalogue from "./routes/catalogue";
+import clientEvents from "./routes/client-events";
 import couch from "./routes/couch";
 import devices from "./routes/devices";
 import friends from "./routes/friends";
@@ -71,6 +72,9 @@ app.route("/api/v1/couch", couch);
 
 // Catalogue of games (public)
 app.route("/api/v1/catalogue", catalogue);
+
+// Client wide events (app: profile token; cast receiver: none) → Workers Logs
+app.route("/api/v1/client-events", clientEvents);
 
 // Stream routes (no API key required - called by web games directly)
 app.route("/api/v1/stream", stream);
