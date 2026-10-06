@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { apiKeyAuth } from "./middleware/auth";
 import { anyToken } from "./middleware/profile-auth";
+import { onError, wideEvent } from "./middleware/wide-event";
 import auth from "./routes/auth";
 import cast from "./routes/cast";
 import catalogue from "./routes/catalogue";
@@ -22,6 +23,10 @@ import { handleScheduled } from "./scheduled";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// One wide event per request (docs/agents/observability.md); unhandled errors answer the contract.
+app.use("*", wideEvent);
+app.onError(onError);
 
 // Global CORS
 app.use("*", cors());

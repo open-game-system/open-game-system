@@ -3,6 +3,7 @@ import type { Context, Next } from "hono";
 import { apiError } from "../lib/http";
 import { readClaims } from "../lib/identity";
 import { markSeen } from "../lib/presence";
+import { requestEvent } from "../lib/wide-event";
 import type { Env } from "../types";
 
 export type ProfileEnv = { Bindings: Env; Variables: { claims: Claims } };
@@ -21,6 +22,8 @@ export async function claimsFromHeader(
     };
   const claims = await readClaims(match[1], c.env.OGS_JWT_SECRET, Date.now());
   if (!claims) return { error: apiError(c, 401, "invalid_token", "Token is invalid or expired") };
+  // The request's wide event: ids only (never the profile's name).
+  Object.assign(requestEvent(c), { profile_id: claims.sub, device_kind: claims.kind });
   return { claims };
 }
 

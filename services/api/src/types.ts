@@ -34,6 +34,8 @@ export interface Env {
   PLAY_BASE_URL?: string;
   /** POST /client-events: Workers rate limiting, keyed per profile (the receiver per IP). */
   CLIENT_EVENTS_LIMITER?: RateLimit;
+  /** The deployed version (wrangler `version_metadata`); its id is every wide event's `version`. */
+  CF_VERSION_METADATA?: WorkerVersionMetadata;
 }
 
 export interface DeviceRow {

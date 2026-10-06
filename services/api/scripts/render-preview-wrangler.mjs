@@ -75,6 +75,9 @@ const config = {
     enabled: true,
     head_sampling_rate: 1,
   },
+  version_metadata: {
+    binding: "CF_VERSION_METADATA",
+  },
 };
 
 fs.writeFileSync(outputPath, JSON.stringify(config, null, "\t"), "utf8");
