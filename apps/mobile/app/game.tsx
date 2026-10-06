@@ -23,10 +23,9 @@ import {
   appState,
   couchHub,
   gameCastStoreFor,
-  gamePresence,
+  gameOpener,
   gameProfile,
   ogsCastNow,
-  rememberGameUrl,
   useApp,
 } from "../services/runtime";
 import { swipeBackHandlers } from "../services/swipe-back";
@@ -122,8 +121,8 @@ export default function GameScreen() {
   // While this screen is up the phone has the game open (a host follow for it opens nothing).
   useEffect(() => {
     if (!appId) return;
-    gamePresence.opening(appId);
-    return () => gamePresence.closed(appId);
+    gameOpener.opening(appId);
+    return () => gameOpener.closed(appId);
   }, [appId]);
 
   // Deep links and push taps while a game is open replace it (event subscription).
@@ -131,7 +130,7 @@ export default function GameScreen() {
 
   const leave = useCallback(() => {
     const url = latestUrl.current;
-    if (appId) rememberGameUrl(appId, url);
+    if (appId) gameOpener.remember(appId, url);
     exitGame({
       appId,
       name,

@@ -1,4 +1,4 @@
-import type { ClientMessage, Manifest } from "@open-game-system/ogs-protocol";
+import type { ClientMessage } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -28,16 +28,12 @@ import {
 } from "./couch-session";
 import { createFakeCastBackend, fakeCastOptions } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
-import { createGamePresence } from "./game-presence";
+import { createGameOpener } from "./game-opener";
 import { createGameProfile, createGameTokenClient } from "./game-profile";
-import { createGameUrls, rejoinUrl, rememberGame } from "./game-rejoin";
 import { createGoogleCastBackend } from "./google-cast-backend";
 import { captureJsErrors, type RejectionTracker } from "./js-errors";
-import { launchPlan } from "./launch-plan";
-import type { ReturnPill } from "./leave-game";
 import { createOgsApi } from "./ogs-api";
-import { createRoomJoiner, roomStartUrl } from "./rooms";
-import { sittingToOpen } from "./sittings";
+import { createRoomJoiner } from "./rooms";
 
 /**
  * The app's singletons, wired once for its lifetime: config, cast backend (real or fake) and the
@@ -233,16 +229,7 @@ function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
     deviceId: deviceIdOfMine,
     createSocket: webSocket,
     // A game started from the TV with the remote: this phone hosts it, so open its start page.
-    onFollowHost: ({ appId, instanceId, room }) => {
-      const game = appState.getSnapshot().library.find((g) => g.appId === appId);
-      // Continuing a paused game hosts its same room again, not a fresh one from the start page;
-      // a sitting in another couch's room (spec §7) starts by joining that room.
-      const start = (g: Manifest) => (room ? roomStartUrl(g.startUrl, room) : g.startUrl);
-      if (game)
-        gamePresence.followHost(appId, () =>
-          pushGame(game, rejoinUrlFor(appId, instanceId) ?? start(game)),
-        );
-    },
+    onFollowHost: (target) => gameOpener.followHost(target),
   });
   couch.subscribe(notifyCouch);
   couch.start();
@@ -267,73 +254,24 @@ couchHub.subscribe(() => castStop.castChanged());
 
 export const deviceId = () => appState.getSnapshot().identity?.deviceId ?? "this-phone";
 
-export const gamePresence = createGamePresence();
-
-/** Each game's latest page (its room), so Rejoin returns there instead of starting a new one. */
-const gameUrls = createGameUrls();
-
-/** The game screen is closing on `url` (the WebView's latest page): remember it for Rejoin. */
-export function rememberGameUrl(appId: string, url: string) {
-  gameUrls.record(rememberGame(appId, url, couchHub.getSnapshot().state));
-}
-
-function rejoinUrlFor(appId: string, instanceId?: string): string | undefined {
-  return rejoinUrl(appId, {
-    remembered: gameUrls.get(appId),
-    session: couchHub.getSnapshot().state,
-    pill: appState.getSnapshot().pill,
-    instanceId,
-  });
-}
-
-function pushGame(game: Pick<Manifest, "appId" | "name">, url: string, instanceId?: string) {
-  gamePresence.opening(game.appId);
-  router.push({
-    pathname: "/game",
-    params: { url, name: game.name, appId: game.appId, ...(instanceId ? { instanceId } : {}) },
-  });
-}
-
 /**
- * A tap on a game (a game's page, Playing, the return pill): spec v3, Where a game plays.
- * `instanceId` names one sitting to rejoin (a game's page lists several).
+ * Opening a game, every way it happens: a tap, the return pill, a host follow, a room join (spec
+ * v3, Where a game plays). The game screen tells it when a game opens, closes and where it was left.
  */
-export function openGame(
-  game: Manifest,
-  opts: { mode?: "continue" | "new"; resumeUrl?: string; instanceId?: string } = {},
-) {
-  const isNew = opts.mode === "new";
-  const resumeUrl =
-    opts.resumeUrl ?? (isNew ? undefined : rejoinUrlFor(game.appId, opts.instanceId));
-  const instanceId = isNew ? undefined : opts.instanceId;
-  const plan = launchPlan({
-    manifest: game,
-    ogsCast: ogsCastNow(),
-    deviceId: deviceId(),
-    mode: opts.mode,
-    resumeUrl,
-    instanceId,
-  });
-  const sitting = sittingToOpen(game.appId, { instanceId, resumeUrl }, Date.now());
-  switch (plan.kind) {
-    case "tv":
-      couchHub.send(plan.start);
-      pushGame(game, plan.url, sitting);
-      break;
-    case "phone":
-      pushGame(game, plan.url, sitting);
-      break;
-    case "needs-tv":
-      router.push({ pathname: "/library/[appId]", params: { appId: game.appId } });
-      break;
-  }
-}
+export const gameOpener = createGameOpener({
+  library: () => appState.getSnapshot().library,
+  session: () => couchHub.getSnapshot().state,
+  pill: () => appState.getSnapshot().pill,
+  ogsCast: ogsCastNow,
+  deviceId,
+  send: (msg) => couchHub.send(msg),
+  navigate: (route) => router.push(route),
+  now: Date.now,
+});
 
-export function openPill(pill: ReturnPill) {
-  const game = appState.getSnapshot().library.find((g) => g.appId === pill.appId);
-  if (game) openGame(game, { resumeUrl: pill.url, instanceId: pill.instanceId });
-  else router.push({ pathname: "/game", params: { url: pill.url, name: pill.name } });
-}
+/** A tap on a game (a game's page, Playing, the return pill): see `gameOpener.open`. */
+export const openGame = gameOpener.open;
+export const openPill = gameOpener.openPill;
 
 /**
  * Several couches, one room (spec §7): an invite link or Join with your couch starts the game in
@@ -355,7 +293,7 @@ export const roomJoiner = createRoomJoiner({
   },
   deviceId,
   send: (msg) => couchHub.send(msg),
-  open: (game, url) => pushGame(game, url),
+  open: (game, url) => gameOpener.show(game, url),
 });
 
 /** Cast: a new couch session hosted by this profile, named for the TV. */
