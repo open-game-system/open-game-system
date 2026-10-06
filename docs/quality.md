@@ -4,7 +4,7 @@ Grade each package/domain. Update after major changes.
 
 | Package | Grade | Tests | Mutation Score | Notes |
 |---------|-------|-------|----------------|-------|
-| services/api | A- | 58 unit + 57 integration = 115 pass | 68.79% | Full endpoint + D1 integration coverage. CORS, cross-game isolation, scheduled handler, content-type all integration-tested. Stryker configured. |
+| services/api | A- | 58 unit + 57 integration = 115 pass | 68.79% | Full endpoint + D1 integration coverage. CORS, cross-game isolation, content-type all integration-tested. Stryker configured. |
 | app-bridge-types | A | n/a | — | Pure types, no runtime code |
 | app-bridge-web | A | 15 pass | — | Comprehensive: init, state, subscriptions, errors |
 | app-bridge-native | B | passing | — | Core bridge + createStore tested |
@@ -36,7 +36,7 @@ Grade each package/domain. Update after major changes.
 
 | Package | Score | Killed | Survived | Notes |
 |---------|-------|--------|----------|-------|
-| services/api | 68.79% | 302 | 137 | scheduled.ts low (30%) — covered by integration tests. Auth improved to 79%. |
+| services/api | 68.79% | 302 | 137 | Auth improved to 79%. |
 | notification-kit-core | 66.67% | 18 | 9 | Survivors are bridge safety patterns (optional chaining). |
 | notification-kit-server | 82.35% | 28 | 6 | Survivors are error message strings. |
 

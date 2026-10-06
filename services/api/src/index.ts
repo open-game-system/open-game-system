@@ -19,7 +19,6 @@ import profiles from "./routes/profiles";
 import sessions from "./routes/sessions";
 import stream from "./routes/stream";
 import wellKnown from "./routes/well-known";
-import { handleScheduled } from "./scheduled";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -89,7 +88,3 @@ export default app;
 // Durable Object export — Cloudflare requires DO classes exported from the entry point.
 export { CouchSession } from "./couch-session";
 export { StreamContainer } from "./stream-container";
-// Cloudflare Workers scheduled event handler — exported for wrangler cron triggers.
-// In production, wrangler.jsonc wires this via the module's `scheduled` export.
-// Tests import handleScheduled directly from ./scheduled.
-export { handleScheduled };
