@@ -6,6 +6,8 @@ on:
     paths:
       - "services/api/**"
       - ".github/workflows/ci-api-deploy.yml"
+  # Re-deploy by hand, e.g. after changing the STREAM_SERVER_URL repo variable.
+  workflow_dispatch:
 
 concurrency:
   group: api-deploy-production
