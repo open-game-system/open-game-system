@@ -78,4 +78,23 @@ describe("the ogs bridge store (a game reports its instance from the app's WebVi
     store.reset();
     expect(store.getSnapshot().reported).toEqual([]);
   });
+
+  it("files the report under the sitting the game screen holds (one sitting, not two)", () => {
+    const post = jest.fn(async () => undefined);
+    const store = createOgsBridgeStore(post, (appId) =>
+      appId === "rocket-crew" ? "rocket-crew-mabc12" : null,
+    );
+    store.dispatch({
+      type: "INSTANCE_REPORT",
+      report: { ...report, instanceId: "rocket-crew:KQTP" },
+    });
+    expect(post).toHaveBeenCalledWith({ ...report, instanceId: "rocket-crew-mabc12" }, "bridge");
+  });
+
+  it("keeps the game's own id when the screen holds no sitting of that game", () => {
+    const post = jest.fn(async () => undefined);
+    const store = createOgsBridgeStore(post, () => null);
+    store.dispatch({ type: "INSTANCE_REPORT", report });
+    expect(post).toHaveBeenCalledWith(report, "bridge");
+  });
 });

@@ -172,6 +172,20 @@ Feature: Cast-first OGS app with games inside one stream
     Then Jonathan's instances include it with title "Day 4"
     And an update without a valid profile token is rejected
 
+  # Owner, 2026-10-05: "it created two games at the same minute" (Story Nook).
+  # Unit: apps/mobile/services/__tests__/one-sitting.test.ts. e2e: apps/mobile/e2e/one-sitting.test.ts
+  Scenario: Starting a game once while cast is one sitting
+    Given the TV is cast
+    When Jonathan plays Story Nook and its phone page reports "Room XJNE" over the bridge
+    And its TV page reports "Room XJNE" to the launcher
+    Then the report is filed under the couch session's sitting, not the game's own id "story-nook:XJNE"
+    And Story Nook's page lists one sitting, "Room XJNE"
+
+  Scenario: Played on the phone alone, the game's own id is the sitting
+    Given the TV is not cast
+    When a game's phone page reports "Room KQTP" with its id "rocket-crew:KQTP"
+    Then Jonathan's instances include "rocket-crew:KQTP" with title "Room KQTP"
+
   # --- M2: cast first, the launcher ---
 
   Scenario: Cast from the TV tab before any game

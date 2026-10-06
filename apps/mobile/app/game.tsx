@@ -16,7 +16,7 @@ import type { CastStores } from "../services/cast-store";
 import { exitGame } from "../services/game-exit";
 import { loadingCaption } from "../services/game-loading";
 import type { ProfileStores } from "../services/game-profile";
-import { latestGameUrl, sittingId } from "../services/game-rejoin";
+import { latestGameUrl, reportSittingFor, sittingId } from "../services/game-rejoin";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
 import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
 import {
@@ -46,7 +46,11 @@ bridge.setStore(
   "cast",
   gameCastStoreFor(() => currentAppId),
 );
-const ogsStore = createOgsBridgeStore((report, source) => appState.report(report, source));
+// While cast, the game's report labels the couch's live sitting (one start is one sitting).
+const ogsStore = createOgsBridgeStore(
+  (report, source) => appState.report(report, source),
+  (appId) => reportSittingFor(appId, couchHub.getSnapshot().state),
+);
 bridge.setStore("ogs", ogsStore);
 // Who is playing: a token for the open game only (never the app's own token).
 bridge.setStore("profile", gameProfile.store);
