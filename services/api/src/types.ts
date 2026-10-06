@@ -32,6 +32,8 @@ export interface Env {
   INVITE_BASE_URL?: string;
   /** Game invite links: `<base>/play/<appId>?room=` (default https://opengame.org). */
   PLAY_BASE_URL?: string;
+  /** POST /client-events: Workers rate limiting, keyed per profile (the receiver per IP). */
+  CLIENT_EVENTS_LIMITER?: RateLimit;
 }
 
 export interface DeviceRow {

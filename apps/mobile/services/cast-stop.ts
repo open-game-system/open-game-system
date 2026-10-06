@@ -1,7 +1,16 @@
 export type StopResult = "stopped" | "failed";
 
-/** The TV tab: the remote while cast through OGS, the Cast screen once a stop is asked for. */
-export function tvTabShows(input: { ogsCast: boolean; stopping: boolean }): "remote" | "not-cast" {
+/**
+ * The TV tab: the remote while cast through OGS, the Cast screen once a stop is asked for. While a
+ * TV switch runs the remote stays (its picker says "Switching to <TV>…"), though for a moment no
+ * TV is cast.
+ */
+export function tvTabShows(input: {
+  ogsCast: boolean;
+  stopping: boolean;
+  switching?: boolean;
+}): "remote" | "not-cast" {
+  if (input.switching) return "remote";
   return input.ogsCast && !input.stopping ? "remote" : "not-cast";
 }
 

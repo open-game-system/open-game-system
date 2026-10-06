@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type CastTrace, noTrace } from "./cast-trace";
 
 /**
  * Tells the OGS cast receiver which page to stream to the TV.
@@ -58,25 +59,42 @@ export async function connectViewChannel(
   session: ViewChannelSession,
   getViewUrl: () => string | null,
   streamServerUrl: string,
-): Promise<{ send(): Promise<void> } | null> {
+  trace: CastTrace = noTrace,
+): Promise<{ send(reason?: string): Promise<void> } | null> {
   try {
     const channel = await session.addChannel(CAST_VIEW_NAMESPACE);
-    const send = async () => {
+    const send = async (reason = "change") => {
       const viewUrl = getViewUrl();
-      if (!viewUrl) return;
-      await channel
-        .sendMessage({ type: "LOAD_VIEW", viewUrl, streamServerUrl })
-        .catch((err: unknown) => {
+      if (!viewUrl) {
+        trace.event("load_view.skipped", { level: "warn", data: { reason } });
+        return;
+      }
+      // The view's host only: its query carries the launcher token.
+      const data = { host: hostOf(viewUrl), reason };
+      const t0 = trace.now();
+      await channel.sendMessage({ type: "LOAD_VIEW", viewUrl, streamServerUrl }).then(
+        () => trace.event("load_view.sent", { durationMs: trace.now() - t0, data }),
+        (err: unknown) => {
+          trace.event("load_view.failed", { error: err, durationMs: trace.now() - t0, data });
           console.warn("[Cast] Could not send view to receiver:", err);
-        });
+        },
+      );
     };
     channel.onMessage((message) => {
-      if (isViewRequest(message)) void send();
+      if (!isViewRequest(message)) return;
+      trace.event("view_request.received");
+      void send("request");
     });
-    await send();
+    await send("connect");
     return { send };
   } catch (err) {
+    trace.event("view_channel.failed", { error: err });
     console.warn("[Cast] Could not open the view channel:", err);
     return null;
   }
+}
+
+function hostOf(url: string): string {
+  const match = url.match(/^[a-z]+:\/\/([^/?#]+)/i);
+  return match ? match[1] : "unknown";
 }
