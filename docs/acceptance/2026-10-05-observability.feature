@@ -1,6 +1,6 @@
 # Observability (2026-10-05): one wide event per unit of work in the API, uncaught app errors in the
 # same pipeline, and sre-agent reading Workers Logs (docs/agents/observability.md).
-# Tests: services/api/test/wide-event.test.ts, couch-session.test.ts, stream-container.test.ts,
+# Tests: services/api/test/wide-event.test.ts, couch-session.test.ts,
 # client-events.test.ts, client-error-seam.test.ts; apps/mobile/services/__tests__/js-errors.test.ts,
 # apps/mobile/components/ogs/__tests__/AppErrorBoundary.test.tsx.
 
@@ -18,11 +18,10 @@ Feature: Errors reach the logs once, readable, without names
     And an unhandled error answers 500 internal_error in the error contract
     And emails, JWTs, token= values and bearer tokens are scrubbed from the error text
 
-  Scenario: Couch sessions and stream containers log their own units of work
+  Scenario: Couch sessions log their own units of work
     Then each couch session frame is one couch.action line (action, session, device, profile ids)
     And the profile's name and sticker never appear in it
     And a stream route's trace id and steps ride on its request's line
-    And a stream container's start, stop and error are container.* lines (a non-zero exit is an error)
 
   Scenario: An error the app didn't catch reaches the logs
     When the app throws outside a handler, rejects a promise nobody handles (release builds),

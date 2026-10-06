@@ -7,7 +7,7 @@ the /wide-events-logging and /client-telemetry skills; this page records what th
 
 | Worker | Name (wrangler) | Config | Observability on | `CF_VERSION_METADATA` | Watched by sre-agent |
 |--------|-----------------|--------|------------------|-----------------------|----------------------|
-| API (HTTP, CouchSession DO, StreamContainer, client events) | `opengame-api` | `services/api/wrangler.jsonc` | yes, `head_sampling_rate: 1` | yes | yes |
+| API (HTTP, CouchSession DO, client events) | `opengame-api` | `services/api/wrangler.jsonc` | yes, `head_sampling_rate: 1` | yes | yes |
 | API PR previews | `opengame-api-pr-<n>` | rendered by `services/api/scripts/render-preview-wrangler.mjs` | yes | yes | no (short-lived) |
 
 Not Workers (no Workers Logs): `apps/tv` (Pages project `ogs-tv`) and `apps/web` (Pages project
@@ -56,7 +56,6 @@ The app and the Cast receiver post batches to `POST /api/v1/client-events`
 |-------|--------|-------|--------|---------|
 | `http.request` | server | info / error | `request_id` (cf-ray), `method`, `route` (pattern, never the path), `status`, `duration_ms`, `profile_id`, `device_kind`; stream routes add `trace_id`, `stream_steps` | One per HTTP request |
 | `couch.action` | server (CouchSession DO) | info / error | `action` (message type, or `rejected` + `rejected: <code>`), `session_id`, `host_profile_id`, `device_id`, `device_kind`, `profile_id`, `sent`, `duration_ms` | One per couch session frame (hello, bye, focus, select, remote…) |
-| `container.start` / `container.stop` / `container.error` | server (StreamContainer DO) | info / error | `container_id`, `exit_code`, `reason` | Container lifecycle; a non-zero exit is `ContainerExit` |
 | `kind: "client_event"` (`name: cast.*`, `receiver.*`) | client | log / error | `name`, `level`, `attemptId`, `durationMs`, `error`, `errorType`, `data`, `source` (mobile/receiver), `profileId` (from the token), `build`, `version`, `platform`, `sessionId`, `deviceHash` | Cast lifecycle steps (docs/acceptance/2026-10-05-cast-logging.feature) |
 | `name: app.js_error` | client (app) | error | `errorType`, `errorStack`, `data.fatal` | RN global handler caught an error |
 | `name: app.unhandled_rejection` | client (app) | error | `errorType` (`UnhandledRejection` for a non-Error reason) | Unhandled promise rejection (release builds) |
