@@ -9,7 +9,6 @@ the /wide-events-logging and /client-telemetry skills; this page records what th
 |--------|-----------------|--------|------------------|-----------------------|----------------------|
 | API (HTTP, CouchSession DO, StreamContainer, client events) | `opengame-api` | `services/api/wrangler.jsonc` | yes, `head_sampling_rate: 1` | yes | yes |
 | API PR previews | `opengame-api-pr-<n>` | rendered by `services/api/scripts/render-preview-wrangler.mjs` | yes | yes | no (short-lived) |
-| Older stream server | `bun-stream-server` | `examples/stream-server-demo/wrangler.jsonc` | yes | yes | yes |
 
 Not Workers (no Workers Logs): `apps/tv` (Pages project `ogs-tv`) and `apps/web` (Pages project
 `opengame-org`, which serves the Cast receiver `public/receiver.html`) are static Pages sites with no
@@ -69,7 +68,7 @@ The app and the Cast receiver post batches to `POST /api/v1/client-events`
 - Config: [.github/sre-agent.yml](../../.github/sre-agent.yml); workflow
   [.github/workflows/sre-agent.yml](../../.github/workflows/sre-agent.yml), runtime pinned to
   `jonmumm/skills/sre-agent/runtime@a948adacc8ae2d98cab7a142d1c90a0b83acc86b`.
-- Sources: `opengame-api`, `bun-stream-server`.
+- Sources: `opengame-api`.
 - `errorFields` mapping: **none needed.** Server lines carry `error.type` / `error.message`.
   Client-event lines carry `error` as a string (the message) and `errorType` (the client's, else the
   event name for older builds and the receiver), both built-in sre-agent paths, so a client line is

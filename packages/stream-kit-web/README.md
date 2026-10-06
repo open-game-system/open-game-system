@@ -76,7 +76,7 @@ stream.destroy();
 ## Notes
 
 - The current implementation still reflects an older broker/signaling model.
-- The working end-to-end Cloudflare runtime in `examples/bun-stream-server/` does not directly consume this package yet.
+- The OGS renderer (`services/api/container`, on Cloud Run) and the cast receiver do not consume this package yet.
 - Treat this package as low-level and experimental relative to the deployed example.
 
 ## Related Packages

@@ -101,7 +101,8 @@ pnpm --filter basic-react-demo test
 
 ## Using with the Bun Stream Server
 
-This demo can be connected to the `bun-stream-server` example in this repo to create a full end-to-end streaming demo:
+The `bun-stream-server` example this section used was retired on 2026-10-06 (streaming now renders
+on Cloud Run from `services/api/container`). The steps below are kept for reference:
 
 1. Start the Bun Stream Server:
    ```bash

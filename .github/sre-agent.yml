@@ -41,8 +41,6 @@ notify:
 sources:
   - type: cloudflare
     service: opengame-api           # services/api/wrangler.jsonc (API, CouchSession DO, client events)
-  - type: cloudflare
-    service: bun-stream-server      # examples/stream-server-demo/wrangler.jsonc (older stream Worker)
   # PR previews (opengame-api-pr-<n>) are short-lived and not watched.
   # Any other log store: a command that prints one LogEvent JSON per line
   # ({id, timestamp(ms), level, message, service, outcome?, versionId?}).

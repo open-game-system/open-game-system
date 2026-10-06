@@ -177,7 +177,6 @@ jobs:
     if: needs.deploy-preview.outputs.preview_url != ''
     env:
       E2E_API_PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
-      E2E_API_KEY: e2e-test-api-key
     steps:
       - uses: actions/checkout@v4
 
