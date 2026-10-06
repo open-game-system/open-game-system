@@ -5,7 +5,6 @@
   "mutate": [
     "src/**/*.ts",
     "!src/**/*.test.ts",
-    "!src/stream-container.ts",
     "!src/lib/friends.ts",
     "!src/lib/presence.ts",
     "!src/routes/friends.ts"

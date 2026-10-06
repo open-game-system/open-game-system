@@ -44,22 +44,10 @@
     }
   ],
 
-  "containers": [
-    {
-      "name": "codeflare-containers",
-      "image": "./container/Dockerfile",
-      "class_name": "StreamContainer",
-      "max_instances": 2,
-      "instance_type": "standard"
-    }
-  ],
-
+  // Streaming renders only on Cloud Run (STREAM_SERVER_URL, a secret; the image builds from
+  // ./container). No Cloudflare container: v3 below deletes the old StreamContainer class.
   "durable_objects": {
     "bindings": [
-      {
-        "name": "STREAM_CONTAINER",
-        "class_name": "StreamContainer"
-      },
       {
         "name": "COUCH_SESSION",
         "class_name": "CouchSession"
@@ -75,6 +63,10 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["CouchSession"]
+    },
+    {
+      "tag": "v3",
+      "deleted_classes": ["StreamContainer"]
     }
   ],
 

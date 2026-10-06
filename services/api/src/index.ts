@@ -4,7 +4,6 @@ import { apiKeyAuth } from "./middleware/auth";
 import { anyToken } from "./middleware/profile-auth";
 import { onError, wideEvent } from "./middleware/wide-event";
 import auth from "./routes/auth";
-import cast from "./routes/cast";
 import catalogue from "./routes/catalogue";
 import clientEvents from "./routes/client-events";
 import couch from "./routes/couch";
@@ -41,12 +40,6 @@ app.route("/api/v1/devices", devices);
 // Notifications (API key required - called by game servers)
 app.use("/api/v1/notifications/*", apiKeyAuth);
 app.route("/api/v1/notifications", notifications);
-
-// Cast sessions (API key required for session management, not for stream proxy)
-app.use("/api/v1/cast/sessions/*", apiKeyAuth);
-app.use("/api/v1/cast/sessions", apiKeyAuth);
-// /api/v1/cast/stream/* is unauthenticated (called by Chromecast receiver)
-app.route("/api/v1/cast", cast);
 
 // Profiles (docs/product-specs/ogs-profiles.html): POST /profiles, GET /handles (no token)
 app.route("/api/v1", profiles);
@@ -87,4 +80,3 @@ export default app;
 
 // Durable Object export — Cloudflare requires DO classes exported from the entry point.
 export { CouchSession } from "./couch-session";
-export { StreamContainer } from "./stream-container";

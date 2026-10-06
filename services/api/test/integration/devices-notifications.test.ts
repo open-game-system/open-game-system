@@ -137,19 +137,6 @@ describe("Devices & Notifications — D1 Integration", () => {
       expect(columns).toContain("game_name");
     });
 
-    it("cast_sessions table has correct columns", async () => {
-      const result = await env.DB.prepare("PRAGMA table_info(cast_sessions)").all();
-
-      const columns = result.results.map((r: Record<string, unknown>) => r.name);
-      expect(columns).toContain("session_id");
-      expect(columns).toContain("game_id");
-      expect(columns).toContain("device_id");
-      expect(columns).toContain("view_url");
-      expect(columns).toContain("stream_session_id");
-      expect(columns).toContain("stream_url");
-      expect(columns).toContain("status");
-    });
-
     it("test API key is seeded", async () => {
       const row = await env.DB.prepare("SELECT * FROM api_keys WHERE key = ?")
         .bind("test-api-key")

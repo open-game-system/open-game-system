@@ -36,9 +36,9 @@ The Open Game System (OGS) is a platform that lets web games use native mobile c
  │                     │    │  POST /notifications/send ──┼──► APNs (iOS)
  │  ┌────────────────┐ │    │                             │──► FCM  (Android)
  │  │stream-kit      │ │    │                             │
- │  │-web            │─────►│  /streams/* (planned) ──────┼──► CF Containers
- │  └────────────────┘ │    └────────────────────────────┘      (headless browser
- │                     │                                         WebRTC render)
+ │  │-web            │─────►│  /stream/* ─────────────────┼──► Cloud Run stream-gpu
+ │  └────────────────┘ │    └────────────────────────────┘      (headless Chrome,
+ │                     │                                         WebRTC → Realtime SFU)
  └─────────────────────┘
 ```
 
@@ -160,8 +160,9 @@ route → 403 `profile_token_required`.
 | POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined, `couch: { sid, label: host's name }`); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
 | GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
-| GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url, container }, realtime, turn }`; 200 ready / 503 not (needs a renderer — `STREAM_SERVER_URL` or the `STREAM_CONTAINER` binding — plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
+| GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url }, realtime, turn }`; 200 ready / 503 not (needs the renderer, `STREAM_SERVER_URL` (Cloud Run), plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
 | POST | `/api/v1/stream/start-stream` · `/subscribe` · PUT `/subscribe/:id/answer` · POST `/heartbeat` · GET `/ice-servers` | none (the TV) | The receiver's stream flow (`routes/stream.ts`). Errors carry the contract plus `traceId` (and `details`, the stream server's words): 400 `invalid_body`, 403 `forbidden` (debug-state), 500 `stream_not_configured` / `stream_start_failed` / `publisher_prepare_failed` / `publisher_answer_failed` / `subscribe_failed` / `subscribe_answer_failed`; heartbeat answers `{ ok }` (502 when the server is down, 410 `{ expired }` when it ended the stream) |
+| GET | `/api/v1/stream/health` · `/debug-state` (x-debug-token when `DEBUG_STATE_TOKEN` is set) · `/publisher/state` · POST `/publisher/prepare` · `/publisher/answer` | none | Passthroughs to the stream server's bare path (`STREAM_SERVER_URL`), its status and body unchanged; `/health` cold-starts a scaled-to-zero GPU instance. Every stream route that needs the renderer answers 500 `stream_not_configured` without `STREAM_SERVER_URL` |
 | POST | `/api/v1/client-events` | the app: phone/tablet/launcher token (signature only, no DB); the cast receiver: none | Client wide events (`routes/client-events.ts`): `{ context: { app: mobile\|receiver, build?, version?, platform?, profileId?, sessionId?, deviceHash? }, events: [{ name, at, level: debug\|info\|warn\|error, attemptId?, durationMs?, error?, errorType?, errorStack?, data?: { k: scalar } }] }` (1–50 events, 64 KB) → 202 `{ accepted }`. Nothing stored: each event is one JSON `console.log` line (`console.error` for level error) in Workers Logs with `message` (`client <app> <name>[: error]`, the SRE agent's fingerprint), `kind: "client_event"`, `source`, `authenticated`, the token's `profileId` (never the body's), `receivedAt`; error events add `errorType` (the client's, else the event name) and `errorStack`, and emails are scrubbed from error text. `token=` values and JWTs redacted, secret-named data keys dropped. 400 `invalid_body`, 413 `payload_too_large`, 401 `missing_auth` (the app without a token) / `invalid_token`, 429 `rate_limited` (`CLIENT_EVENTS_LIMITER`, a Workers rate-limit binding: 120/min per profile, the receiver per IP) |
 
 The mobile app currently signs in with email only (owner, 2026-10-04); `/auth/apple` and
@@ -231,15 +232,18 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `stream_provisioning_failed`, `invalid_view_url`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`, `internal_error` (500: an unhandled error, logged once by the request's wide event, see [agents/observability.md](agents/observability.md))
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`, `internal_error` (500: an unhandled error, logged once by the request's wide event, see [agents/observability.md](agents/observability.md))
 
 ## Database Schema (D1/SQLite)
+
+`cast_sessions` (v1 casting) was removed from schema.sql on 2026-10-06. schema.sql is applied to
+production on every deploy and only creates, so the old table stays in the production D1 until
+someone drops it deliberately.
 
 | Table | Primary Key | Columns | Notes |
 |-------|-------------|---------|-------|
 | `devices` | `ogs_device_id` | platform, push_token, created_at, updated_at | Upsert on register |
 | `api_keys` | `key` | game_id, game_name, created_at | Manual inserts for now |
-| `cast_sessions` | `session_id` | game_id, device_id, view_url, stream_session_id, stream_url, status, created_at, updated_at | Status: pending/active/ended |
 | `profiles` | `id` | handle (unique @id), name, sticker, library (JSON app ids, NULL = whole catalogue), created_at | One per person |
 | `profile_devices` | `device_id` | profile_id, kind (phone/tablet), name, created_at | One profile per device |
 | `profile_logins` | `(provider, subject)` | profile_id, email, created_at | Back-up logins: apple/google (OIDC sub) or email |
@@ -296,36 +300,25 @@ Game Server                     services/api                   D1           APNs
     │◄──────────────────────────────│                           │               │
 ```
 
-### Cast Session (TV Casting via Stream-Kit)
+### Cast stream (Cloud Run renderer, Realtime SFU)
+
+The only renderer is the Cloud Run GPU service `stream-gpu` (image built from
+`services/api/container`), named by the API secret `STREAM_SERVER_URL`. ADR
+[2026-10-06-streaming-cloud-run-only](adrs/2026-10-06-streaming-cloud-run-only.md).
 
 ```
-OGS Native App                 services/api              CF Container        TV (Chromecast)
-    │                               │                         │                  │
-    │  POST /cast/sessions          │                         │                  │
-    │  { deviceId, viewUrl }        │                         │                  │
-    │──────────────────────────────►│                         │                  │
-    │                               │  POST /start-stream     │                  │
-    │                               │  to stream server       │                  │
-    │                               │────────────────────────►│                  │
-    │                               │                         │  Load viewUrl    │
-    │                               │                         │  in headless     │
-    │           201 Created         │                         │  Chrome          │
-    │  { sessionId, streamUrl }     │                         │                  │
-    │◄──────────────────────────────│                         │                  │
-    │                               │                         │                  │
-    │  Send streamUrl to TV         │                         │  WebRTC stream   │
-    │  via Cast SDK                 │                         │─────────────────►│
-    │───────────────────────────────────────────────────────────────────────────►│
-    │                               │                         │                  │
-    │  POST /cast/sessions/:id/state│                         │                  │
-    │  { state: { round: 3 } }     │                         │                  │
-    │──────────────────────────────►│  Relay to container     │                  │
-    │                               │────────────────────────►│  Re-render       │
-    │                               │                         │─────────────────►│
-    │                               │                         │                  │
-    │  DELETE /cast/sessions/:id    │                         │                  │
-    │──────────────────────────────►│  Tear down container    │                  │
-    │                               │────────────────────────►│                  │
+TV receiver (Chromecast)        services/api /api/v1/stream     Cloud Run stream-gpu      Realtime SFU
+    │  POST /start-stream { url }     │                             │                        │
+    │────────────────────────────────►│  POST /publisher/prepare    │                        │
+    │                                 │────────────────────────────►│ headless Chrome loads  │
+    │                                 │◄──── offer + tracks ────────│ the launcher url       │
+    │                                 │  createSession(offer) ─────────────────────────────►│
+    │                                 │  POST /publisher/answer ───►│◄══ WebRTC (TURN) ═════►│
+    │                                 │  addTracks → re-answer ────►│                        │
+    │◄── { publisherSessionId } ──────│                             │                        │
+    │  POST /subscribe, PUT answer ──►│  subscriber session ──────────────────────────────►│
+    │◄═══════════════════════════════ video ════════════════════════════════════════════════│
+    │  POST /heartbeat (~1/min) ─────►│  GET /ping ────────────────►│ (410: stream ended)    │
 ```
 
 ### Client logs (wide events)

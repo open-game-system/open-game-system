@@ -54,7 +54,7 @@ const router = createStreamKitRouter({
 
 ## Notes
 
-- This package is not what powers the working Cloudflare example under `examples/bun-stream-server/`.
+- This package is not what powers the OGS renderer (`services/api/container`, deployed to Cloud Run).
 - The exported `StreamKitServer` and `createStreamClient` server-side API are not yet the source of truth for deployed behavior.
 - If you want the working end-to-end runtime, look at the example and the repo-level docs instead.
 

@@ -13,7 +13,7 @@ Tracking the migration from individual repos into the unified `open-game-system`
 - [x] **opengame-api** copied to `services/api`
 - [x] **opengame-app** copied to `apps/mobile` (managed Expo workflow, `ios/` and `android/` gitignored)
 - [x] **Examples** renamed and copied (4 total)
-  - `expo-bridge-demo`, `web-game-demo`, `stream-react-demo`, `stream-server-demo`
+  - `expo-bridge-demo`, `web-game-demo`, `stream-react-demo` (`stream-server-demo` retired 2026-10-06)
 - [x] **Root monorepo configs** in place
   - `turbo.json`, `tsconfig.json`, `pnpm-workspace.yaml`, Prettier
 - [x] **Unified CLAUDE.md and README**
@@ -28,7 +28,7 @@ Tracking the migration from individual repos into the unified `open-game-system`
 - [ ] **Wire up real APNs/FCM providers in services/api** -- currently stubs
 - [ ] **Add stream control-plane endpoints to services/api** -- needed by stream-kit (`/streams/create`, `/streams/:id`, etc.)
 - [ ] **Productize stream-kit SDK packages** -- working example is ahead of the SDK; stabilize APIs
-- [ ] **Gate `/ice-servers` endpoint in stream-server-demo** -- currently unauthenticated
+- [x] ~~**Gate `/ice-servers` endpoint in stream-server-demo**~~ -- obsolete: stream-server-demo retired 2026-10-06
 - [ ] **Test full end-to-end flow** -- mobile app -> app-bridge -> notification-kit -> api -> push delivery
 - [ ] **Verify all packages build cleanly in monorepo context** -- `pnpm build` from root
 - [ ] **Remove old individual repo references from CI configs** -- leftover workflows from pre-monorepo
