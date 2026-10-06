@@ -47,6 +47,7 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 | Quality grades | [docs/quality.md](docs/quality.md) |
 | Lessons learned | [docs/lessons.md](docs/lessons.md) |
 | How to run the e2e suites | [docs/testing/e2e.md](docs/testing/e2e.md) |
+| Observability | [docs/agents/observability.md](docs/agents/observability.md) — wide events, client telemetry, sre-agent |
 
 > **Progressive disclosure:** Do NOT load all docs upfront. Read this file,
 > then load the specific doc relevant to your current task.

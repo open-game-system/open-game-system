@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { apiError, invalidBody } from "../lib/http";
+import { scrub } from "../lib/wide-event";
 import { claimsFromHeader, type ProfileEnv } from "../middleware/profile-auth";
 
 /**
@@ -31,6 +32,9 @@ const EventSchema = z.object({
   attemptId: z.string().max(64).optional(),
   durationMs: z.number().nonnegative().optional(),
   error: z.string().max(MAX_BATCH_BYTES).optional(),
+  /** The error's class or a domain name; older builds don't send it (the event's name stands in). */
+  errorType: z.string().max(80).optional(),
+  errorStack: z.string().max(MAX_BATCH_BYTES).optional(),
   data: z.record(z.string().max(64), Scalar).optional(),
 });
 
@@ -106,7 +110,13 @@ clientEvents.post("/", async (c) => {
 
   const receivedAt = Date.now();
   for (const event of events) {
-    const error = event.error === undefined ? undefined : redact(event.error);
+    const error = event.error === undefined ? undefined : scrub(redact(event.error));
+    // sre-agent groups error lines by "errorType: error" (docs/agents/observability.md).
+    const errorType = error === undefined ? undefined : (event.errorType ?? event.name);
+    const errorStack =
+      error === undefined || event.errorStack === undefined
+        ? undefined
+        : scrub(redact(event.errorStack));
     const line = JSON.stringify({
       // Workers Logs' $metadata.message: what the SRE agent fingerprints (no ids in it).
       message: `client ${context.app} ${event.name}${error === undefined ? "" : `: ${error}`}`,
@@ -127,6 +137,8 @@ clientEvents.post("/", async (c) => {
       attemptId: event.attemptId,
       durationMs: event.durationMs,
       error,
+      errorType,
+      errorStack,
       data: redactData(event.data),
     });
     if (event.level === "error") console.error(line);

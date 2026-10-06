@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { type Peer as Recipient, recipients } from "./couch/route";
 import { recordLive, recordRoom, roomChange } from "./lib/presence";
+import { type EventFields, emit, errorFields, versionOf } from "./lib/wide-event";
 import type { Env } from "./types";
 
 /** Header the Worker uses to hand the verified peer to the DO (reachable only through the binding). */
@@ -61,7 +62,13 @@ export class CouchSession extends DurableObject<Env> {
     const peer = attachment(ws);
     if (!peer) return;
     const frame = readFrame(data, peer);
-    if ("error" in frame) return sendError(ws, ...frame.error);
+    if ("error" in frame) {
+      couchActionEvent(versionOf(this.env), peer, null, {
+        rejected: frame.error[0],
+        duration_ms: 0,
+      });
+      return sendError(ws, ...frame.error);
+    }
     await this.apply(peer, frame.msg);
   }
 
@@ -96,13 +103,22 @@ export class CouchSession extends DurableObject<Env> {
     return this.state;
   }
 
+  /** Applies one action and writes its wide event (`couch.action`). */
   private async apply(peer: Peer, msg: ClientMessage): Promise<void> {
-    const before = await this.load(peer);
-    const { state, out } = reduceSession(before, msg, Date.now());
-    this.state = state;
-    await this.ctx.storage.put(STATE_KEY, state);
-    await this.publishLive(before, state);
-    this.route(out);
+    const started = Date.now();
+    const version = versionOf(this.env);
+    try {
+      const before = await this.load(peer);
+      const { state, out } = reduceSession(before, msg, Date.now());
+      this.state = state;
+      await this.ctx.storage.put(STATE_KEY, state);
+      await this.publishLive(before, state);
+      const sent = this.route(out);
+      couchActionEvent(version, peer, msg, { sent, duration_ms: Date.now() - started });
+    } catch (error) {
+      couchActionEvent(version, peer, msg, { error, duration_ms: Date.now() - started });
+      throw error;
+    }
   }
 
   /** Friends' presence and Join cards read D1: whether the TV is connected and which game runs. */
@@ -119,19 +135,54 @@ export class CouchSession extends DurableObject<Env> {
     );
   }
 
-  private route(out: Outbound[]): void {
+  /** Sends the reducer's frames; returns how many went out. */
+  private route(out: Outbound[]): number {
     const sockets = this.ctx.getWebSockets().flatMap((ws) => {
       const peer = attachment(ws);
       return peer ? [{ ws, peer }] : [];
     });
     const peers: Recipient[] = sockets.map((s) => s.peer);
-    sendAll(
-      out.flatMap((o) => {
-        const frame = JSON.stringify(o.msg);
-        return recipients(o, peers).map((i) => ({ ws: sockets[i].ws, frame }));
-      }),
-    );
+    const sends = out.flatMap((o) => {
+      const frame = JSON.stringify(o.msg);
+      return recipients(o, peers).map((i) => ({ ws: sockets[i].ws, frame }));
+    });
+    sendAll(sends);
+    return sends.length;
   }
+}
+
+type ActionResult =
+  | { sent: number; duration_ms: number }
+  | { rejected: FrameError[0]; duration_ms: number }
+  | { error: unknown; duration_ms: number };
+
+/**
+ * The `couch.action` wide event: which action, from which session and device, and what came of
+ * it. Ids only: the peer's profile name and sticker (and the hello's profile) never go in.
+ */
+export function couchActionEvent(
+  version: string,
+  peer: Peer,
+  msg: ClientMessage | null,
+  result: ActionResult,
+): void {
+  const fields: EventFields = {
+    action: msg ? msg.type : "rejected",
+    session_id: peer.sessionId,
+    host_profile_id: peer.hostProfileId,
+    device_id: peer.deviceId,
+    device_kind: peer.kind,
+  };
+  if (peer.profile) fields.profile_id = peer.profile.profileId;
+  if ("error" in result) {
+    emit("couch.action", version, {
+      ...fields,
+      duration_ms: result.duration_ms,
+      error: errorFields(result.error),
+    });
+    return;
+  }
+  emit("couch.action", version, { ...fields, ...result });
 }
 
 /** The verified peer of a WebSocket upgrade from the Worker, or null. */

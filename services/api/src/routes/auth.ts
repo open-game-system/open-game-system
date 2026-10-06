@@ -14,6 +14,7 @@ import {
   type Provider,
   upsertDevice,
 } from "../lib/profiles";
+import { recordError } from "../lib/wide-event";
 import { claimsFromHeader, type ProfileEnv } from "../middleware/profile-auth";
 import type { Env } from "../types";
 
@@ -168,7 +169,7 @@ auth.post("/email/start", async (c) => {
   try {
     await cloudflareEmailSender(binding, c.env.EMAIL_FROM).send(body.email, codeEmail(code));
   } catch (error) {
-    console.error("email_failed", error);
+    recordError(c, error);
     return apiError(c, 502, "email_failed", "Couldn't send the email");
   }
   return c.json({ sent: true }, 202);

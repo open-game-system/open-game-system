@@ -95,6 +95,55 @@ describe("POST /api/v1/client-events", () => {
     expect(out[1]).toMatchObject({ name: "cast.discovery.updated", data: { count: 2 } });
   });
 
+  it("an error event carries errorType for sre-agent: the client's, else the event's name", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await post(
+      {
+        context: context(),
+        events: [
+          event({
+            name: "app.js_error",
+            level: "error",
+            error: "x is undefined",
+            errorType: "TypeError",
+            errorStack: "TypeError: x is undefined\n  at a (http://app/?token=abc:1:2)",
+          }),
+          // An older build (no errorType): the event's name is the type.
+          event({ name: "cast.start.rejected", level: "error", error: "No device" }),
+        ],
+      },
+      { token: await phone() },
+    );
+    const out = lines(err);
+    expect(out[0]).toMatchObject({
+      error: "x is undefined",
+      errorType: "TypeError",
+      // token= values are redacted up to the next & # space or quote.
+      errorStack: "TypeError: x is undefined\n  at a (http://app/?token=REDACTED",
+    });
+    expect(out[1]).toMatchObject({ error: "No device", errorType: "cast.start.rejected" });
+    expect(out[1]).not.toHaveProperty("errorStack");
+  });
+
+  it("info events carry no errorType", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await post({ context: context(), events: [event()] }, { token: await phone() });
+    expect(lines(log)[0]).not.toHaveProperty("errorType");
+  });
+
+  it("an email in an error's text never reaches the log", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    await post(
+      {
+        context: context(),
+        events: [event({ level: "error", error: "sign-in failed for kid@example.com" })],
+      },
+      { token: await phone() },
+    );
+    expect(String(err.mock.calls[0][0])).not.toContain("kid@example.com");
+  });
+
   it("an error event goes to console.error (Workers Logs' error level), with its message", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const err = vi.spyOn(console, "error").mockImplementation(() => {});

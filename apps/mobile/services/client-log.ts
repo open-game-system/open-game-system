@@ -30,6 +30,9 @@ export type ClientEvent = {
   attemptId?: string;
   durationMs?: number;
   error?: string;
+  /** The error's class (`TypeError`) or a domain name (`UnhandledRejection`): sre-agent's type. */
+  errorType?: string;
+  errorStack?: string;
   data?: Record<string, LogValue>;
 };
 
@@ -39,6 +42,9 @@ export type EventFields = {
   durationMs?: number;
   /** An Error (its message) or a string; makes the level "error" unless one is given. */
   error?: unknown;
+  /** With an error: its type and stack (js-errors.ts sets them for uncaught errors). */
+  errorType?: string;
+  errorStack?: string;
   data?: LogData;
 };
 
@@ -131,6 +137,8 @@ const StoredSchema = z.array(
       attemptId: z.string().optional(),
       durationMs: z.number().optional(),
       error: z.string().optional(),
+      errorType: z.string().optional(),
+      errorStack: z.string().optional(),
       data: z.record(z.string(), Scalar).optional(),
     }),
   }),
@@ -206,6 +214,8 @@ export function createClientLog(deps: {
       if (fields.attemptId) event.attemptId = fields.attemptId;
       if (fields.durationMs !== undefined) event.durationMs = Math.max(0, fields.durationMs);
       if (error !== undefined) event.error = error;
+      if (error !== undefined && fields.errorType) event.errorType = fields.errorType.slice(0, 80);
+      if (error !== undefined && fields.errorStack) event.errorStack = clean(fields.errorStack);
       const data = cleanData(fields.data);
       if (data) event.data = data;
       add([{ context: { ...deps.context() }, event }]);

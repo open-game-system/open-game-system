@@ -32,6 +32,7 @@ import { createGamePresence } from "./game-presence";
 import { createGameProfile, createGameTokenClient } from "./game-profile";
 import { createGameUrls, rejoinUrl, rememberGame } from "./game-rejoin";
 import { createGoogleCastBackend } from "./google-cast-backend";
+import { captureJsErrors, type RejectionTracker } from "./js-errors";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
 import { createOgsApi } from "./ogs-api";
@@ -75,6 +76,27 @@ void clientLog.restore();
 RNAppState.addEventListener("change", (state) => {
   if (state === "background") void clientLog.background();
 });
+
+/**
+ * Uncaught JS errors → the client log: RN's global handler, and unhandled promise rejections in
+ * release builds (in dev, RN's LogBox owns Hermes' rejection tracker). The root layout's error
+ * boundary reports through `jsErrors.boundary`.
+ */
+export const jsErrors = captureJsErrors(clientLog, {
+  errorUtils: ErrorUtils,
+  trackRejections: __DEV__ ? null : hermesRejectionTracker(),
+});
+
+/** Hermes' `enablePromiseRejectionTracker`, read off the untyped global (null without Hermes). */
+function hermesRejectionTracker(): RejectionTracker | null {
+  const hermes: unknown = Reflect.get(globalThis, "HermesInternal");
+  if (typeof hermes !== "object" || hermes === null) return null;
+  const enable: unknown = Reflect.get(hermes, "enablePromiseRejectionTracker");
+  if (typeof enable !== "function") return null;
+  return (options) => {
+    Reflect.apply(enable, hermes, [options]);
+  };
+}
 
 /** The cast lifecycle's log, one correlation id per cast attempt. */
 export const castTrace = createCastTrace(clientLog);

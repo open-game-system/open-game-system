@@ -1,5 +1,14 @@
-import { describe, expect, it } from "vitest";
-import { closeCode, PEER_HEADER, peerOfUpgrade, readFrame, sendAll } from "../src/couch-session";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  closeCode,
+  couchActionEvent,
+  PEER_HEADER,
+  peerOfUpgrade,
+  readFrame,
+  sendAll,
+} from "../src/couch-session";
+
+afterEach(() => vi.restoreAllMocks());
 
 /** The CouchSession DO's pure edges: what it accepts, what it reads from a frame, how it sends. */
 const PEER = {
@@ -100,5 +109,63 @@ describe("sendAll", () => {
       { ws: open, frame: "c" },
     ]);
     expect(got).toEqual(["open:a", "open:c"]);
+  });
+});
+
+describe("couchActionEvent (one wide event per couch action)", () => {
+  const hello = {
+    type: "hello" as const,
+    deviceId: "kid-ipad",
+    kind: "tablet" as const,
+    profile: PEER.profile,
+  };
+
+  it("an applied action is one console.info line with ids and counts, never the profile's name", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    couchActionEvent("v-1", PEER, hello, { sent: 3, duration_ms: 4 });
+    expect(error).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledTimes(1);
+    const line = info.mock.calls[0][0];
+    expect(line).toEqual({
+      event: "couch.action",
+      service: "opengame-api",
+      version: "v-1",
+      source: "server",
+      outcome: "ok",
+      action: "hello",
+      session_id: "s1",
+      host_profile_id: "mom",
+      device_id: "kid-ipad",
+      device_kind: "tablet",
+      profile_id: "kid",
+      sent: 3,
+      duration_ms: 4,
+    });
+    expect(JSON.stringify(line)).not.toContain("Kid");
+    expect(JSON.stringify(line)).not.toContain("rocket");
+  });
+
+  it("a rejected frame says why (info: the client's mistake)", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    couchActionEvent("v-1", PEER, null, { rejected: "invalid_json", duration_ms: 0 });
+    expect(info.mock.calls[0][0]).toMatchObject({ action: "rejected", rejected: "invalid_json" });
+  });
+
+  it("an action that throws is one console.error line with error.type/message", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    couchActionEvent(
+      "v-1",
+      PEER,
+      { type: "bye", deviceId: "kid-ipad" },
+      { error: new TypeError("storage failed"), duration_ms: 2 },
+    );
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0][0]).toMatchObject({
+      event: "couch.action",
+      outcome: "error",
+      action: "bye",
+      error: { type: "TypeError", message: "storage failed" },
+    });
   });
 });
