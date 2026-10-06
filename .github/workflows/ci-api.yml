@@ -28,7 +28,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build API
-        run: pnpm --filter @open-game-system/api build
+        run: pnpm turbo build --filter=@open-game-system/api...
 
       - name: Typecheck API
         run: pnpm --filter @open-game-system/api typecheck
