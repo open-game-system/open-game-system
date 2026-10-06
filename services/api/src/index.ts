@@ -80,4 +80,3 @@ export default app;
 
 // Durable Object export — Cloudflare requires DO classes exported from the entry point.
 export { CouchSession } from "./couch-session";
-export { StreamContainer } from "./stream-container";

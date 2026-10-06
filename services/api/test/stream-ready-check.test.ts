@@ -27,7 +27,7 @@ function deps(over: Partial<ReadyDeps> = {}): ReadyDeps & { seen: string[] } {
           status: 200,
           json: {
             ready: true,
-            renderer: { url: true, container: true },
+            renderer: { url: true },
             realtime: true,
             turn: true,
           },
@@ -51,6 +51,10 @@ describe("checkStreamReady", () => {
       ["renderer service", "ok"],
       ["renderer health", "skip"],
     ]);
+    expect(r.checks[1]).toMatchObject({
+      result: "ok",
+      detail: "renderer (STREAM_SERVER_URL), Realtime, TURN",
+    });
     expect(r.checks[3].detail).toMatch(/cold-start/);
     // Never a render: no start-stream, subscribe, or renderer call.
     expect(d.seen).toEqual([`${API}/api/v1/stream/ice-servers`, `${API}/api/v1/stream/ready`]);
@@ -101,7 +105,7 @@ describe("checkStreamReady", () => {
               status: 503,
               json: {
                 ready: false,
-                renderer: { url: false, container: true },
+                renderer: { url: false },
                 realtime: true,
                 turn: false,
               },
@@ -110,7 +114,7 @@ describe("checkStreamReady", () => {
     });
     expect(r.checks[1]).toMatchObject({
       result: "fail",
-      detail: "missing: TURN; renderer: container (no STREAM_SERVER_URL)",
+      detail: "missing: renderer (STREAM_SERVER_URL), TURN",
     });
   });
 

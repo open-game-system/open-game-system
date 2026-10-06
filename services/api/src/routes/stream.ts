@@ -64,6 +64,12 @@ function getRealtimeCredentials(env: Env): RealtimeCredentials {
     appSecret: env.CLOUDFLARE_REALTIME_APP_SECRET,
   };
 }
+/** The Cloud Run stream server (`stream-gpu`): the only renderer. */
+function streamServerUrl(env: Env): string {
+  if (!env.STREAM_SERVER_URL) throw new NotConfigured("STREAM_SERVER_URL must be configured");
+  return env.STREAM_SERVER_URL;
+}
+
 const SESSION_ID_HEADER = "x-stream-session-id";
 const DEBUG_TOKEN_HEADER = "x-debug-token";
 
@@ -188,25 +194,30 @@ async function generateTurnIceServers(env: Env, trace: Trace): Promise<IceServer
   return iceServers;
 }
 
-function forwardToContainer(c: Context<StreamEnv>, targetPath: string) {
+/**
+ * Forwards this request to the stream server's bare path (no /api/v1/stream prefix) with its body,
+ * content type, session id and a trace id, and passes the answer through. Without
+ * STREAM_SERVER_URL: `stream_not_configured`, and nothing is called.
+ */
+async function forwardToStreamServer(c: Context<StreamEnv>, targetPath: string) {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = targetPath;
+  let base: string;
+  try {
+    base = streamServerUrl(c.env);
+  } catch (error) {
+    return thrown(c, error, "stream_forward_failed", traceId);
+  }
+  const headers = new Headers({ "x-stream-trace-id": traceId });
+  for (const name of ["content-type", SESSION_ID_HEADER]) {
+    const value = c.req.header(name);
+    if (value) headers.set(name, value);
+  }
   const hasBody = c.req.method !== "GET" && c.req.method !== "HEAD";
-  const forwardedRequest = new Request(containerUrl.toString(), {
+  return fetch(`${base}${targetPath}`, {
     method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-    body: hasBody ? c.req.raw.body : undefined,
-    ...(hasBody ? { duplex: "half" as const } : {}),
-  } as RequestInit);
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
-
-  return stub.fetch(forwardedRequest);
+    headers,
+    body: hasBody ? await c.req.text() : undefined,
+  });
 }
 
 /**
@@ -216,10 +227,15 @@ function forwardToContainer(c: Context<StreamEnv>, targetPath: string) {
  * shut it down), and once casting stops the pings stop, letting it scale to zero.
  */
 stream.post("/heartbeat", async (c) => {
+  let base: string;
   try {
-    const res = c.env.STREAM_SERVER_URL
-      ? await fetch(`${c.env.STREAM_SERVER_URL}/ping`, { method: "GET" })
-      : await forwardToContainer(c, "/ping");
+    base = streamServerUrl(c.env);
+  } catch (error) {
+    const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+    return thrown(c, error, "stream_heartbeat_failed", traceId);
+  }
+  try {
+    const res = await fetch(`${base}/ping`, { method: "GET" });
     // 410: the stream hit its maximum lifetime (a forgotten cast); the receiver stops pinging.
     if (res.status === 410) return c.json({ ok: false, expired: true }, 410);
     return c.json({ ok: res.ok }, res.ok ? 200 : 502);
@@ -256,77 +272,38 @@ stream.get("/ice-servers", async (c) => {
 
 /**
  * GET /api/v1/stream/ready
- * Post-deploy readiness (scripts/stream-ready.mjs): which parts a cast needs are configured — a
- * renderer (the Cloud Run URL, or the container binding), Realtime (the SFU) and TURN (the GPU
+ * Post-deploy readiness (scripts/stream-ready.mjs): which parts a cast needs are configured — the
+ * renderer (STREAM_SERVER_URL, the Cloud Run GPU service), Realtime (the SFU) and TURN (the GPU
  * publisher reaches the SFU through it). Booleans only, never values; nothing is called or started.
  */
 stream.get("/ready", (c) => {
   const set = (value: unknown) => typeof value === "string" && value.length > 0;
-  const renderer = {
-    url: set(c.env.STREAM_SERVER_URL),
-    container: Boolean(c.env.STREAM_CONTAINER),
-  };
+  const renderer = { url: set(c.env.STREAM_SERVER_URL) };
   const realtime =
     set(c.env.CLOUDFLARE_REALTIME_APP_ID) && set(c.env.CLOUDFLARE_REALTIME_APP_SECRET);
   const turn = set(c.env.CLOUDFLARE_TURN_API_TOKEN) && set(c.env.CLOUDFLARE_TURN_KEY_ID);
-  const ready = (renderer.url || renderer.container) && realtime && turn;
+  const ready = renderer.url && realtime && turn;
   return c.json({ ready, renderer, realtime, turn }, ready ? 200 : 503);
 });
 
 /**
  * GET /api/v1/stream/health
- * Container health check — forwards to the StreamContainer DO.
+ * The stream server's health check (on a scaled-to-zero GPU service this starts an instance).
  */
-stream.get("/health", async (c) => {
-  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
+stream.get("/health", (c) => forwardToStreamServer(c, "/health"));
 
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  // Rewrite URL to strip the /api/v1/stream prefix — container expects bare paths
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = "/health";
-  const forwardedRequest = new Request(containerUrl.toString(), {
-    method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-  });
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
+type ServerPost = (path: string, body: unknown) => Promise<Response>;
 
-  const response = await stub.fetch(forwardedRequest);
-  return response;
-});
-
-/** The session id header (when valid) and the StreamContainer instance it names. */
-function streamTarget(c: Context<StreamEnv>) {
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-  return { sessionId, streamInstanceName };
-}
-
-type ContainerPost = (path: string, body: unknown) => Promise<Response>;
-
-/** POSTs JSON to the stream server: directly (STREAM_SERVER_URL) or via the session's DO. */
-function containerPoster(
-  c: Context<StreamEnv>,
-  trace: Trace,
-  streamInstanceName: string,
-): ContainerPost {
+/** POSTs JSON to the stream server (STREAM_SERVER_URL). */
+function serverPoster(base: string, trace: Trace): ServerPost {
   return (path, body) => {
-    const init = {
+    const url = `${base}${path}`;
+    trace.step("stream_server_fetch", { url });
+    return fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-stream-trace-id": trace.id },
       body: JSON.stringify(body),
-    };
-    if (c.env.STREAM_SERVER_URL) {
-      const url = `${c.env.STREAM_SERVER_URL}${path}`;
-      trace.step("container_direct_fetch", { url });
-      return fetch(url, init);
-    }
-    const stub = c.env.STREAM_CONTAINER.get(c.env.STREAM_CONTAINER.idFromName(streamInstanceName));
-    const doUrl = new URL(c.req.url);
-    doUrl.pathname = path;
-    return stub.fetch(new Request(doUrl.toString(), init));
+    });
   };
 }
 
@@ -340,7 +317,7 @@ async function optionalIceServers(env: Env, trace: Trace): Promise<IceServerConf
   }
 }
 
-/** The error body of a failed container step (logged), or null when it succeeded. */
+/** The error body of a failed stream server step (logged), or null when it succeeded. */
 async function failure(res: Response, trace: Trace, event: string): Promise<string | null> {
   if (res.ok) return null;
   const body = await res.text();
@@ -356,7 +333,7 @@ async function publishTracks(
   creds: RealtimeCredentials,
   sfuSessionId: string,
   prepared: PublisherPrepareResponse,
-  post: ContainerPost,
+  post: ServerPost,
   trace: Trace,
 ) {
   // Small delay to ensure PeerConnection is fully established
@@ -377,22 +354,22 @@ async function publishTracks(
 /**
  * POST /api/v1/stream/start-stream
  * Two-phase SFU flow:
- * 1. Container /publisher/prepare → local SDP offer + track list
+ * 1. Stream server /publisher/prepare → local SDP offer + track list
  * 2. CF Realtime createSession(offer) → sessionId
  * 3. CF Realtime addTracks(sessionId, offer, tracks) → SFU answer
- * 4. Container /publisher/answer → complete WebRTC handshake
+ * 4. Stream server /publisher/answer → complete WebRTC handshake
  */
 stream.post("/start-stream", async (c) => {
   const trace = streamTrace(c);
   const traceId = trace.id;
-  const { sessionId, streamInstanceName } = streamTarget(c);
+  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
 
   try {
     const creds = getRealtimeCredentials(c.env);
-    trace.step("start_stream_begin", { sessionId, streamInstanceName });
-    const post = containerPoster(c, trace, streamInstanceName);
+    const post = serverPoster(streamServerUrl(c.env), trace);
+    trace.step("start_stream_begin", { sessionId });
 
-    // Step 1: Ask container to prepare publisher (ICE servers optional — SFU provides its own TURN)
+    // Step 1: Ask the stream server to prepare the publisher (ICE servers optional — SFU provides its own TURN)
     const iceServers = await optionalIceServers(c.env, trace);
     const requestBody = await c.req.json();
     const prepareRes = await post("/publisher/prepare", { url: requestBody.url, iceServers });
@@ -413,7 +390,7 @@ stream.post("/start-stream", async (c) => {
     const sfuSession = await createSession(creds, prepareData.sessionDescription);
     trace.step("sfu_session_created", { sfuSessionId: sfuSession.sessionId });
 
-    // Step 3: Apply SFU answer to container FIRST — PeerConnection must connect before adding tracks
+    // Step 3: Apply SFU answer to the stream server FIRST — PeerConnection must connect before adding tracks
     const answerRes = await post("/publisher/answer", {
       sessionDescription: sfuSession.sessionDescription,
     });
@@ -518,58 +495,27 @@ stream.put("/subscribe/:subscriberSessionId/answer", async (c) => {
   }
 });
 
-/**
- * POST /api/v1/stream/publisher/prepare
- * Forwards to the StreamContainer DO → container to initialize publisher and get local SDP offer.
- */
-stream.post("/publisher/prepare", async (c) => {
-  return forwardToContainer(c, "/publisher/prepare");
-});
+/** POST /api/v1/stream/publisher/prepare: the stream server initializes its publisher (SDP offer). */
+stream.post("/publisher/prepare", (c) => forwardToStreamServer(c, "/publisher/prepare"));
 
-/**
- * POST /api/v1/stream/publisher/answer
- * Forwards the SFU's SDP answer to the StreamContainer DO → container to complete WebRTC handshake.
- */
-stream.post("/publisher/answer", async (c) => {
-  return forwardToContainer(c, "/publisher/answer");
-});
+/** POST /api/v1/stream/publisher/answer: the SFU's SDP answer to the stream server. */
+stream.post("/publisher/answer", (c) => forwardToStreamServer(c, "/publisher/answer"));
 
-/**
- * GET /api/v1/stream/publisher/state
- * Forwards to the StreamContainer DO → container for publisher debug state.
- */
-stream.get("/publisher/state", async (c) => {
-  return forwardToContainer(c, "/publisher/state");
-});
+/** GET /api/v1/stream/publisher/state: the stream server's publisher state, for debugging. */
+stream.get("/publisher/state", (c) => forwardToStreamServer(c, "/publisher/state"));
 
 /**
  * GET /api/v1/stream/debug-state
- * Debug endpoint — returns container state. Requires debug token if configured.
+ * The stream server's debug state. Requires the debug token when DEBUG_STATE_TOKEN is set.
  */
-stream.get("/debug-state", async (c) => {
+stream.get("/debug-state", (c) => {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-
   if (
     !isDebugRequestAuthorized(c.env.DEBUG_STATE_TOKEN, c.req.header(DEBUG_TOKEN_HEADER) ?? null)
   ) {
     return streamError(c, 403, "forbidden", "A valid x-debug-token is required", traceId);
   }
-
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  // Rewrite URL to strip the /api/v1/stream prefix — container expects /debug-state
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = "/debug-state";
-  const forwardedRequest = new Request(containerUrl.toString(), {
-    method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-  });
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
-
-  const response = await stub.fetch(forwardedRequest);
-  return response;
+  return forwardToStreamServer(c, "/debug-state");
 });
 
 export default stream;

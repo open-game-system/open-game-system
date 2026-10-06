@@ -58,9 +58,9 @@ untouched:
 
 ```bash
 SP=<scratch dir>
-# API (8798): containers off, its own D1, Night Flight's start page local
+# API (8798): its own D1, Night Flight's start page local
 cd services/api && pnpm exec wrangler d1 execute opengame-api-db --local --persist-to $SP/api --file=schema.sql
-pnpm exec wrangler dev --enable-containers=false --port 8798 --persist-to $SP/api \
+pnpm exec wrangler dev --port 8798 --persist-to $SP/api \
   --var 'CATALOGUE_START_URLS:{"night-flight":"http://localhost:8797/"}' --var AVATAR_BASE_URL:http://localhost:5280
 # Night Flight (8797), verifying game tokens with that API
 cd ~/src/night-flight-owls && pnpm exec wrangler dev --port 8797 --persist-to $SP/nf \

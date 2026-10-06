@@ -3,7 +3,7 @@ import app from "../src/index";
 
 /**
  * GET /api/v1/stream/ready: what a post-deploy check (scripts/stream-ready.mjs) needs to know
- * without starting a render: is a renderer configured (Cloud Run URL or the container binding),
+ * without starting a render: is the renderer configured (the Cloud Run URL, STREAM_SERVER_URL),
  * Realtime (SFU) and TURN. Booleans only — never a URL, id or secret — and no call goes out.
  */
 const fetchSpy = vi.fn();
@@ -13,10 +13,8 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-const containerFetch = vi.fn();
 const FULL = {
   STREAM_SERVER_URL: "https://stream-gpu.example.run.app",
-  STREAM_CONTAINER: { idFromName: vi.fn(), get: vi.fn(() => ({ fetch: containerFetch })) },
   CLOUDFLARE_REALTIME_APP_ID: "app-id-value",
   CLOUDFLARE_REALTIME_APP_SECRET: "app-secret-value",
   CLOUDFLARE_TURN_API_TOKEN: "turn-token-value",
@@ -34,32 +32,18 @@ describe("GET /api/v1/stream/ready", () => {
     expect(r.status).toBe(200);
     expect(JSON.parse(r.text)).toEqual({
       ready: true,
-      renderer: { url: true, container: true },
+      renderer: { url: true },
       realtime: true,
       turn: true,
     });
     for (const value of Object.values(FULL))
       if (typeof value === "string") expect(r.text).not.toContain(value);
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(containerFetch).not.toHaveBeenCalled();
-  });
-
-  it("is ready with the container renderer when no STREAM_SERVER_URL is set", async () => {
-    const r = JSON.parse((await ready({ ...FULL, STREAM_SERVER_URL: undefined })).text);
-    expect(r).toEqual({
-      ready: true,
-      renderer: { url: false, container: true },
-      realtime: true,
-      turn: true,
-    });
   });
 
   it.each([
-    [
-      "no renderer",
-      { STREAM_SERVER_URL: "", STREAM_CONTAINER: undefined },
-      { renderer: { url: false, container: false } },
-    ],
+    ["an empty STREAM_SERVER_URL", { STREAM_SERVER_URL: "" }, { renderer: { url: false } }],
+    ["no STREAM_SERVER_URL", { STREAM_SERVER_URL: undefined }, { renderer: { url: false } }],
     [
       "Realtime without its secret",
       { CLOUDFLARE_REALTIME_APP_SECRET: undefined },

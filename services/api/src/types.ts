@@ -1,10 +1,8 @@
 import type { CouchSession } from "./couch-session";
-import type { StreamContainer } from "./stream-container";
 
 export interface Env {
   DB: D1Database;
   OGS_JWT_SECRET: string;
-  STREAM_CONTAINER: DurableObjectNamespace<StreamContainer>;
   COUCH_SESSION: DurableObjectNamespace<CouchSession>;
   CLOUDFLARE_TURN_API_TOKEN: string;
   CLOUDFLARE_TURN_KEY_ID: string;

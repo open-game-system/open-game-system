@@ -23,7 +23,7 @@ const IceServers = z.object({
 });
 const ReadyBody = z.object({
   ready: z.boolean(),
-  renderer: z.object({ url: z.boolean(), container: z.boolean() }),
+  renderer: z.object({ url: z.boolean() }),
   realtime: z.boolean(),
   turn: z.boolean(),
 });
@@ -56,17 +56,14 @@ async function apiConfig(api: string, fetchJson: FetchJson): Promise<Check> {
   if (!body.success)
     return { name, result: "fail", detail: `GET /stream/ready answered ${res.status}` };
   const { renderer, realtime, turn } = body.data;
-  const missing = [
-    ...(renderer.url || renderer.container ? [] : ["renderer"]),
-    ...(realtime ? [] : ["Realtime"]),
-    ...(turn ? [] : ["TURN"]),
+  const parts: [string, boolean][] = [
+    ["renderer (STREAM_SERVER_URL)", renderer.url],
+    ["Realtime", realtime],
+    ["TURN", turn],
   ];
-  const which = renderer.url
-    ? "renderer: STREAM_SERVER_URL"
-    : "renderer: container (no STREAM_SERVER_URL)";
-  if (missing.length > 0)
-    return { name, result: "fail", detail: `missing: ${missing.join(", ")}; ${which}` };
-  return { name, result: "ok", detail: `Realtime, TURN; ${which}` };
+  const missing = parts.filter(([, set]) => !set).map(([part]) => part);
+  if (missing.length > 0) return { name, result: "fail", detail: `missing: ${missing.join(", ")}` };
+  return { name, result: "ok", detail: parts.map(([part]) => part).join(", ") };
 }
 
 function rendererService(service: RendererService): Check {
