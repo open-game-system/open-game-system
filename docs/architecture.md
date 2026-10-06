@@ -162,6 +162,7 @@ route → 403 `profile_token_required`.
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 | GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url, container }, realtime, turn }`; 200 ready / 503 not (needs a renderer — `STREAM_SERVER_URL` or the `STREAM_CONTAINER` binding — plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
 | POST | `/api/v1/stream/start-stream` · `/subscribe` · PUT `/subscribe/:id/answer` · POST `/heartbeat` · GET `/ice-servers` | none (the TV) | The receiver's stream flow (`routes/stream.ts`). Errors carry the contract plus `traceId` (and `details`, the stream server's words): 400 `invalid_body`, 403 `forbidden` (debug-state), 500 `stream_not_configured` / `stream_start_failed` / `publisher_prepare_failed` / `publisher_answer_failed` / `subscribe_failed` / `subscribe_answer_failed`; heartbeat answers `{ ok }` (502 when the server is down, 410 `{ expired }` when it ended the stream) |
+| POST | `/api/v1/client-events` | the app: phone/tablet/launcher token (signature only, no DB); the cast receiver: none | Client wide events (`routes/client-events.ts`): `{ context: { app: mobile\|receiver, build?, version?, platform?, profileId?, sessionId?, deviceHash? }, events: [{ name, at, level: debug\|info\|warn\|error, attemptId?, durationMs?, error?, data?: { k: scalar } }] }` (1–50 events, 64 KB) → 202 `{ accepted }`. Nothing stored: each event is one JSON `console.log` line (`console.error` for level error) in Workers Logs with `message` (`client <app> <name>[: error]`, the SRE agent's fingerprint), `kind: "client_event"`, `source`, `authenticated`, the token's `profileId` (never the body's), `receivedAt`. `token=` values and JWTs redacted, secret-named data keys dropped. 400 `invalid_body`, 413 `payload_too_large`, 401 `missing_auth` (the app without a token) / `invalid_token`, 429 `rate_limited` (`CLIENT_EVENTS_LIMITER`, a Workers rate-limit binding: 120/min per profile, the receiver per IP) |
 
 The mobile app currently signs in with email only (owner, 2026-10-04); `/auth/apple` and
 `/auth/google` stay in the API, tested, for when the app adds them back (see `roadmap.md`).
@@ -326,3 +327,24 @@ OGS Native App                 services/api              CF Container        TV 
     │──────────────────────────────►│  Tear down container    │                  │
     │                               │────────────────────────►│                  │
 ```
+
+### Client logs (wide events)
+
+```
+apps/mobile                                   services/api                     Workers Logs
+ cast-flow / cast-sync / cast-view /           POST /api/v1/client-events        one JSON line per event
+ google-cast-backend ── CastTrace ──►          (Zod, 64 KB, rate limit,  ──►     (console.log / .error),
+ (cast.* events, attempt id)                   redact tokens)                    read by the SRE agent
+        │ ClientLog: batch ≤ 50, buffer ≤ 500,        ▲
+        │ flush every 5 s / on background,            │ no token, source "receiver"
+        │ kept in AsyncStorage for the next launch    │
+        └──────────── Bearer profile token ───────────┤
+apps/web/public/receiver.html (receiver.* events) ────┘ to its stream server's API
+```
+
+`services/client-log.ts` is the app's logger (redaction, hashed ids, offline buffer);
+`services/cast-trace.ts` names cast events `cast.<step>` and gives each cast / switch / stop one
+attempt id that the native session events after it carry. Switching TVs (`cast-flow.ts` `switchTv`)
+waits for the old session's ended event (`endSessionAndWait`, 8 s) before `startSession`, because
+Google Cast refuses a start while a session is still ending; `services/cast-switch.ts` holds the
+phone's switch state (one at a time, "Switching to <TV>…", failure with Try again).

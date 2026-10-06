@@ -76,6 +76,30 @@ Persistent project knowledge. Review at the start of each task.
 - **The idle stop reads the top page**: the renderer evaluates `window.__ogsActivityAt` on the page it streams, which for a cast is the launcher (games are cross-origin iframes it can't see into). The launcher keeps it fresh while any phone/tablet is online on the couch session, on any session change and on remote presses (`apps/tv/src/session/activity.ts`); `apps/tv/e2e/idle.e2e.ts` checks it with the renderer's own `isIdle` on a Playwright virtual clock.
 - **opengame.org was deployed from `main`, not this branch**: before deploying apps/web from a branch, diff `apps/web` against the commit of the live Pages deployment (`wrangler pages deployment list --project-name opengame-org` shows it) so laptop-cast fixes on main aren't rolled back.
 
+## Google Cast session timing (2026-10-05)
+
+- **`endCurrentSession` resolves before the session has ended**: react-native-google-cast's iOS
+  bridge (`RNGCSessionManager.m`) calls `endSessionAndStopCasting:` and resolves at once; the session
+  stays `currentCastSession` until `didEndCastSession` (our `onSessionEnded`). And
+  `startSessionWithDevice:` answers NO "if there is a session currently established" (GCK docs),
+  which the bridge resolves as `false`. So "end, then start" must wait for the ended event, or the
+  start is refused silently: the owner's flaky TV switching ("sometimes it works… sometimes it
+  eventually works"). `cast-flow.ts` `endSessionAndWait` subscribes before asking, with a timeout.
+- **The fake Cast backend was kinder than the real one**: it awaited the TV's `/stop` and fired
+  ended before `endCurrentSession` resolved, and replaced a running session on start, so tests and
+  Detox never saw the bug. `EXPO_PUBLIC_FAKE_CAST_END_MS` (fake `endedAfterMs`) models the real
+  timing; `EXPO_PUBLIC_FAKE_CAST_URL_2` gives the Bedroom TV its own fake Chromecast.
+- **The remote unmounts mid-switch**: between the old session ending and the new launcher joining,
+  `ogsCastNow()` is false, so the TV tab swapped to the Cast screen and the picker's error state
+  vanished with the component. A flow that spans an unmount keeps its state outside React
+  (`cast-switch.ts`, like `cast-stop.ts`).
+- **app-bridge stores call a new subscriber at once**: `subscribe(fn)` runs `fn(current)` before
+  it returns its unsubscribe, so a listener that unsubscribes itself on the first call must not
+  use the returned function yet (`cast-switch.ts` `connected`).
+- **Logs before guesses**: client events go to `POST /api/v1/client-events` → Workers Logs. To read
+  a real-device switch: Workers Logs, filter `kind = client_event` and `attemptId`; a failed switch
+  is `cast.switch.done` level error, and its `cast.end.waited` / `cast.start.resolved` say why.
+
 ## e2e (2026-10-04, Cast receiver)
 
 - **Reaching Playwright from a tester-army test**: `surfaceOf(engine)` only knows the engine instance the runner drives, and the runner and the test file load `e2e.config.ts` separately (two instances: "no attempt is running"). The config keeps one instance on `globalThis.__ogsWebEngine` and exports it; call `surfaceOf(webEngine).page()` only after the first `browser.goto` (the attempt opens lazily). `context().newPage()` gives a second page (the laptop / SFU peer) under the same `browser.route` handlers.
