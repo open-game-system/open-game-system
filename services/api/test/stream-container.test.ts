@@ -1,5 +1,34 @@
-import { describe, expect, it } from "vitest";
-import { createSfuState, handleSfuRequest } from "../src/stream-container";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { containerStopEvent, createSfuState, handleSfuRequest } from "../src/stream-container";
+
+describe("container lifecycle wide events", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("a stop on a signal (sleepAfter) or a clean exit is info", () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    containerStopEvent("v-1", { exitCode: 137, reason: "runtime_signal" });
+    containerStopEvent("v-1", { exitCode: 0, reason: "exit" });
+    expect(info).toHaveBeenCalledTimes(2);
+    expect(info.mock.calls[0][0]).toMatchObject({
+      event: "container.stop",
+      outcome: "ok",
+      exit_code: 137,
+      reason: "runtime_signal",
+    });
+  });
+
+  it("a non-zero exit is one error line with a stable message (the code in a field)", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    containerStopEvent("v-1", { exitCode: 1, reason: "exit" });
+    expect(error).toHaveBeenCalledTimes(1);
+    expect(error.mock.calls[0][0]).toMatchObject({
+      event: "container.stop",
+      outcome: "error",
+      exit_code: 1,
+      error: { type: "ContainerExit", message: "Container exited with a non-zero code" },
+    });
+  });
+});
 
 describe("handleSfuRequest", () => {
   // ─── State retrieval ───

@@ -1,5 +1,7 @@
-import { Container } from "@cloudflare/containers";
+import { Container, type StopParams } from "@cloudflare/containers";
+import { type EventFields, emit, errorFields, versionOf } from "./lib/wide-event";
 import type { TrackInfo } from "./protocol";
+import type { Env } from "./types";
 
 // ---------- SFU session state ----------
 
@@ -158,7 +160,7 @@ async function storeFromBody(request: Request, store: (body: unknown) => void) {
  * The DO stores SFU session state (publisher session ID, tracks, subscriber sessions)
  * for coordination between the worker routes and the container.
  */
-export class StreamContainer extends Container {
+export class StreamContainer extends Container<Env> {
   defaultPort = 8080;
   sleepAfter = "5m"; // Auto-sleep after 5 minutes of no requests
   enableInternet = true; // Needs internet for Realtime SFU signaling + loading game URLs
@@ -173,14 +175,29 @@ export class StreamContainer extends Container {
   }
 
   override onStart() {
-    console.log("[StreamContainer] Container started");
+    emit("container.start", versionOf(this.env), { container_id: this.ctx.id.toString() });
   }
 
-  override onStop() {
-    console.log("[StreamContainer] Container stopped");
+  override onStop(params: StopParams) {
+    containerStopEvent(versionOf(this.env), params, { container_id: this.ctx.id.toString() });
   }
 
   override onError(error: unknown) {
-    console.error("[StreamContainer] Container error:", error);
+    emit("container.error", versionOf(this.env), {
+      container_id: this.ctx.id.toString(),
+      error: errorFields(error),
+    });
   }
+}
+
+/** `container.stop`: a signal (sleepAfter) or a clean exit is info; a non-zero exit an error. */
+export function containerStopEvent(
+  version: string,
+  { exitCode, reason }: StopParams,
+  fields: EventFields = {},
+): void {
+  const line: EventFields = { ...fields, exit_code: exitCode, reason };
+  if (reason === "exit" && exitCode !== 0)
+    line.error = { type: "ContainerExit", message: "Container exited with a non-zero code" };
+  emit("container.stop", version, line);
 }
