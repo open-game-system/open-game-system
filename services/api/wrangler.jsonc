@@ -31,6 +31,11 @@
     }
   ],
 
+  // No crons. An empty list is required: with no "triggers" key, wrangler keeps the old */5 cron.
+  "triggers": {
+    "crons": []
+  },
+
   "d1_databases": [
     {
       "binding": "DB",
