@@ -104,8 +104,15 @@ Persistent project knowledge. Review at the start of each task.
   `game.view` to the couch, as the app does (`e2e/multi-couch.mjs`).
 - **Playwright never sees a bobbing card as "stable"**: Night Flight's playable cards animate, so the
   e2e clicks them with `{ force: true }`.
-- **Record launchers at 1920×1080**: the launcher lays out for the TV's size; a 1280×720 viewport crops
-  the framed game. Record at 960×540 (`recordVideo.size`) to keep the files small.
+- **Record launchers at 960×540** (`recordVideo.size`) to keep the files small. (An older note here
+  said a 1280×720 viewport "crops" the launcher: that was the stage-centring bug below, not a rule.)
+- **Never centre a fixed-size, scaled stage with grid/flex** (`apps/tv` Stage, 2026-10-05): a 1920×1080
+  grid item in a smaller viewport overflows from the top-left, so `scale()` about its centre left the
+  launcher 25% down and right and running off the TV at 1280×720, which is the size the cloud renderer
+  draws (`STREAM_VIEWPORT`). Every launcher e2e ran at 1920×1080, where it happens to work. Position it
+  (`left/top: 50%`, `translate(-50%, -50%) scale(s)`), and test every screen at 720p, 1080p and 4K
+  (`apps/tv/e2e/viewports.e2e.ts`: every visible element inside the 5% TV-safe area). A focus
+  `scale()` on an element sitting on the safe line grows past it: scale away from the edge.
 - **ffmpeg `xstack` with a `color` filler runs forever**: cap the output with `-t` (the longest tile's
   offset + length), or a 3-tile run never ends.
 - **Detox reloads the app before every test** (`e2e/setup.ts`: `beforeEach` → `reloadReactNative`), and

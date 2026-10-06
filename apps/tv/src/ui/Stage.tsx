@@ -14,7 +14,7 @@ export function Stage({ children }: { children: ReactNode }) {
   const s = useSyncExternalStore(subscribe, scale);
   return (
     <div className="viewport">
-      <div className="stage" style={{ transform: `scale(${s})` }}>
+      <div className="stage" style={{ transform: `translate(-50%, -50%) scale(${s})` }}>
         {children}
       </div>
     </div>

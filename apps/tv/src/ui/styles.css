@@ -44,18 +44,20 @@ figure {
   margin: 0;
 }
 
+/* Centred by position, never by grid/flex: a 1920×1080 grid item in a smaller viewport overflows
+   from the top-left, so scaling it about its centre left it 25% down and right at 1280×720. */
 .viewport {
   position: fixed;
   inset: 0;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   background: var(--plum-950);
 }
 .stage {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   width: 1920px;
   height: 1080px;
-  flex: none;
   overflow: hidden;
   transform-origin: center;
   background:
@@ -636,6 +638,8 @@ figure {
   outline-offset: 6px;
   box-shadow: 0 0 0 18px rgba(248, 236, 217, 0.16);
   transform: scale(1.04);
+  /* Grow away from the left title-safe line the button sits on. */
+  transform-origin: left center;
 }
 .play-glyph {
   width: 30px;

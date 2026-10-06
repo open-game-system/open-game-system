@@ -47,10 +47,16 @@ async function routeGame(page: Page, origin: string, art: string, talks: boolean
 export async function open(
   browser: Browser,
   query = "?fake=1",
-  opts: { reducedMotion?: boolean } = {},
+  opts: {
+    reducedMotion?: boolean;
+    /** The page's CSS viewport; the cloud renderer draws the launcher at 1280×720 (deviceScaleFactor 1–2). */
+    viewport?: { width: number; height: number };
+    deviceScaleFactor?: number;
+  } = {},
 ) {
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
+    viewport: opts.viewport ?? { width: 1920, height: 1080 },
+    deviceScaleFactor: opts.deviceScaleFactor ?? 1,
     reducedMotion: opts.reducedMotion ? "reduce" : "no-preference",
   });
   const page = await context.newPage();
