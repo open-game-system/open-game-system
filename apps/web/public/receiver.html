@@ -176,7 +176,7 @@
      */
     const RX_VERSION = 'receiver-2026-10-05';
     const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
-    const rxRun = 'rx-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    const rxRun = `rx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
     let rxEvents = [];
     let rxFlushTimer = null;
@@ -189,7 +189,7 @@
       return m ? m[1] : DEFAULT_API;
     }
     function rxLog(name, fields = {}) {
-      const event = { name: 'receiver.' + name, at: Date.now(), level: fields.level || (fields.error ? 'error' : 'info'), attemptId: rxRun };
+      const event = { name: `receiver.${name}`, at: Date.now(), level: fields.level || (fields.error ? 'error' : 'info'), attemptId: rxRun };
       if (fields.error) event.error = String(fields.error).slice(0, 1000);
       if (fields.durationMs != null) event.durationMs = Math.max(0, Math.round(fields.durationMs));
       if (fields.data) event.data = fields.data;
@@ -204,7 +204,7 @@
       const api = apiOf(getLaunchParams().streamServerUrl);
       while (rxEvents.length) {
         const events = rxEvents.splice(0, 50);
-        fetch(api + '/api/v1/client-events', {
+        fetch(`${api}/api/v1/client-events`, {
           method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ context: { app: 'receiver', version: RX_VERSION, platform: rxPlatform }, events }),
         }).catch(() => { /* logs are best effort */ });
@@ -285,7 +285,7 @@
           })
           .catch((e) => {
             console.warn('[Receiver] heartbeat failed', e);
-            rxLog('heartbeat.failed', { level: 'warn', error: (e && e.message) || e });
+            rxLog('heartbeat.failed', { level: 'warn', error: e?.message || e });
           });
       }, HEARTBEAT_MS);
     }
@@ -688,7 +688,7 @@
 
       } catch (err) {
         console.error('[Receiver] Failed to start stream:', err);
-        rxLog('stream.failed', { error: (err && err.message) || err, durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) }, now: true });
+        rxLog('stream.failed', { error: err?.message || err, durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) }, now: true });
         // Nothing is streaming: stop the heartbeat too, or it keeps the (GPU) stream server up.
         cleanup();
         setStatus('Unable to connect to game stream', false);
