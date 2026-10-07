@@ -40,8 +40,13 @@ path from that folder's root:
 }
 ```
 
-A launcher theme (a music loop per game on Home, `art.theme`) is in progress and not part of the
-manifest yet. This page will list it when it ships.
+### Theme music (optional)
+
+`art.theme` is a 20–40 s seamless loop of your game's music (music only: no effects or voice).
+The launcher's Home plays it quietly while your game is focused and crossfades as focus moves;
+every other screen is silent. Ship MP3 (~128 kbps; every browser and the cloud renderer decode it),
+loudness around −20 dB with peaks below −1 dB, and fade the seam so the loop is gapless, e.g.
+`"theme": "/art/space-bakery/theme.mp3"`. No theme means Home is silent on your game.
 
 ## Submit to the catalogue
 
