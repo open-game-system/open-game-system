@@ -26,7 +26,7 @@ const game = (
     cover: `/art/${appId}/cover.jpg`,
     logo: `/art/${appId}/logo.png`,
     heroClean: `/art/${appId}/hero-clean.jpg`,
-    theme: `/art/${appId}/theme.m4a`,
+    theme: `/art/${appId}/theme.mp3`,
   },
   shop: { ages },
   instanceTtlMs: 7 * 24 * 60 * 60 * 1000,

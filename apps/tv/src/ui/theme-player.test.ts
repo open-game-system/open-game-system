@@ -52,10 +52,10 @@ afterEach(() => {
 describe("theme player", () => {
   it("plays a theme looped, fading in from silence to 0.5 over about 600 ms", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await flush();
     const [a] = tracks;
-    expect(a?.src).toBe("/a.m4a");
+    expect(a?.src).toBe("/a.mp3");
     expect(a?.loop).toBe(true);
     expect(a?.paused).toBe(false);
     expect(a?.volume).toBeLessThan(0.05);
@@ -68,9 +68,9 @@ describe("theme player", () => {
 
   it("the same theme again keeps playing, no restart", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
     expect(tracks).toHaveLength(1);
     expect(tracks[0]?.plays).toBe(1);
@@ -79,9 +79,9 @@ describe("theme player", () => {
 
   it("crossfades to the next theme: the old fades out and is let go, the new fades in", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
-    p.set("/b.m4a");
+    p.set("/b.mp3");
     await vi.advanceTimersByTimeAsync(300);
     const [a, b] = tracks;
     expect(a?.volume).toBeGreaterThan(0.15);
@@ -91,13 +91,13 @@ describe("theme player", () => {
     await vi.advanceTimersByTimeAsync(400);
     expect(a?.paused).toBe(true);
     expect(a?.released).toBe(true);
-    expect(live().map((t) => t.src)).toEqual(["/b.m4a"]);
+    expect(live().map((t) => t.src)).toEqual(["/b.mp3"]);
     expect(b?.volume).toBe(0.5);
   });
 
   it("no theme fades the playing one out to silence", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
     p.set(null);
     await vi.advanceTimersByTimeAsync(300);
@@ -110,14 +110,14 @@ describe("theme player", () => {
 
   it("coming back to a theme that is still fading out picks it up again", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
-    p.set("/b.m4a");
+    p.set("/b.mp3");
     await vi.advanceTimersByTimeAsync(200);
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
-    expect(tracks.map((t) => t.src)).toEqual(["/a.m4a", "/b.m4a"]);
-    expect(live().map((t) => t.src)).toEqual(["/a.m4a"]);
+    expect(tracks.map((t) => t.src)).toEqual(["/a.mp3", "/b.mp3"]);
+    expect(live().map((t) => t.src)).toEqual(["/a.mp3"]);
     expect(tracks[0]?.volume).toBe(0.5);
     expect(tracks[0]?.plays).toBe(1);
   });
@@ -130,14 +130,14 @@ describe("theme player", () => {
         return t;
       },
     });
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
-    p.set("/a.m4a");
-    p.set("/b.m4a");
+    p.set("/a.mp3");
+    p.set("/b.mp3");
     await vi.advanceTimersByTimeAsync(100);
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
-    expect(tracks.map((t) => t.src)).toEqual(["http://tv.local/a.m4a", "http://tv.local/b.m4a"]);
+    expect(tracks.map((t) => t.src)).toEqual(["http://tv.local/a.mp3", "http://tv.local/b.mp3"]);
     expect(tracks[0]?.volume).toBe(0.5);
   });
 
@@ -151,7 +151,7 @@ describe("theme player", () => {
   it("a blocked autoplay doesn't throw; the next retry (a key press) starts it", async () => {
     blocked = true;
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
     expect(tracks[0]?.paused).toBe(true);
     blocked = false;
@@ -166,7 +166,7 @@ describe("theme player", () => {
 
   it("retry does nothing while the theme is playing", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
     p.retry();
     await flush();
@@ -176,7 +176,7 @@ describe("theme player", () => {
 
   it("dispose stops and lets go of everything", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(100);
     p.dispose();
     expect(tracks[0]?.paused).toBe(true);
@@ -186,7 +186,7 @@ describe("theme player", () => {
 
   it("stops ticking once every fade has finished", async () => {
     const p = setup();
-    p.set("/a.m4a");
+    p.set("/a.mp3");
     await vi.advanceTimersByTimeAsync(700);
     expect(vi.getTimerCount()).toBe(0);
     p.set(null);

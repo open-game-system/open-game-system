@@ -17,15 +17,15 @@ const themed = (
 describe("themeFor: which theme the launcher plays", () => {
   it("on Home, a focused game icon plays its game's theme", () => {
     const h = home();
-    expect(themed(h, "game:bake-shop")).toBe("/art/bake-shop/theme.m4a");
-    expect(themed(h, "game:night-flight")).toBe("/art/night-flight/theme.m4a");
+    expect(themed(h, "game:bake-shop")).toBe("/art/bake-shop/theme.mp3");
+    expect(themed(h, "game:night-flight")).toBe("/art/night-flight/theme.mp3");
   });
 
   it("on Home, a focused sitting card plays its game's theme", () => {
     const h = home();
     const sitting = h.cards.find((c) => c.kind === "sitting" && c.appId === "story-nook");
     expect(sitting).toBeDefined();
-    expect(themed(h, sitting?.itemId ?? null)).toBe("/art/story-nook/theme.m4a");
+    expect(themed(h, sitting?.itemId ?? null)).toBe("/art/story-nook/theme.mp3");
   });
 
   it("Surprise me is silence: its theme would give the pick away", () => {

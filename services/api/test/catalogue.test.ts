@@ -39,7 +39,7 @@ describe("catalogue", () => {
 
   it.each(GAMES)("%s has a music theme for the launcher's Home, in the TV app", (appId) => {
     const theme = findManifest(appId)?.art.theme;
-    expect(theme).toBe(`/art/${appId}/theme.m4a`);
+    expect(theme).toBe(`/art/${appId}/theme.mp3`);
     expect(existsSync(join(__dirname, "../../../apps/tv/public", String(theme)))).toBe(true);
   });
 });

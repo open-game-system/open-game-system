@@ -7,7 +7,7 @@ Feature: The launcher plays the focused game's theme on Home
 
   Background:
     Given the TV launcher is on Home
-    And Bake Shop, Story Nook, Rocket Crew, Peekaboo Garden and Night Flight each have an art.theme
+    And Bake Shop, Story Nook, Rocket Crew, Peekaboo Garden and Night Flight each have an art.theme (an MP3 loop)
     And Hearthisle has no art.theme
 
   Scenario: The focused game plays its theme, quietly, looped

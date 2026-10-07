@@ -65,7 +65,7 @@ describe("game manifest", () => {
   });
 
   it("keeps the optional theme: the audio loop the launcher plays while the game is focused", () => {
-    const art = { tile: "tile.png", theme: "/art/rocket-crew/theme.m4a" };
+    const art = { tile: "tile.png", theme: "/art/rocket-crew/theme.mp3" };
     expect(ManifestSchema.parse({ ...valid(), art }).art).toEqual(art);
   });
 

@@ -48,7 +48,7 @@ async function playing(p: Page = page): Promise<string> {
 
 const focused = () =>
   page.evaluate(() => document.querySelector("[data-focused]")?.getAttribute("data-item") ?? null);
-const theme = (appId: string) => `/art/${appId}/theme.m4a`;
+const theme = (appId: string) => `/art/${appId}/theme.mp3`;
 const poll = { timeout: 5000 };
 
 describe("the launcher plays the focused game's theme on Home", () => {
