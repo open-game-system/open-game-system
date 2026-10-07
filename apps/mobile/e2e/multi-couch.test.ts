@@ -102,6 +102,18 @@ describe("Several households: the Mumm phone", () => {
 
   it("invites the Smiths and the Parks to Night Flight from Playing", async () => {
     const people = await wait("mumm-live");
+    // Every couch phone follows the TV (2026-10-06, join-and-invite.feature): Mom's start opened
+    // Night Flight on this phone too, full screen with no tabs. Swipe back to the tabs to invite.
+    await waitFor(element(by.id("gameScreen")))
+      .toExist()
+      .withTimeout(30000);
+    await waitFor(element(by.id("swipeHintOverlay")))
+      .toBeVisible()
+      .withTimeout(15000);
+    await element(by.id("swipeHintOverlay")).swipe("right", "fast", 0.8, 0.02, 0.5);
+    await waitFor(element(by.id("tabPlaying")))
+      .toBeVisible()
+      .withTimeout(10000);
     await element(by.id("tabPlaying")).tap();
     await waitFor(element(by.id("inviteFriends")))
       .toBeVisible()
