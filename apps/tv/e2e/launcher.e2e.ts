@@ -125,6 +125,36 @@ describe("TV launcher (fake session)", () => {
     await expect.poll(focused).toBe("game:bake-shop");
   });
 
+  // Owner, 2026-10-04: "Paused" was said three times for one paused game. Counted on what is on
+  // screen, on each screen a paused game shows: rendered text whose middle is not covered (the
+  // game page is opaque over Home, whose spotlight stays mounted under it).
+  it('says "Paused" once: icon focused, its card focused, and on its page', async () => {
+    const pausedOnScreen = () =>
+      page.evaluate(() => {
+        const sayers = [...document.querySelectorAll<HTMLElement>("body *")].filter((e) =>
+          [...e.childNodes].some((n) => n.nodeType === 3 && /Paused/.test(n.textContent ?? "")),
+        );
+        return sayers.filter((e) => {
+          const r = e.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0 || !e.checkVisibility({ opacityProperty: true }))
+            return false;
+          const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+          return hit !== null && (e === hit || e.contains(hit) || hit.contains(e));
+        }).length;
+      });
+    await expect.poll(focused).toBe("game:bake-shop");
+    expect(await pausedOnScreen()).toBe(1);
+    await send(page, { type: "focus.move", dir: "down" });
+    await expect.poll(focused).toMatch(/^play:bake-shop:/);
+    expect(await pausedOnScreen()).toBe(1);
+    await send(page, { type: "focus.move", dir: "up" });
+    await expect.poll(focused).toBe("game:bake-shop");
+    await send(page, { type: "select", deviceId: "jonathan-phone" });
+    await page.getByTestId("game-page").waitFor();
+    await settle(page);
+    expect(await pausedOnScreen()).toBe(1);
+  });
+
   it("starts a fresh sitting from Start game on a paused game's page", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
     await send(page, { type: "select", deviceId: "jonathan-phone" });
