@@ -1,15 +1,15 @@
 {
-  "at": "2026-10-07T06:35:20.399Z",
+  "at": "2026-10-07T06:39:09.166Z",
   "results": [
     {
       "name": "Dad cast the TV (its launcher is up)",
       "ok": true,
-      "detail": "TV code DYMA5K"
+      "detail": "TV code X66487"
     },
     {
       "name": "Mom's phone joined the couch with the TV code",
       "ok": true,
-      "detail": "8be22b83-3626-4104-80a3-ad5750286be4"
+      "detail": "b9dce61c-62bc-4a31-9969-3bc65a2a7f9b"
     },
     {
       "name": "the TV hasn't named a room yet",
@@ -24,17 +24,17 @@
     {
       "name": "the TV page named its room and the couch's sitting keeps it",
       "ok": true,
-      "detail": "XKMR"
+      "detail": "AJZJ"
     },
     {
       "name": "Mom's phone followed into the TV's room (its WebView is on /join/R)",
       "ok": true,
-      "detail": "http://localhost:8847/join/XKMR?t=6f0a7e59-5cbc-4abe-9d31-4763dfdcbb68"
+      "detail": "http://localhost:8847/join/AJZJ?t=53a796d2-2810-40cb-b86b-419654ed9a95"
     },
     {
       "name": "Rocket Crew's room has two seats: Dad the Captain, Mom the Fixer (by OGS id)",
       "ok": true,
-      "detail": "{\"names\":{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":null},\"seatIds\":{\"captain\":\"8e84bda5-6bde-4d19-a240-b40121493141\",\"fixer\":\"083343a2-1abc-4a71-88d1-a66843348e0b\",\"lookout\":null}}"
+      "detail": "{\"names\":{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":null},\"seatIds\":{\"captain\":\"f7f8b2dd-92eb-476a-a173-47e2e2bdef4d\",\"fixer\":\"dd5ef7de-8277-4138-bb98-7ca45f9c26df\",\"lookout\":null}}"
     },
     {
       "name": "Mom stepping out leaves Rocket Crew playing on the TV",
@@ -49,7 +49,7 @@
     {
       "name": "Mom's phone followed Continue back into room R",
       "ok": true,
-      "detail": "http://localhost:8847/join/XKMR?t=6f0a7e59-5cbc-4abe-9d31-4763dfdcbb68"
+      "detail": "http://localhost:8847/join/AJZJ?t=53a796d2-2810-40cb-b86b-419654ed9a95"
     },
     {
       "name": "still two seats, Mom still the Fixer (no new seat or room)",
@@ -74,7 +74,7 @@
     {
       "name": "synced video saved",
       "ok": true,
-      "detail": "composed after the run (label quoting fixed)"
+      "detail": "/private/tmp/claude-501/-Users-jonathanmumm-src-open-game-system/8b893b01-36f1-4705-88cb-961b0778fb8d/scratchpad/pf2/phones-follow.mp4"
     }
   ]
 }
