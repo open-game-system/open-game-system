@@ -154,6 +154,28 @@ const SEED: ManifestInput[] = [
     },
     shop: { ages: "12+", minutes: [10, 25], players: "2-10" },
   },
+  {
+    appId: "little-vigilante",
+    name: "Little Vigilante",
+    tagline: "One night, secret roles, and a town that has to guess who's behind the mask.",
+    shape: "couch",
+    tv: "required",
+    startUrl: workers("little-vigilante"),
+    roles: [
+      { id: "host", label: "Host", audience: "grownup" },
+      { id: "player", label: "Townsperson", audience: "grownup" },
+    ],
+    art: {
+      icon: "/art/little-vigilante/icon.png",
+      cover: "/art/little-vigilante/cover.jpg",
+      logo: "/art/little-vigilante/logo.png",
+      heroClean: "/art/little-vigilante/hero-clean.jpg",
+      theme: "/art/little-vigilante/theme.mp3",
+      tile: "/art/little-vigilante/tv.jpg",
+      hero: "/art/little-vigilante/tv.jpg",
+    },
+    shop: { ages: "10+", minutes: [15, 40], players: "4-10" },
+  },
 ];
 
 export const CATALOGUE: readonly Manifest[] = SEED.map((m) => RoomGameManifestSchema.parse(m));
