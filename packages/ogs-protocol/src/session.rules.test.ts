@@ -740,7 +740,11 @@ describe("couch session: every phone follows the TV", () => {
     hello("phone-mom", "phone", "mom"),
     hello("phone-sam", "phone", "sam"),
   ];
-  const startNew = (appId: string): ClientMessage => ({ type: "game.start", appId, mode: "new" });
+  const startNew = (appId: string): Extract<ClientMessage, { type: "game.start" }> => ({
+    type: "game.start",
+    appId,
+    mode: "new",
+  });
   const game = (s: SessionState, roleId: string, room?: string) => ({
     type: "follow",
     target: {
