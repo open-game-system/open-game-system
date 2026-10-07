@@ -21,6 +21,8 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 4. **Friends follow-ups:** `opengame.org/add/<token>` web route (opens the app or the store); in-app QR scanner (expo-camera + prebuild).
 5. **Web + browser TVs (direct mode):** the app as a website; any browser or laptop on HDMI as the TV via `tv.opengame.org` and the TV code; Chrome Cast from desktop/Android Chrome as a bonus; `profile-kit` web transport (postMessage from the host page).
 6. **Google / Android TV:** Cast already works; decide direct vs stream after a device test.
+7. **Launcher join QR + web join (planned, owner-approved 2026-10-05/06):** a QR next to the TV code on Home and Getting ready (`opengame.org/join/<code>`: the app if installed, else a web join page); guests join from the browser with a name and a picture, no install; the app is the upgrade. Rationale: AirConsole's door (scan, no install) without its anonymous gamepads; Jackbox sets the "no install" bar; Netflix's per-game QR is the weakness we avoid by owning the QR in the launcher. Spec: `product-specs/ogs-join.html`; [ADR](adrs/2026-10-06-launcher-owns-joining.md); `acceptance/2026-10-06-join-and-invite.feature`.
+8. **Phones follow the TV (planned):** Home = remote; a game starts and every couch phone opens it; Home brings them back; a phone that joins mid-game lands in the game. Rationale: Rocketcrab's lobby framing, but driven by the TV, so nobody re-joins per game.
 
 ## Later
 
@@ -28,6 +30,9 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 
 - **One API for streaming (done 2026-10-06):** `opengame-api` streams through Cloud Run `stream-gpu` (repo variable `STREAM_SERVER_URL`, applied by the API deploy workflow; TURN from the org secrets). `pnpm --filter @open-game-system/api stream:ready <api>` checks it without starting a GPU. App builds no longer need `EXPO_PUBLIC_OGS_STREAM`; the PR-5 preview and its `codeflare-containers-pr-5` app can be retired.
 
+- **Mid-game invites (planned):** the game's `ogs:invite` message and a phone's Invite button show a small QR card in the manifest's `inviteCorner`, never over the focal area. Contract: `specification.md` §8. Rationale: AirConsole's in-game join, without games drawing codes.
+- **Transfer link (planned):** "Play on TV with OGS" on a game's own site -> `opengame.org/play/<appId>?room=<room>`. Rationale: Rocketcrab's transfer link; it reuses the friend-invite link from multi-couch. Several households in one room is already specified: `exec-plans/active/2026-10-05-multi-couch-handoff.md`.
+- **TV platform order, by estimated reach** ([ADR](adrs/2026-10-06-tv-platform-coverage.md), all estimates, unverified for custom receivers): Chromecast/Google TV ~10-15%; + newer LG/Samsung with Cast ~15-25% (only if custom receivers run); + Fire TV ~30-40%; + Apple TV ~45-55%; + Samsung/LG web apps ~65-70%; Roku ~30% unreachable. Sources: Parks Associates (Apr 2026), Pixalate (Q4 2025), FlatpanelsHD (Apr 2026, Samsung Cast), CEPro (Jan 2024, LG Cast).
 - **Pushes:** "a friend started a new game", with a setting. (Deferred by owner.)
 - **Google and Apple sign-in** in the app (deferred by owner, 2026-10-04: email through Cloudflare for now). App code removed in 5cf8ab40; restore from there (`git show 5cf8ab40^:apps/mobile/services/sign-in-providers.ts` etc., plus `expo-apple-authentication`, `usesAppleSignIn` and a prebuild). The API's `/auth/apple` and `/auth/google` are still in place.
 - **Profile switching** on one device (Netflix/YouTube style).
@@ -48,6 +53,8 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 ## Decisions behind this
 
 - [TV platforms ADR](adrs/2026-10-04-tv-platforms.md)
+- [The launcher owns joining](adrs/2026-10-06-launcher-owns-joining.md) (planned; [spec](product-specs/ogs-join.html))
+- [TV platform coverage](adrs/2026-10-06-tv-platform-coverage.md)
 - [The OGS game contract](specification.md) (what a game does to run in OGS; [ADR](adrs/2026-10-04-ogs-game-contract.md))
 - [Cast-kit uses app-bridge + stream-kit](adrs/2026-03-14-cast-kit-uses-app-bridge.md)
 - Briefing with tonight's decisions: `exec-plans/active/2026-10-04-afternoon-briefing.md`
