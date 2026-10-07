@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`catalogue content > is exactly the six games as published 1`] = `
+exports[`catalogue content > is exactly the seven games as published 1`] = `
 [
   {
     "appId": "rocket-crew",
@@ -273,6 +273,43 @@ exports[`catalogue content > is exactly the six games as published 1`] = `
     },
     "startUrl": "https://triviajam.tv/",
     "tagline": "Every answer is a number. Closest guess wins, fastest breaks the tie.",
+    "tv": "required",
+  },
+  {
+    "appId": "codebreakers",
+    "art": {
+      "cover": "/art/codebreakers/cover.jpg",
+      "hero": "/art/codebreakers/tv.jpg",
+      "heroClean": "/art/codebreakers/hero-clean.jpg",
+      "icon": "/art/codebreakers/icon.png",
+      "logo": "/art/codebreakers/logo.png",
+      "tile": "/art/codebreakers/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Codebreakers",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "keyholder",
+        "label": "Keyholder",
+      },
+      {
+        "audience": "grownup",
+        "id": "codebreaker",
+        "label": "Codebreaker",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "12+",
+      "minutes": [
+        15,
+        30,
+      ],
+      "players": "4-8",
+    },
+    "startUrl": "https://codebreakers.jonathanrmumm.workers.dev/",
+    "tagline": "Two expeditions, one vault. One-word clues, twenty-five tablets, one curse.",
     "tv": "required",
   },
 ]

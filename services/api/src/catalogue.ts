@@ -154,6 +154,27 @@ const SEED: ManifestInput[] = [
     },
     shop: { ages: "12+", minutes: [10, 25], players: "2-10" },
   },
+  {
+    appId: "codebreakers",
+    name: "Codebreakers",
+    tagline: "Two expeditions, one vault. One-word clues, twenty-five tablets, one curse.",
+    shape: "couch",
+    tv: "required",
+    startUrl: "https://codebreakers.jonathanrmumm.workers.dev/",
+    roles: [
+      { id: "keyholder", label: "Keyholder", audience: "grownup" },
+      { id: "codebreaker", label: "Codebreaker", audience: "grownup" },
+    ],
+    art: {
+      icon: "/art/codebreakers/icon.png",
+      cover: "/art/codebreakers/cover.jpg",
+      logo: "/art/codebreakers/logo.png",
+      heroClean: "/art/codebreakers/hero-clean.jpg",
+      tile: "/art/codebreakers/tv.jpg",
+      hero: "/art/codebreakers/tv.jpg",
+    },
+    shop: { ages: "12+", minutes: [15, 30], players: "4-8" },
+  },
 ];
 
 export const CATALOGUE: readonly Manifest[] = SEED.map((m) => RoomGameManifestSchema.parse(m));
