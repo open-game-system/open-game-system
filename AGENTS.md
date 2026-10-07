@@ -10,6 +10,7 @@
   - `apps/mobile/` — Expo/React Native companion app (managed workflow)
   - `apps/web/` — opengame.org marketing website (Vite + React + Tailwind + Cloudflare Pages)
   - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream shows all evening; frames each game's TV page
+  - `apps/docs/` — game-developer docs site (ogs-docs.pages.dev): Markdown in `apps/docs/content/` + the contract from `docs/specification.md` → static HTML, `.md` twins, `llms.txt`
   - `packages/app-bridge-*/` — WebView-to-native two-way communication (6 packages)
   - `packages/cast-kit/` — TV casting SDK for web games (Google Cast via native bridge)
   - `packages/profile-kit/` — Games know who you are: OGS profile + couch players for games, `verifyOgsToken` for game servers
@@ -17,7 +18,7 @@
   - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
   - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
   - `services/api/` — Hono API on Cloudflare Workers (auth, push dispatch, households, catalogue, instances, CouchSession DO)
-  - `examples/` — Demo/reference apps (4 apps: expo-bridge-demo, web-game-demo, stream-react-demo, cast-receiver)
+  - `examples/` — Demo/reference apps (3 apps: expo-bridge-demo, web-game-demo, stream-react-demo)
   - `e2e/` — cross-surface e2e (tester.army `e2e`, fake Chromecast, couch flow); standalone install
 
 ## Feedback Commands
@@ -44,6 +45,7 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 | Design docs & principles | [docs/design-docs/index.md](docs/design-docs/index.md) |
 | Active execution plans | [docs/exec-plans/active/](docs/exec-plans/active/) |
 | The OGS game contract (for game developers) | [docs/specification.md](docs/specification.md) |
+| Docs site for game developers and their agents | [apps/docs/content/](apps/docs/content/) — published at https://ogs-docs.pages.dev (`/llms.txt`) |
 | Quality grades | [docs/quality.md](docs/quality.md) |
 | Lessons learned | [docs/lessons.md](docs/lessons.md) |
 | How to run the e2e suites | [docs/testing/e2e.md](docs/testing/e2e.md) |
@@ -78,6 +80,7 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 | If you... | Then update... |
 |---|---|
 | Change a feature's behavior | Product spec + acceptance test `.feature` file |
+| Change profile-kit exports, `ogs-protocol` frame/manifest schemas, or the game contract | `apps/docs/content/` (its tests fail until the reference matches) |
 | Add a new feature | Product spec + new `.feature` file + `docs/acceptance/index.md` |
 | Add/remove a workspace package | `docs/structure.md` + this file (Source layout) |
 | Change API endpoints or error codes | `docs/architecture.md` (endpoint table + error contract) |

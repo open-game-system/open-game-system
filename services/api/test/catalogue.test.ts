@@ -3,10 +3,23 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATALOGUE, catalogueIds, findManifest } from "../src/catalogue";
 
-const GAMES = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight"];
+/** Adult party games: no kid seat (Jon, 2026-10-06: Trivia Jam is for adults). */
+const ADULT_GAMES = ["trivia-jam"];
+/** Games served from their own domain instead of <appId>.jonathanrmumm.workers.dev (Jon, 2026-10-06). */
+const OWN_DOMAIN: Record<string, string> = { "trivia-jam": "https://triviajam.tv/" };
+const GAMES = [
+  "rocket-crew",
+  "bake-shop",
+  "story-nook",
+  "peekaboo-garden",
+  "night-flight",
+  "trivia-jam",
+];
+/** Games with a theme loop cut from their own music (2026-10-04); the rest are silent on Home. */
+const THEMED = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight"];
 
 describe("catalogue", () => {
-  it("lists the five deployed games in order", () => {
+  it("lists the six deployed games in order", () => {
     expect(CATALOGUE.map((m) => m.appId)).toEqual(GAMES);
     expect(catalogueIds()).toEqual(GAMES);
   });
@@ -17,23 +30,41 @@ describe("catalogue", () => {
     expect(m?.shape).toBe("couch");
     expect(m?.tv).toBe("required");
     expect(m?.tvUrl).toBeUndefined();
-    expect(m?.startUrl).toBe(`https://${appId}.jonathanrmumm.workers.dev/`);
+    expect(m?.startUrl).toBe(OWN_DOMAIN[appId] ?? `https://${appId}.jonathanrmumm.workers.dev/`);
     expect(m?.art.tile).toBe(`/art/${appId}/tv.jpg`);
     expect(m?.roles.some((r) => r.audience === "grownup")).toBe(true);
-    expect(m?.roles.some((r) => r.audience === "kid")).toBe(true);
+    // Family games have a kid seat; adult party games (trivia-jam) deliberately don't.
+    if (!ADULT_GAMES.includes(appId)) expect(m?.roles.some((r) => r.audience === "kid")).toBe(true);
+  });
+
+  it.each(ADULT_GAMES)("%s is an adult party game: every role is a grown-up", (appId) => {
+    const m = findManifest(appId);
+    expect(m?.roles.length).toBeGreaterThan(0);
+    expect(m?.roles.every((r) => r.audience === "grownup")).toBe(true);
   });
 
   it("does not know other games", () => {
     expect(findManifest("word-duel")).toBeUndefined();
   });
 
-  it.each(CATALOGUE.map((g) => [g.appId, g] as const))(
-    "%s has the full art kit, and every file is in the TV app",
-    (_id, game) => {
-      const kit = [game.art.icon, game.art.cover, game.art.logo, game.art.heroClean];
-      expect(kit.every((p) => typeof p === "string" && p.length > 0)).toBe(true);
-      for (const p of kit)
-        expect(existsSync(join(__dirname, "../../../apps/tv/public", String(p)))).toBe(true);
-    },
-  );
+  it.each(
+    CATALOGUE.map((g) => [g.appId, g] as const),
+  )("%s has the full art kit, and every file is in the TV app", (_id, game) => {
+    const kit = [game.art.icon, game.art.cover, game.art.logo, game.art.heroClean];
+    expect(kit.every((p) => typeof p === "string" && p.length > 0)).toBe(true);
+    for (const p of kit)
+      expect(existsSync(join(__dirname, "../../../apps/tv/public", String(p)))).toBe(true);
+  });
+
+  it.each(THEMED)("%s has a music theme for the launcher's Home, in the TV app", (appId) => {
+    const theme = findManifest(appId)?.art.theme;
+    expect(theme).toBe(`/art/${appId}/theme.mp3`);
+    expect(existsSync(join(__dirname, "../../../apps/tv/public", String(theme)))).toBe(true);
+  });
+
+  it.each(
+    GAMES.filter((g) => !THEMED.includes(g)),
+  )("%s has no theme yet: Home is silent on it", (appId) => {
+    expect(findManifest(appId)?.art.theme).toBeUndefined();
+  });
 });

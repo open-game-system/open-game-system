@@ -30,9 +30,12 @@ addEventListener("message", (e) => {
 </script></body></html>`;
 }
 
-export async function launch(): Promise<Browser> {
-  return chromium.launch();
+export async function launch(args: string[] = []): Promise<Browser> {
+  return chromium.launch({ args });
 }
+
+/** The cloud renderer's Chrome plays sound without a user gesture (services/api/container). */
+export const RENDERER_AUTOPLAY = "--autoplay-policy=no-user-gesture-required";
 
 /** Serves a fake game page on the game's own origin, with its art from the launcher's public dir. */
 async function routeGame(page: Page, origin: string, art: string, talks: boolean) {
@@ -52,6 +55,8 @@ export async function open(
     /** The page's CSS viewport; the cloud renderer draws the launcher at 1280×720 (deviceScaleFactor 1–2). */
     viewport?: { width: number; height: number };
     deviceScaleFactor?: number;
+    /** Runs in the page before any of its scripts (e.g. a stub Audio). */
+    init?: () => void;
   } = {},
 ) {
   const context = await browser.newContext({
@@ -59,6 +64,7 @@ export async function open(
     deviceScaleFactor: opts.deviceScaleFactor ?? 1,
     reducedMotion: opts.reducedMotion ? "reduce" : "no-preference",
   });
+  if (opts.init) await context.addInitScript(opts.init);
   const page = await context.newPage();
   await routeGame(
     page,

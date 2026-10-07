@@ -47,3 +47,15 @@ sources:
   # It gets SRE_FROM and SRE_TO (epoch ms) in its environment.
   # - type: command
   #   run: node scripts/export-logs.mjs
+  # The family games (each its own Worker + Durable Objects). Issues land in this repo, titled by
+  # service; fix PRs for them need a watcher in the game's own repo.
+  - type: cloudflare
+    service: rocket-crew
+  - type: cloudflare
+    service: bake-shop
+  - type: cloudflare
+    service: story-nook
+  - type: cloudflare
+    service: peekaboo-garden
+  - type: cloudflare
+    service: night-flight

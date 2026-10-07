@@ -1,0 +1,24 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/specification.md",
+        "$TURBO_ROOT$/packages/profile-kit/src/**",
+        "$TURBO_ROOT$/packages/ogs-protocol/src/**"
+      ],
+      "outputs": ["dist/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/specification.md",
+        "$TURBO_ROOT$/packages/profile-kit/src/**",
+        "$TURBO_ROOT$/packages/ogs-protocol/src/**"
+      ]
+    }
+  }
+}

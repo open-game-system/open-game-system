@@ -79,8 +79,8 @@ export interface StreamCall {
   body: unknown;
 }
 
-type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
-type Reply = { status: number; json: Json };
+export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+export type Reply = { status: number; json: Json };
 
 declare global {
   interface Window {
@@ -141,6 +141,11 @@ async function publisher(page: Page): Promise<void> {
 
 export interface StreamServer {
   calls: StreamCall[];
+  /**
+   * Answers every call first when set (a real stream server behind the mock: the local renderer
+   * pipe in stream-pipe.e2e.ts); null falls through to the defaults below.
+   */
+  handle: ((call: StreamCall) => Promise<Reply | null>) | null;
   /** What start-stream answers (default: success, publisher pub-1). */
   start: () => Reply;
   /** What each heartbeat answers (default: 200 pong). */
@@ -192,6 +197,7 @@ export async function openReceiver(
   let sfu: Page | null = null;
   const stream: StreamServer = {
     calls: [],
+    handle: null,
     start: () => ({
       status: 200,
       json: { status: "success", publisherSessionId: "pub-1", traceId: "t" },
@@ -213,6 +219,8 @@ export async function openReceiver(
       body: postData ? JSON.parse(postData) : undefined,
     };
     stream.calls.push(call);
+    const handled = stream.handle ? await stream.handle(call) : null;
+    if (handled) return handled;
     if (path === "/ice-servers")
       return { status: 200, json: { iceServers: [], traceId: "t", sessionId: null } };
     if (path === "/start-stream") return stream.start();

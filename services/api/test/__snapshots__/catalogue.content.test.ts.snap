@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`catalogue content > is exactly the five games as published 1`] = `
+exports[`catalogue content > is exactly the six games as published 1`] = `
 [
   {
     "appId": "rocket-crew",
@@ -15,6 +15,7 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
         "oy": 100,
         "scale": 1.17,
       },
+      "theme": "/art/rocket-crew/theme.mp3",
       "tile": "/art/rocket-crew/tv.jpg",
     },
     "instanceTtlMs": 604800000,
@@ -57,6 +58,7 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
         "oy": 100,
         "scale": 1.15,
       },
+      "theme": "/art/bake-shop/theme.mp3",
       "tile": "/art/bake-shop/tv.jpg",
     },
     "instanceTtlMs": 604800000,
@@ -104,6 +106,7 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
         "oy": 60,
         "scale": 1.04,
       },
+      "theme": "/art/story-nook/theme.mp3",
       "tile": "/art/story-nook/tv.jpg",
     },
     "instanceTtlMs": 604800000,
@@ -151,6 +154,7 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
         "oy": 100,
         "scale": 1.13,
       },
+      "theme": "/art/peekaboo-garden/theme.mp3",
       "tile": "/art/peekaboo-garden/tv.jpg",
     },
     "instanceTtlMs": 604800000,
@@ -198,6 +202,7 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
         "oy": 49,
         "scale": 1.85,
       },
+      "theme": "/art/night-flight/theme.mp3",
       "tile": "/art/night-flight/tv.jpg",
     },
     "instanceTtlMs": 604800000,
@@ -231,6 +236,43 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
     },
     "startUrl": "https://night-flight.jonathanrmumm.workers.dev/",
     "tagline": "Fly through the night sky together.",
+    "tv": "required",
+  },
+  {
+    "appId": "trivia-jam",
+    "art": {
+      "cover": "/art/trivia-jam/cover.jpg",
+      "hero": "/art/trivia-jam/tv.jpg",
+      "heroClean": "/art/trivia-jam/hero-clean.jpg",
+      "icon": "/art/trivia-jam/icon.png",
+      "logo": "/art/trivia-jam/logo.png",
+      "tile": "/art/trivia-jam/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Trivia Jam",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "host",
+        "label": "Quizmaster",
+      },
+      {
+        "audience": "grownup",
+        "id": "player",
+        "label": "Player",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "12+",
+      "minutes": [
+        10,
+        25,
+      ],
+      "players": "2-10",
+    },
+    "startUrl": "https://triviajam.tv/",
+    "tagline": "Every answer is a number. Closest guess wins, fastest breaks the tie.",
     "tv": "required",
   },
 ]
