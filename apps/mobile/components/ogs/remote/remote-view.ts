@@ -1,5 +1,6 @@
 import { type Manifest, readPlayItem, type SessionState } from "@open-game-system/ogs-protocol";
 import type { CastDevice } from "../../../services/cast-store";
+import type { SwitchState } from "../../../services/cast-switch";
 
 export type OnTv =
   | { kind: "home"; focus: string | null; paused: string | null }
@@ -111,6 +112,8 @@ export interface CastControls {
 export function castControls(input: {
   session: { role: "host" | "member"; tvName: string; host: { name: string } } | null;
   castDeviceName: string | null;
+  /** The TV the couch session moved to (its state's tvName, after Change TV). */
+  couchTvName?: string;
   gameName: string | null;
 }): CastControls {
   const { session, castDeviceName, gameName } = input;
@@ -118,7 +121,7 @@ export function castControls(input: {
     const host = session.host.name;
     return {
       role: "member",
-      tvName: session.tvName,
+      tvName: input.couchTvName ?? session.tvName,
       changeTv: false,
       end: {
         label: `Leave ${host}'s TV`,
@@ -129,7 +132,7 @@ export function castControls(input: {
       },
     };
   }
-  const tvName = castDeviceName ?? session?.tvName ?? "the TV";
+  const tvName = castDeviceName ?? input.couchTvName ?? session?.tvName ?? "the TV";
   return {
     role: "host",
     tvName,
@@ -146,4 +149,24 @@ export function castControls(input: {
       keep: "Keep casting",
     },
   };
+}
+
+/**
+ * Which TV the cast is on, by name, for the Playing tab's strip: this phone's Cast device, else
+ * the TV the couch session moved to (Change TV), else the name it was created with; null while
+ * not cast.
+ */
+export function tvNameNow(input: {
+  cast: boolean;
+  castDeviceName: string | null;
+  couchTvName: string | undefined;
+  sessionTvName: string | null;
+}): string | null {
+  if (!input.cast) return null;
+  return input.castDeviceName ?? input.couchTvName ?? input.sessionTvName;
+}
+
+/** The TV tab's hero: "Switching to <TV>…" while a switch runs, else the TV the cast is on. */
+export function tvHeroName(tvName: string, switching: SwitchState): string {
+  return switching.status === "switching" ? `Switching to ${switching.tv.name}…` : tvName;
 }

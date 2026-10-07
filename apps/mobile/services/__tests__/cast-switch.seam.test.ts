@@ -5,7 +5,7 @@ jest.mock("react-native-google-cast", () => ({
 
 import { castToTv, switchTv } from "../cast-flow";
 import { createCastStore } from "../cast-store";
-import { createCastSwitch } from "../cast-switch";
+import { announceSwitch, createCastSwitch } from "../cast-switch";
 import { castCommands, startCastSync } from "../cast-sync";
 import { readConfig } from "../config";
 import { createFakeCastBackend, FAKE_TV, FAKE_TV_2 } from "../fake-cast";
@@ -79,7 +79,48 @@ describe("Switch TVs back and forth (Google Cast's real end timing)", () => {
     expect(r.tvs["tv1.test"].loads + r.tvs["tv2.test"].loads).toBe(11);
   });
 
-  it("taps on both TVs while a switch runs: one switch, ending on the first TV tapped", async () => {
+  // Owner, 2026-10-06: "if I want to cancel and switch to a different one" — the last tap wins.
+  it("changing your mind mid-switch: the TV tapped last is where it ends, one switch at a time", async () => {
+    const r = room(40);
+    const sw = createCastSwitch({ castStore: r.castStore, timeoutMs: 2000 });
+    await castToTv(r.input(FAKE_TV.id));
+    await settle(5);
+    const first = sw.run(FAKE_TV_2, () => switchTv(r.input(FAKE_TV_2.id)));
+    const second = sw.run(FAKE_TV, () => switchTv(r.input(FAKE_TV.id)));
+    await expect(first).resolves.toBe("superseded");
+    await expect(second).resolves.toBe("started");
+    await settle(5);
+    expect(r.tvs["tv1.test"].viewUrl).toContain("token=launch-1");
+    expect(r.tvs["tv2.test"].viewUrl).toBeNull();
+    expect(r.castStore.getSnapshot().session).toMatchObject({
+      status: "connected",
+      deviceId: FAKE_TV.id,
+    });
+    expect(sw.getSnapshot()).toEqual({ status: "idle" });
+  });
+
+  it("tells the couch session the TV it ended on (tv.rename), once, after changing your mind", async () => {
+    const r = room(40);
+    const sent: unknown[] = [];
+    const sw = createCastSwitch({
+      castStore: r.castStore,
+      timeoutMs: 2000,
+      onSwitched: announceSwitch((m) => sent.push(m)),
+    });
+    await castToTv(r.input(FAKE_TV.id));
+    await settle(5);
+    const first = sw.run(FAKE_TV_2, () => switchTv(r.input(FAKE_TV_2.id)));
+    const second = sw.run(FAKE_TV, () => switchTv(r.input(FAKE_TV.id)));
+    await Promise.all([first, second]);
+    expect(sent).toEqual([{ type: "tv.rename", name: FAKE_TV.name }]);
+    await sw.run(FAKE_TV_2, () => switchTv(r.input(FAKE_TV_2.id)));
+    expect(sent).toEqual([
+      { type: "tv.rename", name: FAKE_TV.name },
+      { type: "tv.rename", name: FAKE_TV_2.name },
+    ]);
+  });
+
+  it("taps on the other TV and back again mid-switch: ends on the TV tapped last", async () => {
     const r = room(40);
     const sw = createCastSwitch({ castStore: r.castStore, timeoutMs: 2000 });
     await castToTv(r.input(FAKE_TV.id));
@@ -87,9 +128,9 @@ describe("Switch TVs back and forth (Google Cast's real end timing)", () => {
     const first = sw.run(FAKE_TV_2, () => switchTv(r.input(FAKE_TV_2.id)));
     const second = sw.run(FAKE_TV, () => switchTv(r.input(FAKE_TV.id)));
     const third = sw.run(FAKE_TV_2, () => switchTv(r.input(FAKE_TV_2.id)));
-    await expect(second).resolves.toBe("busy");
-    await expect(third).resolves.toBe("busy");
+    await expect(second).resolves.toBe("superseded");
     await expect(first).resolves.toBe("started");
+    await expect(third).resolves.toBe("started");
     expect(r.tvs["tv2.test"].viewUrl).toContain("token=launch-1");
     expect(r.tvs["tv1.test"].viewUrl).toBeNull();
     expect(r.castStore.getSnapshot().session).toMatchObject({

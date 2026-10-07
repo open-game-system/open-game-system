@@ -2,7 +2,7 @@ import type { Manifest } from "@open-game-system/ogs-protocol";
 import { LinearGradient } from "expo-linear-gradient";
 import { SymbolView } from "expo-symbols";
 import { type ReactNode, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { safeCrop } from "../../../services/art-crop";
 import { artUrl } from "../GameArt";
 import { Sticker } from "../Sticker";
@@ -139,13 +139,16 @@ export function NowOnTv({
   mirror,
   library,
   tvName,
+  switching = false,
   changeTv,
   onChangeTv,
   rowEnd,
 }: {
   mirror: TvMirror;
   library: Manifest[];
+  /** The TV the cast is on, or "Switching to <TV>…" while a switch runs. */
   tvName: string;
+  switching?: boolean;
   changeTv: boolean;
   onChangeTv: () => void;
   rowEnd?: ReactNode;
@@ -153,9 +156,13 @@ export function NowOnTv({
   const said = [mirror.title, mirror.chip, mirror.resume, mirror.action].filter(Boolean).join(". ");
   const device = (
     <>
-      <View style={styles.live}>
-        <View style={styles.liveDot} />
-      </View>
+      {switching ? (
+        <ActivityIndicator color={colors.cream} testID="remoteSwitching" />
+      ) : (
+        <View style={styles.live}>
+          <View style={styles.liveDot} />
+        </View>
+      )}
       <Text style={styles.deviceName} numberOfLines={1} testID="remoteTvName">
         {tvName}
       </Text>
@@ -170,7 +177,7 @@ export function NowOnTv({
         <Pressable
           testID="tvPickerOpen"
           accessibilityRole="button"
-          accessibilityLabel={`Casting to ${tvName}. Change TV`}
+          accessibilityLabel={switching ? `${tvName} Change TV` : `Casting to ${tvName}. Change TV`}
           onPress={onChangeTv}
           style={({ pressed }) => [styles.device, pressed && styles.devicePressed]}
         >

@@ -2,7 +2,7 @@ export type StopResult = "stopped" | "failed";
 
 /**
  * The TV tab: the remote while cast through OGS, the Cast screen once a stop is asked for. While a
- * TV switch runs the remote stays (its picker says "Switching to <TV>…"), though for a moment no
+ * TV switch runs the remote stays (its hero says "Switching to <TV>…"), though for a moment no
  * TV is cast.
  */
 export function tvTabShows(input: {

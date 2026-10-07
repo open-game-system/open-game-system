@@ -16,6 +16,7 @@ import {
   type OnTv,
   pickerDevices,
   remoteView,
+  tvHeroName,
 } from "../../components/ogs/remote/remote-view";
 import { StopCasting } from "../../components/ogs/remote/StopCasting";
 import { TvPicker } from "../../components/ogs/remote/TvPicker";
@@ -81,10 +82,11 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
   const found = useDevices();
   const [picking, setPicking] = useState(false);
   const [searching, setSearching] = useState(false);
-  // One switch at a time, kept in runtime (castSwitch): the old TV is gone before the new is cast.
+  // One switch at a time, the last pick wins, kept in runtime (castSwitch): the old TV is gone
+  // before the new is cast.
   const switchState = useCastSwitch();
   const switchingTo = switchState.status === "switching" ? switchState.tv : null;
-  const [pickError, setPickError] = useState<string | null>(null);
+  const switchError = switchMessage(switchState);
   const [room, setRoom] = useState(0);
   const view = remoteView({
     state: couch.state,
@@ -95,6 +97,7 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
   const controls = castControls({
     session: app.session,
     castDeviceName,
+    couchTvName: couch.state?.tvName,
     gameName: view.onTv.kind === "game" ? view.onTv.name : pausedName(view.onTv),
   });
   const tvName = controls.tvName;
@@ -126,16 +129,15 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
   };
   const openPicker = () => {
     search();
-    setPickError(null);
     castSwitch.dismiss();
     setPicking(true);
   };
-  const pick = async (tv: CastDevice) => {
-    setPickError(null);
-    const result = await moveToTv(tv);
-    if (result === "started" || result === "same") setPicking(false);
-    // A failure the remote is still up for (else the Cast screen shows it, with Try again).
-    else if (result === "failed") setPickError(switchMessage(castSwitch.getSnapshot()));
+  // Owner, 2026-10-06: the sheet closes at the tap and the hero says "Switching to <TV>…"; a TV
+  // picked while one switch runs is next (the last pick wins). A failure the remote is still up
+  // for shows under the hero (else the Cast screen shows it, with Try again).
+  const pick = (tv: CastDevice) => {
+    setPicking(false);
+    void moveToTv(tv);
   };
   const end = <StopCasting end={controls.end} onStop={() => press("end")} />;
 
@@ -151,10 +153,19 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
       <NowOnTv
         mirror={mirror}
         library={app.library}
-        tvName={tvName}
+        tvName={tvHeroName(tvName, switchState)}
+        switching={switchingTo !== null}
         changeTv={controls.changeTv}
         onChangeTv={openPicker}
         rowEnd={controls.changeTv ? null : end}
+      />
+      <ErrorLine
+        text={switchError}
+        action="retry"
+        onRetry={() => {
+          if (switchState.status === "failed") void moveToTv(switchState.tv);
+        }}
+        testID="remoteSwitchError"
       />
       <View style={styles.padArea} onLayout={(e) => setRoom(e.nativeEvent.layout.height)}>
         <HolderLine holder={view.holder} />
@@ -165,9 +176,9 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
         devices={devices}
         currentId={currentId}
         switchingId={switchingTo?.id ?? null}
-        error={pickError}
+        error={switchError}
         searching={searching}
-        onPick={(tv) => void pick(tv)}
+        onPick={pick}
         onRescan={search}
         onClose={() => setPicking(false)}
       />
