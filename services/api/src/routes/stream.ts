@@ -1,5 +1,6 @@
 import { type Context, Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
+import { timingSafeEqual } from "../lib/http";
 import { addTracks, createSession, type RealtimeCredentials, renegotiate } from "../lib/realtime";
 import { recordError, requestEvent } from "../lib/wide-event";
 import {
@@ -111,23 +112,6 @@ export function normalizeIceServers(iceServers: IceServerConfig[]): IceServerCon
     });
 }
 
-function timingSafeMatches(actual: string, expected: string): boolean {
-  if (actual.length !== expected.length) {
-    return false;
-  }
-
-  const encoder = new TextEncoder();
-  const actualBytes = encoder.encode(actual);
-  const expectedBytes = encoder.encode(expected);
-
-  // Constant-time comparison
-  let result = 0;
-  for (let i = 0; i < actualBytes.length; i++) {
-    result |= actualBytes[i] ^ expectedBytes[i];
-  }
-  return result === 0;
-}
-
 export function isDebugRequestAuthorized(
   debugStateToken: string | undefined,
   providedToken: string | null,
@@ -140,7 +124,7 @@ export function isDebugRequestAuthorized(
     return false;
   }
 
-  return timingSafeMatches(providedToken, debugStateToken);
+  return timingSafeEqual(providedToken, debugStateToken);
 }
 
 export function resolveSessionId(sessionIdHeader: string | null): string | null {
