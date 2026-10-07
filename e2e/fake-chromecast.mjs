@@ -7,8 +7,9 @@
 //   POST /load    -> { viewUrl }  (what the receiver's LOAD_VIEW would do)
 //   POST /stop    -> closes the TV page (end for tonight / cast dropped)
 //   GET  /screenshot -> PNG of the TV now
-//   GET  /launcher   -> { screen, frameApp, frameSrc, starting, continueApps } read from the launcher's DOM
-//                       (continueApps: game:<appId> of each paused sitting card on the TV home)
+//   GET  /launcher   -> { screen, frameApp, frameSrc, starting, continueApps, roomName } read from the launcher's DOM
+//                       (continueApps: game:<appId> of each paused sitting card on the TV home;
+//                        roomName: the header, "<TV name> · <host>'s games")
 import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -41,6 +42,18 @@ async function tv() {
   return page;
 }
 
+/**
+ * /load and /stop one at a time, like a receiver handling its messages in order. A stop arriving
+ * while a load is still opening the page (a TV switch superseded mid-way) would otherwise close the
+ * recording context under it, and that load never answered.
+ */
+let queue = Promise.resolve();
+const inTurn = (fn) => {
+  const run = queue.then(fn, fn);
+  queue = run.catch(() => {});
+  return run;
+};
+
 async function body(req) {
   const chunks = [];
   for await (const c of req) chunks.push(c);
@@ -58,26 +71,29 @@ const server = createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/load") {
       const parsed = LoadSchema.safeParse(JSON.parse((await body(req)) || "{}"));
       if (!parsed.success) return res.writeHead(400).end(JSON.stringify({ error: parsed.error.issues }));
-      // Like the real receiver: the same viewUrl again is a no-op.
-      if (parsed.data.viewUrl !== state.viewUrl) {
+      await inTurn(async () => {
+        // Like the real receiver: the same viewUrl again is a no-op.
+        if (parsed.data.viewUrl === state.viewUrl) return;
         const p = await tv();
         state.loads += 1;
         state.viewUrl = parsed.data.viewUrl;
         state.startedAt ??= Date.now();
         console.log(`[cast] load #${state.loads} at=${Date.now()}: ${state.viewUrl.replace(/token=[^&]+/, "token=…")}`);
-        await p.goto(state.viewUrl);
-      }
+        await p.goto(state.viewUrl, { timeout: 15000 });
+      });
       return res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(state));
     }
     if (req.method === "POST" && req.url === "/stop") {
-      if (context) {
-        const video = page?.video();
-        await context.close();
-        if (video) console.log(`[cast] video: ${await video.path()}`);
-      }
-      context = null;
-      page = null;
-      state.viewUrl = null;
+      await inTurn(async () => {
+        if (context) {
+          const video = page?.video();
+          await context.close();
+          if (video) console.log(`[cast] video: ${await video.path()}`);
+        }
+        context = null;
+        page = null;
+        state.viewUrl = null;
+      });
       return res.writeHead(200).end(JSON.stringify(state));
     }
     if (req.method === "GET" && req.url === "/launcher") {
@@ -91,6 +107,7 @@ const server = createServer(async (req, res) => {
               starting: Boolean(document.querySelector('[data-testid="starting"]')),
               // Paused sittings on the TV home: the activity cards that continue a game (not tonight's game night).
               continueApps: [...document.querySelectorAll('[data-row="activity"] [data-card="sitting"]:not([data-upcoming])')].map((e) => `game:${e.getAttribute("data-app")}`),
+              roomName: document.querySelector(".room-name")?.textContent ?? null,
             };
           })
         : null;

@@ -244,6 +244,8 @@ Feature: Cast-first OGS app with games inside one stream
     Then the cast stops on "Living room TV" and the launcher loads on "Den TV"
     And Rocket Crew is still paused with its resume point
     And picking the TV he's already on does nothing
+    # Details (the sheet closes at the tap, the hero, the new name, last tap wins):
+    # 2026-10-05-tv-switching.feature
 
   Scenario: No TV found
     Given no Chromecast is visible

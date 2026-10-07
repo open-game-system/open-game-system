@@ -164,6 +164,25 @@ Persistent project knowledge. Review at the start of each task.
   (spawning that room) before the page sends itself to `/host`, which makes the real one. Invisible to OGS
   (that room never reports), but every start leaves an empty room behind.
 
+- **Detox synchronization hides transient states (2026-10-06).** With it on, a tap only returns once
+  the app is idle, so a TV switch had already finished by the time the test looked for "Switching to
+  <TV>…" (and a mid-switch reopen of the sheet was impossible). `tv-switch.test.ts` turns it off for
+  the switch (`device.disableSynchronization()`) and waits out the sheet's slide in and out by hand
+  (retry the Change tap, a short settle before tapping a row), then turns it back on.
+- **`e2e/setup.ts` reloads the JS before every Detox test, and the fake Cast session lives in JS.**
+  A real phone keeps its native Cast session across a reload; the fake doesn't, so a second test in
+  the same file starts with the couch still cast but no Cast session to end, and its first switch
+  is instant. Keep a TV-switch scenario in one `it`.
+- **The fake Chromecast handles `/load` and `/stop` in order.** A switch superseded mid-way stops a
+  TV whose `LOAD_VIEW` is still being opened; closing the recording context under that load left
+  the app's request open forever, and Detox (waiting for the app to be idle) hung until the test
+  timed out. `e2e/fake-chromecast.mjs` now queues them, and `goto` has a timeout.
+- **The fake's second TV must arrive even if discovery is restarted.** `startDiscovery` used to
+  restart the 1.5 s trickle on every call, so searches close together could keep "Bedroom TV" out
+  of the list ("No other TVs nearby"). A search while it is on its way now keeps its arrival.
+- **The Detox remote root (`tvRemote`) is not "visible" on an iPhone 17 Pro**: the tab bar covers
+  more than Detox's 25% allowance. Wait on an element in it (`remoteTvName`).
+
 ## Observability (2026-10-05)
 
 - **Hono logs unhandled errors itself**: without `app.onError`, Hono answers a plain-text 500 and calls `console.error(err)`, a second, unstructured error line next to the wide event. `app.onError` answers the error contract and the `wideEvent` middleware reads `c.error` (Hono sets it before `onError` runs), so each failure is one line.

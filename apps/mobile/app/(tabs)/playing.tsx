@@ -13,6 +13,7 @@ import { PlayingNotice } from "../../components/ogs/playing/PlayingNotice";
 import { RoomCards } from "../../components/ogs/playing/RoomCards";
 import { SittingCard } from "../../components/ogs/playing/SittingCard";
 import { StartTonight } from "../../components/ogs/playing/StartTonight";
+import { tvNameNow } from "../../components/ogs/remote/remote-view";
 import { Screen, SectionTitle } from "../../components/ogs/Screen";
 import { colors, fonts } from "../../components/ogs/theme";
 import { friendsStore } from "../../services/friends-runtime";
@@ -65,8 +66,14 @@ export default function PlayingScreen() {
   const now = Date.now();
   const games = [...app.library, ...app.catalogue];
   const find = (appId: string) => games.find((g) => g.appId === appId);
-  // The cast's device name, else the couch session's TV (kept across an app restart).
-  const tvName = cast ? (castState.session?.deviceName ?? app.session?.tvName ?? null) : null;
+  // The cast's device name, else the TV the couch session moved to, else the one it was created
+  // with (kept across an app restart).
+  const tvName = tvNameNow({
+    cast,
+    castDeviceName: castState.session?.deviceName ?? null,
+    couchTvName: state?.tvName,
+    sessionTvName: app.session?.tvName ?? null,
+  });
 
   const current = state?.current;
   const liveGame = current ? find(current.appId) : undefined;

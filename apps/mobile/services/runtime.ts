@@ -13,7 +13,7 @@ import type { CastBackend } from "./cast-backend";
 import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-flow";
 import { createCastStop } from "./cast-stop";
 import { createCastStore } from "./cast-store";
-import { createCastSwitch } from "./cast-switch";
+import { announceSwitch, createCastSwitch } from "./cast-switch";
 import { castCommands, startCastSync } from "./cast-sync";
 import { createCastTrace } from "./cast-trace";
 import { streamServerUrl } from "./cast-view";
@@ -373,8 +373,14 @@ export async function castNow(tv: { id: string; name: string }) {
   });
 }
 
-/** Remote → TV picker: "Switching to <TV>…" until the new TV is connected, one switch at a time. */
-export const castSwitch = createCastSwitch({ castStore });
+/**
+ * Remote → TV picker: "Switching to <TV>…" until the new TV is connected, one switch at a time,
+ * the last TV picked wins; the couch session is then told the new TV's name (tv.rename).
+ */
+export const castSwitch = createCastSwitch({
+  castStore,
+  onSwitched: announceSwitch((msg) => couchHub.send(msg)),
+});
 
 /** Remote → TV picker: the same session (its launcher token) moves to another TV. */
 export async function moveToTv(tv: { id: string; name: string }) {

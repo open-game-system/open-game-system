@@ -73,6 +73,20 @@ describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
     }
   });
 
+  it("=2: searching again while the second TV is on its way doesn't put it off", () => {
+    jest.useFakeTimers();
+    try {
+      const { backend } = setup("two");
+      backend.startDiscovery();
+      jest.advanceTimersByTime(FAKE_TV_2_DELAY_MS - 500);
+      backend.startDiscovery();
+      jest.advanceTimersByTime(500);
+      expect(backend.getDevices()).toEqual([FAKE_TV, FAKE_TV_2]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it("=2: casting to the second TV names it in the session", async () => {
     const { backend } = setup("two");
     const store = createCastStore();

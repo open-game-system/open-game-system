@@ -4,6 +4,7 @@ import { signJwt } from "../../src/lib/jwt";
 import { CouchClient, couchUrl, isGameFollow } from "./couch-client";
 import {
   BASE,
+  bearer,
   type CreatedProfile,
   type CreatedSession,
   claimsOf,
@@ -11,6 +12,7 @@ import {
   createSession,
   ErrorSchema,
   joinSession,
+  SessionSchema,
 } from "./helpers";
 
 const open: CouchClient[] = [];
@@ -345,6 +347,37 @@ describe("couch session over real WebSockets", () => {
     const s = await again.state();
     expect(s.suspended.map((g) => g.appId)).toEqual(["story-nook"]);
     expect(s.casts).toBe(1);
+  });
+
+  it("Change TV: the caster's tv.rename names the new TV for every client and in D1", async () => {
+    const { session, jonathan, juneau, phone, tv, juneauPad } = await livingRoom();
+    const m = tv.mark();
+    phone.send({ type: "tv.rename", name: "Bedroom TV" });
+    expect((await tv.state((x) => x.tvName === "Bedroom TV", m)).tvName).toBe("Bedroom TV");
+    expect((await juneauPad.state((x) => x.tvName === "Bedroom TV")).tvName).toBe("Bedroom TV");
+    // A launcher that reloads, a phone that joins later, friends' presence: the session row too.
+    for (const who of [jonathan, juneau]) {
+      const res = await SELF.fetch(`${BASE}/sessions/${session.sessionId}`, {
+        headers: bearer(who.token),
+      });
+      expect(SessionSchema.parse(await res.json()).tvName).toBe("Bedroom TV");
+    }
+  });
+
+  it("only the caster's phone renames the TV (a tablet that joined is refused)", async () => {
+    const { session, jonathan, juneauPad, phone } = await livingRoom();
+    const from = juneauPad.mark();
+    juneauPad.send({ type: "tv.rename", name: "Juneau's TV" });
+    expect(await juneauPad.next((f) => f.type === "error", from)).toMatchObject({
+      code: "host_only",
+    });
+    phone.send({ type: "focus.set", itemId: "game:bake-shop" });
+    const s = await phone.state((x) => x.focus === "game:bake-shop");
+    expect(s.tvName).toBeUndefined();
+    const res = await SELF.fetch(`${BASE}/sessions/${session.sessionId}`, {
+      headers: bearer(jonathan.token),
+    });
+    expect(SessionSchema.parse(await res.json()).tvName).toBe(session.tvName);
   });
 
   it("a second socket of the same device keeps it online when one closes", async () => {

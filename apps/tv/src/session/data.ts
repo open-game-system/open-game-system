@@ -24,6 +24,11 @@ export const CouchSessionSchema = z.object({
 });
 export type CouchSession = z.infer<typeof CouchSessionSchema>;
 
+/** The session as the header names it: on the TV the cast moved to (state.tvName), once it moved. */
+export function liveSession(session: CouchSession, state: { tvName?: string }): CouchSession {
+  return state.tvName ? { ...session, tvName: state.tvName } : session;
+}
+
 export const LibraryResponse = z.object({ appIds: z.array(z.string()) });
 
 /** One bad manifest or instance must not blank the TV: keep the ones that parse. */

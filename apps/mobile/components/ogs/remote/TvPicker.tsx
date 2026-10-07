@@ -7,6 +7,9 @@ import { colors, fonts, TARGET } from "../theme";
 /**
  * A bottom sheet of the TVs in the room: the one you're casting to, the others to switch to, a
  * "Looking for TVs…" row while the search runs, and a plain empty state when it finds no other.
+ * Tapping a TV switches to it (the TV tab closes the sheet at once). Opened again mid-switch, the
+ * TV being switched to says "Switching to <TV>…" and every other row can still be tapped: the last
+ * TV picked wins.
  */
 export function TvPicker({
   visible,
@@ -53,7 +56,8 @@ export function TvPicker({
           </Pressable>
         </View>
         {devices.map((d) => {
-          const current = d.id === currentId;
+          // Mid-switch the old TV is on its way out: it is one more TV to change your mind to.
+          const current = d.id === currentId && switchingId === null;
           const switching = d.id === switchingId;
           return (
             <Pressable
@@ -62,7 +66,7 @@ export function TvPicker({
               accessibilityRole="radio"
               accessibilityState={{ selected: current }}
               accessibilityLabel={current ? `${d.name}, casting now` : `Switch to ${d.name}`}
-              disabled={switchingId !== null}
+              disabled={switching}
               onPress={() => onPick(d)}
               style={({ pressed }) => [
                 styles.row,
@@ -83,7 +87,10 @@ export function TvPicker({
                 <Text style={styles.name} numberOfLines={1}>
                   {d.name}
                 </Text>
-                <Text style={[styles.status, current && styles.statusOn]}>
+                <Text
+                  style={[styles.status, current && styles.statusOn]}
+                  testID={`tvPickerStatus-${d.id}`}
+                >
                   {current
                     ? "Casting now"
                     : switching

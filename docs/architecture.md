@@ -214,8 +214,15 @@ once as a `game.start` hosted by the selecting phone. Each is applied with `redu
 `all` → every socket, `launcher` → launcher sockets, `{ deviceId }` → that device's sockets. Server
 frames: `{ type: "state", state }`, `{ type: "focus.move", dir }` (launcher),
 `{ type: "follow", target }`, `{ type: "remote.offer", from }`, and
-`{ type: "error", code: invalid_json|invalid_message|identity_from_token, message }`. Connect errors
+`{ type: "error", code: invalid_json|invalid_message|identity_from_token|host_only, message }`. Connect errors
 are HTTP: 401 `missing_auth`/`invalid_token`, 426 `upgrade_required`.
+
+**Change TV** (`tv.rename { name }`): after the caster's phone moves the cast to another TV it names
+that TV; `state.tvName` carries it to every client (phones' hero and Playing strip, the launcher's
+header), and the DO writes it to `couch_sessions.tv_name` so `GET /sessions/:sid` (a launcher that
+reloads, a phone that joins later) and friends' presence say it too. Until a rename `state.tvName` is
+absent and clients show the name the session was created with. Only the caster's phone may send it
+(else `host_only`).
 
 **Several couches, one room** (spec §7, [ADR](adrs/2026-10-05-couches-join-the-games-room.md)): each
 couch keeps its own CouchSession. `game.start` may name the game's `room` (opens or resumes this

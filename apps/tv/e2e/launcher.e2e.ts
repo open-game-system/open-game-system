@@ -357,6 +357,16 @@ describe("TV launcher (fake session)", () => {
     expect(await count(page, "[data-testid=no-view]")).toBe(0);
   });
 
+  it("names the TV the cast moved to in the header (Change TV on the phone)", async () => {
+    expect(await page.locator(".room-name").textContent()).toBe(
+      "Living room TV · Jonathan's games",
+    );
+    await send(page, { type: "tv.rename", name: "Bedroom TV" });
+    await expect
+      .poll(() => page.locator(".room-name").textContent())
+      .toBe("Bedroom TV · Jonathan's games");
+  });
+
   it("keeps the last state with a reconnecting chip when the socket drops", async () => {
     await expect.poll(focused).toBe("game:bake-shop");
     await page.evaluate(() => window.__ogsFake?.drop());
