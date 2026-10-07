@@ -5,6 +5,7 @@
  */
 export function createGamePresence() {
   let open: string | null = null;
+  const closers = new Map<string, Set<() => void>>();
   const presence = {
     /** Called when the game screen is pushed (before it mounts: the follow can arrive first). */
     opening(appId: string) {
@@ -15,6 +16,21 @@ export function createGamePresence() {
       if (open === appId) open = null;
     },
     isOpen: (appId: string) => open === appId,
+    /** The game open here, if any. */
+    openApp: (): string | null => open,
+    /** The game screen of `appId` listens for the TV closing it (every couch phone follows the TV). */
+    onClose(appId: string, close: () => void) {
+      const set = closers.get(appId) ?? new Set();
+      set.add(close);
+      closers.set(appId, set);
+      return () => {
+        set.delete(close);
+      };
+    },
+    /** The TV left `appId` (Home): close its screen here. */
+    requestClose(appId: string) {
+      for (const close of [...(closers.get(appId) ?? [])]) close();
+    },
     /** The session says this phone hosts `appId`: open it unless it is already open here. */
     followHost(appId: string, openIt: () => void) {
       if (presence.isOpen(appId)) return;

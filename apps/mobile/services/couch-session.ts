@@ -9,7 +9,8 @@ import { z } from "zod";
  * This device's live link to the couch session it hosts or joined (services/api CouchSession, one
  * per cast): a WebSocket (identity comes from its token; the session says hello for us), mirrors
  * the session's state, follows the host role
- * (a game started from the TV with the remote opens here) and offers the remote when its holder
+ * (a game started from the TV with the remote opens here), follows the TV as one of the couch
+ * (onFollowCouch) and offers the remote when its holder
  * goes dark. Reconnects with backoff. Everything incoming is parsed before it is believed.
  */
 
@@ -46,10 +47,16 @@ function readServerFrame(data: unknown): ServerMessage | null {
   }
 }
 
-/** What a server message changes: the snapshot, and/or a game this phone should open as host. */
+type Follow = Extract<ServerMessage, { type: "follow" }>["target"];
+
+/**
+ * What a server message changes: the snapshot, a game this phone should open as host, and/or
+ * where this phone should be as one of the couch (every couch phone follows the TV, spec §8).
+ */
 interface Effect {
   patch?: Partial<CouchSnapshot>;
   followHost?: { appId: string; instanceId: string; room?: string };
+  followCouch?: Follow;
 }
 
 function effectOf(msg: ServerMessage): Effect {
@@ -67,9 +74,9 @@ function effectOf(msg: ServerMessage): Effect {
   }
 }
 
-/** Only a host follow into a game opens anything on the phone. */
-function followEffect(target: Extract<ServerMessage, { type: "follow" }>["target"]): Effect {
-  if (target.kind !== "game" || target.roleId !== "host") return {};
+/** A host follow opens the game as its host; any other follow is this phone following the TV. */
+function followEffect(target: Follow): Effect {
+  if (target.kind !== "game" || target.roleId !== "host") return { followCouch: target };
   const { appId, instanceId, room } = target;
   return { followHost: { appId, instanceId, ...(room ? { room } : {}) } };
 }
@@ -100,6 +107,8 @@ export interface CouchSessionOptions {
   createSocket: (url: string) => SocketLike;
   /** The session made this phone the host of a game (e.g. OK pressed on the TV): open it. */
   onFollowHost?: (game: { appId: string; instanceId: string; room?: string }) => void;
+  /** The TV moved on and this phone (not the host) follows it: into a game, or back to the remote. */
+  onFollowCouch?: (target: Follow) => void;
 }
 
 const OPEN = 1;
@@ -133,9 +142,10 @@ export function createCouchSession(opts: CouchSessionOptions) {
   function handle(data: unknown) {
     const msg = readServerFrame(data);
     if (!msg) return;
-    const { patch, followHost } = effectOf(msg);
+    const { patch, followHost, followCouch } = effectOf(msg);
     if (patch) set(patch);
     if (followHost) opts.onFollowHost?.(followHost);
+    if (followCouch) opts.onFollowCouch?.(followCouch);
   }
 
   function connect() {

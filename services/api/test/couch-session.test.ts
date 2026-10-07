@@ -61,6 +61,16 @@ describe("readFrame", () => {
     });
   });
 
+  it("stamps game.view with its sender, with or without a deviceId (only the host's page frames)", () => {
+    const url = "https://rc.example/tv/KQTP";
+    for (const sent of [{}, { deviceId: "phone-dad" }]) {
+      const frame = JSON.stringify({ type: "game.view", appId: "rocket-crew", url, ...sent });
+      expect(readFrame(frame, PEER)).toEqual({
+        msg: { type: "game.view", appId: "rocket-crew", url, deviceId: "kid-ipad" },
+      });
+    }
+  });
+
   it.each([
     ["not JSON", "{nope", ["invalid_json", "Frames must be JSON"]],
     [

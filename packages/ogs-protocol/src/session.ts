@@ -56,8 +56,16 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   /** The game's TV page said which room it shows (ogs:room). */
   z.object({ type: z.literal("game.room"), appId: z.string(), room: RoomIdSchema }),
   z.object({ type: z.literal("game.resume-point"), appId: z.string(), label: z.string() }),
-  /** The game's phone page asked for its TV view (cast-kit SET_VIEW_URL); the launcher frames it. */
-  z.object({ type: z.literal("game.view"), appId: z.string(), url: z.string().url() }),
+  /**
+   * The game's phone page asked for its TV view (cast-kit SET_VIEW_URL); the launcher frames it.
+   * `deviceId` is the sender (the couch session stamps it): only the host's page counts.
+   */
+  z.object({
+    type: z.literal("game.view"),
+    appId: z.string(),
+    url: z.string().url(),
+    deviceId: z.string().optional(),
+  }),
   z.object({ type: z.literal("remote.take"), deviceId: z.string() }),
   z.object({ type: z.literal("end") }),
   /** The caster moved the cast to another TV: the session is on that TV now, by its name. */
@@ -266,36 +274,59 @@ function hostFollow(s: SessionState, before: SessionState): Outbound[] {
   ];
 }
 
-/** Where a tablet belongs: its seat in the current game, else the launcher. */
-function followTarget(s: SessionState, d: Device): FollowTarget {
-  const entry = rosterEntry(s, d.profileId);
-  return s.current && entry
-    ? {
-        kind: "game",
-        appId: s.current.appId,
-        instanceId: s.current.instanceId,
-        roleId: entry.roleId,
-        ...roomOf(s.current.room),
-      }
-    : { kind: "launcher" };
+const sameRoom = (a: SessionState, b: SessionState) => a.current?.room === b.current?.room;
+const cameOnline = (before: SessionState, d: Device) =>
+  before.devices.find((x) => x.deviceId === d.deviceId)?.online !== true;
+const follow = (d: Device, target: FollowTarget): Outbound => ({
+  to: { deviceId: d.deviceId },
+  msg: { type: "follow", target },
+});
+
+/** The current game in `roleId`, in its room when it has one. */
+function inGame(s: SessionState, roleId: string): FollowTarget {
+  if (!s.current) return { kind: "launcher" };
+  const { appId, instanceId, room } = s.current;
+  return { kind: "game", appId, instanceId, roleId, ...roomOf(room) };
 }
 
-/** A tablet is told again when the sitting, its seat, or its being online changed. */
+/** Where a couch phone or iPad belongs: the current game in its roster seat, else as "player". */
+const followTarget = (s: SessionState, d: Device): FollowTarget =>
+  inGame(s, rosterEntry(s, d.profileId)?.roleId ?? "player");
+
+/** A tablet is told again when the sitting, its room, its seat, or its being online changed. */
 function followChanged(s: SessionState, before: SessionState, d: Device): boolean {
   return (
     !sameSitting(s, before) ||
+    !sameRoom(s, before) ||
     rosterEntry(before, d.profileId)?.roleId !== rosterEntry(s, d.profileId)?.roleId ||
-    before.devices.find((x) => x.deviceId === d.deviceId)?.online !== true
+    cameOnline(before, d)
   );
 }
 
-function tabletFollow(s: SessionState, before: SessionState, d: Device): Outbound[] {
-  if (d.kind !== "tablet" || !d.online || !followChanged(s, before, d)) return [];
-  return [{ to: { deviceId: d.deviceId }, msg: { type: "follow", target: followTarget(s, d) } }];
+/**
+ * When a couch device is told where to be. A phone: when the sitting or its room changes, or when
+ * it comes online during a game. A kid's iPad also when its seat changes, and when it connects with
+ * no game on (it is sent to the launcher).
+ */
+function toldAgain(s: SessionState, before: SessionState, d: Device): boolean {
+  if (d.kind === "tablet") return followChanged(s, before, d);
+  const moved = !sameSitting(s, before) || !sameRoom(s, before);
+  return moved || (s.current !== null && cameOnline(before, d));
+}
+
+/**
+ * Every couch phone and kid's iPad follows the TV (spec §3, §8): into the current game (its roster
+ * seat, else "player", in the game's room once the TV names it), and back to the launcher on Home
+ * and end. Never on other updates, so a device that stepped out to the remote stays there. The
+ * host has its own follow.
+ */
+function couchFollow(s: SessionState, before: SessionState, d: Device): Outbound[] {
+  if (d.kind === "launcher" || !d.online || d.deviceId === s.current?.hostDeviceId) return [];
+  return toldAgain(s, before, d) ? [follow(d, followTarget(s, d))] : [];
 }
 
 function followAll(s: SessionState, before: SessionState): Outbound[] {
-  return [...hostFollow(s, before), ...s.devices.flatMap((d) => tabletFollow(s, before, d))];
+  return [...hostFollow(s, before), ...s.devices.flatMap((d) => couchFollow(s, before, d))];
 }
 
 // ---------- One handler per message ----------
@@ -437,8 +468,12 @@ function onGameStart(s: SessionState, msg: MessageOf<"game.start">, now: number)
   };
 }
 
+/** A follower's page asks for its own TV view too: only the host's (the room's) page counts. */
+const fromFollower = (current: CurrentGame, deviceId: string | undefined) =>
+  current.hostDeviceId !== null && deviceId !== undefined && deviceId !== current.hostDeviceId;
+
 function onGameView(s: SessionState, msg: MessageOf<"game.view">): Step {
-  if (s.current?.appId !== msg.appId) return { s };
+  if (s.current?.appId !== msg.appId || fromFollower(s.current, msg.deviceId)) return { s };
   return { s: { ...s, current: { ...s.current, viewUrl: msg.url } } };
 }
 

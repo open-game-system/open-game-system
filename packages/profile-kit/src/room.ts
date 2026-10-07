@@ -2,8 +2,9 @@ import { RoomIdSchema } from "@open-game-system/ogs-protocol";
 import type { FrameWindow } from "./session";
 
 /**
- * Several couches, one room (spec §7). The app opens a joining couch's start page with
- * `ogsRoom=<room>`: join that room instead of making one. Null when the URL names none.
+ * The app opens the start page with `ogsRoom=<room>` for a phone joining a room it didn't make: a
+ * couch phone following the TV (spec §3) or a couch joining another's (§7). Join that room instead
+ * of making one. Null when the URL names none.
  */
 export function ogsRoomFromUrl(url: string): string | null {
   const m = /[?&]ogsRoom=([^&#]*)/.exec(url);

@@ -219,12 +219,16 @@ export function HostPanel({ tvUrl }: { tvUrl: string }) {
 
 No `<CastButton>`: the app ignores a game's own cast actions.
 
-### 9. Multi-couch rooms (optional)
+### 9. Rooms: the couch's phones, and other homes
 
-Only if households in different homes should play one room together. Set `multiCouch: true` in the
-manifest, call `reportOgsRoom(roomCode)` from the TV page when the room exists, join `session.room`
-instead of creating a room when `ogs:start` carries one, and on the phone page join
-`ogsRoomFromUrl(location.href)` when it is not `null`. Group players by `claims.couch.sid`. Details:
+A game with rooms: call `reportOgsRoom(roomCode)` from the TV page when the room exists, and on the
+phone page join `ogsRoomFromUrl(location.href)` instead of making a room when it is not `null`. Every
+phone on the couch follows the TV: the one that starts the game makes the room, the others open your
+start page with `ogsRoom=<room>` once the TV page reported it (no report, no followers).
+
+Several homes in one room (optional): only if households in different homes should play one room
+together. Set `multiCouch: true` in the manifest, join `session.room` instead of creating a room when
+`ogs:start` carries one, and group players by `claims.couch.sid`. Details:
 [the contract, §7](contract.md#7-several-couches-one-room-multicouch).
 
 ### 10. Art kit and manifest

@@ -12,6 +12,16 @@ describe("leaving a game (a completed swipe back)", () => {
     expect(leaveGame({ ...base, ogsCast: true, reported: true }).home).toBe(true);
   });
 
+  it("cast, on a phone following the TV: steps out without parking the game (no home)", () => {
+    expect(leaveGame({ ...base, ogsCast: true, reported: true, parks: false }).home).toBe(false);
+  });
+
+  it("cast, closed by the TV going Home: the pill and visit are kept as for a swipe back", () => {
+    const out = leaveGame({ ...base, ogsCast: true, reported: false, parks: false });
+    expect(out.pill).toMatchObject({ appId: "rocket-crew", url: base.url });
+    expect(out.visit).not.toBeNull();
+  });
+
   it("not cast: sends nothing to the session", () => {
     expect(leaveGame({ ...base, ogsCast: false, reported: true }).home).toBe(false);
   });

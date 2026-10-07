@@ -76,7 +76,7 @@ a game that answers nothing still runs.
 | launcher → game | `ogs:suspend` | none | Home, or a swap to another game: the frame is **parked**, still loaded |
 | launcher → game | `ogs:resume` | none | Continue of the parked sitting: the same frame comes back, no reload |
 | game → launcher | `ogs:resume-point` | `label` | The sitting's label ("Mission 6") |
-| game → launcher | `ogs:room` | `room` | The room the TV page shows (`multiCouch` games, §7) |
+| game → launcher | `ogs:room` | `room` | The room the TV page shows. Every room-based game (no static `tvUrl`): the couch's other phones follow into this room (§3); `multiCouch` games also let other couches join it |
 | game → launcher | `ogs:instance` | `report` (`InstanceReportSchema`) | Same purpose; the launcher uses `report.title` as the label |
 
 - `token` is a **game token** for this game and this couch session (`aud` = appId, `sid`, `players`), or
@@ -97,7 +97,7 @@ With profile-kit (§4) a game doesn't post these by hand:
 | Who's on the couch, the session's game token | `useOgsSession()` (react) or `getOgsSessionSource()`: `undefined` while waiting, `null` when not framed by OGS (300 ms), else `{ players, token, instanceId, mode }`. Says `ogs:ready` itself |
 | Go silent when parked | `onOgsPause((paused) => …)`: `true` on `ogs:suspend`, `false` on `ogs:resume`; never fires in a plain browser |
 | The sitting's label | `reportOgsSitting({ instanceId, appId, status, title })`: `ogs:instance` to the launcher on the TV, the app bridge in the WebView, nothing in a plain browser |
-| Several couches (§7) | `reportOgsRoom(room)` (TV page: `ogs:room`); `useOgsSession()` gives `room` when this couch joins another's; `ogsRoomFromUrl(location.href)` on the phone page; `verifyOgsToken` returns `couch: { sid, label }` |
+| Rooms (§7) | `reportOgsRoom(room)` (TV page: `ogs:room`); `useOgsSession()` gives `room` when this couch joins another's; `ogsRoomFromUrl(location.href)` on the phone page (a second device of this couch, or another couch); `verifyOgsToken` returns `couch: { sid, label }` |
 
 **Parked means silent.** A parked frame stays loaded so Continue is instant, so its audio keeps
 playing unless the game stops it. Suspend the `AudioContext` and pause media on `onOgsPause(true)`; resume
@@ -107,6 +107,14 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 ## 3. Phones: the game page in the app's WebView
 
 - The app opens `startUrl` in a WebView with the app bridge (`@open-game-system/app-bridge-*`).
+- **Every couch phone follows the TV.** The phone that starts a game hosts it (its start page makes
+  the room). Every other phone on the couch opens the same game when the TV starts it, and goes back
+  to the remote on Home. For a room-based game (no static `tvUrl`) it waits until the TV page reports
+  its room (`ogs:room`, §2) and opens `startUrl` with `ogsRoom=<room>` added to the query: the phone
+  page must join that room (`ogsRoomFromUrl(location.href)`), never make a new one. A game that never
+  reports its room gets no followers (their start page would make an empty room). Kids' iPads follow
+  the same way (their roster seat when a roster was sent, else as a player). A following phone that
+  swipes back steps out to the remote; the TV keeps playing.
 - **Who's playing:** `useOgsProfile()` (`@open-game-system/profile-kit/react`) gives
   `{ id, handle, name, avatar, token }` from the app's `profile` bridge store (refreshed before the token
   expires). `undefined` while asking (up to 300 ms for the store, 5 s while the app says `asking`),
@@ -114,7 +122,8 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
   avatar; with `null`, keep the form.
 - **The TV page of a room game:** the phone page declares it with cast-kit-react
   `useCastViewUrl(url)`. While cast through OGS the app forwards it to the couch session as `game.view`
-  (`apps/mobile/services/game-cast-route.ts`) for the launcher to frame, and drops the game's
+  (`apps/mobile/services/game-cast-route.ts`) for the launcher to frame (only the host phone's page
+  counts: a following phone's or iPad's `game.view` is ignored), and drops the game's
   `START_CASTING` / `STOP_CASTING` / `SHOW_CAST_PICKER`. A game with a static `tvUrl` needs nothing.
   `isOGSCastAvailable()` (cast-kit-core) tells the page it runs inside the OGS app.
 - **Sitting labels:** `reportOgsSitting(...)` goes through the app's `ogs` bridge store as
@@ -175,10 +184,10 @@ Acceptance: [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature).
 |---|---|
 | Manifest | `multiCouch: true` (default `false`): the game accepts players from several couches in one room. OGS offers Invite and Join with your couch only for these games. |
 | Room id | The game's own room code (`[A-Za-z0-9_-]{1,64}`, e.g. Night Flight's `KQTP`). OGS never makes one. |
-| Game → launcher | `ogs:room` `{ room }`: the TV page says which room it shows (on create and whenever it changes). The launcher forwards it to the couch session as `game.room`; the sitting keeps it, and friends' presence shows it. profile-kit: `reportOgsRoom(room)`. |
+| Game → launcher | `ogs:room` `{ room }`: the TV page says which room it shows (on create and whenever it changes). The launcher forwards it to the couch session as `game.room`; the sitting keeps it, the couch's other phones follow into it (§3), and friends' presence shows it. Every room-based game sends it, not only `multiCouch` ones. profile-kit: `reportOgsRoom(room)`. |
 | Couch session | `game.start` takes `room?`. Starting a game with a room opens (or resumes) this couch's sitting **in that room**; without one the game makes its own as before. `current.room` and each paused sitting's `room` keep it, so Continue goes back into the same room. |
 | Launcher → game | `ogs:start` carries `room` when the sitting names one: join that room, don't create one. |
-| Phone page | When the sitting names a room, the app opens `startUrl` with `ogsRoom=<room>` added to its query (profile-kit: `ogsRoomFromUrl(location.href)`), so the host phone joins the room too. |
+| Phone page | When the sitting names a room, the app opens `startUrl` with `ogsRoom=<room>` added to its query (profile-kit: `ogsRoomFromUrl(location.href)`), so the host phone joins the room too. The same parameter brings this couch's other phones into the room (§3, "Every couch phone follows the TV"), for every room-based game, `multiCouch` or not. |
 | Game token | Every token issued for a couch (the TV's, and a phone's when it asks with its session id) carries `couch: { sid, label }`: the couch session id and its label (the host's name). Players with the same `couch.sid` sit on the same couch. A token without `couch` is a phone with no couch (plain WebView): the game seats it with its TV's couch, or alone. |
 | Leaving | Home on one TV parks only that couch's frame (`ogs:suspend`); the game marks that couch away and keeps the turn order going for the others. `ogs:resume` brings it back in the same room. |
 
@@ -212,9 +221,14 @@ none of it keeps running. Product spec: [ogs-join.html](product-specs/ogs-join.h
 | Transfer link | planned | A game's own site (outside OGS only) may link "Play on TV with OGS" to `https://opengame.org/play/<appId>?room=<room>`, the same link as a friend invite (§7). It is hidden when `isOGSCastAvailable()` or `useOgsSession()` says the game is inside OGS. Without `room` it just starts the game. |
 
 The join QR itself is launcher-level: it encodes `https://opengame.org/join/<code>` (the couch session's
-TV code) and is never a game's job. Every couch phone follows the TV: when the current game changes,
-every joined phone opens that game's phone page; Home returns them to the remote. Several households in
-one room are §7.
+TV code) and is never a game's job. Several households in one room are §7.
+
+**Built (2026-10-06): every couch phone follows the TV** (§3). When the current game (its sitting) or
+its room changes, the couch session sends every online phone and kid's iPad a `follow`: the host
+`roleId: "host"`, every other one its roster role or `"player"`, with `room` once the TV named it; on
+Home or end, the launcher. A phone or iPad that comes online mid-game is sent into it. Nothing else
+re-sends it, so one that stepped out stays on the remote. Only the host's game page picks the TV page
+(`game.view`). App phones and iPads only; browser guests follow when the web join page exists.
 
 ## Acceptance
 

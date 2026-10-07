@@ -1,0 +1,120 @@
+{
+  "at": "2026-10-07T06:58:12.750Z",
+  "results": [
+    {
+      "name": "Dad cast the TV (its launcher is up)",
+      "ok": true,
+      "detail": "TV code SUFZ5Z"
+    },
+    {
+      "name": "Juneau's iPad joined the couch as a tablet",
+      "ok": true,
+      "detail": "pf-juneau-r8nq3"
+    },
+    {
+      "name": "Mom's phone joined the couch with the TV code",
+      "ok": true,
+      "detail": "8b6d067c-62b9-4c46-b0a1-77fd8f354594"
+    },
+    {
+      "name": "the TV hasn't named a room yet",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Juneau's iPad follows the game as a player (no roster), with no room yet: it waits like a phone",
+      "ok": true,
+      "detail": "{\"kind\":\"game\",\"appId\":\"rocket-crew\",\"instanceId\":\"rocket-crew-muxr9hij\",\"roleId\":\"player\"}"
+    },
+    {
+      "name": "Mom's phone waits on the remote until the TV names the room (no new, empty room)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the TV page named its room and the couch's sitting keeps it",
+      "ok": true,
+      "detail": "BEZE"
+    },
+    {
+      "name": "Mom's phone followed into the TV's room (its WebView is on /join/R)",
+      "ok": true,
+      "detail": "http://localhost:8847/join/BEZE?t=c286de40-656a-4e18-8663-fd1c1d64fc26"
+    },
+    {
+      "name": "Rocket Crew's room has two seats: Dad the Captain, Mom the Fixer (by OGS id)",
+      "ok": true,
+      "detail": "{\"names\":{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":null},\"seatIds\":{\"captain\":\"5aa62a26-28ac-4017-b146-4fd4759cd4b2\",\"fixer\":\"fde8c53b-b5ed-412f-a3c8-fa2a30af2f79\",\"lookout\":null}}"
+    },
+    {
+      "name": "Juneau's iPad followed into the TV's room as a player",
+      "ok": true,
+      "detail": "{\"kind\":\"game\",\"appId\":\"rocket-crew\",\"instanceId\":\"rocket-crew-muxr9hij\",\"roleId\":\"player\",\"room\":\"BEZE\"}"
+    },
+    {
+      "name": "Juneau's iPad page is in room R (no new room)",
+      "ok": true,
+      "detail": "http://localhost:8847/join/BEZE?t=ecde4829-bf8d-4e8e-a6da-a4d70ef10ae6"
+    },
+    {
+      "name": "Rocket Crew's room R has Juneau's iPad aboard (the Lookout, by OGS id); Mom is still the Fixer",
+      "ok": true,
+      "detail": "{\"names\":{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":\"Juneau\"},\"seatIds\":{\"captain\":\"5aa62a26-28ac-4017-b146-4fd4759cd4b2\",\"fixer\":\"fde8c53b-b5ed-412f-a3c8-fa2a30af2f79\",\"lookout\":\"94e8be4a-b9d7-4afa-8d1c-234a7cd2851d\"}}"
+    },
+    {
+      "name": "the iPad's game.view didn't change the TV page (only the host's page counts)",
+      "ok": true,
+      "detail": "http://localhost:8847/tv/BEZE?t=a6723046-cac1-47b3-864c-f93afc519c8b&stream=1 (iPad asked for http://localhost:8847/tv/BEZE?t=juneau-ipad)"
+    },
+    {
+      "name": "Mom stepping out leaves Rocket Crew playing on the TV",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Juneau's iPad was sent to the remote on Home and back into room R on Continue",
+      "ok": true,
+      "detail": "[{\"kind\":\"launcher\"},{\"kind\":\"game\",\"appId\":\"rocket-crew\",\"instanceId\":\"rocket-crew-muxr9hij\",\"roleId\":\"player\",\"room\":\"BEZE\"}]"
+    },
+    {
+      "name": "Continue resumed the same sitting in the same room",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mom's phone followed Continue back into room R",
+      "ok": true,
+      "detail": "http://localhost:8847/join/BEZE?t=c286de40-656a-4e18-8663-fd1c1d64fc26"
+    },
+    {
+      "name": "Mom still the Fixer after Continue (no new seat or room)",
+      "ok": true,
+      "detail": "{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":\"Juneau\"}"
+    },
+    {
+      "name": "Home brought Juneau's iPad back to the remote",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Home brought Mom's phone back to the remote",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "one cast all evening (no recast)",
+      "ok": true,
+      "detail": "casts 1"
+    },
+    {
+      "name": "Detox: Mom's phone test passed",
+      "ok": true,
+      "detail": "exit 0"
+    },
+    {
+      "name": "synced video saved",
+      "ok": false,
+      "detail": "Error: Command failed: node compose-2x2.mjs /private/tmp/claude-501/-Users-jonathanmumm-src-open-game-system/8b893b01-36f1-4705-88cb-961b0778fb8d/scratchpad/pft/out6/raw/tiles.json /private/tmp/claude-501/-Users-jonathanmumm-src-open-game-system/8b893b01-36f1-4705-88cb-961b0778fb8d/scratchpad/pft/out6/phones-follow.mp4"
+    }
+  ]
+}

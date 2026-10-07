@@ -1,4 +1,4 @@
-import type { ClientMessage, Manifest } from "@open-game-system/ogs-protocol";
+import type { ClientMessage, FollowTarget, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
@@ -19,6 +19,7 @@ import { createCastTrace } from "./cast-trace";
 import { streamServerUrl } from "./cast-view";
 import { type ClientLogContext, clientEventsSender, createClientLog, hashId } from "./client-log";
 import { appConfig, isLauncherView } from "./config";
+import { followStep } from "./couch-follow";
 import {
   type CouchSession,
   type CouchSnapshot,
@@ -243,6 +244,8 @@ function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
           pushGame(game, rejoinUrlFor(appId, instanceId) ?? start(game)),
         );
     },
+    // Every couch phone follows the TV: into the game it plays (its room), back on Home.
+    onFollowCouch: followTv,
   });
   couch.subscribe(notifyCouch);
   couch.start();
@@ -250,6 +253,29 @@ function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
 appState.subscribe(syncCouch);
 
 // --- Derived state + actions ----------------------------------------------------------------
+
+/** A game this app can open: one in the profile's library or the catalogue. */
+function findGame(appId: string): Manifest | undefined {
+  const { library, catalogue } = appState.getSnapshot();
+  return [...library, ...catalogue].find((g) => g.appId === appId);
+}
+
+/** The couch session moved this phone (not the game's host) with the TV. */
+function followTv(target: FollowTarget) {
+  const game = target.kind === "game" ? findGame(target.appId) : undefined;
+  const step = followStep(target, {
+    manifest: game,
+    openAppId: gamePresence.openApp(),
+    current: couchHub.getSnapshot().state?.current ?? null,
+    rejoinUrl: target.kind === "game" ? rejoinUrlFor(target.appId, target.instanceId) : undefined,
+  });
+  if (step.kind === "close") gamePresence.requestClose(step.appId);
+  if (step.kind !== "open" || !game || target.kind !== "game") return;
+  // A swap: leave the old game's screen (it remembers its page and pill) before opening the new.
+  const open = gamePresence.openApp();
+  if (step.replace && open) gamePresence.requestClose(open);
+  pushGame(game, step.url, target.instanceId);
+}
 
 export function ogsCastNow(): boolean {
   const cast = castStore.getSnapshot();
@@ -306,6 +332,7 @@ export function openGame(
   const resumeUrl =
     opts.resumeUrl ?? (isNew ? undefined : rejoinUrlFor(game.appId, opts.instanceId));
   const instanceId = isNew ? undefined : opts.instanceId;
+  const live = couchHub.getSnapshot().state?.current;
   const plan = launchPlan({
     manifest: game,
     ogsCast: ogsCastNow(),
@@ -313,6 +340,8 @@ export function openGame(
     mode: opts.mode,
     resumeUrl,
     instanceId,
+    // The game the TV is playing: join its room, never a new one (spec §7, §8).
+    liveRoom: live?.appId === game.appId ? live.room : undefined,
   });
   const sitting = sittingToOpen(game.appId, { instanceId, resumeUrl }, Date.now());
   switch (plan.kind) {

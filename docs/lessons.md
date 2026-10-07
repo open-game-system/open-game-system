@@ -183,6 +183,26 @@ Persistent project knowledge. Review at the start of each task.
 - **The Detox remote root (`tvRemote`) is not "visible" on an iPhone 17 Pro**: the tab bar covers
   more than Detox's 25% allowance. Wait on an element in it (`remoteTvName`).
 
+## Every couch phone follows the TV (2026-10-06)
+
+- **A follower must wait for the room**: the phone that starts a room-based game (no static `tvUrl`)
+  makes the room from its start page; the TV page reports it (`ogs:room` → `game.room`) only after the
+  launcher frames it. A second phone that opened the plain start page at `game.start` made its own,
+  empty room, and its own `game.start` was swallowed (`alreadyOn`). The couch session re-sends the
+  follow when the room is named; the app (`couch-follow.ts`) opens nothing until then, and tapping the
+  live game opens `startUrl?ogsRoom=<room>` (`launch-plan.ts` `liveRoom`). A game that never reports
+  its room gets no followers.
+- **A follower's swipe back must not send home**: every game screen sent `home` on leaving while cast,
+  so one kid stepping out parked the game for the whole couch. Leaving parks only for the game's host
+  (or when nobody hosts it); the TV going Home closes followers' screens without a `home`.
+- **Rosters are never sent**: no client fills `game.start`'s `roster`, so kids' iPads, which followed
+  only by roster seat, stayed on the remote when a game started. Tablets now follow like phones (seat
+  when there is one, else `"player"`); never key a device's behaviour on data no client sends.
+- **A follower's page asks for its TV view too**: a phone or iPad that follows into a room game runs
+  the same phone page, whose `useCastViewUrl` the app forwards as `game.view`, and the launcher would
+  reframe the TV with the follower's page. The DO stamps `game.view` with the sender and the reducer
+  takes it only from the sitting's host (any device when nobody hosts).
+
 ## Observability (2026-10-05)
 
 - **Hono logs unhandled errors itself**: without `app.onError`, Hono answers a plain-text 500 and calls `console.error(err)`, a second, unstructured error line next to the wide event. `app.onError` answers the error contract and the `wideEvent` middleware reads `c.error` (Hono sets it before `onError` runs), so each failure is one line.

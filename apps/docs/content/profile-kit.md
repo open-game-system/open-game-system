@@ -61,8 +61,9 @@ fails `InstanceReportSchema`.
 function reportOgsRoom(room: string): "launcher" | "none"
 ```
 
-`multiCouch` games: the TV page says which room it shows (`ogs:room`). Throws if `room` is not a
-valid room id (`[A-Za-z0-9_-]{1,64}`). `"none"` when not framed.
+Room-based games: the TV page says which room it shows (`ogs:room`), so the couch's other phones
+follow into that room (and, for `multiCouch` games, other couches can join it). Throws if `room` is not
+a valid room id (`[A-Za-z0-9_-]{1,64}`). `"none"` when not framed.
 
 #### `ogsRoomFromUrl`
 
@@ -70,9 +71,10 @@ valid room id (`[A-Za-z0-9_-]{1,64}`). `"none"` when not framed.
 function ogsRoomFromUrl(url: string): string | null
 ```
 
-`multiCouch` games, phone page: the room in the `ogsRoom` query parameter the app adds when this
-couch joins another couch's room. `null` when there is none or it is not a valid room id. Use
-`ogsRoomFromUrl(location.href)`.
+Phone page of a room-based game: the room in the `ogsRoom` query parameter the app adds when this
+phone joins a room it didn't make (a second phone of the couch following the TV, or a couch joining
+another couch's room). Join it instead of making one. `null` when there is none or it is not a valid
+room id. Use `ogsRoomFromUrl(location.href)`.
 
 #### `readGameToken`
 
