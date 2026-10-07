@@ -47,6 +47,16 @@ iPhone needs registering).
   a production cast works.
 - **Native crash reporting**: proposal is MetricKit (docs/agents/observability.md); nothing added.
 
-## e2e chunk C (app / launcher / API flows)
+## e2e sweep: all three chunks done
 
-_Filled in below when it finishes._
+- **A** (receiver + stream control) and **B** (local full pipe) merged earlier; see docs/testing/e2e.md.
+- **C** (app / launcher / API): every flow has a passing test: sign in with an existing account,
+  onboarding Back on every step, Rejoin pill only on TV/Friends/Profile, Start game is the filled
+  button, Play → cast prompt → cast, the TV says "Paused" once, the theme plays only on Home.
+- **Full Detox run** on one Release build: every file green (smoke, home-screen, app-lifecycle,
+  settings, onboarding 11/11, continue-lifecycle, game-screen, play-cta 5/5, friends, tv-switch,
+  one-sitting, phones-follow 23/23, games-know-you, multi-couch, onboarding-back, start-game-filled).
+  Two tests were out of date after tonight's changes and were updated with the reason in the commit
+  (games-know-you: sittings now file under the couch's id; multi-couch: phones now follow the TV).
+  Simulator screen recording failed to save on the multi-couch and iPad runs (functional checks passed).
+- Repo gates: typecheck 36/36, lint, test 47/47.
