@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fetchLauncherData, libraryGames, stickerUrl } from "./data";
+import { fetchLauncherData, libraryGames, liveSession, stickerUrl } from "./data";
 import { FIXTURE_GAMES, FIXTURE_SESSION, fixtureInstances } from "./fixture";
 
 function fakeFetch(routes: Record<string, unknown>) {
@@ -84,6 +84,20 @@ describe("launcher data", () => {
   it("maps sticker ids to the painted set and passes URLs through", () => {
     expect(stickerUrl("owl")).toBe("/art/story-nook/char-owl.webp");
     expect(stickerUrl("https://x/y.webp")).toBe("https://x/y.webp");
+  });
+});
+
+describe("the TV's name in the header", () => {
+  // Owner, 2026-10-06: after Change TV the new TV's header still named the old TV.
+  it("is the session's created name until the cast moves", () => {
+    expect(liveSession(FIXTURE_SESSION, {})).toEqual(FIXTURE_SESSION);
+  });
+
+  it("is the TV the cast moved to (the session state's tvName)", () => {
+    expect(liveSession(FIXTURE_SESSION, { tvName: "Bedroom TV" })).toEqual({
+      ...FIXTURE_SESSION,
+      tvName: "Bedroom TV",
+    });
   });
 });
 

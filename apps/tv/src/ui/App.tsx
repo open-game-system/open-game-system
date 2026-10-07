@@ -16,7 +16,7 @@ import { nameForDevice, phoneOf, playersOf } from "../launcher/people";
 import { pageMove } from "../launcher/shortcuts";
 import { waitingForView } from "../launcher/starting";
 import type { Connection, SessionClient } from "../session/client";
-import type { LauncherData } from "../session/data";
+import { type LauncherData, liveSession } from "../session/data";
 import { Assembling } from "./Assembling";
 import { GamePage } from "./GamePage";
 import { Home } from "./Home";
@@ -194,7 +194,7 @@ function Living(props: {
       <Home
         home={home}
         focus={state.focus}
-        session={data.session}
+        session={liveSession(data.session, state)}
         members={state.members}
         playersOf={playersFor}
         remoteHolder={remoteHolder}
