@@ -159,7 +159,20 @@ Persistent project knowledge. Review at the start of each task.
   of that game (`reportSittingFor`), and under the game's id only when playing on the phone alone.
 - **Detox on iOS can't match a RegExp id**: `by.id(/^gameSitting-/)` reaches the app as the literal string
   and finds nothing (`by.text` inside a Pressable with an `accessibilityLabel` finds nothing either). Check
-  ids by name.
+  ids by name. `games-know-you.test.ts` waited on such a RegExp (and on `rocket-crew:<room>`, which since
+  one-start-one-sitting is the couch's id) until 2026-10-07: read the id from the API first
+  (`castSittings` in `e2e/helpers.ts`), and match a Pressable by its `by.label`.
+- **Changing where phones go breaks Detox files that are only run by a driver script**: phones-follow
+  (2026-10-06) opens the game on every couch phone, so `multi-couch.test.ts`'s Mumm phone was in Night
+  Flight with no tabs when it tapped Playing. After a change to the couch session's follow, run
+  `e2e/multi-couch.mjs` and `e2e/phones-follow.mjs` too (docs/testing/e2e.md, "The whole Detox suite").
+- **A button's look in Detox: read the pixels**: Detox exposes no colours. `element.takeScreenshot()`
+  gives the element's PNG; the share of fill-colour pixels (pngjs) tells filled (Start game ~ most of it
+  lamp) from outlined (none). On the web, `innerText` counts text under an opaque overlay (the TV's game
+  page over Home's spotlight): count what is on screen with `elementFromPoint` at each text's middle.
+- **A fresh worktree runs nothing until the packages are built**: `wrangler dev` (API) and `vite build`
+  (launcher) resolve `@open-game-system/*` to `dist/`; run `pnpm exec turbo run build --filter="./packages/*"`
+  after `pnpm install`.
 - **Story Nook's start page makes a room it never uses**: in the app `/` redirects to `/tv/<new code>`
   (spawning that room) before the page sends itself to `/host`, which makes the real one. Invisible to OGS
   (that room never reports), but every start leaves an empty room behind.

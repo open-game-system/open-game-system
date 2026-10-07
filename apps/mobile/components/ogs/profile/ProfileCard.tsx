@@ -7,7 +7,7 @@ import type { ProfileCardView } from "./profile-view";
 export function ProfileCard({ me, onEdit }: { me: ProfileCardView | null; onEdit: () => void }) {
   return (
     <View style={styles.card} testID="profileCard">
-      <View style={styles.halo}>
+      <View style={styles.halo} testID={`profileCardSticker-${me?.sticker ?? "bear"}`}>
         <Sticker id={me?.sticker ?? "bear"} size={112} />
       </View>
       {me ? (

@@ -175,6 +175,19 @@ Feature: OGS App Onboarding
     When the user taps "Back"
     Then onboarding page 2 is displayed
 
+  Scenario: Back from the notifications page returns to the welcome
+    Given notification permission has not been asked yet
+    And the user tapped "Make my profile" and sees "Stay in the game"
+    When the user taps "Back"
+    Then the welcome is displayed, with no "Back"
+
+  Scenario: The sign-in sheet opened from onboarding has its own ways back
+    Given the user tapped "I already have a profile" and asked for a code
+    When the user taps "Use another email"
+    Then the email field is displayed again
+    When the user taps "Not now"
+    Then the welcome is displayed (still in onboarding)
+
   Scenario: No Back on the done page
     Given the profile was just made
     Then no "Back" is displayed (one profile per device: there is no making it again)

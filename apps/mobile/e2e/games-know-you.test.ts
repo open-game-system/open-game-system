@@ -1,12 +1,12 @@
 import { by, element, expect, waitFor } from "detox";
-import { freshLaunchWithOnboardingDone } from "./helpers";
+import { castSittings, freshLaunchWithOnboardingDone, until } from "./helpers";
 
 // Slice 3 (games know who you are). Needs the local stack from e2e/tests/games-know-you.e2e.ts:
 // a Release build with EXPO_PUBLIC_OGS_API pointing at an API copy whose CATALOGUE_START_URLS
 // opens Rocket Crew from its local dev server (which verifies tokens with that API's JWKS).
 // In the app the game gets the profile from the `profile` bridge store, joins without its name
 // form, and reports its sitting over the `ogs` store: the game's page lists that sitting under
-// the game's own id and label ("Room KQTP" / "Mission 6"), not as a bare visit.
+// its label ("Room KQTP" / "Mission 6"), not as a bare visit.
 describe("Games know who you are", () => {
   beforeAll(async () => {
     await freshLaunchWithOnboardingDone();
@@ -40,9 +40,21 @@ describe("Games know who you are", () => {
     await waitFor(element(by.id("gamePage")))
       .toExist()
       .withTimeout(5000);
-    await waitFor(element(by.id(/^gameSitting-rocket-crew:[A-Z]{4}$/)))
+    // While cast, the game's report labels the couch's sitting (one start is one sitting,
+    // ff994e63), so its id is the couch's, not `rocket-crew:<room>`. Detox on iOS matches ids and
+    // text by name only (a RegExp reaches the app as a literal string): read the sitting from the
+    // API, then find it on the page by its id and the game's own label.
+    const label = /^(Room [A-Z]{4}|Mission \d+)$/;
+    const reported = await until(
+      () => castSittings("rocket-crew"),
+      (list) => list.some((i) => label.test(i.title)),
+      20000,
+    );
+    const sitting = reported.find((i) => label.test(i.title));
+    if (!sitting) throw new Error(`no labelled Rocket Crew sitting: ${JSON.stringify(reported)}`);
+    await waitFor(element(by.id(`gameSitting-${sitting.instanceId}`)))
       .toExist()
       .withTimeout(10000);
-    await expect(element(by.text(/^(Room [A-Z]{4}|Mission \d+)$/)).atIndex(0)).toExist();
+    await expect(element(by.text(sitting.title)).atIndex(0)).toExist();
   });
 });

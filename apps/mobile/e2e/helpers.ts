@@ -45,6 +45,72 @@ export async function emailCode(email: string, since: number): Promise<string> {
   throw new Error(`no sign-in code reached ${email}`);
 }
 
+/** The fake Chromecasts (one per TV a FAKE_CAST=2 build finds); a cast goes to one of them. */
+const CASTS = [
+  process.env.FAKE_CAST ?? "http://localhost:5181",
+  process.env.FAKE_CAST_2 ?? "http://localhost:5182",
+];
+
+async function getJson(url: string, token?: string): Promise<unknown> {
+  const res = await fetch(url, token ? { headers: { authorization: `Bearer ${token}` } } : {});
+  if (!res.ok) throw new Error(`${url} → ${res.status}`);
+  return res.json();
+}
+
+/**
+ * The host's sittings of one game, from the API (E2E_OGS_API), read with the launcher token of the
+ * TV cast last (it acts for its host; the other fake TV may still show an earlier run's profile).
+ * Detox on iOS matches ids by name only, so tests find a sitting's id here first.
+ */
+export async function castSittings(
+  appId: string,
+): Promise<{ instanceId: string; title: string }[]> {
+  let token: string | null = null;
+  let latest = 0;
+  for (const cast of CASTS) {
+    const s = await getJson(`${cast}/status`).catch(() => null);
+    if (typeof s !== "object" || s === null || !("viewUrl" in s) || !("startedAt" in s)) continue;
+    const { viewUrl, startedAt } = s;
+    if (typeof viewUrl !== "string" || typeof startedAt !== "number" || startedAt <= latest)
+      continue;
+    latest = startedAt;
+    token = new URL(viewUrl).searchParams.get("token");
+  }
+  if (!token) throw new Error("no fake Chromecast has a launcher token");
+  const all = await getJson(
+    new URL("/api/v1/me/instances", process.env.E2E_OGS_API ?? "http://localhost:8788").href,
+    token,
+  );
+  if (!Array.isArray(all)) throw new Error("instances: not a list");
+  return all.flatMap((i: unknown) =>
+    typeof i === "object" &&
+    i !== null &&
+    "appId" in i &&
+    i.appId === appId &&
+    "instanceId" in i &&
+    typeof i.instanceId === "string" &&
+    "title" in i &&
+    typeof i.title === "string"
+      ? [{ instanceId: i.instanceId, title: i.title }]
+      : [],
+  );
+}
+
+/** Poll `read` until `ok` or `ms` pass; returns the last read. */
+export async function until<T>(
+  read: () => Promise<T>,
+  ok: (v: T) => boolean,
+  ms: number,
+): Promise<T> {
+  const end = Date.now() + ms;
+  let last = await read();
+  while (!ok(last) && Date.now() < end) {
+    await new Promise((r) => setTimeout(r, 500));
+    last = await read();
+  }
+  return last;
+}
+
 /** Type into a field and close the keyboard with its return key. */
 async function typeAndReturn(id: string, text: string): Promise<void> {
   await element(by.id(id)).typeText(text);

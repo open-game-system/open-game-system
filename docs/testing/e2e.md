@@ -31,7 +31,13 @@ and a laptop page; every other request is aborted and must stay empty (`rx.block
 | Suite | Command | Needs |
 |-------|---------|-------|
 | TV launcher (Vitest + Playwright), incl. idle (`__ogsActivityAt` on a virtual clock) | `pnpm --filter @open-game-system/tv test:e2e` | builds/serves itself (`apps/tv/e2e/global-setup.ts`) |
-| Mobile app (Detox) | `pnpm --filter @open-game-system/mobile e2e` (`e2e:build`, `e2e:test`) | `DETOX_IOS_BINARY`, `DETOX_SIM_NAME`, `E2E_OGS_API`, `FAKE_CAST` |
+| Mobile app (Detox) | `pnpm --filter @open-game-system/mobile e2e` (`e2e:build`, `e2e:test`) | `DETOX_IOS_BINARY`, `DETOX_SIM_NAME`, `E2E_OGS_API`, `FAKE_CAST`, `FAKE_CAST_2`; one stack runs every file: "The whole Detox suite on one stack" below |
+| Sign in with an existing account from onboarding lands on that profile: same @id, name and sticker (`profileCardSticker-<id>`), and a relaunch skips onboarding (Detox `e2e/onboarding.test.ts`, "Sign in on a new phone restores the profile"; the code comes from the API's Local Explorer) | `pnpm --filter @open-game-system/mobile e2e:test -- e2e/onboarding.test.ts` | the API the build points at |
+| Onboarding Back on every step, notifications undecided: welcome ⇄ notifications ⇄ profile (typed name kept), Skip → profile → Back → notifications; the sign-in sheet's Use another email (code → address) and Not now (→ the welcome) (Detox `e2e/onboarding-back.test.ts`) | `pnpm --filter @open-game-system/mobile e2e:test -- e2e/onboarding-back.test.ts` | the API the build points at |
+| The game page's one filled button: Play with nothing to rejoin, Start game beside a sitting (whose Rejoin is outlined); the Library hero's Play over the art. Read from the pixels (`takeScreenshot`, share of lamp #ffc861) (Detox `e2e/start-game-filled.test.ts`) | `pnpm --filter @open-game-system/mobile e2e:test -- e2e/start-game-filled.test.ts` | API, launcher, fake Chromecast(s) (`FAKE_CAST`, `FAKE_CAST_2`) |
+| Rejoin pill only on TV, Friends and Profile (not Playing or Library) (Detox `e2e/game-screen.test.ts`, `e2e/continue-lifecycle.test.ts`) | `pnpm --filter @open-game-system/mobile e2e:test -- e2e/game-screen.test.ts` | API, launcher, fake Chromecast |
+| Play → cast prompt → Cast (Detox `e2e/play-cta.test.ts`) | `pnpm --filter @open-game-system/mobile e2e:test -- e2e/play-cta.test.ts` | API, launcher, fake Chromecasts (`EXPO_PUBLIC_FAKE_CAST=2`) |
+| The TV says "Paused" once: with the paused game's icon focused, its card focused, and on its page (counted on screen: rendered text whose middle isn't covered; the game page is opaque over Home's spotlight) (`apps/tv/e2e/launcher.e2e.ts`); the launcher's theme plays only on Home (`apps/tv/e2e/theme.e2e.ts`) | `pnpm --filter @open-game-system/tv test:e2e` | builds/serves itself |
 | One start is one sitting (Story Nook: Play → Cast; the game's page lists one sitting, the API one instance under the couch's id) | `e2e/one-sitting.test.ts` (Detox, in apps/mobile) | the build against a local API with `CATALOGUE_START_URLS={"story-nook":"http://localhost:8821/"}`, Story Nook `pnpm dev` on 8821 (lobby only, no narration), launcher, `node fake-chromecast.mjs --port <p>` (`EXPO_PUBLIC_FAKE_CAST=2`) |
 | Fake Chromecast (for Detox/iOS runs) | `cd e2e && node fake-chromecast.mjs [--port 5181]` | Playwright Chromium |
 | Switching TVs: 10 alternating switches, then a change of mind mid-switch (tap Bedroom, reopen "Cast to" while it switches, tap Living room: ends on Living room); after each, the hero says "Switching to <TV>…" then names the TV, and the TV's launcher header (fake Chromecast `/launcher` `roomName`) names it too (Detox `e2e/tv-switch.test.ts`) | `pnpm --filter @open-game-system/mobile e2e:test -- e2e/tv-switch.test.ts` | API, launcher, two fake Chromecasts (5181, 5182); a build with `EXPO_PUBLIC_FAKE_CAST=2`, `EXPO_PUBLIC_FAKE_CAST_URL=http://localhost:5181/load`, `EXPO_PUBLIC_FAKE_CAST_URL_2=http://localhost:5182/load`, `EXPO_PUBLIC_FAKE_CAST_END_MS=3000` (long enough to reopen the sheet mid-switch; the fake's `/stop` closes a recording browser context, which takes seconds too, and the app waits at most 8 s for an end); `FAKE_CAST` / `FAKE_CAST_2` if not on those ports; `E2E_OGS_API` |
@@ -146,3 +152,44 @@ to `docs/exec-plans/active/evidence/2026-10-06-phones-follow/` (`raw/` is not co
 has no `apps/mobile/ios` (prebuild output, gitignored): copy one, including `ios/build/generated`
 (the React Native codegen), or `xcodebuild` fails with "Build input file cannot be found".
 
+
+## The whole Detox suite on one stack
+
+One build and one set of local servers run every file in `apps/mobile/e2e`, the two driver scripts
+included (2026-10-07: all pass this way). Ports of your own, so the shared 8788/5180/5181 stay
+untouched:
+
+```bash
+SP=<scratch dir>
+# A fresh worktree: build the workspace packages first (wrangler and vite resolve their dist),
+# copy apps/mobile/ios from the main checkout (with ios/build/generated) and services/api/.dev.vars.
+pnpm install && pnpm exec turbo run build --filter="./packages/*"
+# API (8868): every game's start page local, so game tokens verify against this API
+cd services/api && pnpm exec wrangler d1 execute opengame-api-db --local --persist-to $SP/api --file=schema.sql
+pnpm exec wrangler dev --port 8868 --persist-to $SP/api --var AVATAR_BASE_URL:http://localhost:5300 \
+  --var 'CATALOGUE_START_URLS:{"rocket-crew":"http://localhost:8857/","story-nook":"http://localhost:8871/","night-flight":"http://localhost:8877/"}'
+# Games, each verifying tokens with that API. Story Nook and Night Flight without the paid keys
+# (Story Nook's wrangler.toml takes ELEVENLABS_API_KEY / FAL_KEY from the environment):
+cd ~/src/rocket-crew && pnpm exec wrangler dev --port 8857 --persist-to $SP/rc --var OGS_JWKS_URL:http://localhost:8868/.well-known/jwks.json
+cd ~/src/story-nook && env -u ELEVENLABS_API_KEY -u FAL_KEY pnpm exec wrangler dev --port 8871 --persist-to $SP/sn
+cd ~/src/night-flight-owls && env -u ELEVENLABS_API_KEY -u FAL_KEY pnpm exec wrangler dev --port 8877 --persist-to $SP/nf --var OGS_JWKS_URL:http://localhost:8868/.well-known/jwks.json
+# Launcher (5300) and two fake Chromecasts (5301, 5302)
+pnpm --filter @open-game-system/tv build && (cd apps/tv && pnpm exec vite preview --port 5300 --strictPort)
+cd e2e && node fake-chromecast.mjs --port 5301 --evidence $SP/ev1   # and --port 5302 --evidence $SP/ev2
+# One build for every file
+cd apps/mobile && EXTRA_PACKAGER_ARGS=--reset-cache EXPO_PUBLIC_OGS_API=http://localhost:8868 \
+  EXPO_PUBLIC_OGS_TV=http://localhost:5300 EXPO_PUBLIC_FAKE_CAST=2 \
+  EXPO_PUBLIC_FAKE_CAST_URL=http://localhost:5301/load EXPO_PUBLIC_FAKE_CAST_URL_2=http://localhost:5302/load \
+  EXPO_PUBLIC_FAKE_CAST_END_MS=3000 xcodebuild -workspace ios/opengameapp.xcworkspace -scheme opengameapp \
+  -configuration Release -sdk iphonesimulator -derivedDataPath $SP/dd -quiet
+# Each file (a simulator of your own: xcrun simctl create "OGS <you>" ...)
+export DETOX_IOS_BINARY=$SP/dd/Build/Products/Release-iphonesimulator/opengameapp.app DETOX_SIM_NAME="OGS <you>" \
+  E2E_OGS_API=http://localhost:8868 FAKE_CAST=http://localhost:5301 FAKE_CAST_2=http://localhost:5302
+pnpm exec detox test --configuration ios.sim.release e2e/<file>.test.ts
+# The driver scripts reuse the stack (multi-couch is the fake Chromecast itself: stop the one on 5301)
+cd e2e && OGS_API=http://localhost:8868 OGS_TV=http://localhost:5300 GAME=http://localhost:8857 PF_OUT=$SP/pf node phones-follow.mjs
+cd e2e && OGS_API=http://localhost:8868 OGS_TV=http://localhost:5300 GAME=http://localhost:8877 MC_PORT=5301 MC_OUT=$SP/mc node multi-couch.mjs
+```
+
+Tests that need a sitting's id read it from the API with the launcher token of the TV cast last
+(`castSittings` in `apps/mobile/e2e/helpers.ts`): Detox on iOS matches ids and text by name only.
