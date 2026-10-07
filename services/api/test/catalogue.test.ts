@@ -17,7 +17,14 @@ const GAMES = [
   "little-vigilante",
 ];
 /** Games with a theme loop cut from their own music (2026-10-04); the rest are silent on Home. */
-const THEMED = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight", "little-vigilante"];
+const THEMED = [
+  "rocket-crew",
+  "bake-shop",
+  "story-nook",
+  "peekaboo-garden",
+  "night-flight",
+  "little-vigilante",
+];
 
 describe("catalogue", () => {
   it("lists the seven deployed games in order", () => {
