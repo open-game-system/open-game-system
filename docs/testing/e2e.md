@@ -38,6 +38,7 @@ and a laptop page; every other request is aborted and must stay empty (`rx.block
 | Switching TVs, seam (no simulator): the cast flow + sync against two fake Chromecasts with Cast's real end timing | `cd apps/mobile && pnpm exec jest services/__tests__/cast-switch.seam.test.ts` (part of `pnpm test`) | nothing |
 | Couch flow across devices | `cd e2e && node couch-flow.mjs` | API (8788), launcher (5180), fake Chromecast (5181), fixture game (5190) |
 | Several households, one room (multiCouch): three couches, three recorded launchers, Night Flight; the Mumm phone in the simulator under Detox taps Invite; a Smith card moves every TV; Home/Continue on one TV; synced 2×2 video | `cd e2e && node multi-couch.mjs` (`MUMM_PHONE=scripted` without the simulator) | below |
+| Every couch phone follows the TV (Rocket Crew, real room): Dad's scripted phone starts it, Mom's phone (iOS app, Detox) joins with the TV code, waits while the TV hasn't named the room, follows into `/join/<R>` (Rocket Crew's room then has Captain Dad + Fixer Mom by OGS id), steps out without parking the TV, follows Home + Continue back into the same seat, Home returns it to the remote; synced phone+TV video | `cd e2e && node phones-follow.mjs` | below |
 | 4. API stream routes against a mock renderer, Realtime and TURN (start, publisher answer forwarding, subscribe/answer, heartbeat 410/502, ice-servers fallback, readiness, error contract) | `cd services/api && pnpm exec vitest run test/stream-sfu.test.ts test/stream-routes.test.ts test/stream-ready.test.ts test/stream-ready-check.test.ts` (part of `pnpm test`) | nothing (fetch stubbed) |
 | 5. Post-deploy stream readiness | `pnpm --filter @open-game-system/api stream:ready <apiBase>` (below) | network, `gcloud` (optional) |
 | API integration (workerd) | `pnpm --filter @open-game-system/api test:integration` | emulators started by its global setup |
@@ -113,3 +114,35 @@ The script spawns `detox test e2e/multi-couch.test.ts` (apps/mobile) and talks t
 `/step/<name>` and `/wait/<name>` on 5281; it records the three TV contexts (Playwright `recordVideo`)
 and the simulator (`simctl io recordVideo`), and writes `multi-couch-2x2.mp4`, screenshots and
 `results.json` to `docs/exec-plans/active/evidence/2026-10-05-multi-couch/`.
+
+## Every couch phone follows the TV (`e2e/phones-follow.mjs`)
+
+Local only, on its own ports (API 8848, Rocket Crew 8847, launcher 5290, step server 5291):
+
+```bash
+SP=<scratch dir>
+# API (8848): needs services/api/.dev.vars (OGS_JWT_SECRET, OGS_GAME_SIGNING_KEY), else every token is a 500
+cd services/api && pnpm exec wrangler d1 execute opengame-api-db --local --persist-to $SP/api --file=schema.sql
+pnpm exec wrangler dev --port 8848 --persist-to $SP/api \
+  --var 'CATALOGUE_START_URLS:{"rocket-crew":"http://localhost:8847/"}' --var AVATAR_BASE_URL:http://localhost:5290
+# Rocket Crew (8847), verifying game tokens with that API (needs its commits 861b22a + 4f0d1a8: ogsRoom, ogs:room)
+cd ~/src/rocket-crew && pnpm exec wrangler dev --port 8847 --persist-to $SP/rc \
+  --var OGS_JWKS_URL:http://localhost:8848/.well-known/jwks.json
+# Launcher (5290)
+pnpm --filter @open-game-system/tv build && (cd apps/tv && pnpm exec vite preview --port 5290 --strictPort)
+# The app (Release, simulator) pointed at the API; Mom never casts
+cd apps/mobile && EXTRA_PACKAGER_ARGS=--reset-cache EXPO_PUBLIC_OGS_API=http://localhost:8848 \
+  EXPO_PUBLIC_OGS_TV=http://localhost:5290 EXPO_PUBLIC_FAKE_CAST=1 \
+  xcodebuild -workspace ios/opengameapp.xcworkspace -scheme opengameapp -configuration Release \
+  -sdk iphonesimulator -derivedDataPath $SP/dd -quiet
+# Run (a simulator of your own)
+cd e2e && DETOX_IOS_BINARY=$SP/dd/Build/Products/Release-iphonesimulator/opengameapp.app \
+  DETOX_SIM_NAME="OGS Phones-follow e2e" node phones-follow.mjs
+```
+
+It spawns `detox test e2e/phones-follow.test.ts` (apps/mobile), which reads its WebView's URL with
+Detox's `web` API, and writes `results.json`, three TV screenshots and `phones-follow.mp4` (phone + TV)
+to `docs/exec-plans/active/evidence/2026-10-06-phones-follow/` (`raw/` is not committed). A worktree
+has no `apps/mobile/ios` (prebuild output, gitignored): copy one, including `ios/build/generated`
+(the React Native codegen), or `xcodebuild` fails with "Build input file cannot be found".
+

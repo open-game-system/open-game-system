@@ -1,0 +1,80 @@
+{
+  "at": "2026-10-07T06:35:20.399Z",
+  "results": [
+    {
+      "name": "Dad cast the TV (its launcher is up)",
+      "ok": true,
+      "detail": "TV code DYMA5K"
+    },
+    {
+      "name": "Mom's phone joined the couch with the TV code",
+      "ok": true,
+      "detail": "8be22b83-3626-4104-80a3-ad5750286be4"
+    },
+    {
+      "name": "the TV hasn't named a room yet",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mom's phone waits on the remote until the TV names the room (no new, empty room)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the TV page named its room and the couch's sitting keeps it",
+      "ok": true,
+      "detail": "XKMR"
+    },
+    {
+      "name": "Mom's phone followed into the TV's room (its WebView is on /join/R)",
+      "ok": true,
+      "detail": "http://localhost:8847/join/XKMR?t=6f0a7e59-5cbc-4abe-9d31-4763dfdcbb68"
+    },
+    {
+      "name": "Rocket Crew's room has two seats: Dad the Captain, Mom the Fixer (by OGS id)",
+      "ok": true,
+      "detail": "{\"names\":{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":null},\"seatIds\":{\"captain\":\"8e84bda5-6bde-4d19-a240-b40121493141\",\"fixer\":\"083343a2-1abc-4a71-88d1-a66843348e0b\",\"lookout\":null}}"
+    },
+    {
+      "name": "Mom stepping out leaves Rocket Crew playing on the TV",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Continue resumed the same sitting in the same room",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Mom's phone followed Continue back into room R",
+      "ok": true,
+      "detail": "http://localhost:8847/join/XKMR?t=6f0a7e59-5cbc-4abe-9d31-4763dfdcbb68"
+    },
+    {
+      "name": "still two seats, Mom still the Fixer (no new seat or room)",
+      "ok": true,
+      "detail": "{\"captain\":\"Dad\",\"fixer\":\"Mom\",\"lookout\":null}"
+    },
+    {
+      "name": "Home brought Mom's phone back to the remote",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "one cast all evening (no recast)",
+      "ok": true,
+      "detail": "casts 1"
+    },
+    {
+      "name": "Detox: Mom's phone test passed",
+      "ok": true,
+      "detail": "exit 0"
+    },
+    {
+      "name": "synced video saved",
+      "ok": true,
+      "detail": "composed after the run (label quoting fixed)"
+    }
+  ]
+}
