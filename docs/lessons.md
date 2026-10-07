@@ -164,6 +164,21 @@ Persistent project knowledge. Review at the start of each task.
   (spawning that room) before the page sends itself to `/host`, which makes the real one. Invisible to OGS
   (that room never reports), but every start leaves an empty room behind.
 
+## Every couch phone follows the TV (2026-10-06)
+
+- **A follower must wait for the room**: the phone that starts a room-based game (no static `tvUrl`)
+  makes the room from its start page; the TV page reports it (`ogs:room` → `game.room`) only after the
+  launcher frames it. A second phone that opened the plain start page at `game.start` made its own,
+  empty room, and its own `game.start` was swallowed (`alreadyOn`). The couch session re-sends the
+  follow when the room is named; the app (`couch-follow.ts`) opens nothing until then, and tapping the
+  live game opens `startUrl?ogsRoom=<room>` (`launch-plan.ts` `liveRoom`). A game that never reports
+  its room gets no followers.
+- **A follower's swipe back must not send home**: every game screen sent `home` on leaving while cast,
+  so one kid stepping out parked the game for the whole couch. Leaving parks only for the game's host
+  (or when nobody hosts it); the TV going Home closes followers' screens without a `home`.
+- **Rosters are never sent**: no client fills `game.start`'s `roster`, so kids' iPads (tablets follow by
+  roster seat) still stay on the remote. Phones follow as `"player"`.
+
 ## Observability (2026-10-05)
 
 - **Hono logs unhandled errors itself**: without `app.onError`, Hono answers a plain-text 500 and calls `console.error(err)`, a second, unstructured error line next to the wide event. `app.onError` answers the error contract and the `wideEvent` middleware reads `c.error` (Hono sets it before `onError` runs), so each failure is one line.

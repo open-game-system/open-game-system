@@ -224,10 +224,18 @@ reloads, a phone that joins later) and friends' presence say it too. Until a ren
 absent and clients show the name the session was created with. Only the caster's phone may send it
 (else `host_only`).
 
+**Every couch phone follows the TV** (spec §3, §8): after every message the reducer's `followAll`
+sends `follow` frames. The host phone gets `roleId: "host"` for a new sitting; every other online
+phone gets the current game (its roster role, else `"player"`, with `room` once named) when the
+sitting or its room changes or it comes online mid-game, and `{ kind: "launcher" }` on Home/end.
+Tablets keep their roster rule. In the app, `couch-session.ts` hands non-host follows to
+`couch-follow.ts` `followStep` (open `startUrl?ogsRoom=<room>`, wait for the room of a game with no
+static `tvUrl`, close the game screen on Home).
+
 **Several couches, one room** (spec §7, [ADR](adrs/2026-10-05-couches-join-the-games-room.md)): each
 couch keeps its own CouchSession. `game.start` may name the game's `room` (opens or resumes this
 couch's sitting in it; one paused sitting per game and room), the launcher forwards the TV page's
-`ogs:room` as `game.room`, and `current.room` / `suspended[].room` / host follows carry it. After every
+`ogs:room` as `game.room`, and `current.room` / `suspended[].room` / follows carry it. After every
 message the DO writes `session_rooms` when the live room changes (`roomChange` in `lib/presence.ts`),
 which presence (`casting`/`playing` gain `room`) and `GET /friends/rooms` read.
 

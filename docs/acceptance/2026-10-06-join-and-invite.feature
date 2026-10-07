@@ -1,4 +1,7 @@
-# Status: PLANNED. Nothing in this file is implemented yet.
+# Status: PLANNED, except "Every phone follows the TV" (built 2026-10-06 for app phones: couch session
+# reducer packages/ogs-protocol/src/session.ts, app apps/mobile/services/couch-follow.ts; tests in
+# session.rules.test.ts "every phone follows the TV", couch-follow.test.ts, the API integration
+# couch.test.ts, and e2e/phones-follow.mjs). Browser guests (Grandma) follow once the web join page exists.
 # Spec: docs/product-specs/ogs-join.html. Contract: docs/specification.md §8. ADR: docs/adrs/2026-10-06-launcher-owns-joining.md.
 # Design canvas: https://claude.ai/artifact/5CoghVnLznn5pSdENvazJM (TV-Home-QR, Phone-Web-Join, Phone-Joined,
 # TV-Game-Invite, Game-Lobby-Transfer). Several households in one room: 2026-10-05-multi-couch.feature.
@@ -68,7 +71,7 @@ Feature: Joining and inviting is the launcher's job
     And when the app joins the same couch the guest entry is replaced by her profile
     And she is on the couch once
 
-  # --- Every phone follows the TV ---
+  # --- Every phone follows the TV (built for app phones) ---
 
   Scenario: On Home every phone is a remote
     Given Sam (app) and Grandma (browser) are on the couch
@@ -97,6 +100,42 @@ Feature: Joining and inviting is the launcher's job
     Given Sam went back to the remote while Rocket Crew runs
     When the TV's state changes but the current game does not
     Then Sam's phone stays on the remote
+
+  Scenario: Stepping out does not park the game for everyone
+    Given Dad started Rocket Crew and Sam's phone followed it
+    When Sam swipes back to the remote
+    Then Rocket Crew keeps playing on the TV and Dad's phone stays in it
+    When Dad swipes back
+    Then Rocket Crew is parked, as before
+
+  # Rooms: any room-based game, multiCouch or not (spec §3, §7)
+
+  Scenario: A following phone joins the TV's room, not a new one
+    Given Dad's phone started Rocket Crew and the TV page says ogs:room "KQTP"
+    Then Sam's phone opens Rocket Crew's start page with ogsRoom=KQTP
+    And Rocket Crew's room KQTP has two seats taken: Dad's and Sam's
+
+  Scenario: A room-based game's phones wait for the room
+    Given Rocket Crew makes its own rooms (no static TV page)
+    When Dad starts it and the TV page has not said ogs:room yet
+    Then Sam's phone stays on the remote
+    And when the TV page says ogs:room "KQTP" Sam's phone opens the game in room KQTP
+
+  Scenario: Tapping the game the TV is playing joins its room
+    Given Rocket Crew is playing in room "KQTP" and Sam stepped out to the remote
+    When Sam taps Rocket Crew
+    Then Sam's phone opens Rocket Crew's start page with ogsRoom=KQTP
+    And the TV keeps the same sitting
+
+  Scenario: A follower's game reports label the couch's sitting
+    Given Sam's phone followed Rocket Crew into room "KQTP"
+    When its page reports its sitting over the bridge
+    Then it is filed under the couch's live sitting, and the game's page lists one sitting
+
+  Scenario: Kids' iPads keep following by their seat
+    Given Juneau's iPad is in the roster as the Fixer
+    When Rocket Crew starts
+    Then Juneau's iPad opens it as the Fixer, and an iPad not in the roster stays on the remote
 
   # --- Mid-game invite ---
 

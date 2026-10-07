@@ -61,8 +61,9 @@ export function onOgsPause(onPause: (paused: boolean) => void): () => void {
 }
 
 /**
- * The TV page of a multiCouch game says which room it shows (spec §7): OGS keeps it on the
- * sitting so friends can join it. Framed by the launcher: ogs:room; elsewhere nowhere.
+ * The TV page of a room-based game says which room it shows (spec §3, §7): the couch's other
+ * phones follow into it, and OGS keeps it on the sitting so friends can join it (multiCouch).
+ * Framed by the launcher: ogs:room; elsewhere nowhere.
  */
 export function reportOgsRoom(room: string): "launcher" | "none" {
   if (typeof window === "undefined") return "none";
