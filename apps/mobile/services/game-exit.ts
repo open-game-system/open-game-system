@@ -11,6 +11,8 @@ export function exitGame(ctx: {
   reported: boolean;
   now: number;
   instanceId?: string | null;
+  /** Whether leaving parks the game on the TV (see leaveGame). */
+  parks?: boolean;
   send: (msg: ClientMessage) => void;
   report: (report: InstanceReport, source: InstanceSource) => Promise<unknown>;
   setPill: (pill: ReturnPill) => void;

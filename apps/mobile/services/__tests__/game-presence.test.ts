@@ -37,3 +37,26 @@ describe("game presence (which game this phone has open)", () => {
     expect(opened).toEqual(["rocket-crew"]);
   });
 });
+
+describe("game presence: the TV closes the game a phone follows", () => {
+  it("names the game open here", () => {
+    const p = createGamePresence();
+    expect(p.openApp()).toBeNull();
+    p.opening("rocket-crew");
+    expect(p.openApp()).toBe("rocket-crew");
+  });
+
+  it("a close request reaches the open game's screen, not another game's", () => {
+    const p = createGamePresence();
+    const rc = jest.fn();
+    const bake = jest.fn();
+    p.onClose("rocket-crew", rc);
+    const off = p.onClose("bake-shop", bake);
+    p.requestClose("rocket-crew");
+    expect(rc).toHaveBeenCalledTimes(1);
+    expect(bake).not.toHaveBeenCalled();
+    off();
+    p.requestClose("bake-shop");
+    expect(bake).not.toHaveBeenCalled();
+  });
+});

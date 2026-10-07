@@ -131,3 +131,40 @@ describe("tapping a game in Library (spec v3, Where a game plays)", () => {
     }
   });
 });
+
+describe("tapping the game the TV is playing, on a couch phone that didn't start it", () => {
+  it("opens the TV's room (ogsRoom), not the plain start page that would make a new room", () => {
+    expect(
+      launchPlan({
+        manifest: game("required"),
+        ogsCast: true,
+        deviceId: "phone-mom",
+        liveRoom: "KQTP",
+      }),
+    ).toMatchObject({ kind: "tv", url: "https://rc.example/?ogsRoom=KQTP" });
+  });
+
+  it("a remembered page of this sitting still wins (it is this phone's own seat)", () => {
+    expect(
+      launchPlan({
+        manifest: game("required"),
+        ogsCast: true,
+        deviceId: "phone-mom",
+        liveRoom: "KQTP",
+        resumeUrl: "https://rc.example/join/KQTP?t=2",
+      }),
+    ).toMatchObject({ kind: "tv", url: "https://rc.example/join/KQTP?t=2" });
+  });
+
+  it("New on the live game still joins its room (the TV keeps the game it is playing)", () => {
+    expect(
+      launchPlan({
+        manifest: game("required"),
+        ogsCast: true,
+        deviceId: "phone-mom",
+        mode: "new",
+        liveRoom: "KQTP",
+      }),
+    ).toMatchObject({ kind: "tv", url: "https://rc.example/?ogsRoom=KQTP" });
+  });
+});

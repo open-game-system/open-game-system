@@ -1,4 +1,5 @@
 import type { ClientMessage, Manifest } from "@open-game-system/ogs-protocol";
+import { roomStartUrl } from "./rooms";
 
 type GameStart = Extract<ClientMessage, { type: "game.start" }>;
 
@@ -22,10 +23,17 @@ export function launchPlan(input: {
   resumeUrl?: string;
   /** Rejoin of one named sitting (a game's page lists several). Ignored for a new sitting. */
   instanceId?: string;
+  /**
+   * The room of this game's sitting live on the TV, if it is the TV's current game. The session
+   * keeps the game it is playing (game.start for it changes nothing), so this phone joins its room.
+   */
+  liveRoom?: string;
 }): LaunchPlan {
-  const { manifest, ogsCast, deviceId, mode = "continue", resumeUrl } = input;
-  // Continue opens the instance's own page (its room); a new sitting starts from the start page.
-  const url = mode === "new" ? manifest.startUrl : (resumeUrl ?? manifest.startUrl);
+  const { manifest, ogsCast, deviceId, mode = "continue", resumeUrl, liveRoom } = input;
+  // Continue opens the instance's own page (its room); a new sitting starts from the start page,
+  // or joins the room the TV is already playing.
+  const start = liveRoom ? roomStartUrl(manifest.startUrl, liveRoom) : manifest.startUrl;
+  const url = mode === "new" ? start : (resumeUrl ?? start);
   if (ogsCast && manifest.tv !== "none")
     return { kind: "tv", start: gameStart(manifest, mode, deviceId, input.instanceId), url };
   if (manifest.tv === "required") return { kind: "needs-tv" };

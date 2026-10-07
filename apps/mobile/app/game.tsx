@@ -13,6 +13,7 @@ import { GameArt } from "../components/ogs/GameArt";
 import { colors, fonts } from "../components/ogs/theme";
 import { SwipeHintOverlay, useSwipeHint } from "../components/SwipeHintOverlay";
 import type { CastStores } from "../services/cast-store";
+import { parksOnLeave } from "../services/couch-follow";
 import { exitGame } from "../services/game-exit";
 import { loadingCaption } from "../services/game-loading";
 import type { ProfileStores } from "../services/game-profile";
@@ -22,6 +23,7 @@ import { createOgsBridgeStore, type OgsStores } from "../services/ogs-bridge";
 import {
   appState,
   couchHub,
+  deviceId,
   gameCastStoreFor,
   gamePresence,
   gameProfile,
@@ -129,25 +131,38 @@ export default function GameScreen() {
   // Deep links and push taps while a game is open replace it (event subscription).
   useEffect(() => subscribeToGameUrl((url) => setUri(url)), []);
 
-  const leave = useCallback(() => {
-    const url = latestUrl.current;
-    if (appId) rememberGameUrl(appId, url);
-    exitGame({
-      appId,
-      name,
-      url,
-      instanceId: appId ? sittingId(appId, couchHub.getSnapshot().state, params.instanceId) : null,
-      ogsCast: ogsCastNow(),
-      reported: appId !== null && ogsStore.getSnapshot().reported.includes(appId),
-      now: Date.now(),
-      send: couchHub.send,
-      report: (r, s) => appState.report(r, s),
-      setPill: (p) => appState.setPill(p),
-      goBack: () => (router.canGoBack() ? router.back() : router.replace("/library")),
-    });
-  }, [appId, name, router, params.instanceId]);
+  /** Back to the tabs. `closedByTv`: the TV went Home (every couch phone follows it), so no home. */
+  const leave = useCallback(
+    (closedByTv = false) => {
+      const url = latestUrl.current;
+      const session = couchHub.getSnapshot().state;
+      if (appId) rememberGameUrl(appId, url);
+      exitGame({
+        appId,
+        name,
+        url,
+        instanceId: appId ? sittingId(appId, session, params.instanceId) : null,
+        // A phone following someone else's game steps out to the remote; the TV keeps playing.
+        parks: !closedByTv && (!appId || parksOnLeave(appId, session?.current ?? null, deviceId())),
+        ogsCast: ogsCastNow(),
+        reported: appId !== null && ogsStore.getSnapshot().reported.includes(appId),
+        now: Date.now(),
+        send: couchHub.send,
+        report: (r, s) => appState.report(r, s),
+        setPill: (p) => appState.setPill(p),
+        goBack: () => (router.canGoBack() ? router.back() : router.replace("/library")),
+      });
+    },
+    [appId, name, router, params.instanceId],
+  );
   const leaveRef = useRef(leave);
   leaveRef.current = leave;
+
+  // The TV went Home (or swapped this game away): every couch phone follows it back to the remote.
+  useEffect(() => {
+    if (!appId) return;
+    return gamePresence.onClose(appId, () => leaveRef.current(true));
+  }, [appId]);
 
   // --- Swipe-back gesture (a cancelled swipe never calls onBack) ---
   const swipe = swipeBackHandlers({
@@ -192,7 +207,7 @@ export default function GameScreen() {
             setHasError(false);
             setUri((u) => `${u}`);
           }}
-          onGoHome={leave}
+          onGoHome={() => leave()}
         />
       </View>
     );

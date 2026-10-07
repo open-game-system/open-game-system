@@ -120,6 +120,57 @@ describe("couch session client", () => {
     expect(onFollowHost).not.toHaveBeenCalled();
   });
 
+  it("every other follow (a player's game, the launcher) goes to the couch-follow handler", () => {
+    FakeSocket.all = [];
+    const onFollowHost = jest.fn();
+    const onFollowCouch = jest.fn();
+    createCouchSession({
+      url: "ws://x",
+      deviceId: "phone-mom",
+      createSocket: (url) => new FakeSocket(url),
+      onFollowHost,
+      onFollowCouch,
+    }).start();
+    last().open();
+    const player = {
+      kind: "game",
+      appId: "rocket-crew",
+      instanceId: "rc-1",
+      roleId: "player",
+      room: "KQTP",
+    };
+    last().receive({ type: "follow", target: player });
+    last().receive({ type: "follow", target: { kind: "launcher" } });
+    last().receive({
+      type: "follow",
+      target: { kind: "game", appId: "rocket-crew", instanceId: "rc-1", roleId: "host" },
+    });
+    expect(onFollowCouch.mock.calls).toEqual([[player], [{ kind: "launcher" }]]);
+    expect(onFollowHost).toHaveBeenCalledTimes(1);
+  });
+
+  it("a follow for a player without a room passes no room", () => {
+    FakeSocket.all = [];
+    const onFollowCouch = jest.fn();
+    createCouchSession({
+      url: "ws://x",
+      deviceId: "phone-mom",
+      createSocket: (url) => new FakeSocket(url),
+      onFollowCouch,
+    }).start();
+    last().open();
+    last().receive({
+      type: "follow",
+      target: { kind: "game", appId: "quiz", instanceId: "q-1", roleId: "fixer" },
+    });
+    expect(onFollowCouch).toHaveBeenCalledWith({
+      kind: "game",
+      appId: "quiz",
+      instanceId: "q-1",
+      roleId: "fixer",
+    });
+  });
+
   it("offers the remote calmly, and taking it sends remote.take", () => {
     const { session } = setup();
     last().open();

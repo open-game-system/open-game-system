@@ -129,3 +129,33 @@ describe("which sitting a game's report is filed under", () => {
     ]);
   });
 });
+
+describe("a couch phone that followed the TV into the game (every couch phone follows the TV)", () => {
+  it("files its game's reports under the couch's live sitting: one start is still one sitting", () => {
+    const api = instancesApi();
+    let session = reduceSession(
+      startCast(),
+      { type: "hello", deviceId: "phone-mom", kind: "phone" },
+      NOW,
+    ).state;
+    session = reduceSession(
+      session,
+      { type: "game.start", appId: "story-nook", mode: "new", hostDeviceId: "phone" },
+      NOW,
+    ).state;
+    session = reduceSession(
+      session,
+      { type: "game.room", appId: "story-nook", room: "XJNE" },
+      NOW,
+    ).state;
+    // Mom's phone (not the host) opened Story Nook in the room and its page reports the room.
+    const store = createOgsBridgeStore(api.post, (appId) => reportSittingFor(appId, session));
+    for (const status of ["lobby", "playing"] as const)
+      store.dispatch({
+        type: "INSTANCE_REPORT",
+        report: { instanceId: "story-nook:XJNE", appId: "story-nook", status, title: "Room XJNE" },
+      });
+    expect(api.rows().map((r) => r.instanceId)).toEqual([session.current?.instanceId]);
+    expect(sittingsFor(storyNook, api.rows(), session, NOW)).toHaveLength(1);
+  });
+});
