@@ -244,6 +244,8 @@ describe("couch session", () => {
       { type: "home" },
     ]);
     expect(SessionStateSchema.parse(s)).toEqual(s);
-    expect(SessionStateSchema.parse(initialSession("s-1", "dad"))).toEqual(initialSession("s-1", "dad"));
+    expect(SessionStateSchema.parse(initialSession("s-1", "dad"))).toEqual(
+      initialSession("s-1", "dad"),
+    );
   });
 });

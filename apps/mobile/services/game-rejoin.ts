@@ -43,6 +43,16 @@ export function sittingId(
   return current?.appId === appId ? current.instanceId : (opened ?? null);
 }
 
+/**
+ * The sitting a game's own report (INSTANCE_REPORT over the bridge) labels: the couch session's
+ * live sitting of that game while cast (the TV's ogs:instance labels the same one), else null:
+ * keep the game's own id (played on the phone alone, the game's room is the only sitting).
+ */
+export function reportSittingFor(reportAppId: string, session: SessionState | null): string | null {
+  const current = session?.current;
+  return current?.appId === reportAppId ? current.instanceId : null;
+}
+
 /** One remembered URL per game for the app's lifetime. */
 export function createGameUrls() {
   const byApp = new Map<string, RememberedGame>();

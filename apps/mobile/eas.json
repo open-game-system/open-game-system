@@ -31,6 +31,10 @@
         "cache": {
           "key": "preview-android-{{allShas}}"
         }
+      },
+      "env": {
+        "EXPO_PUBLIC_OGS_API": "https://opengame-api.jonathanrmumm.workers.dev",
+        "EXPO_PUBLIC_OGS_TV": "https://ogs-tv.pages.dev"
       }
     },
     "production": {

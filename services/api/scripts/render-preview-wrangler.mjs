@@ -40,21 +40,10 @@ const config = {
       database_id: dbId,
     },
   ],
-  containers: [
-    {
-      name: `codeflare-containers-pr-${prNumber}`,
-      image: "../container/Dockerfile",
-      class_name: "StreamContainer",
-      max_instances: 2,
-      instance_type: "standard",
-    },
-  ],
+  // No Cloudflare container (streaming renders only on Cloud Run); v3 deletes the old class from
+  // previews that still have it.
   durable_objects: {
     bindings: [
-      {
-        name: "STREAM_CONTAINER",
-        class_name: "StreamContainer",
-      },
       {
         name: "COUCH_SESSION",
         class_name: "CouchSession",
@@ -70,10 +59,17 @@ const config = {
       tag: "v2",
       new_sqlite_classes: ["CouchSession"],
     },
+    {
+      tag: "v3",
+      deleted_classes: ["StreamContainer"],
+    },
   ],
   observability: {
     enabled: true,
     head_sampling_rate: 1,
+  },
+  version_metadata: {
+    binding: "CF_VERSION_METADATA",
   },
 };
 

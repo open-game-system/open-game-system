@@ -17,7 +17,7 @@
   - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
   - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
   - `services/api/` — Hono API on Cloudflare Workers (auth, push dispatch, households, catalogue, instances, CouchSession DO)
-  - `examples/` — Demo/reference apps (4 apps)
+  - `examples/` — Demo/reference apps (4 apps: expo-bridge-demo, web-game-demo, stream-react-demo, cast-receiver)
   - `e2e/` — cross-surface e2e (tester.army `e2e`, fake Chromecast, couch flow); standalone install
 
 ## Feedback Commands
@@ -43,9 +43,11 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 | Architectural decisions | [docs/adrs/index.md](docs/adrs/index.md) |
 | Design docs & principles | [docs/design-docs/index.md](docs/design-docs/index.md) |
 | Active execution plans | [docs/exec-plans/active/](docs/exec-plans/active/) |
-| OGS protocol specification | [docs/specification.md](docs/specification.md) |
+| The OGS game contract (for game developers) | [docs/specification.md](docs/specification.md) |
 | Quality grades | [docs/quality.md](docs/quality.md) |
 | Lessons learned | [docs/lessons.md](docs/lessons.md) |
+| How to run the e2e suites | [docs/testing/e2e.md](docs/testing/e2e.md) |
+| Observability | [docs/agents/observability.md](docs/agents/observability.md) — wide events, client telemetry, sre-agent |
 
 > **Progressive disclosure:** Do NOT load all docs upfront. Read this file,
 > then load the specific doc relevant to your current task.

@@ -1,5 +1,6 @@
 import {
   avatarUrl,
+  type CouchClaim,
   GAME_TOKEN_TTL_S,
   type GamePlayer,
   type GameToken,
@@ -61,12 +62,15 @@ export function gameClaims(opts: {
   avatarBase: string;
   now: number;
   session?: { sid: string; players: GamePlayer[] };
+  /** The couch this token is for (spec §7): the TV's, or a phone's that asked with its session. */
+  couch?: CouchClaim;
 }): GameToken {
   const iat = Math.floor(opts.now / 1000);
   const { id, handle, name, avatar } = playerOf(opts.profile, opts.avatarBase);
   const base = { iss: opts.iss, aud: opts.appId, sub: id, handle, name, avatar };
   const session = opts.session ? { sid: opts.session.sid, players: opts.session.players } : {};
-  return { ...base, ...session, iat, exp: iat + GAME_TOKEN_TTL_S };
+  const couch = opts.couch ? { couch: { sid: opts.couch.sid, label: opts.couch.label } } : {};
+  return { ...base, ...session, ...couch, iat, exp: iat + GAME_TOKEN_TTL_S };
 }
 
 const b64url = (bytes: Uint8Array) =>

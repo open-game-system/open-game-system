@@ -12,6 +12,10 @@ export const GamePlayerSchema = z.object({
 });
 export type GamePlayer = z.infer<typeof GamePlayerSchema>;
 
+/** The couch a token was issued for (spec §7): its session id, and its label (the host's name). */
+export const CouchClaimSchema = z.object({ sid: z.string().min(1), label: z.string().min(1) });
+export type CouchClaim = z.infer<typeof CouchClaimSchema>;
+
 /**
  * Claims OGS signs (ES256, verifiable with `/.well-known/jwks.json`) into a token for ONE game:
  * `aud` is its appId, so another game can't replay it. A phone/iPad token names its profile; a TV
@@ -32,6 +36,8 @@ export const GameTokenSchema = z.object({
   sid: z.string().min(1).optional(),
   /** Who's on the couch (TV tokens only). */
   players: z.array(GamePlayerSchema).optional(),
+  /** The couch this token was issued for (TV tokens, and phones that asked with their session). */
+  couch: CouchClaimSchema.optional(),
   /** Issued at / expiry, seconds since epoch. */
   iat: z.number().int().nonnegative(),
   exp: z.number().int().positive(),

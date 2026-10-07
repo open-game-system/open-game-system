@@ -21,6 +21,9 @@ export type Member = z.infer<typeof MemberSchema>;
 
 export const DirectionSchema = z.enum(["up", "down", "left", "right"]);
 
+/** A game's own room code (multiCouch games, spec §7): opaque to OGS, safe in a URL. */
+export const RoomIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
+
 /** Messages any client sends to the couch session. */
 export const ClientMessageSchema = z.discriminatedUnion("type", [
   z.object({
@@ -44,7 +47,11 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     instanceId: z.string().optional(),
     /** The phone that runs the game's start page (defaults to the remote holder). */
     hostDeviceId: z.string().optional(),
+    /** Join this room of the game (another couch's) instead of making one. */
+    room: RoomIdSchema.optional(),
   }),
+  /** The game's TV page said which room it shows (ogs:room). */
+  z.object({ type: z.literal("game.room"), appId: z.string(), room: RoomIdSchema }),
   z.object({ type: z.literal("game.resume-point"), appId: z.string(), label: z.string() }),
   /** The game's phone page asked for its TV view (cast-kit SET_VIEW_URL); the launcher frames it. */
   z.object({ type: z.literal("game.view"), appId: z.string(), url: z.string().url() }),
@@ -58,6 +65,8 @@ export interface SuspendedGame {
   instanceId: string;
   label: string;
   at: number;
+  /** The game's room this sitting is in (multiCouch games). */
+  room?: string;
 }
 
 export interface CurrentGame {
@@ -71,6 +80,8 @@ export interface CurrentGame {
   viewUrl: string | null;
   /** The phone hosting the game (runs its start page as the controller). */
   hostDeviceId: string | null;
+  /** The game's room this sitting is in: joined with game.start, or reported with game.room. */
+  room?: string;
 }
 
 export interface SessionDevice {
@@ -101,10 +112,17 @@ export const SessionStateSchema = z.object({
       startedAt: z.number(),
       viewUrl: z.string().nullable(),
       hostDeviceId: z.string().nullable(),
+      room: z.string().optional(),
     })
     .nullable(),
   suspended: z.array(
-    z.object({ appId: z.string(), instanceId: z.string(), label: z.string(), at: z.number() }),
+    z.object({
+      appId: z.string(),
+      instanceId: z.string(),
+      label: z.string(),
+      at: z.number(),
+      room: z.string().optional(),
+    }),
   ),
   remote: z.string().nullable(),
   devices: z.array(
@@ -146,7 +164,7 @@ export interface SessionState {
 /** Where a device should be: the launcher's resting screen, or a game in a role. */
 export type FollowTarget =
   | { kind: "launcher" }
-  | { kind: "game"; appId: string; instanceId: string; roleId: string };
+  | { kind: "game"; appId: string; instanceId: string; roleId: string; room?: string };
 
 export type Outbound =
   | { to: "all"; msg: { type: "state"; state: SessionState } }
@@ -192,12 +210,19 @@ export function readPlayItem(itemId: string | null): PlayItem | null {
   return m[2] ? { appId: m[1], instanceId: m[2] } : { appId: m[1] };
 }
 
+/** A couch keeps one paused sitting per game, and per room for games that name rooms. */
+const sameSlot = (g: SuspendedGame, appId: string, room: string | undefined) =>
+  g.appId === appId && g.room === room;
+
+/** `{ room }` when there is one, else nothing (so sittings without a room keep their shape). */
+const roomOf = (room: string | undefined): { room?: string } => (room ? { room } : {});
+
 function suspendCurrent(s: SessionState, now: number): SessionState {
   if (!s.current) return s;
-  const { appId, instanceId, label } = s.current;
+  const { appId, instanceId, label, room } = s.current;
   const suspended = [
-    { appId, instanceId, label, at: now },
-    ...s.suspended.filter((g) => g.appId !== appId),
+    { appId, instanceId, label, at: now, ...roomOf(room) },
+    ...s.suspended.filter((g) => !sameSlot(g, appId, room)),
   ];
   return { ...s, current: null, suspended };
 }
@@ -223,6 +248,7 @@ function hostFollow(s: SessionState, before: SessionState): Outbound[] {
           appId: current.appId,
           instanceId: current.instanceId,
           roleId: "host",
+          ...roomOf(current.room),
         },
       },
     },
@@ -238,6 +264,7 @@ function followTarget(s: SessionState, d: Device): FollowTarget {
         appId: s.current.appId,
         instanceId: s.current.instanceId,
         roleId: entry.roleId,
+        ...roomOf(s.current.room),
       }
     : { kind: "launcher" };
 }
@@ -338,14 +365,20 @@ function onHome(s: SessionState, _msg: MessageOf<"home">, now: number): Step {
   return { s: { ...suspendCurrent(s, now), screen: "home", page: null, focus } };
 }
 
-/** Starting the game already on (and not naming another of its sittings) changes nothing. */
+/** Starting the game already on (and not naming another of its sittings or rooms) changes nothing. */
 function alreadyOn(s: SessionState, msg: MessageOf<"game.start">): boolean {
   const otherSitting = msg.instanceId !== undefined && msg.instanceId !== s.current?.instanceId;
-  return s.current?.appId === msg.appId && !otherSitting;
+  const otherRoom = msg.room !== undefined && msg.room !== s.current?.room;
+  return s.current?.appId === msg.appId && !otherSitting && !otherRoom;
 }
 
-/** A named sitting (Rejoin from a game's page) resumes that one; else the game's paused one. */
+/**
+ * A room names its sitting (a couch keeps one per room); a named sitting (Rejoin from a game's
+ * page) resumes that one; else Continue resumes the game's paused one.
+ */
 function resumable(s: SessionState, msg: MessageOf<"game.start">) {
+  if (msg.room !== undefined)
+    return s.suspended.find((g) => g.appId === msg.appId && g.room === msg.room);
   if (msg.mode !== "continue") return undefined;
   return msg.instanceId
     ? s.suspended.find((g) => g.instanceId === msg.instanceId)
@@ -358,6 +391,7 @@ function sittingOf(s: SessionState, msg: MessageOf<"game.start">, now: number) {
   return {
     instanceId: msg.instanceId ?? resuming?.instanceId ?? newId(msg.appId, now),
     label: resuming?.label ?? "",
+    room: msg.room ?? resuming?.room,
   };
 }
 
@@ -375,6 +409,7 @@ function onGameStart(s: SessionState, msg: MessageOf<"game.start">, now: number)
     startedAt: now,
     viewUrl: null,
     hostDeviceId: msg.hostDeviceId ?? next.remote,
+    ...roomOf(sitting.room),
   };
   return {
     s: {
@@ -383,7 +418,9 @@ function onGameStart(s: SessionState, msg: MessageOf<"game.start">, now: number)
       page: null,
       focus: `game:${msg.appId}`,
       current,
-      suspended: next.suspended.filter((g) => g.appId !== msg.appId),
+      suspended: next.suspended.filter(
+        (g) => g.instanceId !== sitting.instanceId && !sameSlot(g, msg.appId, sitting.room),
+      ),
       rosters: { ...next.rosters, [msg.appId]: roster },
     },
   };
@@ -392,6 +429,12 @@ function onGameStart(s: SessionState, msg: MessageOf<"game.start">, now: number)
 function onGameView(s: SessionState, msg: MessageOf<"game.view">): Step {
   if (s.current?.appId !== msg.appId) return { s };
   return { s: { ...s, current: { ...s.current, viewUrl: msg.url } } };
+}
+
+/** The TV page named its room: the current sitting of that game is in it from now on. */
+function onGameRoom(s: SessionState, msg: MessageOf<"game.room">): Step {
+  if (s.current?.appId !== msg.appId || s.current.room === msg.room) return { s };
+  return { s: { ...s, current: { ...s.current, room: msg.room } } };
 }
 
 /** Games often report on suspend, after home already moved them to suspended. */
@@ -418,6 +461,7 @@ const HANDLERS: Handlers = {
   home: onHome,
   "game.start": onGameStart,
   "game.view": onGameView,
+  "game.room": onGameRoom,
   "game.resume-point": onResumePoint,
   end: (s, _msg, now) => ({
     s: { ...suspendCurrent(s, now), screen: "home", page: null, cast: false },

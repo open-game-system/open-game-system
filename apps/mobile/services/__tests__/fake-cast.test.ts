@@ -5,7 +5,13 @@ jest.mock("react-native-google-cast", () => ({
 
 import { createCastStore } from "../cast-store";
 import { castCommands, startCastSync } from "../cast-sync";
-import { createFakeCastBackend, FAKE_TV, FAKE_TV_2, FAKE_TV_2_DELAY_MS } from "../fake-cast";
+import {
+  createFakeCastBackend,
+  FAKE_TV,
+  FAKE_TV_2,
+  FAKE_TV_2_DELAY_MS,
+  fakeCastOptions,
+} from "../fake-cast";
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -321,5 +327,119 @@ describe("fake cast, the session manager", () => {
     ]) {
       expect(() => sub.remove()).not.toThrow();
     }
+  });
+});
+
+describe("fake cast, real Google Cast timing (endedAfterMs)", () => {
+  /** Two fake Chromecasts, each on its own origin, like two real TVs. */
+  function twoTvs(endedAfterMs = 30) {
+    const calls: string[] = [];
+    const backend = createFakeCastBackend({
+      mode: "two",
+      loadUrl: "http://tv1.test/load",
+      loadUrls: { [FAKE_TV_2.id]: "http://tv2.test/load" },
+      fetch: async (url) => {
+        calls.push(url);
+        return new Response("{}");
+      },
+      endedAfterMs,
+    });
+    const events: string[] = [];
+    const sm = backend.sessionManager;
+    sm.onSessionStarting(() => events.push("starting"));
+    sm.onSessionStarted(() => events.push("started"));
+    sm.onSessionEnding?.(() => events.push("ending"));
+    sm.onSessionEnded(() => events.push("ended"));
+    return { backend, sm, calls, events };
+  }
+  const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  it("endCurrentSession resolves on request (like the native bridge); ended comes later", async () => {
+    const t = twoTvs();
+    await t.sm.startSession(FAKE_TV.id);
+    await t.sm.endCurrentSession(true);
+    expect(t.events).toEqual(["starting", "started", "ending"]);
+    await wait(60);
+    expect(t.events).toEqual(["starting", "started", "ending", "ended"]);
+    await expect(t.sm.getCurrentCastSession()).resolves.toBeNull();
+  });
+
+  it("refuses a start while a session is ending (GCK: NO while a session is established)", async () => {
+    const t = twoTvs();
+    await t.sm.startSession(FAKE_TV.id);
+    await t.sm.endCurrentSession(true);
+    await expect(t.sm.startSession(FAKE_TV_2.id)).resolves.toBe(false);
+    await wait(60);
+    await expect(t.sm.startSession(FAKE_TV_2.id)).resolves.toBe(true);
+  });
+
+  it("refuses a start while a session is connected", async () => {
+    const t = twoTvs();
+    await t.sm.startSession(FAKE_TV.id);
+    await expect(t.sm.startSession(FAKE_TV_2.id)).resolves.toBe(false);
+    expect(t.events).toEqual(["starting", "started"]);
+  });
+
+  it("the session is still current while it ends", async () => {
+    const t = twoTvs();
+    await t.sm.startSession(FAKE_TV.id);
+    await t.sm.endCurrentSession(true);
+    await expect(t.sm.getCurrentCastSession()).resolves.not.toBeNull();
+  });
+
+  it("each TV has its own fake Chromecast: LOAD_VIEW and /stop go to that TV's origin", async () => {
+    const t = twoTvs(0);
+    await t.sm.startSession(FAKE_TV_2.id);
+    const session = await t.sm.getCurrentCastSession();
+    const ch = await session?.addChannel("urn:x-cast:org.opengame.view");
+    await ch?.sendMessage({ type: "LOAD_VIEW", viewUrl: "http://a/" });
+    await t.sm.endCurrentSession(true);
+    await wait(10);
+    expect(t.calls).toEqual(["http://tv2.test/load", "http://tv2.test/stop"]);
+  });
+
+  it("ending twice while ending ends once", async () => {
+    const t = twoTvs();
+    await t.sm.startSession(FAKE_TV.id);
+    await t.sm.endCurrentSession(true);
+    await t.sm.endCurrentSession(true);
+    await wait(60);
+    expect(t.events.filter((e) => e === "ended")).toHaveLength(1);
+  });
+});
+
+describe("fake cast options from the build's env", () => {
+  it("EXPO_PUBLIC_FAKE_CAST_END_MS turns on Cast's real end timing; _URL_2 gives the Bedroom TV its own fake Chromecast", () => {
+    expect(
+      fakeCastOptions({
+        EXPO_PUBLIC_FAKE_CAST_END_MS: "1500",
+        EXPO_PUBLIC_FAKE_CAST_URL_2: "http://localhost:5182/load",
+      }),
+    ).toEqual({
+      endedAfterMs: 1500,
+      loadUrls: { [FAKE_TV_2.id]: "http://localhost:5182/load" },
+    });
+  });
+
+  it("unset or not a number: neither", () => {
+    expect(fakeCastOptions({})).toEqual({});
+    expect(fakeCastOptions({ EXPO_PUBLIC_FAKE_CAST_END_MS: "soon" })).toEqual({});
+    expect(fakeCastOptions({ EXPO_PUBLIC_FAKE_CAST_END_MS: "0" })).toEqual({ endedAfterMs: 0 });
+  });
+});
+
+describe("fake cast, the ending event (immediate mode)", () => {
+  it("fires ending, then ended, before endCurrentSession resolves", async () => {
+    const { sessionManager: sm } = createFakeCastBackend({
+      mode: "one",
+      loadUrl: "x",
+      fetch: async () => new Response("{}"),
+    });
+    const events: string[] = [];
+    sm.onSessionEnding?.(() => events.push("ending"));
+    sm.onSessionEnded(() => events.push("ended"));
+    await sm.startSession(FAKE_TV.id);
+    await sm.endCurrentSession(true);
+    expect(events).toEqual(["ending", "ended"]);
   });
 });

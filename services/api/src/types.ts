@@ -1,10 +1,8 @@
 import type { CouchSession } from "./couch-session";
-import type { StreamContainer } from "./stream-container";
 
 export interface Env {
   DB: D1Database;
   OGS_JWT_SECRET: string;
-  STREAM_CONTAINER: DurableObjectNamespace<StreamContainer>;
   COUCH_SESSION: DurableObjectNamespace<CouchSession>;
   CLOUDFLARE_TURN_API_TOKEN: string;
   CLOUDFLARE_TURN_KEY_ID: string;
@@ -30,6 +28,12 @@ export interface Env {
   CATALOGUE_START_URLS?: string;
   /** Friend invite links and QR codes: `<base>/<token>` (default https://opengame.org/add). */
   INVITE_BASE_URL?: string;
+  /** Game invite links: `<base>/play/<appId>?room=` (default https://opengame.org). */
+  PLAY_BASE_URL?: string;
+  /** POST /client-events: Workers rate limiting, keyed per profile (the receiver per IP). */
+  CLIENT_EVENTS_LIMITER?: RateLimit;
+  /** The deployed version (wrangler `version_metadata`); its id is every wide event's `version`. */
+  CF_VERSION_METADATA?: WorkerVersionMetadata;
 }
 
 export interface DeviceRow {
@@ -45,16 +49,4 @@ export interface ApiKeyRow {
   game_id: string;
   game_name: string;
   created_at: string;
-}
-
-export interface CastSessionRow {
-  session_id: string;
-  game_id: string;
-  device_id: string;
-  view_url: string;
-  stream_session_id: string | null;
-  stream_url: string | null;
-  status: "pending" | "active" | "idle" | "ended";
-  created_at: string;
-  updated_at: string;
 }

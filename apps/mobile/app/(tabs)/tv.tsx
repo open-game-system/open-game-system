@@ -24,11 +24,13 @@ import { Screen } from "../../components/ogs/Screen";
 import { colors, fonts, TARGET } from "../../components/ogs/theme";
 import { tvTabShows } from "../../services/cast-stop";
 import type { CastDevice } from "../../services/cast-store";
+import { switchMessage } from "../../services/cast-switch";
 import { remotePress } from "../../services/remote";
 import {
   appState,
   castBackend,
   castNow,
+  castSwitch,
   couchHub,
   deviceId,
   endTonight,
@@ -36,6 +38,7 @@ import {
   useApp,
   useCast,
   useCastStopping,
+  useCastSwitch,
   useCouch,
   useOgsCast,
 } from "../../services/runtime";
@@ -61,7 +64,8 @@ export default function TvScreen() {
   const castState = useCast();
   // Stop casting shows "Stopped casting" at the confirm, not after the TV's reply.
   const stopping = useCastStopping();
-  if (tvTabShows({ ogsCast: cast, stopping }) === "remote")
+  const switching = useCastSwitch().status === "switching";
+  if (tvTabShows({ ogsCast: cast, stopping, switching }) === "remote")
     return <Remote castDeviceName={castState.session.deviceName} />;
   return <NotCast connecting={castState.session.status === "connecting"} />;
 }
@@ -77,7 +81,9 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
   const found = useDevices();
   const [picking, setPicking] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  // One switch at a time, kept in runtime (castSwitch): the old TV is gone before the new is cast.
+  const switchState = useCastSwitch();
+  const switchingTo = switchState.status === "switching" ? switchState.tv : null;
   const [pickError, setPickError] = useState<string | null>(null);
   const [room, setRoom] = useState(0);
   const view = remoteView({
@@ -121,20 +127,15 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
   const openPicker = () => {
     search();
     setPickError(null);
+    castSwitch.dismiss();
     setPicking(true);
   };
   const pick = async (tv: CastDevice) => {
-    setSwitchingId(tv.id);
     setPickError(null);
-    try {
-      const result = await moveToTv(tv);
-      if (result === "no-tv") setPickError(`Couldn't reach ${tv.name}. Is it on?`);
-      else setPicking(false);
-    } catch (err) {
-      setPickError(userMessage(err, "cast").text);
-    } finally {
-      setSwitchingId(null);
-    }
+    const result = await moveToTv(tv);
+    if (result === "started" || result === "same") setPicking(false);
+    // A failure the remote is still up for (else the Cast screen shows it, with Try again).
+    else if (result === "failed") setPickError(switchMessage(castSwitch.getSnapshot()));
   };
   const end = <StopCasting end={controls.end} onStop={() => press("end")} />;
 
@@ -163,7 +164,7 @@ function Remote({ castDeviceName }: { castDeviceName: string | null }) {
         visible={picking}
         devices={devices}
         currentId={currentId}
-        switchingId={switchingId}
+        switchingId={switchingTo?.id ?? null}
         error={pickError}
         searching={searching}
         onPick={(tv) => void pick(tv)}
@@ -184,6 +185,9 @@ function NotCast({ connecting }: { connecting: boolean }) {
   const [error, setError] = useState<UserMessage | null>(null);
   const session = useApp().session;
   const stopped = useSyncExternalStore(lastStop.subscribe, lastStop.get, lastStop.get);
+  // A TV switch that didn't make it: the old TV was already stopped, so say so here, with a retry.
+  const switchState = useCastSwitch();
+  const switchError = switchMessage(switchState);
 
   useEffect(() => {
     castBackend.startDiscovery();
@@ -303,6 +307,14 @@ function NotCast({ connecting }: { connecting: boolean }) {
           onRetry={() => void onCast()}
           testID="castError"
         />
+        {switchState.status === "failed" && !error ? (
+          <ErrorLine
+            text={switchError}
+            action="retry"
+            onRetry={() => void moveToTv(switchState.tv)}
+            testID="switchError"
+          />
+        ) : null}
       </View>
       {devices.length > 1 ? (
         <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel="Which TV">

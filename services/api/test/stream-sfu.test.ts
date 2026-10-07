@@ -21,7 +21,6 @@ type Handler = (call: Call) => Response | undefined;
 
 let calls: Call[];
 let override: Handler;
-let doCalls: Call[];
 
 const json = (value: unknown, status = 200) => Response.json(value, { status });
 
@@ -53,17 +52,16 @@ function world(call: Call): Response {
   return json({ error: "unexpected" }, 599);
 }
 
-async function record(input: RequestInfo | URL, init?: RequestInit, into = calls) {
+async function record(input: RequestInfo | URL, init?: RequestInit) {
   const req = new Request(input, init);
   const text = await req.text();
   const call = { url: req.url, method: req.method, body: text ? JSON.parse(text) : undefined };
-  into.push(call);
+  calls.push(call);
   return world(call);
 }
 
 beforeEach(() => {
   calls = [];
-  doCalls = [];
   override = () => undefined;
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => record(input, init));
   // start-stream waits 5 s for the PeerConnection; run it at once.
@@ -84,16 +82,6 @@ function env(over: Record<string, unknown> = {}) {
     CLOUDFLARE_REALTIME_APP_SECRET: "secret-1",
     CLOUDFLARE_TURN_API_TOKEN: "turn-token",
     CLOUDFLARE_TURN_KEY_ID: "turn-key",
-    STREAM_CONTAINER: {
-      idFromName: (name: string) => ({ name }),
-      get: (id: { name: string }) => ({
-        fetch: (req: Request) =>
-          record(req, undefined, doCalls).then((r) => {
-            doCalls[doCalls.length - 1].url = `${id.name}${new URL(req.url).pathname}`;
-            return r;
-          }),
-      }),
-    },
     ...over,
   };
 }
@@ -158,23 +146,38 @@ describe("POST /stream/start-stream", () => {
     });
   });
 
-  it("goes through the session's stream container without STREAM_SERVER_URL, with no TURN when unconfigured", async () => {
-    const e = env({ CLOUDFLARE_TURN_API_TOKEN: undefined });
+  it("sends no TURN servers when TURN is unconfigured", async () => {
+    const e = env({ STREAM_SERVER_URL: SERVER, CLOUDFLARE_TURN_API_TOKEN: undefined });
     const r = await send("POST", "/start-stream", { url: "u" }, e, {
       "x-stream-session-id": " cast-1 ",
     });
     expect(r.status).toBe(200);
-    expect(urls(doCalls)).toEqual([
-      "POST session-cast-1/publisher/prepare",
-      "POST session-cast-1/publisher/answer",
-      "POST session-cast-1/publisher/answer",
+    expect(urls(calls)).toEqual([
+      `POST ${SERVER}/publisher/prepare`,
+      `POST ${SFU}/new`,
+      `POST ${SERVER}/publisher/answer`,
+      `POST ${SFU}/pub-1/tracks/new`,
+      `POST ${SERVER}/publisher/answer`,
     ]);
-    expect(doCalls[0].body).toEqual({ url: "u", iceServers: [] });
+    expect(calls[0].body).toEqual({ url: "u", iceServers: [] });
   });
 
-  it("uses the debug singleton container without a session id", async () => {
-    await send("POST", "/start-stream", { url: "u" }, env({ CLOUDFLARE_TURN_KEY_ID: undefined }));
-    expect(doCalls[0].url).toBe("default-singleton-debug-v3/publisher/prepare");
+  it("answers stream_not_configured without STREAM_SERVER_URL, before calling anything", async () => {
+    for (const STREAM_SERVER_URL of [undefined, ""]) {
+      const r = await send("POST", "/start-stream", { url: "u" }, env({ STREAM_SERVER_URL }));
+      expect(r).toEqual({
+        status: 500,
+        body: {
+          error: {
+            code: "stream_not_configured",
+            message: "STREAM_SERVER_URL must be configured",
+            status: 500,
+          },
+          traceId: "trace-1",
+        },
+      });
+    }
+    expect(calls).toEqual([]);
   });
 
   it("always re-answers with what adding tracks returned (the SFU always returns a description)", async () => {
@@ -195,7 +198,11 @@ describe("POST /stream/start-stream", () => {
     override = (c) => (c.url.endsWith("/tracks/new") ? json({ tracks: [] }) : undefined);
     const r = await send("POST", "/start-stream", { url: "u" }, env({ STREAM_SERVER_URL: SERVER }));
     expect(r.status).toBe(500);
-    expect(r.body.error).toMatch(/addTracks: unexpected response/);
+    expect(r.body.error).toMatchObject({
+      code: "stream_start_failed",
+      message: expect.stringMatching(/addTracks: unexpected response/),
+      status: 500,
+    });
   });
 
   it("carries on with no ICE servers when TURN refuses", async () => {
@@ -206,15 +213,19 @@ describe("POST /stream/start-stream", () => {
   });
 
   it.each([
-    ["prepare", "/publisher/prepare", "Publisher prepare failed"],
-    ["answer", "/publisher/answer", "Publisher answer failed"],
-  ])("reports a failed publisher %s with the server's words", async (_label, path, error) => {
+    ["prepare", "/publisher/prepare", "publisher_prepare_failed", "Publisher prepare failed"],
+    ["answer", "/publisher/answer", "publisher_answer_failed", "Publisher answer failed"],
+  ])("reports a failed publisher %s with the server's words", async (_label, path, code, message) => {
     override = (c) =>
       c.url.endsWith(path) ? new Response("chrome crashed", { status: 503 }) : undefined;
     const r = await send("POST", "/start-stream", { url: "u" }, env({ STREAM_SERVER_URL: SERVER }));
     expect(r).toEqual({
       status: 500,
-      body: { error, details: "chrome crashed", traceId: "trace-1" },
+      body: {
+        error: { code, message, status: 500 },
+        details: "chrome crashed",
+        traceId: "trace-1",
+      },
     });
   });
 
@@ -226,7 +237,11 @@ describe("POST /stream/start-stream", () => {
       env({ CLOUDFLARE_REALTIME_APP_SECRET: undefined }),
     );
     expect(r.status).toBe(500);
-    expect(r.body.error).toMatch(/CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET/);
+    expect(r.body.error).toEqual({
+      code: "stream_not_configured",
+      message: "CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured",
+      status: 500,
+    });
     expect(calls).toEqual([]);
   });
 
@@ -235,7 +250,14 @@ describe("POST /stream/start-stream", () => {
     const r = await send("POST", "/start-stream", { url: "u" }, env({ STREAM_SERVER_URL: SERVER }));
     expect(r).toEqual({
       status: 500,
-      body: { error: "Realtime API createSession failed: 429 — quota", traceId: "trace-1" },
+      body: {
+        error: {
+          code: "stream_start_failed",
+          message: "Realtime API createSession failed: 429 — quota",
+          status: 500,
+        },
+        traceId: "trace-1",
+      },
     });
   });
 });
@@ -275,7 +297,10 @@ describe("POST /stream/subscribe", () => {
     const r = await send("POST", "/subscribe", body);
     expect(r).toEqual({
       status: 400,
-      body: { error: "publisherSessionId is required", traceId: "trace-1" },
+      body: {
+        error: { code: "invalid_body", message: "publisherSessionId is required", status: 400 },
+        traceId: "trace-1",
+      },
     });
   });
 
@@ -286,7 +311,11 @@ describe("POST /stream/subscribe", () => {
         : undefined;
     const r = await send("POST", "/subscribe", { publisherSessionId: "pub-1" });
     expect(r.status).toBe(500);
-    expect(r.body.error).toMatch(/addTracks failed: 200 — x: gone/);
+    expect(r.body.error).toMatchObject({
+      code: "subscribe_failed",
+      message: expect.stringMatching(/addTracks failed: 200 — x: gone/),
+      status: 500,
+    });
   });
 });
 
@@ -312,6 +341,7 @@ describe("PUT /stream/subscribe/:id/answer", () => {
       sessionDescription: { type: "nope" },
     });
     expect(r.status).toBe(500);
+    expect(r.body.error).toMatchObject({ code: "subscribe_answer_failed", status: 500 });
     expect(calls).toEqual([]);
   });
 });
@@ -348,13 +378,13 @@ describe("GET /stream/ice-servers", () => {
 
 describe("GET /stream/debug-state with DEBUG_STATE_TOKEN", () => {
   const debugState = async (headers: Record<string, string>) => {
-    const e = env({ DEBUG_STATE_TOKEN: "s3cret" });
+    const e = env({ DEBUG_STATE_TOKEN: "s3cret", STREAM_SERVER_URL: SERVER });
     return (await app.request("/api/v1/stream/debug-state", { headers }, e)).status;
   };
 
   it("forwards with the right token", async () => {
     expect(await debugState({ "x-debug-token": "s3cret" })).toBe(200);
-    expect(doCalls.map((c) => c.url)).toEqual(["default-singleton-debug-v3/debug-state"]);
+    expect(urls(calls)).toEqual([`GET ${SERVER}/debug-state`]);
   });
 
   it.each([
@@ -363,6 +393,17 @@ describe("GET /stream/debug-state with DEBUG_STATE_TOKEN", () => {
     ["a token of another length", { "x-debug-token": "s3cret!" }],
   ])("refuses %s", async (_label, headers) => {
     expect(await debugState(headers)).toBe(403);
-    expect(doCalls).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("refuses in the API's error shape", async () => {
+    const r = await send("GET", "/debug-state", undefined, env({ DEBUG_STATE_TOKEN: "s3cret" }));
+    expect(r).toEqual({
+      status: 403,
+      body: {
+        error: { code: "forbidden", message: "A valid x-debug-token is required", status: 403 },
+        traceId: "trace-1",
+      },
+    });
   });
 });

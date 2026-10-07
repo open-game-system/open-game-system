@@ -22,17 +22,23 @@ const GrantSchema = z.object({
 });
 export type GameGrant = z.infer<typeof GrantSchema>;
 
-/** POST /api/v1/games/:appId/token with this device's profile token. */
-export function createGameTokenClient(opts: OgsApiOptions) {
+/**
+ * POST /api/v1/games/:appId/token with this device's profile token. With the couch session this
+ * phone is on (`sessionId`), the token names that couch (spec §7).
+ */
+export function createGameTokenClient(opts: OgsApiOptions & { sessionId?: () => string | null }) {
   const { request, parse } = createApiRequest(opts);
-  return async (appId: string): Promise<GameGrant> =>
-    parse(
+  return async (appId: string): Promise<GameGrant> => {
+    const sid = opts.sessionId?.() ?? null;
+    return parse(
       GrantSchema,
       await request(`/api/v1/games/${encodeURIComponent(appId)}/token`, {
         method: "POST",
         authed: true,
+        ...(sid ? { body: { sid } } : {}),
       }),
     );
+  };
 }
 
 export type ProfileEvents = { type: "REFRESH" };

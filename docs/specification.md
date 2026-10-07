@@ -1,1112 +1,202 @@
-# Open Game System (OGS) Specification v1
-
-This repository contains the official specification for the Open Game System (OGS), defining the protocols and requirements for integrating with the OGS ecosystem.
-
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Core Specifications](#core-specifications)
-  - [Account Linking Protocol](#account-linking-protocol)
-  - [Push Notification Protocol](#push-notification-protocol)
-  - [TV Casting Protocol](#tv-casting-protocol)
-  - [Cloud Rendering Protocol](#cloud-rendering-protocol)
-- [Certification Process](#certification-process)
-- [Version History](#version-history)
-
-## Introduction
-
-The Open Game System specification defines the protocols and APIs that allow web games to access native capabilities through the OGS ecosystem. This specification is designed to be:
-
-- **Web-First**: Built for games that live primarily on the web
-- **Protocol-Based**: Focused on defining clear communication protocols
-- **Independent**: Allows games to maintain their own identity and authentication
-- **Extensible**: Designed to accommodate future capabilities
-
-The specification is implemented by the OGS platform and SDKs, which follow these protocols to enable cross-platform features.
-
-## Core Specifications
-
-The OGS v1 specification includes core protocols for: Account Linking, Push Notifications, TV Casting, and Cloud Rendering. Cloud Rendering is a foundational technology that powers both the TV Casting capabilities (via Cast Kit) and advanced rendering options for thin clients (via Stream Kit).
-
-### Account Linking Protocol
-
-The Account Linking Protocol enables games to link their independent user accounts with the OGS platform, enabling cross-platform features like push notifications while maintaining authentication independence.
-
-#### Protocol Overview
-
-1. Game server requests a link token from the OGS platform
-2. User is redirected to the OGS platform's link account page with the link token
-3. User authenticates with the OGS platform and confirms the link
-4. OGS platform links the accounts and redirects back to the game
-5. Game server verifies the link status with the OGS platform
-
-#### HTTP Sequence for Account Linking
-
-```mermaid
-sequenceDiagram
-    participant Game as Game Server
-    participant OGS as OGS Platform
-    participant User as User Browser
-    
-    Game->>OGS: 1. Request Link Token
-    OGS-->>Game: 2. Return Link Token & URL
-    Game->>User: 3. Redirect to Link URL
-    User->>OGS: 4. User Authenticates
-    User->>OGS: 5. User Confirms Link
-    OGS->>User: 6. Redirect to Game Callback
-    Game->>OGS: 7. Verify Link Status
-    OGS-->>Game: 8. Return Link Information
-```
-
-#### Required API Endpoints
-
-##### Request Link Token (Game Server → OGS Provider)
-
-```http
-POST /api/v1/auth/account-link-token HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer GAME_API_KEY
-
-{
-  "gameUserId": "user-123",
-  "redirectUrl": "https://yourgame.com/auth/callback"
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "linkToken": "xyz123",
-  "expiresAt": "2024-06-30T20:00:00Z",
-  "linkUrl": "https://opengame.org/link-account?token=xyz123"
-}
-```
-
-##### Verify Link Token (Game Server → OGS Provider)
-
-```http
-POST /api/v1/auth/verify-link-token HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer GAME_API_KEY
-
-{
-  "token": "xyz123"
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "valid": true,
-  "userId": "ogs-user-456",
-  "email": "user@example.com",
-  "status": "linked",
-  "linkedAt": "2024-06-29T15:35:00Z"
-}
-```
-
-#### Web Auth Token Protocol
-
-The Web Auth Token Protocol enables seamless single sign-on between the OGS platform and games, allowing users to access games through the OGS app without re-authenticating.
-
-##### Protocol Overview
-
-1. OGS app requests a web auth code from the OGS platform
-2. OGS app opens the game in a WebView with the code as a parameter
-3. Game server verifies the code with the OGS platform
-4. OGS platform returns user information
-5. Game creates a session for the user
-
-##### HTTP Sequence for Web Auth Token
-
-```mermaid
-sequenceDiagram
-    participant App as OGS App
-    participant OGS as OGS Platform
-    participant Game as Game Server
-    
-    App->>OGS: 1. Request Web Auth Code
-    OGS-->>App: 2. Return Web Auth Code
-    App->>Game: 3. Open Game URL with Code
-    Game->>OGS: 4. Verify Web Auth Code
-    OGS-->>Game: 5. Return User Information
-    Game->>Game: 6. Create Game Session
-```
-
-##### Required API Endpoints
-
-###### Generate Web Auth Code (OGS App → OGS Provider)
-
-```http
-POST /api/v1/auth/web-code HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer SESSION_TOKEN
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "code": "xyz123",
-  "expiresIn": 300
-}
-```
-
-###### Verify Web Auth Token (Game Server → OGS Provider)
-
-```http
-POST /api/v1/auth/verify-token HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer GAME_API_KEY
-
-{
-  "token": "xyz123"
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "valid": true,
-  "ogsUserId": "ogs-user-456",
-  "email": "user@example.com",  // Only included if verified
-  "isVerified": true
-}
-```
-
-#### Token Refresh Protocol
-
-The Token Refresh Protocol enables games to refresh expired session tokens using a refresh token.
-
-##### HTTP Sequence for Token Refresh
-
-```mermaid
-sequenceDiagram
-    participant Game as Game Server
-    participant OGS as OGS Platform
-    
-    Note over Game: Session token expires
-    Game->>OGS: 1. Request new token with refresh token
-    OGS-->>Game: 2. Return new session token
-    Note over Game: Update stored token
-```
-
-##### Required API Endpoints
-
-###### Refresh Token (Game Server → OGS Provider)
-
-```http
-POST /api/v1/auth/refresh HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Cookie: refresh=refresh-token
-
-{
-  "refreshToken": "refresh-token"
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "success": true,
-  "sessionToken": "new-jwt-token",
-  "expiresIn": 900
-}
-```
-
-### Push Notification Protocol
-
-Push notifications allow games to engage users even when they're not actively playing. The Push Notification Protocol defines how games can send notifications to users through the OGS platform.
-
-#### Protocol Overview
-
-1. Game server sends a notification request to the OGS platform
-2. OGS platform verifies the game's API key and the account link
-3. OGS platform delivers the notification to the user's device
-4. OGS platform returns the delivery status to the game server
-5. Game server can later check the notification status (delivered, read, etc.)
-
-#### HTTP Sequence for Sending Notifications
-
-```mermaid
-sequenceDiagram
-    participant Game as Game Server
-    participant OGS as OGS Platform
-    participant Device as User Device
-    
-    Game->>OGS: 1. Send Notification
-    OGS->>OGS: 2. Validate Request
-    OGS->>Device: 3. Deliver Notification
-    OGS-->>Game: 4. Return Delivery Status
-    Game->>OGS: 5. Check Notification Status
-    OGS-->>Game: 6. Return Updated Status
-```
-
-#### Required API Endpoints
-
-##### Send Notification (Game Server → OGS Notification API)
-
-```http
-POST /api/v1/notifications/send HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer GAME_API_KEY
-
-{
-  "recipient": {
-    "gameUserId": "user-123"
-  },
-  "notification": {
-    "type": "game_invitation",
-    "title": "New Invitation",
-    "body": "PlayerOne invited you to join Trivia Night!",
-    "data": {
-      "gameId": "trivia-456",
-      "inviterId": "user-789",
-      "inviterName": "PlayerOne",
-      "gameName": "Trivia Night",
-      "expiresAt": "2024-06-30T20:00:00Z"
-    },
-    "deepLink": "opengame://trivia-jam/join/trivia-456"
-  }
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "id": "notification-123",
-  "status": "delivered",
-  "deliveredAt": "2024-06-29T15:35:00Z"
-}
-```
-
-##### Get Notification Status (Game Server → OGS Notification API)
-
-```http
-GET /api/v1/notifications/status/notification-123 HTTP/1.1
-Host: api.opengame.org
-Authorization: Bearer GAME_API_KEY
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "id": "notification-123",
-  "status": "read",
-  "deliveredAt": "2024-06-29T15:35:00Z",
-  "readAt": "2024-06-29T15:36:00Z"
-}
-```
-
-##### Register Device (Game Client → OGS Notification API)
-
-```http
-POST /api/v1/notifications/register HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer SESSION_TOKEN
-
-{
-  "deviceToken": "device-token-from-fcm-or-apns",
-  "platform": "ios", // or "android", "web"
-  "topics": ["game_invitation", "turn_notification", "event_reminder"]
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "success": true,
-  "deviceId": "device-123"
-}
-```
-
-### TV Casting Protocol
-
-TV casting allows games to be displayed on larger screens while using mobile devices as controllers. Importantly, **Chromecast support is completely independent** and does NOT require Auth Kit or Notification Kit implementation.
-
-#### Protocol Overview
-
-1. Game server creates a cast session with the OGS platform
-2. OGS platform initializes the receiver application on the Chromecast device
-3. Game client switches to controller mode
-4. Game client sends input events to the OGS platform
-5. OGS platform forwards input events to the receiver application
-6. When finished, game client ends the cast session
-
-#### HTTP Sequence for Casting
-
-```mermaid
-sequenceDiagram
-    participant Game as Game Client
-    participant OGS as OGS Platform
-    participant Cast as Chromecast Device
-    
-    Game->>OGS: 1. Create Cast Session
-    OGS-->>Game: 2. Return Session Info
-    OGS->>Cast: 3. Initialize Receiver App
-    Game->>Game: 4. Switch to Controller Mode
-    Game->>OGS: 5. Send Input Events
-    OGS->>Cast: 6. Forward Input Events
-    Game->>OGS: 7. End Cast Session
-    OGS->>Cast: 8. Terminate Receiver App
-```
-
-#### System Architecture
-
-```mermaid
-flowchart TD
-    subgraph "Mobile Device"
-        App[OGS Mobile App]
-        WebView[WebView]
-        GameUI[Game UI]
-        ControllerUI[Controller UI]
-        CastSDK[Google Cast SDK]
-    end
-    
-    subgraph "OGS Platform"
-        API[OGS API]
-        CastService[Cast Service]
-        SessionMgr[Session Manager]
-    end
-    
-    subgraph "TV"
-        Chromecast[Chromecast Device]
-        ReceiverApp[Receiver App]
-        GameView[Game View]
-    end
-    
-    GameUI -->|Uses| WebView
-    WebView -->|Communicates with| App
-    App -->|Uses| CastSDK
-    CastSDK -->|Connects to| Chromecast
-    
-    GameUI -->|Switches to| ControllerUI
-    ControllerUI -->|Sends input| API
-    API -->|Routes to| CastService
-    CastService -->|Manages| SessionMgr
-    SessionMgr -->|Sends data to| ReceiverApp
-    ReceiverApp -->|Renders| GameView
-```
-
-#### Required API Endpoints
-
-##### Create Cast Session (Game Server → OGS Cast API)
-
-```http
-POST /api/v1/cast/session HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer GAME_API_KEY
-
-{
-  "gameId": "your-game-id",
-  "gameUrl": "https://yourgame.com/play?mode=cast",
-  "sessionData": {
-    "gameState": "initial",
-    "players": ["player1", "player2"]
-  }
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "sessionId": "cast-session-123",
-  "receiverUrl": "https://receiver.opengame.org/cast?session=cast-session-123",
-  "status": "created"
-}
-```
-
-##### Send Input to Cast Session (Game Client → OGS Cast API)
-
-```http
-POST /api/v1/cast/input HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer SESSION_TOKEN
-
-{
-  "sessionId": "cast-session-123",
-  "inputType": "action",
-  "inputData": {
-    "action": "jump",
-    "parameters": {
-      "height": 2,
-      "direction": "forward"
-    }
-  }
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "status": "delivered",
-  "timestamp": "2024-06-29T15:40:00Z"
-}
-```
-
-##### Get Cast Session Status (Game Client → OGS Cast API)
-
-```http
-GET /api/v1/cast/session/cast-session-123 HTTP/1.1
-Host: api.opengame.org
-Authorization: Bearer SESSION_TOKEN
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "sessionId": "cast-session-123",
-  "status": "active",
-  "createdAt": "2024-06-29T15:30:00Z",
-  "lastActivityAt": "2024-06-29T15:35:00Z"
-}
-```
-
-##### End Cast Session (Game Client → OGS Cast API)
-
-```http
-DELETE /api/v1/cast/session/cast-session-123 HTTP/1.1
-Host: api.opengame.org
-Authorization: Bearer SESSION_TOKEN
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "status": "terminated",
-  "sessionId": "cast-session-123"
-}
-```
-
-### Cloud Rendering Protocol
-
-The Cloud Rendering Protocol enables games to offload intensive graphics rendering to powerful cloud servers and stream the output via WebRTC to the client. This protocol serves as the foundation for both TV casting (through Cast Kit) and selective cloud rendering (through Stream Kit).
-
-Stream Kit specifically allows selective cloud rendering of specific graphics-intensive components while maintaining local rendering for UI elements, creating a hybrid rendering approach ideal for web games on thin clients with limited GPU capabilities.
-
-This protocol is especially valuable for:
-- Turn-based games requiring high-fidelity 3D graphics
-- Games that need to support low-powered devices without compromising visual quality
-- Experiences where consistent visual quality across all devices is important
-- Games with graphically complex scenes that would benefit from powerful GPU rendering
-- Dynamic AI-generated worlds that are procedurally created on demand
-- TV casting via the Cast Kit
-
-#### Stream Kit Architecture
-
-The Stream Kit is built on a component-based architecture that allows developers to integrate cloud rendering selectively within their existing web games:
-
-1. **StreamCanvas Component**: A client-side component that displays cloud-rendered content within your web UI
-2. **Render Routes**: Standalone web pages optimized for cloud rendering that contain only the graphics-intensive elements
-3. **Stream Session Management**: Handles negotiation between client and cloud rendering service
-4. **WebRTC Pipeline**: Delivers low-latency video and audio streams from cloud to client
-
-This architecture allows developers to:
-- Render only specific components in the cloud rather than the entire application
-- Compose multiple StreamCanvas instances in a single UI
-- Maintain responsive local UI elements while offloading graphically intensive rendering
-- Seamlessly switch between cloud and local rendering based on device capabilities
-
-#### Implementation Strategy
-
-Stream Kit is designed for progressive enhancement of web games:
-
-1. **Standalone Route Creation**: Create dedicated routes in your web application that render only the graphics-intensive elements (3D scenes, complex visualizations, etc.)
-2. **Component Integration**: Integrate the StreamCanvas component from stream-kit into your main UI where these elements should appear
-3. **Conditional Rendering**: Implement logic to conditionally use cloud rendering based on device capabilities, user preferences, or specific high-fidelity needs
-4. **Composition**: Combine multiple StreamCanvas instances to create rich, interactive experiences with different cloud-rendered views
-
-This approach maintains your game's web-first nature while enhancing it with powerful cloud rendering capabilities.
-
-#### Protocol Overview
-
-1. **Client Initialization:** The game client (using `stream-kit`) initializes a StreamCanvas component with a render URL and options.
-2. **Stream Request:** The StreamCanvas component requests a cloud rendering session from the OGS platform.
-3. **Session Setup:** The OGS Platform authenticates the request, provisions a cloud rendering instance, and instructs it to load the specified render route URL.
-4. **WebRTC Connection:** The OGS Platform facilitates WebRTC connection negotiation between the Cloud Rendering Instance and the Game Client.
-5. **Streaming:** The Cloud Rendering Instance streams the captured video/audio directly to the Game Client via the established WebRTC connection.
-6. **Local Input Handling:** The client can handle user interactions locally while displaying the cloud-rendered content.
-7. **Input Forwarding (Optional):** For interactive streamed experiences, client input events can be forwarded to the cloud renderer.
-8. **Session Termination:** The game client requests termination when done, and the OGS Platform tears down the Cloud Rendering Instance.
-
-#### HTTP/WebRTC Sequence for Cloud Rendering
-
-```mermaid
-sequenceDiagram
-    participant Client as Game Client (w/ stream-kit)
-    participant OGSPlatform as OGS Platform/Broker
-    participant Renderer as Cloud Rendering Instance
-    
-    Client->>OGSPlatform: 1. Initialize StreamCanvas (renderUrl, options)
-    OGSPlatform->>OGSPlatform: 2. Authenticate & Provision Renderer
-    OGSPlatform->>Renderer: 3. Load Render Route URL
-    Renderer->>Renderer: 4. Start Rendering & Prepare Stream
-    OGSPlatform->>Client: 5. Return Session Info & Signaling Data
-    Client->>OGSPlatform: 6. Complete WebRTC Negotiation
-    OGSPlatform->>Renderer: 7. Forward Negotiation Data
-    Renderer->>Client: 8. Establish Direct WebRTC Connection
-    Renderer-->>Client: 9. Stream Video/Audio via WebRTC
-    Note over Client: StreamCanvas displays video
-    Client->>Client: 10. Handle User Interaction Locally
-    Client->>OGSPlatform: 11. Send Input Events (Optional)
-    OGSPlatform->>Renderer: 12. Forward Input Events
-    Client->>OGSPlatform: 13. Request End Session (When Done)
-    OGSPlatform->>Renderer: 14. Terminate Instance
-```
-
-#### Stream Kit Integration Flow
-
-```mermaid
-flowchart TB
-    subgraph "Your Web Game"
-        MainUI[Main Game UI]
-        RenderRoutes[Standalone Render Routes]
-        StreamKit[stream-kit SDK]
-    end
-    
-    subgraph "OGS Cloud Infrastructure"
-        API[OGS Stream API]
-        Provisioner[Renderer Provisioner]
-        CloudGPU[Cloud GPU Instances]
-        WebRTC[WebRTC Service]
-    end
-    
-    subgraph "End User"
-        Device[User Device]
-        LocalUI[Local UI Elements]
-        StreamCanvas[StreamCanvas]
-    end
-    
-    MainUI -->|Creates| RenderRoutes
-    MainUI -->|Uses| StreamKit
-    StreamKit -->|Requests Stream| API
-    API -->|Provisions| Provisioner
-    Provisioner -->|Allocates| CloudGPU
-    CloudGPU -->|Loads| RenderRoutes
-    CloudGPU -->|Negotiates via| WebRTC
-    WebRTC -->|Connects to| StreamKit
-    StreamKit -->|Displays in| StreamCanvas
-    Device -->|Renders| LocalUI
-    LocalUI -->|Composes with| StreamCanvas
-    
-    style StreamKit fill:#9333EA,stroke:#d8b4fe,color:#ffffff
-    style StreamCanvas fill:#9333EA,stroke:#d8b4fe,color:#ffffff
-    style CloudGPU fill:#2563eb,stroke:#93c5fd,color:#ffffff
-```
-
-#### Stream Kit API Reference
-
-##### StreamCanvas Component Properties
-
-The `StreamCanvas` component is the primary interface for integrating cloud rendering:
-
-```typescript
-interface StreamCanvasProps {
-  // URL of the standalone render route to be cloud-rendered
-  url: string;
-  
-  // Styling options for the canvas
-  className?: string;
-  style?: React.CSSProperties;
-  
-  // Rendering preferences
-  renderOptions?: {
-    resolution?: "720p" | "1080p" | "1440p" | "4k" | string;
-    targetFps?: number;
-    quality?: "low" | "medium" | "high" | "ultra";
-    priority?: "latency" | "quality";
-    region?: string; // Preferred cloud region for reduced latency
-  };
-  
-  // Initial data to pass to the render route
-  initialData?: Record<string, any>;
-  
-  // Callbacks
-  onReady?: () => void;
-  onError?: (error: Error) => void;
-  onStateChange?: (state: StreamState) => void;
-  
-  // Input handling
-  handleInputLocally?: boolean; // Whether to handle input events locally
-  forwardInput?: boolean; // Whether to forward input events to cloud
-}
-
-interface StreamState {
-  status: "initializing" | "connecting" | "streaming" | "reconnecting" | "error" | "ended";
-  latency?: number; // Estimated round-trip latency in ms
-  resolution?: string; // Actual streaming resolution
-  fps?: number; // Current frames per second
-  errorMessage?: string;
-}
-```
-
-#### Required API Endpoints
-
-##### Request Stream Session (Client SDK → OGS Platform)
-
-```http
-POST /api/v1/stream/session HTTP/1.1
-Host: api.opengame.org 
-Content-Type: application/json
-Authorization: Bearer OGS_SESSION_TOKEN_OR_GAME_API_KEY 
-
-{
-  "renderUrl": "https://yourgame.com/path-to-render",
-  "clientId": "unique-client-identifier",
-  "renderOptions": {
-    "resolution": "1920x1080",
-    "targetFps": 60,
-    "quality": "high",
-    "priority": "latency",
-    "region": "us-central1"
-  },
-  "initialData": {
-    "sceneId": "world-map-01",
-    "userToken": "user-auth-token",
-    "viewParameters": {
-      "camera": { "x": 0, "y": 10, "z": -5 },
-      "target": { "x": 0, "y": 0, "z": 0 }
-    }
-  },
-  "webRtcConfig": {
-    "iceServers": [
-      { "urls": "stun:stun.l.google.com:19302" }
-    ],
-    "sdpSemantics": "unified-plan"
-  }
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "sessionId": "stream-session-xyz789",
-  "status": "initializing",
-  "rendererId": "renderer-abc123",
-  "signalingUrl": "wss://signaling.opengame.org/stream/xyz789",
-  "iceServers": [
-    { "urls": "stun:stun.l.google.com:19302" },
-    { 
-      "urls": "turn:turn.opengame.org:3478", 
-      "username": "username", 
-      "credential": "password" 
-    }
-  ],
-  "estimatedStartTime": 500, // ms until stream should begin
-  "region": "us-central1"
-}
-```
-
-##### Send Input to Cloud Renderer (Client SDK → OGS Platform)
-
-```http
-POST /api/v1/stream/session/{sessionId}/input HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer OGS_SESSION_TOKEN_OR_GAME_API_KEY 
-
-{
-  "type": "interaction",
-  "timestamp": 1627845292123,
-  "data": {
-    "action": "select",
-    "position": { "x": 250, "y": 300 },
-    "entityId": "character-5",
-    "additionalData": {
-      "pressure": 0.8
-    }
-  }
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "received": true,
-  "timestamp": 1627845292150,
-  "latency": 27 // ms between client timestamp and server receipt
-}
-```
-
-##### Update Stream Parameters (Client SDK → OGS Platform)
-
-```http
-PATCH /api/v1/stream/session/{sessionId} HTTP/1.1
-Host: api.opengame.org
-Content-Type: application/json
-Authorization: Bearer OGS_SESSION_TOKEN_OR_GAME_API_KEY 
-
-{
-  "renderOptions": {
-    "resolution": "1280x720", // Downgrade resolution if network conditions change
-    "targetFps": 30
-  },
-  "sceneData": {
-    "viewParameters": {
-      "camera": { "x": 10, "y": 15, "z": -8 },
-      "target": { "x": 5, "y": 0, "z": 2 }
-    }
-  }
-}
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "accepted": true,
-  "applied": {
-    "resolution": "1280x720",
-    "targetFps": 30
-  },
-  "effective": {
-    "actualFps": 32,
-    "actualBitrate": 2500000 // bits per second
-  }
-}
-```
-
-##### End Stream Session (Client SDK → OGS Platform)
-
-```http
-DELETE /api/v1/stream/session/{sessionId} HTTP/1.1
-Host: api.opengame.org
-Authorization: Bearer OGS_SESSION_TOKEN_OR_GAME_API_KEY 
-```
-
-Response:
-
-```http
-HTTP/1.1 200 OK
-Content-Type: application/json
-
-{
-  "status": "terminated",
-  "sessionId": "stream-session-xyz789",
-  "usage": {
-    "duration": 1200, // seconds
-    "dataTransferred": 450000000, // bytes
-    "renderUnitTime": 20 // minutes of GPU time used
-  }
-}
-```
-
-##### WebSocket Signaling (Optional Alternative)
-
-For WebRTC negotiation, a WebSocket connection between the Client, OGS Platform, and potentially the Renderer could be used instead of relying solely on HTTP polling/responses for SDP and ICE candidate exchange. This would be more efficient for the real-time nature of negotiation. The specific WebSocket message format would need further definition.
-
-#### Stream Kit Integration Examples
-
-##### Basic Integration (React)
-
-```jsx
-import { StreamCanvas } from '@open-game-system/stream-kit';
-
-function GameView() {
-  return (
-    <div className="game-container">
-      <header className="game-hud">
-        {/* Locally rendered UI elements */}
-        <div className="score">Score: 1250</div>
-        <div className="health-bar">Health: 85%</div>
-      </header>
-      
-      <main className="game-view">
-        {/* Cloud-rendered 3D scene */}
-        <StreamCanvas 
-          url="https://yourgame.com/render/world-scene"
-          className="w-full h-full"
-          renderOptions={{
-            resolution: "1080p",
-            quality: "high"
-          }}
-          onStateChange={(state) => console.log("Stream state:", state)}
-        />
-      </main>
-      
-      <footer className="game-controls">
-        {/* Locally rendered control UI */}
-        <button>Inventory</button>
-        <button>Map</button>
-      </footer>
-    </div>
-  );
-}
-```
-
-##### Multiple View Integration
-
-```jsx
-import { StreamCanvas } from '@open-game-system/stream-kit';
-import { useState } from 'react';
-import * as Tabs from '@radix-ui/react-tabs';
-
-function GameWithMultipleViews() {
-  const [activeView, setActiveView] = useState('world');
-  
-  return (
-    <div className="game-container">
-      <Tabs.Root value={activeView} onValueChange={setActiveView}>
-        <Tabs.List className="view-selector">
-          <Tabs.Trigger value="world">World</Tabs.Trigger>
-          <Tabs.Trigger value="map">Map</Tabs.Trigger>
-          <Tabs.Trigger value="character">Character</Tabs.Trigger>
-        </Tabs.List>
-        
-        <Tabs.Content value="world" className="view-content">
-          <StreamCanvas 
-            url="https://yourgame.com/render/world-view"
-            className="w-full h-full"
-          />
-        </Tabs.Content>
-        
-        <Tabs.Content value="map" className="view-content">
-          <StreamCanvas 
-            url="https://yourgame.com/render/map-view"
-            className="w-full h-full"
-          />
-        </Tabs.Content>
-        
-        <Tabs.Content value="character" className="view-content">
-          <StreamCanvas 
-            url="https://yourgame.com/render/character-view"
-            className="w-full h-full"
-          />
-        </Tabs.Content>
-      </Tabs.Root>
-      
-      <div className="game-controls">
-        {/* Common controls that work across all views */}
-        <button>Inventory</button>
-        <button>Menu</button>
-      </div>
-    </div>
-  );
-}
-```
-
-##### Conditional Cloud Rendering
-
-```jsx
-import { StreamCanvas } from '@open-game-system/stream-kit';
-import { useEffect, useState } from 'react';
-import { LocalRenderer } from './components/LocalRenderer';
-import { detectDeviceCapabilities } from './utils/deviceDetection';
-
-function AdaptiveGameView() {
-  const [useCloudRendering, setUseCloudRendering] = useState(false);
-  
-  useEffect(() => {
-    // Detect if the device would benefit from cloud rendering
-    const deviceCapabilities = detectDeviceCapabilities();
-    
-    setUseCloudRendering(
-      deviceCapabilities.gpuTier < 2 || // Low-end GPU
-      deviceCapabilities.isMobile ||    // Mobile device
-      deviceCapabilities.preferCloudRendering // User preference
-    );
-  }, []);
-  
-  return (
-    <div className="game-scene">
-      {useCloudRendering ? (
-        <StreamCanvas 
-          url="https://yourgame.com/render/high-quality-scene"
-          className="w-full h-full"
-          renderOptions={{ quality: "high" }}
-        />
-      ) : (
-        <LocalRenderer 
-          scene="high-quality-scene"
-          className="w-full h-full"
-          quality={deviceCapabilities.gpuTier >= 3 ? "ultra" : "medium"}
-        />
-      )}
-      
-      <div className="overlay-controls">
-        <button onClick={() => setUseCloudRendering(!useCloudRendering)}>
-          Toggle Cloud Rendering
-        </button>
-      </div>
-    </div>
-  );
-}
-```
-
-## Certification Process
-
-To certify your game as OGS-compatible:
-
-### 1. Domain Verification
-
-Create a `.well-known/opengame-association.json` file at your domain root:
-
-```json
-{
-  "appId": "your-game-id",
-  "name": "Your Game Name",
-  "version": "1.0.0",
-  "contact": "developer@yourgame.com",
-  "features": ["authentication", "notifications", "chromecast", "streaming"], 
-  "apiVersion": "v1",
-  "verification": "VERIFICATION_TOKEN"
-}
-```
-
-The `VERIFICATION_TOKEN` will be provided during certification. Include only the features you've implemented in the features array. The `apiVersion` field should match the version of the OGS API you're implementing (currently "v1").
-
-### 2. Certification Flow
-
-The certification process follows these steps:
-
-1. Create the `.well-known/opengame-association.json` file on your domain
-2. Trigger verification by submitting your domain to the OGS developer portal
-3. Receive your API key by email after domain verification
-4. Integrate the API key in your backend implementation
-5. Test your implementation against the OGS platform
-6. Submit your game for final review
-7. Receive OGS certification after approval
-
-### 3. API Key Generation
-
-After successful domain verification, our automated system will send your API key to the contact email provided in the `.well-known` file:
-
-* Keys are specific to each game and environment
-* Store securely, never expose in client-side code
-* Use the API key for server-to-server communication with the OGS platform
-
-## SDKs for Implementation
-
-The following SDKs implement the OGS protocols to simplify integration:
-
-- **[auth-kit](https://github.com/open-game-system/auth-kit)**: Implementation of the Account Linking Protocol
-- **[notification-kit](https://github.com/open-game-system/notification-kit)**: Implementation of the Push Notification Protocol
-- **[cast-kit](https://github.com/open-game-system/cast-kit)**: Implementation of the TV Casting Protocol
-- **[stream-kit](https://github.com/open-game-system/stream-kit)**: Implementation of the Cloud Rendering Protocol with components for integrating cloud-rendered graphics into web games
-
-Each SDK can be used independently, allowing you to implement only the features your game needs.
-
-## Integration Overview
-
-```mermaid
-flowchart TD
-    subgraph "Your Game"
-        GameServer[Game Server]
-        GameClient[Game Client]
-        AuthKit[auth-kit]
-        NotificationKit[notification-kit]
-        CastKit[cast-kit]
-        StreamKit[stream-kit]
-    end
-    
-    subgraph "OGS System"
-        OGSAPI[OGS API]
-        CloudRenderer[Cloud Rendering Service]
-        OGSApp[OGS Mobile App]
-        OGSPlatform[OGS Platform]
-    end
-    
-    GameServer -->|Uses| AuthKit
-    GameServer -->|Uses| NotificationKit
-    GameClient -->|Uses| CastKit
-    GameClient -->|Uses| StreamKit
-    
-    AuthKit -->|Communicates with| OGSAPI
-    NotificationKit -->|Sends notifications via| OGSAPI
-    CastKit -->|Communicates with| OGSApp
-    StreamKit -->|Requests/Manages Stream via| OGSAPI
-    OGSAPI -->|Coordinates| CloudRenderer 
-    CloudRenderer -->|WebRTC Stream| StreamKit 
-    
-    OGSApp -->|Enables native features| OGSPlatform
-```
-
-## Future Extensions
-
-The OGS specification is designed to be extensible. Future versions may include:
-
-- **Wallet Integration**: Connecting with web3 wallets
-- **In-App Purchases**: Cross-platform payment processing
-- **Multiplayer Services**: Matchmaking and real-time communication
-- **Achievements & Leaderboards**: Cross-game achievement tracking
-
-## Version History
-
-- **v1.1.0 (Planned Q4 2024)** - Addition of formalized Stream Kit specification and cloud rendering capabilities
-- **v1.0.0 (March 2024)** - Initial OGS specification release with authentication, push notifications, and Chromecast support
-
-## Contact
-
-- Website: [https://opengame.org](https://opengame.org)
-- Email: [hello@opengame.org](mailto:hello@opengame.org)
-
-## License
-
-This specification is licensed under the MIT License. 
+# The OGS game contract
+
+**Status:** current (October 2026). This page is the single source of truth for what a web game does to
+run in OGS. When code and this page disagree, the schemas in `packages/ogs-protocol/src/` win and this
+page is fixed. Decision: [ADR 2026-10-04 OGS game contract](adrs/2026-10-04-ogs-game-contract.md).
+
+It replaces the March 2026 "OGS Specification v1" (account linking, certification, per-game cast
+sessions), which described a model OGS no longer uses. That text is in git history
+(`git show c616c6b5:docs/specification.md`).
+
+## The model in one paragraph
+
+A grown-up casts **once** from the OGS app. The Chromecast (or any browser on the TV) shows one page all
+evening: the **TV launcher** (`apps/tv`). The launcher frames each game's **TV page** in an iframe and
+swaps games without recasting. Phones and iPads play the game's **phone page** inside the app's
+WebView. People join the couch with the **TV code** (a 6-character code per couch session), not a game's
+room code. A game never casts, never shows a cast button, and still works in a plain browser.
+
+Product spec: [OGS app v3](product-specs/ogs-app-v3.html). TV platforms (direct launcher vs WebRTC
+stream): [ADR 2026-10-04 TV platforms](adrs/2026-10-04-tv-platforms.md).
+
+## 1. Manifest and catalogue
+
+A game is config, not code: one `Manifest` (`ManifestSchema` in
+`packages/ogs-protocol/src/manifest.ts`). The catalogue is the list of manifests in
+`services/api/src/catalogue.ts` (`CATALOGUE`), served at `GET /api/v1/catalogue`; the app's Library
+reads it from there. `apps/mobile/services/game-directory.ts` is the old static list: don't add games to it.
+
+| Field | Meaning |
+|---|---|
+| `appId` | `[a-z0-9-]+`; also the `aud` of every game token for this game |
+| `name`, `tagline` | Shown in Library and on the TV |
+| `shape` | `couch` · `live` · `async` |
+| `tv` | `none` (phone only) · `optional` · `required` |
+| `startUrl` | The phone page (also the controller when the TV shows the TV page) |
+| `tvUrl` | Optional static TV page. Room-based games omit it and send the room's TV URL at runtime (§3) |
+| `roles` | `{ id, label, audience: grownup \| kid \| little }[]` |
+| `art` | See the art kit below |
+| `shop` | `ages`, `minutes: [min, max]`, `players` |
+| `instanceTtlMs` | How long a silent sitting lives (default 7 days) |
+| `multiCouch` | `true`: several couches may join one room (§7). Default `false` |
+
+`catalogueFor(env)` swaps in local `startUrl`s from `CATALOGUE_START_URLS` (JSON `{ appId: url }`) for
+dev stacks and e2e runs; it never adds games.
+
+### Art kit
+
+Every catalogue game ships four images under `apps/tv/public/art/<appId>/`, referenced from `art`:
+
+| Field | Image |
+|---|---|
+| `icon` | 1:1 icon |
+| `cover` | 2:3 cover **with the title** |
+| `logo` | Transparent logo |
+| `heroClean` | 16:9 hero with **no text and no HUD** |
+
+`tile` (required) and `hero` are older captured screenshots; `safe` (`scale`, `ox`, `oy`) crops their HUD
+when no clean art exists. `services/api/test/catalogue.test.ts` fails if any catalogue game lacks the kit
+or a file is missing. Contact sheet: `apps/tv/public/art/KIT-SHEET.jpg`. No faces on objects; each game
+keeps its own look.
+
+`art.theme` (a launcher music loop per game) is not on this branch yet; add it here when it merges.
+
+## 2. The TV page, framed by the launcher
+
+Messages are `LauncherToGameSchema` and `GameToLauncherSchema` in
+`packages/ogs-protocol/src/frame.ts`, sent with `postMessage`. Every message is optional for the game:
+a game that answers nothing still runs.
+
+| Direction | Message | Payload | When |
+|---|---|---|---|
+| launcher → game | `ogs:start` | `instanceId`, `mode` (`continue` \| `new`), `roster`, `token`, `players?`, `room?` (§7) | On the frame's load, and again whenever the game says `ogs:ready` |
+| game → launcher | `ogs:ready` | none | The page started listening (possibly after load); the launcher re-sends `ogs:start` for the current sitting |
+| launcher → game | `ogs:suspend` | none | Home, or a swap to another game: the frame is **parked**, still loaded |
+| launcher → game | `ogs:resume` | none | Continue of the parked sitting: the same frame comes back, no reload |
+| game → launcher | `ogs:resume-point` | `label` | The sitting's label ("Mission 6") |
+| game → launcher | `ogs:room` | `room` | The room the TV page shows (`multiCouch` games, §7) |
+| game → launcher | `ogs:instance` | `report` (`InstanceReportSchema`) | Same purpose; the launcher uses `report.title` as the label |
+
+- `token` is a **game token** for this game and this couch session (`aud` = appId, `sid`, `players`), or
+  `""` when OGS could not sign one. The launcher's own token never reaches a game's origin.
+- `players` is who's on the couch: `{ id, handle, name, avatar }[]` (`GamePlayerSchema`).
+- The launcher accepts game messages only from the origin of the game's TV URL
+  (`readFrameMessage` in `apps/tv/src/launcher/frames.ts`), and frames with `allow="autoplay; fullscreen"`.
+  The TV page must allow being framed (no `X-Frame-Options: DENY` or a `frame-ancestors` that excludes
+  the launcher).
+- The launcher keeps one active frame and one parked frame (`nextFrames`); a third game unloads the
+  oldest parked one.
+- If a started game sends no TV page within 20 s (`VIEW_TIMEOUT_MS`), the TV says it didn't open.
+
+With profile-kit (§4) a game doesn't post these by hand:
+
+| Need | profile-kit |
+|---|---|
+| Who's on the couch, the session's game token | `useOgsSession()` (react) or `getOgsSessionSource()`: `undefined` while waiting, `null` when not framed by OGS (300 ms), else `{ players, token, instanceId, mode }`. Says `ogs:ready` itself |
+| Go silent when parked | `onOgsPause((paused) => …)`: `true` on `ogs:suspend`, `false` on `ogs:resume`; never fires in a plain browser |
+| The sitting's label | `reportOgsSitting({ instanceId, appId, status, title })`: `ogs:instance` to the launcher on the TV, the app bridge in the WebView, nothing in a plain browser |
+| Several couches (§7) | `reportOgsRoom(room)` (TV page: `ogs:room`); `useOgsSession()` gives `room` when this couch joins another's; `ogsRoomFromUrl(location.href)` on the phone page; `verifyOgsToken` returns `couch: { sid, label }` |
+
+**Parked means silent.** A parked frame stays loaded so Continue is instant, so its audio keeps
+playing unless the game stops it. Suspend the `AudioContext` and pause media on `onOgsPause(true)`; resume
+on `false`, and only what was playing before. Pattern: `createAudioPause` in
+`~/src/night-flight-owls/src/client/audio-pause.ts`.
+
+## 3. Phones: the game page in the app's WebView
+
+- The app opens `startUrl` in a WebView with the app bridge (`@open-game-system/app-bridge-*`).
+- **Who's playing:** `useOgsProfile()` (`@open-game-system/profile-kit/react`) gives
+  `{ id, handle, name, avatar, token }` from the app's `profile` bridge store (refreshed before the token
+  expires). `undefined` while asking (up to 300 ms for the store, 5 s while the app says `asking`),
+  `null` in a plain browser. With a profile, skip the game's name form and join under the OGS name and
+  avatar; with `null`, keep the form.
+- **The TV page of a room game:** the phone page declares it with cast-kit-react
+  `useCastViewUrl(url)`. While cast through OGS the app forwards it to the couch session as `game.view`
+  (`apps/mobile/services/game-cast-route.ts`) for the launcher to frame, and drops the game's
+  `START_CASTING` / `STOP_CASTING` / `SHOW_CAST_PICKER`. A game with a static `tvUrl` needs nothing.
+  `isOGSCastAvailable()` (cast-kit-core) tells the page it runs inside the OGS app.
+- **Sitting labels:** `reportOgsSitting(...)` goes through the app's `ogs` bridge store as
+  `INSTANCE_REPORT`, so two sittings of one game read apart in Playing. When nothing is reported, OGS
+  names a sitting by when it started (`sittingName` in `packages/ogs-protocol/src/sitting.ts`).
+  While cast, the report labels the couch session's live sitting of the game (the app files it under
+  that sitting's id, as the launcher does with the TV page's `ogs:instance`), so the phone page and the
+  TV page may both report: one start is one sitting. The game's own `instanceId` is used only when
+  the phone plays alone.
+
+## 4. Server: verify the token
+
+- Game tokens are **ES256** JWTs signed by OGS, `aud` = the game's appId, valid 1 hour
+  (`GameTokenSchema`, `GAME_TOKEN_TTL_S` in `packages/ogs-protocol/src/game-token.ts`). Claims: `iss`,
+  `aud`, `sub` (profile id; the host's for a TV token), `handle`, `name`, `avatar`, `iat`, `exp`, plus
+  `sid` and `players` on TV tokens, and `couch` (`{ sid, label }`) on every token issued for a couch (§7). Never friends, other games, device ids, push tokens or age.
+- Public keys: `GET /.well-known/jwks.json` on the OGS API.
+- Issued by `POST /api/v1/games/:appId/token` (the app, for a phone) and
+  `POST /api/v1/sessions/:sid/game-token` (the launcher, for the TV).
+- On the game's server: `verifyOgsToken(token, { appId })` from `@open-game-system/profile-kit/server`
+  checks signature, `aud` and expiry and returns the claims or `null`. `jwksUrl` overrides the default
+  (`OGS_JWKS_URL`, `https://api.opengame.org/.well-known/jwks.json`, a custom domain not yet confirmed
+  on 2026-10-04); Rocket Crew sets it per environment as a Worker var (`OGS_JWKS_URL` in its
+  `wrangler.toml`), which also lets seam tests use a local key set. Anything that matters (seats, scores) uses the verified
+  claims; `readGameToken` in the page only decodes, for display.
+
+## 5. Rules
+
+1. **No cast button, no room code and no join UI on an OGS TV.** OGS casts; people join with the TV code.
+   Outside OGS the game may keep its own room code, QR and TV link.
+2. **Nothing covers the TV's focal area.** HUD and toasts stay at the edges.
+3. **Still playable in a plain browser.** Every profile-kit call degrades to `null` / no-op there.
+4. **Silent while parked** (§2).
+5. **The game never sees the app's or the launcher's own token**, only game tokens for itself.
+
+## 6. How to test it
+
+- **TV page:** frame it from a tiny parent page, post the launcher messages to the iframe and assert on
+  the page. Examples (Playwright + vitest seam tests):
+  - `~/src/night-flight-owls/e2e/ogs-pause.seam.test.ts` and `~/src/rocket-crew/e2e/ogs-pause.seam.test.ts`:
+    `ogs:suspend` suspends every `AudioContext`, `ogs:resume` resumes it.
+  - Do the same for `ogs:start` (players named on the TV) and for the `ogs:instance` the page posts back.
+- **Phone page:** `~/src/rocket-crew/e2e/ogs-bridge.seam.test.ts` fakes the app's WebView bridge and signs
+  game tokens with a local JWKS (`--var OGS_JWKS_URL:…`).
+- **OGS side:** `packages/profile-kit/src/*.test.ts`, `apps/tv/src/launcher/frames.test.ts`,
+  `services/api/test/catalogue.test.ts`; cross-surface suites in [testing/e2e.md](testing/e2e.md).
+
+## 7. Several couches, one room (`multiCouch`)
+
+Each living room keeps its own couch session, TV launcher and phones. Several couches can play one
+**room** of a game: the game makes the room, the other couches join it, and the game groups players by
+couch. Decision: [ADR 2026-10-05 couches join the game's room](adrs/2026-10-05-couches-join-the-games-room.md).
+Acceptance: [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature).
+
+| Piece | Contract |
+|---|---|
+| Manifest | `multiCouch: true` (default `false`): the game accepts players from several couches in one room. OGS offers Invite and Join with your couch only for these games. |
+| Room id | The game's own room code (`[A-Za-z0-9_-]{1,64}`, e.g. Night Flight's `KQTP`). OGS never makes one. |
+| Game → launcher | `ogs:room` `{ room }`: the TV page says which room it shows (on create and whenever it changes). The launcher forwards it to the couch session as `game.room`; the sitting keeps it, and friends' presence shows it. profile-kit: `reportOgsRoom(room)`. |
+| Couch session | `game.start` takes `room?`. Starting a game with a room opens (or resumes) this couch's sitting **in that room**; without one the game makes its own as before. `current.room` and each paused sitting's `room` keep it, so Continue goes back into the same room. |
+| Launcher → game | `ogs:start` carries `room` when the sitting names one: join that room, don't create one. |
+| Phone page | When the sitting names a room, the app opens `startUrl` with `ogsRoom=<room>` added to its query (profile-kit: `ogsRoomFromUrl(location.href)`), so the host phone joins the room too. |
+| Game token | Every token issued for a couch (the TV's, and a phone's when it asks with its session id) carries `couch: { sid, label }`: the couch session id and its label (the host's name). Players with the same `couch.sid` sit on the same couch. A token without `couch` is a phone with no couch (plain WebView): the game seats it with its TV's couch, or alone. |
+| Leaving | Home on one TV parks only that couch's frame (`ogs:suspend`); the game marks that couch away and keeps the turn order going for the others. `ogs:resume` brings it back in the same room. |
+
+**Invites.** `POST /api/v1/games/:appId/invites` `{ room, to: [profileId…] }` (a phone in a couch
+session; only friends; only `multiCouch` games) sends each friend a push ("Jonathan invites you to Night
+Flight") and answers the link `https://opengame.org/play/<appId>?room=<room>` (`PLAY_BASE_URL` overrides
+the origin). The app opens that link (and `opengame://play/<appId>?room=<room>`): with a TV cast it sends
+`game.start { appId, room }`, else it asks to cast first and then starts. opengame.org/play/… is a web page
+that opens the app, or says how to get it.
+
+**Join with your couch.** `GET /api/v1/friends/rooms` lists the rooms of `multiCouch` games your friends'
+TVs are in: `{ appId, game, room, couches: [{ sessionId, label, host }], joined }`. Playing shows each as
+"Jonathan and Sam are playing Night Flight" with **Join with your couch** (the same start as the link).
+Presence (`casting`/`playing`) carries the `room` too. Join a friend's cast (sitting on *their* couch) is
+unchanged.
+
+## Acceptance
+
+- [ogs-game-contract.feature](acceptance/2026-10-04-ogs-game-contract.feature): the TV page contract
+  (start, ready, pause, labels, plain browser)
+- [games-know-you.feature](acceptance/2026-10-04-games-know-you.feature): game tokens, profile, players
+- [cast-first-app.feature](acceptance/2026-10-03-cast-first-app.feature): cast once, launcher, swaps,
+  instances
+- [ogs-profiles.feature](acceptance/2026-10-04-ogs-profiles.feature): profiles and joining with the TV code
+- [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature): several couches in one room (§7)

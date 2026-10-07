@@ -5,7 +5,7 @@
 //   # OGS API copy (own D1, own port), Rocket Crew from the local server, local avatars
 //   cd services/api && pnpm game-key   # once: OGS_GAME_SIGNING_KEY in .dev.vars
 //   npx wrangler d1 execute opengame-api-db --local --persist-to <dir> --file=schema.sql
-//   npx wrangler dev --port 8798 --enable-containers=false --persist-to <dir> \
+//   npx wrangler dev --port 8798 --persist-to <dir> \
 //     --var 'CATALOGUE_START_URLS:{"rocket-crew":"http://localhost:8821/"}' --var AVATAR_BASE_URL:http://localhost:5180
 //   # Rocket Crew verifying tokens with that API's key set
 //   cd ~/src/rocket-crew && pnpm build:client && npx wrangler dev --port 8821 \

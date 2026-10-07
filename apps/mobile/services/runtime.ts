@@ -1,18 +1,23 @@
 import type { ClientMessage, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
+import { Platform, AppState as RNAppState } from "react-native";
 import { createAppState } from "./app-state";
 import type { CastBackend } from "./cast-backend";
 import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-flow";
 import { createCastStop } from "./cast-stop";
 import { createCastStore } from "./cast-store";
+import { createCastSwitch } from "./cast-switch";
 import { castCommands, startCastSync } from "./cast-sync";
+import { createCastTrace } from "./cast-trace";
 import { streamServerUrl } from "./cast-view";
+import { type ClientLogContext, clientEventsSender, createClientLog, hashId } from "./client-log";
 import { appConfig, isLauncherView } from "./config";
 import {
   type CouchSession,
@@ -21,15 +26,17 @@ import {
   createCouchSession,
   type SocketLike,
 } from "./couch-session";
-import { createFakeCastBackend } from "./fake-cast";
+import { createFakeCastBackend, fakeCastOptions } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
 import { createGamePresence } from "./game-presence";
 import { createGameProfile, createGameTokenClient } from "./game-profile";
 import { createGameUrls, rejoinUrl, rememberGame } from "./game-rejoin";
 import { createGoogleCastBackend } from "./google-cast-backend";
+import { captureJsErrors, type RejectionTracker } from "./js-errors";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
 import { createOgsApi } from "./ogs-api";
+import { createRoomJoiner, roomStartUrl } from "./rooms";
 import { sittingToOpen } from "./sittings";
 
 /**
@@ -42,23 +49,79 @@ export const config = appConfig;
 
 const fetchImpl = (url: string, init?: RequestInit) => fetch(url, init);
 
+// --- Client log (wide events → POST /api/v1/client-events → Workers Logs) -------------------
+
+/** Who is logging: filled in once appState exists (below); events before that go without it. */
+let logIdentity: () => Pick<ClientLogContext, "profileId" | "sessionId" | "deviceHash"> =
+  () => ({});
+let logAuth: () => { token: string } | null = () => null;
+const appVersion = Constants.expoConfig?.version;
+const appBuild =
+  Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode;
+
+export const clientLog = createClientLog({
+  send: clientEventsSender({ baseUrl: config.apiBase, fetch: fetchImpl, auth: () => logAuth() }),
+  context: () => ({
+    app: "mobile",
+    version: appVersion,
+    build: `${appBuild ?? "dev"}${config.fakeCast === "off" ? "" : "+fake-cast"}`,
+    platform: `${Platform.OS} ${Platform.Version}`,
+    ...logIdentity(),
+  }),
+  now: Date.now,
+  storage: AsyncStorage,
+});
+void clientLog.restore();
+// Flush on background (and keep what couldn't be sent for the next launch).
+RNAppState.addEventListener("change", (state) => {
+  if (state === "background") void clientLog.background();
+});
+
+/**
+ * Uncaught JS errors → the client log: RN's global handler, and unhandled promise rejections in
+ * release builds (in dev, RN's LogBox owns Hermes' rejection tracker). The root layout's error
+ * boundary reports through `jsErrors.boundary`.
+ */
+export const jsErrors = captureJsErrors(clientLog, {
+  errorUtils: ErrorUtils,
+  trackRejections: __DEV__ ? null : hermesRejectionTracker(),
+});
+
+/** Hermes' `enablePromiseRejectionTracker`, read off the untyped global (null without Hermes). */
+function hermesRejectionTracker(): RejectionTracker | null {
+  const hermes: unknown = Reflect.get(globalThis, "HermesInternal");
+  if (typeof hermes !== "object" || hermes === null) return null;
+  const enable: unknown = Reflect.get(hermes, "enablePromiseRejectionTracker");
+  if (typeof enable !== "function") return null;
+  return (options) => {
+    Reflect.apply(enable, hermes, [options]);
+  };
+}
+
+/** The cast lifecycle's log, one correlation id per cast attempt. */
+export const castTrace = createCastTrace(clientLog);
+
 export const castBackend: CastBackend =
   config.fakeCast === "off"
-    ? createGoogleCastBackend()
+    ? createGoogleCastBackend(castTrace)
     : createFakeCastBackend({
         mode: config.fakeCast,
         loadUrl: config.fakeCastUrl,
         fetch: fetchImpl,
+        ...fakeCastOptions({
+          EXPO_PUBLIC_FAKE_CAST_END_MS: process.env.EXPO_PUBLIC_FAKE_CAST_END_MS,
+          EXPO_PUBLIC_FAKE_CAST_URL_2: process.env.EXPO_PUBLIC_FAKE_CAST_URL_2,
+        }),
       });
 
-const commands = castCommands(() => castBackend.showCastDialog());
+const commands = castCommands(() => castBackend.showCastDialog(), castTrace);
 export const castStore = createCastStore(commands);
 /** Metro inlines EXPO_PUBLIC_* only for literal reads. */
 const streamServer = streamServerUrl(
   { EXPO_PUBLIC_OGS_STREAM: process.env.EXPO_PUBLIC_OGS_STREAM },
   config.apiBase,
 );
-startCastSync(castStore, castBackend.sessionManager, commands, streamServer);
+startCastSync(castStore, castBackend.sessionManager, commands, streamServer, castTrace);
 castBackend.subscribeDevices((devices) => castStore.dispatch({ type: "DEVICES_UPDATED", devices }));
 
 const auth = () => {
@@ -70,7 +133,13 @@ export const api = createOgsApi({ baseUrl: config.apiBase, fetch: fetchImpl, aut
 
 /** The game WebView's `profile` store: a token for the open game only (slice 3). */
 export const gameProfile = createGameProfile({
-  fetchToken: createGameTokenClient({ baseUrl: config.apiBase, fetch: fetchImpl, auth }),
+  fetchToken: createGameTokenClient({
+    baseUrl: config.apiBase,
+    fetch: fetchImpl,
+    auth,
+    // The couch this phone is on, so a multiCouch game knows which household it sits with.
+    sessionId: () => appState.getSnapshot().session?.sessionId ?? null,
+  }),
 });
 
 /** App storage (wiped with the app), unlike the Keychain behind SecureStore. */
@@ -89,6 +158,16 @@ export const appState = createAppState({
     markLaunched: () => AsyncStorage.setItem(INSTALLED_KEY, "true"),
   },
 });
+
+logAuth = auth;
+logIdentity = () => {
+  const { identity: id, session } = appState.getSnapshot();
+  return {
+    profileId: id?.profile.id,
+    sessionId: session?.sessionId,
+    deviceHash: id ? hashId(id.deviceId) : undefined,
+  };
+};
 
 // --- Couch session -------------------------------------------------------------------------
 
@@ -154,12 +233,14 @@ function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
     deviceId: deviceIdOfMine,
     createSocket: webSocket,
     // A game started from the TV with the remote: this phone hosts it, so open its start page.
-    onFollowHost: ({ appId, instanceId }) => {
+    onFollowHost: ({ appId, instanceId, room }) => {
       const game = appState.getSnapshot().library.find((g) => g.appId === appId);
-      // Continuing a paused game hosts its same room again, not a fresh one from the start page.
+      // Continuing a paused game hosts its same room again, not a fresh one from the start page;
+      // a sitting in another couch's room (spec §7) starts by joining that room.
+      const start = (g: Manifest) => (room ? roomStartUrl(g.startUrl, room) : g.startUrl);
       if (game)
         gamePresence.followHost(appId, () =>
-          pushGame(game, rejoinUrlFor(appId, instanceId) ?? game.startUrl),
+          pushGame(game, rejoinUrlFor(appId, instanceId) ?? start(game)),
         );
     },
   });
@@ -254,12 +335,46 @@ export function openPill(pill: ReturnPill) {
   else router.push({ pathname: "/game", params: { url: pill.url, name: pill.name } });
 }
 
+/**
+ * Several couches, one room (spec §7): an invite link or Join with your couch starts the game in
+ * that room on this couch's TV, at once while cast, else as soon as the TV is cast.
+ */
+export const roomJoiner = createRoomJoiner({
+  find: (appId) => {
+    const { library, catalogue } = appState.getSnapshot();
+    return [...library, ...catalogue].find((g) => g.appId === appId);
+  },
+  isCast: ogsCastNow,
+  subscribeCast: (listener) => {
+    const offCast = castStore.subscribe(listener);
+    const offCouch = couchHub.subscribe(listener);
+    return () => {
+      offCast();
+      offCouch();
+    };
+  },
+  deviceId,
+  send: (msg) => couchHub.send(msg),
+  open: (game, url) => pushGame(game, url),
+});
+
 /** Cast: a new couch session hosted by this profile, named for the TV. */
 export async function castNow(tv: { id: string; name: string }) {
   castStop.reset();
+  castSwitch.dismiss();
   const launcher = { launcherToken: () => appState.startSession(tv.name) };
-  return castToTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
+  return castToTv({
+    api: launcher,
+    config,
+    castStore,
+    backend: castBackend,
+    deviceId: tv.id,
+    trace: castTrace,
+  });
 }
+
+/** Remote → TV picker: "Switching to <TV>…" until the new TV is connected, one switch at a time. */
+export const castSwitch = createCastSwitch({ castStore });
 
 /** Remote → TV picker: the same session (its launcher token) moves to another TV. */
 export async function moveToTv(tv: { id: string; name: string }) {
@@ -267,7 +382,16 @@ export async function moveToTv(tv: { id: string; name: string }) {
     launcherToken: async () =>
       appState.getSnapshot().session?.launcherToken ?? appState.startSession(tv.name),
   };
-  return switchTv({ api: launcher, config, castStore, backend: castBackend, deviceId: tv.id });
+  return castSwitch.run(tv, () =>
+    switchTv({
+      api: launcher,
+      config,
+      castStore,
+      backend: castBackend,
+      deviceId: tv.id,
+      trace: castTrace,
+    }),
+  );
 }
 
 /** Remote → Stop casting: the TV tab shows the Cast screen at once (castStop), then the cast ends. */
@@ -276,6 +400,7 @@ export function endTonight() {
     const result = await endForTonight({
       send: couchHub.send,
       sessionManager: castBackend.sessionManager,
+      trace: castTrace,
     });
     appState.setPill(null);
     await appState.leaveSession();
@@ -300,6 +425,9 @@ export const useCouch = () =>
   useSyncExternalStore(couchHub.subscribe, couchHub.getSnapshot, couchHub.getSnapshot);
 export const useCast = () =>
   useSyncExternalStore(castStore.subscribe, castStore.getSnapshot, castStore.getSnapshot);
+
+export const useCastSwitch = () =>
+  useSyncExternalStore(castSwitch.subscribe, castSwitch.getSnapshot, castSwitch.getSnapshot);
 
 export const useCastStopping = () =>
   useSyncExternalStore(castStop.subscribe, castStop.isStopping, castStop.isStopping);

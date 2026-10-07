@@ -6,6 +6,8 @@ on:
     paths:
       - "services/api/**"
       - ".github/workflows/ci-api-deploy.yml"
+  # Re-deploy by hand, e.g. after changing the STREAM_SERVER_URL repo variable.
+  workflow_dispatch:
 
 concurrency:
   group: api-deploy-production
@@ -24,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

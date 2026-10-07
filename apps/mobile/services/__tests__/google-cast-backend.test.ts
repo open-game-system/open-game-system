@@ -16,6 +16,7 @@ jest.mock("react-native-google-cast", () => {
 });
 
 import GoogleCast from "react-native-google-cast";
+import { createCastTrace } from "../cast-trace";
 import { createGoogleCastBackend } from "../google-cast-backend";
 
 const discovery = GoogleCast.getDiscoveryManager();
@@ -69,6 +70,33 @@ describe("the real Google Cast backend", () => {
     await flush();
     expect(getDevices).not.toHaveBeenCalled();
     expect(backend.getDevices()).toEqual([]);
+  });
+
+  it("logs discovery: started, each update's count, a failure with its message", async () => {
+    const events: { name: string; data?: unknown; error?: unknown }[] = [];
+    const trace = createCastTrace({
+      event: (name, f = {}) => void events.push({ name, ...f }),
+      flush: async () => {},
+      background: async () => {},
+      restore: async () => {},
+    });
+    const backend = createGoogleCastBackend(trace);
+    const publish = onDevicesUpdated.mock.calls[0]?.[0];
+    startDiscovery.mockResolvedValue(undefined);
+    getDevices.mockResolvedValue([found("cc-1", "Den TV")]);
+    backend.startDiscovery();
+    await flush();
+    publish?.([found("cc-1", "Den TV"), found("cc-2", "Kitchen")]);
+    startDiscovery.mockRejectedValue(new Error("no wifi"));
+    backend.startDiscovery();
+    await flush();
+    expect(events).toEqual([
+      expect.objectContaining({ name: "cast.discovery.started" }),
+      expect.objectContaining({ name: "cast.discovery.updated", data: { count: 1 } }),
+      expect.objectContaining({ name: "cast.discovery.updated", data: { count: 2 } }),
+      expect.objectContaining({ name: "cast.discovery.started" }),
+      expect.objectContaining({ name: "cast.discovery.failed", error: expect.any(Error) }),
+    ]);
   });
 
   it("uses the real session manager and the native picker", () => {

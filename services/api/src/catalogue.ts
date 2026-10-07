@@ -115,6 +115,7 @@ const SEED: ManifestInput[] = [
     shape: "couch",
     tv: "required",
     startUrl: workers("night-flight"),
+    multiCouch: true,
     roles: [
       { id: "navigator", label: "Navigator", audience: "grownup" },
       { id: "pilot", label: "Pilot", audience: "kid" },

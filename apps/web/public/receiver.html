@@ -147,9 +147,6 @@
 
     const VIEW_NAMESPACE = 'urn:x-cast:org.opengame.view';
     const DEFAULT_STREAM_SERVER = 'https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream';
-    const DEFAULT_VIEW_URL = 'https://triviajam.tv';
-    /** How long to wait for the sender to say what to show before falling back to the default. */
-    const VIEW_WAIT_MS = 8000;
     const PLAYOUT_BUFFER_MS = 200;
     const PEER_PLAYOUT_BUFFER_MS = 60;
     const NO_SENDER_STOP_MS = 20 * 60 * 1000;
@@ -163,10 +160,54 @@
       const params = new URLSearchParams(window.location.search);
       return {
         streamServerUrl: params.get('streamServerUrl') || params.get('streamUrl') || DEFAULT_STREAM_SERVER,
-        viewUrl: params.get('viewUrl') || DEFAULT_VIEW_URL,
+        viewUrl: params.get('viewUrl') || '',
         publisherSessionId: params.get('publisherSessionId') || '',
       };
     }
+
+    /**
+     * Wide events: this receiver's key steps go to POST /api/v1/client-events on its stream
+     * server's API (Workers Logs), with no credentials (it has none; the API marks them
+     * unauthenticated). Batched every few seconds, at once when the cast ends or fails. Never the
+     * view URL (its query carries the launcher token): only hosts.
+     */
+    const RX_VERSION = 'receiver-2026-10-05';
+    const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
+    const rxRun = `rx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
+    let rxEvents = [];
+    let rxFlushTimer = null;
+    function hostOf(url) {
+      try { return new URL(url).host; } catch (e) { return 'unknown'; }
+    }
+    /** The OGS API behind a stream server URL (<api>/api/v1/stream), else the production API. */
+    function apiOf(streamServerUrl) {
+      const m = String(streamServerUrl || '').match(/^(https?:\/\/[^/]+)\/api\/v1\/stream\/?$/);
+      return m ? m[1] : DEFAULT_API;
+    }
+    function rxLog(name, fields = {}) {
+      const event = { name: `receiver.${name}`, at: Date.now(), level: fields.level || (fields.error ? 'error' : 'info'), attemptId: rxRun };
+      if (fields.error) event.error = String(fields.error).slice(0, 1000);
+      if (fields.durationMs != null) event.durationMs = Math.max(0, Math.round(fields.durationMs));
+      if (fields.data) event.data = fields.data;
+      rxEvents.push(event);
+      if (rxEvents.length > 200) rxEvents = rxEvents.slice(-200);
+      if (fields.now) rxFlush();
+      else if (!rxFlushTimer) rxFlushTimer = setTimeout(rxFlush, 3000);
+    }
+    function rxFlush() {
+      clearTimeout(rxFlushTimer);
+      rxFlushTimer = null;
+      const api = apiOf(getLaunchParams().streamServerUrl);
+      while (rxEvents.length) {
+        const events = rxEvents.splice(0, 50);
+        fetch(`${api}/api/v1/client-events`, {
+          method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ context: { app: 'receiver', version: RX_VERSION, platform: rxPlatform }, events }),
+        }).catch(() => { /* logs are best effort */ });
+      }
+    }
+    window.addEventListener('pagehide', rxFlush);
 
     /**
      * Debugging: mirror receiver logs and status back to whoever cast us (the OGS app or a CLI),
@@ -232,19 +273,38 @@
       heartbeatTimer = setInterval(() => {
         fetch(`${baseUrl}/heartbeat`, { method: 'POST', headers: { 'x-stream-session-id': streamSessionId } })
           .then((res) => {
-            // 410: the server ended a stream that ran past its maximum lifetime. Stop pinging (so the
-            // GPU can scale to zero) and close the receiver on the TV.
-            if (res.status !== 410) return;
-            stopHeartbeat();
-            setStatus('This TV session has ended', false);
-            if (castContext) castContext.stop();
+            // 410: the server ended a stream that ran past its maximum lifetime or saw no player
+            // activity. Stop pinging (so the GPU can scale to zero) and close the receiver on the TV.
+            if (res.status === 410) {
+              rxLog('heartbeat.ended', { level: 'warn', data: { status: 410 } });
+              endCast('the stream server ended the stream');
+            }
           })
-          .catch((e) => console.warn('[Receiver] heartbeat failed', e));
+          .catch((e) => {
+            console.warn('[Receiver] heartbeat failed', e);
+            rxLog('heartbeat.failed', { level: 'warn', error: e?.message || e });
+          });
       }, HEARTBEAT_MS);
     }
     function stopHeartbeat() {
       if (heartbeatTimer) clearInterval(heartbeatTimer);
       heartbeatTimer = null;
+    }
+
+    /**
+     * Ends this cast: the stream stops and the heartbeat with it (the stream server's signal to scale
+     * to zero), the TV says so, then the Cast app closes. The heartbeat stops here, not by the page
+     * closing, so a stop that leaves the page open never keeps a GPU up.
+     */
+    function endCast(why) {
+      console.log('[Receiver] Ending the cast:', why);
+      rxLog('cast.ended', { data: { why }, now: true });
+      cleanup();
+      clearPeerTimer();
+      isConnected = false;
+      video.srcObject = null;
+      setStatus('This TV session has ended', false);
+      if (castContext) castContext.stop();
     }
 
     function cleanup() {
@@ -505,6 +565,7 @@
 
       setStatus('Connecting to game stream...');
       startConnectionTimeout();
+      const t0 = Date.now();
 
       try {
         const baseUrl = streamServerUrl.replace(/\/$/, '');
@@ -616,6 +677,7 @@
         }
 
         console.log('[Receiver] Answer sent, waiting for media...');
+        rxLog('stream.started', { durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) } });
         // Only show waiting status if tracks haven't arrived yet
         if (!isConnected) {
           setStatus('Waiting for video stream...');
@@ -623,7 +685,9 @@
 
       } catch (err) {
         console.error('[Receiver] Failed to start stream:', err);
-        clearConnectionTimeout();
+        rxLog('stream.failed', { error: err?.message || err, durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) }, now: true });
+        // Nothing is streaming: stop the heartbeat too, or it keeps the (GPU) stream server up.
+        cleanup();
         setStatus('Unable to connect to game stream', false);
       }
     }
@@ -685,6 +749,7 @@
       if (!data) return;
       senderSpoke = true;
       if (data.type === 'LOAD_VIEW' && data.viewUrl) {
+        rxLog('load_view.received', { data: { view: hostOf(data.viewUrl), stream: hostOf(data.streamServerUrl || DEFAULT_STREAM_SERVER) } });
         clearPeerTimer();
         peerReply = null;
         removeHud();
@@ -715,9 +780,12 @@
       window.__ogsSignalIn = (data) => onViewMessage(typeof data === 'string' ? JSON.parse(data) : data, out);
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : out({ type: 'REQUEST_VIEW', accepts: ACCEPTS })), 500);
       setStatus('Waiting for the game...');
-    } else if (urlParams.get('viewUrl') || !hasCast) {
-      // Opened directly (testing), or not on a Cast device.
+    } else if (urlParams.get('viewUrl')) {
+      // Opened directly with a view (testing).
       begin(getLaunchParams());
+    } else if (!hasCast) {
+      // Not on a Cast device and nothing to show: say so rather than stream an empty view.
+      setStatus('Cast to this TV from the OGS app');
     } else {
       const context = cast.framework.CastReceiverContext.getInstance();
       castContext = context;
@@ -759,17 +827,14 @@
       context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => {
         if (context.getSenders().length > 0 || noSenderTimer) return;
         console.log('[Receiver] No phones connected; stopping in', NO_SENDER_STOP_MS / 60000, 'min');
-        noSenderTimer = setTimeout(() => context.stop(), NO_SENDER_STOP_MS);
+        noSenderTimer = setTimeout(() => endCast(`no phone connected for ${NO_SENDER_STOP_MS / 60000} min`), NO_SENDER_STOP_MS);
       });
-      setTimeout(() => context.stop(), MAX_CAST_MS);
+      setTimeout(() => endCast(`the cast reached ${MAX_CAST_MS / 3600000} hours`), MAX_CAST_MS);
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : requestView(undefined)), 1500);
       context.start(options);
       setStatus('Waiting for the game...');
-      setTimeout(() => {
-        // Only when no sender has said anything: a laptop preparing its offer must not be overtaken
-        // by the default page (which would also start a cloud stream).
-        if (!started && !senderSpoke) begin(getLaunchParams());
-      }, VIEW_WAIT_MS);
+      // No default page: the TV only shows what a sender asks for (owner, 2026-10-05: a slow phone
+      // made it open an old default, Trivia Jam, on a cloud stream). It keeps asking until one does.
     }
   </script>
 </body>

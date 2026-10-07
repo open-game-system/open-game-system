@@ -206,6 +206,7 @@ exports[`catalogue content > is exactly the five games as published 1`] = `
       "tile": "/art/night-flight/tv.jpg",
     },
     "instanceTtlMs": 604800000,
+    "multiCouch": true,
     "name": "Night Flight",
     "roles": [
       {

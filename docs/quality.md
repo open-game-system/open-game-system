@@ -4,7 +4,7 @@ Grade each package/domain. Update after major changes.
 
 | Package | Grade | Tests | Mutation Score | Notes |
 |---------|-------|-------|----------------|-------|
-| services/api | A- | 58 unit + 57 integration = 115 pass | 68.79% | Full endpoint + D1 integration coverage. CORS, cross-game isolation, scheduled handler, content-type all integration-tested. Stryker configured. |
+| services/api | A- | 58 unit + 57 integration = 115 pass | 68.79% | Full endpoint + D1 integration coverage. CORS, cross-game isolation, content-type all integration-tested. Stryker configured. |
 | app-bridge-types | A | n/a | — | Pure types, no runtime code |
 | app-bridge-web | A | 15 pass | — | Comprehensive: init, state, subscriptions, errors |
 | app-bridge-native | B | passing | — | Core bridge + createStore tested |
@@ -21,7 +21,7 @@ Grade each package/domain. Update after major changes.
 | stream-kit-testing | C | passing | — | Mock client tested, missing publishConfig |
 | cast-kit-core | C | has tests | configured | Stryker configured. Sparse test coverage. |
 | cast-kit-react | C | has tests | configured | Stryker configured. Sparse test coverage. |
-| apps/web | D | no tests | — | Marketing site, build only. No test infrastructure. |
+| apps/web | C | 22 e2e (receiver) | — | Marketing site: build only. `public/receiver.html` (the Cast receiver) has 22 deterministic e2e tests (`e2e/tests/receiver-*.e2e.ts`: LOAD_VIEW, PEER_OFFER + HUD, stops); see docs/testing/e2e.md. |
 | apps/mobile | B | passing (Jest) | configured | Services tested, Stryker configured. No E2E yet. |
 
 ## Grading Scale
@@ -36,7 +36,7 @@ Grade each package/domain. Update after major changes.
 
 | Package | Score | Killed | Survived | Notes |
 |---------|-------|--------|----------|-------|
-| services/api | 68.79% | 302 | 137 | scheduled.ts low (30%) — covered by integration tests. Auth improved to 79%. |
+| services/api | 68.79% | 302 | 137 | Auth improved to 79%. |
 | notification-kit-core | 66.67% | 18 | 9 | Survivors are bridge safety patterns (optional chaining). |
 | notification-kit-server | 82.35% | 28 | 6 | Survivors are error message strings. |
 

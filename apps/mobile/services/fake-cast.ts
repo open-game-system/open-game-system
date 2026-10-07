@@ -24,6 +24,22 @@ export const FAKE_TV_2: CastDevice = {
 };
 export const FAKE_TV_2_DELAY_MS = 1500;
 
+/**
+ * The fake's timing and TVs from the build's env: EXPO_PUBLIC_FAKE_CAST_END_MS (Cast's real end
+ * timing, see endedAfterMs) and EXPO_PUBLIC_FAKE_CAST_URL_2 (the Bedroom TV's own fake Chromecast).
+ */
+export function fakeCastOptions(env: {
+  EXPO_PUBLIC_FAKE_CAST_END_MS?: string;
+  EXPO_PUBLIC_FAKE_CAST_URL_2?: string;
+}): { endedAfterMs?: number; loadUrls?: Record<string, string> } {
+  const out: { endedAfterMs?: number; loadUrls?: Record<string, string> } = {};
+  const ms = Number(env.EXPO_PUBLIC_FAKE_CAST_END_MS);
+  if (env.EXPO_PUBLIC_FAKE_CAST_END_MS && Number.isFinite(ms) && ms >= 0) out.endedAfterMs = ms;
+  if (env.EXPO_PUBLIC_FAKE_CAST_URL_2)
+    out.loadUrls = { [FAKE_TV_2.id]: env.EXPO_PUBLIC_FAKE_CAST_URL_2 };
+  return out;
+}
+
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 type Message = Record<string, unknown> | string;
 type Handler<A extends unknown[]> = (...args: A) => void;
@@ -32,6 +48,16 @@ export function createFakeCastBackend(opts: {
   mode: "one" | "two" | "none";
   loadUrl: string;
   fetch: FetchLike;
+  /** A fake Chromecast of its own per TV (its /load URL); others use loadUrl. */
+  loadUrls?: Record<string, string>;
+  /**
+   * Real Google Cast timing (EXPO_PUBLIC_FAKE_CAST_END_MS). endCurrentSession resolves as soon as
+   * the end is asked for (the native bridge resolves right after endSessionAndStopCasting:), the
+   * session stays current while it ends, and ended fires once the TV has stopped plus this many
+   * ms. Meanwhile startSession resolves false, as GCKSessionManager's startSessionWithDevice:
+   * answers NO "if there is a session currently established". Unset: ends at once (older runs).
+   */
+  endedAfterMs?: number;
 }): CastBackend {
   const devices =
     opts.mode === "none" ? [] : opts.mode === "two" ? [FAKE_TV, FAKE_TV_2] : [FAKE_TV];
@@ -41,12 +67,17 @@ export function createFakeCastBackend(opts: {
 
   type Session = ReturnType<typeof makeSession>;
   let current: Session | null = null;
+  let currentDevice: CastDevice | null = null;
+  let ending = false;
+  const realTiming = opts.endedAfterMs !== undefined;
+  const loadUrlFor = (device: CastDevice) => opts.loadUrls?.[device.id] ?? opts.loadUrl;
   const handlers = {
     starting: new Set<Handler<[]>>(),
     started: new Set<Handler<[Session]>>(),
     startFailed: new Set<Handler<[Session, string]>>(),
     suspended: new Set<Handler<[]>>(),
     resumed: new Set<Handler<[Session]>>(),
+    ending: new Set<Handler<[]>>(),
     ended: new Set<Handler<[]>>(),
   };
   const on = <A extends unknown[]>(set: Set<Handler<A>>, fn: Handler<A>) => {
@@ -62,7 +93,7 @@ export function createFakeCastBackend(opts: {
           const data = typeof message === "string" ? JSON.parse(message) : message;
           if (data?.type !== "LOAD_VIEW") return;
           try {
-            await opts.fetch(opts.loadUrl, {
+            await opts.fetch(loadUrlFor(device), {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ viewUrl: data.viewUrl }),
@@ -81,30 +112,50 @@ export function createFakeCastBackend(opts: {
     async startSession(deviceId: string) {
       const device = devices.find((d) => d.id === deviceId);
       if (!device) return false;
+      // Real Cast: NO while a session is established (connected, or still ending).
+      if (realTiming && current) return false;
       for (const h of handlers.starting) h();
       const session = makeSession(device);
       current = session;
+      currentDevice = device;
       for (const h of handlers.started) h(session);
       return true;
     },
     async endCurrentSession() {
-      if (!current) return;
-      current = null;
-      // A real receiver closes when the sender stops casting: the fake Chromecast closes its TV page.
-      try {
-        await opts.fetch(new URL("/stop", opts.loadUrl).href, { method: "POST" });
-      } catch (err) {
-        console.warn("[fake-cast] the fake Chromecast did not stop:", err);
+      if (!current || !currentDevice || ending) return;
+      const device = currentDevice;
+      for (const h of handlers.ending) h();
+      const finish = () => {
+        current = null;
+        currentDevice = null;
+        ending = false;
+        for (const h of handlers.ended) h();
+      };
+      if (!realTiming) {
+        current = null;
+        await stopTv(device);
+        return finish();
       }
-      for (const h of handlers.ended) h();
+      ending = true;
+      void stopTv(device).then(() => setTimeout(finish, opts.endedAfterMs));
     },
     onSessionStarting: (fn) => on(handlers.starting, fn),
     onSessionStarted: (fn) => on(handlers.started, fn),
     onSessionStartFailed: (fn) => on(handlers.startFailed, fn),
     onSessionSuspended: (fn) => on(handlers.suspended, fn),
     onSessionResumed: (fn) => on(handlers.resumed, fn),
+    onSessionEnding: (fn) => on(handlers.ending, fn),
     onSessionEnded: (fn) => on(handlers.ended, fn),
   };
+
+  /** A real receiver closes when the sender stops casting: the fake Chromecast closes its TV page. */
+  async function stopTv(device: CastDevice) {
+    try {
+      await opts.fetch(new URL("/stop", loadUrlFor(device)).href, { method: "POST" });
+    } catch (err) {
+      console.warn("[fake-cast] the fake Chromecast did not stop:", err);
+    }
+  }
 
   return {
     sessionManager,

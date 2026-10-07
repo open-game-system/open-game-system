@@ -35,13 +35,19 @@ describe("game token claims", () => {
     expect(GameTokenSchema.parse(session)).toEqual(session);
   });
 
-  it.each(["iss", "aud", "sub", "handle", "name", "avatar", "iat", "exp"])(
-    "claims without %s are rejected",
-    (key) => {
-      const rest = Object.fromEntries(Object.entries(claims()).filter(([k]) => k !== key));
-      expect(GameTokenSchema.safeParse(rest).success).toBe(false);
-    },
-  );
+  it.each([
+    "iss",
+    "aud",
+    "sub",
+    "handle",
+    "name",
+    "avatar",
+    "iat",
+    "exp",
+  ])("claims without %s are rejected", (key) => {
+    const rest = Object.fromEntries(Object.entries(claims()).filter(([k]) => k !== key));
+    expect(GameTokenSchema.safeParse(rest).success).toBe(false);
+  });
 
   it.each(["iss", "aud", "sub", "handle", "name"])("an empty %s is rejected", (key) => {
     expect(GameTokenSchema.safeParse({ ...claims(), [key]: "" }).success).toBe(false);

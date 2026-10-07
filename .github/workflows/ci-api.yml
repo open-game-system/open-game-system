@@ -22,13 +22,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
       - name: Build API
-        run: pnpm --filter @open-game-system/api build
+        run: pnpm turbo build --filter=@open-game-system/api...
 
       - name: Typecheck API
         run: pnpm --filter @open-game-system/api typecheck

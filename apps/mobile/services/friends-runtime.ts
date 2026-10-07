@@ -3,6 +3,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { joinCards } from "../components/ogs/friends/friends-view";
 import { createFriendsApi } from "./friends-api";
 import { createFriendsStore } from "./friends-store";
+import { createRoomsStore, roomCards } from "./rooms";
 import { appState, config, useApp } from "./runtime";
 
 /**
@@ -62,4 +63,17 @@ export function useFriendCasts() {
   );
   const session = useApp().session;
   return joinCards(casting, session?.sessionId ?? null);
+}
+
+/** Friends' rooms (spec §7): Join with your couch on Playing. */
+export const roomsStore = createRoomsStore(friendsApi);
+
+export function useFriendRooms() {
+  usePollWhileFocused(roomsStore.refresh);
+  const rooms = useSyncExternalStore(
+    roomsStore.subscribe,
+    roomsStore.getSnapshot,
+    roomsStore.getSnapshot,
+  );
+  return roomCards(rooms);
 }

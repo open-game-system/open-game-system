@@ -1,193 +1,131 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import app from "../src/index";
 
-const mockStubFetch = vi.fn();
+/**
+ * The stream server passthroughs (health, debug-state, publisher/*) and the heartbeat. The only
+ * renderer is the Cloud Run stream server named by STREAM_SERVER_URL; without it every route that
+ * needs it answers `stream_not_configured` in the API's error shape and calls nothing.
+ */
+const SERVER = "https://stream.example.run.app";
+const fetchSpy = vi.fn();
 
-function createMockEnv() {
+beforeEach(() => {
+  fetchSpy.mockReset();
+  fetchSpy.mockResolvedValue(Response.json({ status: "ok" }));
+  vi.stubGlobal("fetch", fetchSpy);
+});
+afterEach(() => vi.unstubAllGlobals());
+
+function createMockEnv(over: Record<string, unknown> = {}) {
   return {
-    DB: {
-      prepare: vi.fn(() => ({
-        bind: vi.fn(() => ({
-          first: vi.fn().mockResolvedValue(null),
-          run: vi.fn().mockResolvedValue({ success: true }),
-        })),
-      })),
-    },
     OGS_JWT_SECRET: "test-jwt-secret",
-    STREAM_CONTAINER: {
-      idFromName: vi.fn((name: string) => ({ name })),
-      get: vi.fn(() => ({ fetch: mockStubFetch })),
-    },
     CLOUDFLARE_TURN_API_TOKEN: "test-turn-token",
     CLOUDFLARE_TURN_KEY_ID: "test-turn-key-id",
     CLOUDFLARE_REALTIME_APP_ID: "test-app-id",
     CLOUDFLARE_REALTIME_APP_SECRET: "test-app-secret",
+    STREAM_SERVER_URL: SERVER,
+    ...over,
   };
 }
 
-describe("Stream Routes — SFU endpoints", () => {
-  beforeEach(() => {
-    mockStubFetch.mockReset();
+/** The one request the route sent to the stream server. */
+function forwarded(): Request {
+  expect(fetchSpy).toHaveBeenCalledOnce();
+  const [input, init] = fetchSpy.mock.calls[0];
+  return new Request(input, init);
+}
+
+const NOT_CONFIGURED = {
+  code: "stream_not_configured",
+  message: "STREAM_SERVER_URL must be configured",
+  status: 500,
+};
+
+describe("stream server passthroughs", () => {
+  it("POST /publisher/prepare forwards its body to the stream server's bare path", async () => {
+    const body = JSON.stringify({ url: "https://example.com/game", iceServers: [] });
+    const res = await app.request(
+      "/api/v1/stream/publisher/prepare",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-stream-session-id": "test-session",
+          "x-stream-trace-id": "trace-9",
+        },
+        body,
+      },
+      createMockEnv(),
+    );
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "ok" });
+    const req = forwarded();
+    expect(req.url).toBe(`${SERVER}/publisher/prepare`);
+    expect(req.method).toBe("POST");
+    expect(req.headers.get("x-stream-trace-id")).toBe("trace-9");
+    expect(req.headers.get("x-stream-session-id")).toBe("test-session");
+    expect(req.headers.get("content-type")).toBe("application/json");
+    expect(await req.text()).toBe(body);
   });
 
-  // ─── POST /publisher/prepare ───
+  it("POST /publisher/answer forwards to the stream server", async () => {
+    const res = await app.request(
+      "/api/v1/stream/publisher/answer",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionDescription: { type: "answer", sdp: "v=0\r\n..." } }),
+      },
+      createMockEnv(),
+    );
+    expect(res.status).toBe(200);
+    expect(forwarded().url).toBe(`${SERVER}/publisher/answer`);
+  });
 
-  describe("POST /api/v1/stream/publisher/prepare", () => {
-    it("forwards to StreamContainer DO with rewritten path", async () => {
-      const containerResponse = {
-        sessionDescription: { type: "offer", sdp: "v=0\r\n..." },
-        tracks: [{ location: "local", trackName: "cast-video" }],
-        traceId: "trace-123",
-      };
-      mockStubFetch.mockResolvedValue(
-        new Response(JSON.stringify(containerResponse), { status: 200 }),
-      );
+  it.each([
+    ["/publisher/state"],
+    ["/health"],
+    ["/debug-state"],
+  ])("GET %s forwards to the stream server without a body, with a trace id", async (path) => {
+    const res = await app.request(`/api/v1/stream${path}`, { method: "GET" }, createMockEnv());
+    expect(res.status).toBe(200);
+    const req = forwarded();
+    expect(req.url).toBe(`${SERVER}${path}`);
+    expect(req.method).toBe("GET");
+    expect(req.headers.get("x-stream-trace-id")).toMatch(/.+/);
+    expect(req.headers.get("x-stream-session-id")).toBeNull();
+    expect(await req.text()).toBe("");
+  });
 
-      const env = createMockEnv();
+  it("passes the stream server's status and body through", async () => {
+    fetchSpy.mockResolvedValue(new Response("chrome crashed", { status: 503 }));
+    const res = await app.request("/api/v1/stream/health", {}, createMockEnv());
+    expect(res.status).toBe(503);
+    expect(await res.text()).toBe("chrome crashed");
+  });
+
+  it.each([
+    ["POST", "/publisher/prepare"],
+    ["POST", "/publisher/answer"],
+    ["GET", "/publisher/state"],
+    ["GET", "/health"],
+    ["GET", "/debug-state"],
+  ])("%s %s answers stream_not_configured without STREAM_SERVER_URL", async (method, path) => {
+    for (const STREAM_SERVER_URL of [undefined, ""]) {
       const res = await app.request(
-        "/api/v1/stream/publisher/prepare",
+        `/api/v1/stream${path}`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-stream-session-id": "test-session",
-          },
-          body: JSON.stringify({
-            url: "https://example.com/game",
-            iceServers: [],
-          }),
+          method,
+          headers: { "Content-Type": "application/json", "x-stream-trace-id": "trace-1" },
+          body: method === "POST" ? "{}" : undefined,
         },
-        env,
+        createMockEnv({ STREAM_SERVER_URL }),
       );
-
-      expect(res.status).toBe(200);
-      expect(mockStubFetch).toHaveBeenCalledOnce();
-
-      // Verify path rewriting: should be /publisher/prepare (not /api/v1/stream/publisher/prepare)
-      const forwardedReq = mockStubFetch.mock.calls[0][0] as Request;
-      expect(new URL(forwardedReq.url).pathname).toBe("/publisher/prepare");
-    });
-
-    it("uses session ID header for DO instance name", async () => {
-      mockStubFetch.mockResolvedValue(new Response("{}", { status: 200 }));
-      const env = createMockEnv();
-
-      await app.request(
-        "/api/v1/stream/publisher/prepare",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-stream-session-id": "my-session-42",
-          },
-          body: JSON.stringify({ url: "https://example.com", iceServers: [] }),
-        },
-        env,
-      );
-
-      expect(env.STREAM_CONTAINER.idFromName).toHaveBeenCalledWith("session-my-session-42");
-    });
-
-    it("uses default instance name without session ID", async () => {
-      mockStubFetch.mockResolvedValue(new Response("{}", { status: 200 }));
-      const env = createMockEnv();
-
-      await app.request(
-        "/api/v1/stream/publisher/prepare",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: "https://example.com", iceServers: [] }),
-        },
-        env,
-      );
-
-      expect(env.STREAM_CONTAINER.idFromName).toHaveBeenCalledWith("default-singleton-debug-v3");
-    });
-  });
-
-  // ─── POST /publisher/answer ───
-
-  describe("POST /api/v1/stream/publisher/answer", () => {
-    it("forwards to StreamContainer DO with rewritten path", async () => {
-      mockStubFetch.mockResolvedValue(
-        new Response(JSON.stringify({ status: "success", traceId: "t-1" }), { status: 200 }),
-      );
-
-      const env = createMockEnv();
-      const res = await app.request(
-        "/api/v1/stream/publisher/answer",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-stream-session-id": "session-1",
-          },
-          body: JSON.stringify({
-            sessionDescription: { type: "answer", sdp: "v=0\r\n..." },
-          }),
-        },
-        env,
-      );
-
-      expect(res.status).toBe(200);
-      expect(mockStubFetch).toHaveBeenCalledOnce();
-      const forwardedReq = mockStubFetch.mock.calls[0][0] as Request;
-      expect(new URL(forwardedReq.url).pathname).toBe("/publisher/answer");
-    });
-  });
-
-  // ─── GET /publisher/state ───
-
-  describe("GET /api/v1/stream/publisher/state", () => {
-    it("forwards to StreamContainer DO with rewritten path", async () => {
-      const stateResponse = {
-        browser: "running",
-        extension: "loaded",
-        connections: [],
-      };
-      mockStubFetch.mockResolvedValue(new Response(JSON.stringify(stateResponse), { status: 200 }));
-
-      const env = createMockEnv();
-      const res = await app.request(
-        "/api/v1/stream/publisher/state",
-        {
-          method: "GET",
-          headers: { "x-stream-session-id": "session-1" },
-        },
-        env,
-      );
-
-      expect(res.status).toBe(200);
-      expect(mockStubFetch).toHaveBeenCalledOnce();
-      const forwardedReq = mockStubFetch.mock.calls[0][0] as Request;
-      expect(new URL(forwardedReq.url).pathname).toBe("/publisher/state");
-    });
-  });
-
-  // ─── Existing routes still work ───
-
-  describe("existing routes", () => {
-    it("GET /api/v1/stream/health still forwards to DO", async () => {
-      mockStubFetch.mockResolvedValue(
-        new Response(JSON.stringify({ status: "ok" }), { status: 200 }),
-      );
-
-      const env = createMockEnv();
-      const res = await app.request("/api/v1/stream/health", { method: "GET" }, env);
-
-      expect(res.status).toBe(200);
-      expect(mockStubFetch).toHaveBeenCalledOnce();
-    });
-
-    it("GET /api/v1/stream/debug-state still forwards to DO", async () => {
-      mockStubFetch.mockResolvedValue(new Response(JSON.stringify({ state: {} }), { status: 200 }));
-
-      const env = createMockEnv();
-      const res = await app.request("/api/v1/stream/debug-state", { method: "GET" }, env);
-
-      expect(res.status).toBe(200);
-    });
+      expect(res.status).toBe(500);
+      expect(await res.json()).toEqual({ error: NOT_CONFIGURED, traceId: "trace-1" });
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -196,57 +134,45 @@ describe("Stream Routes — SFU endpoints", () => {
 // (the video goes to the SFU, not through the server, so Cloud Run would otherwise see an idle instance).
 
 describe("POST /api/v1/stream/heartbeat", () => {
-  beforeEach(() => {
-    mockStubFetch.mockReset();
-  });
-
-  it("pings the direct stream server (Cloud Run) when STREAM_SERVER_URL is set", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ status: "pong" }), { status: 200 }));
-    const env = { ...createMockEnv(), STREAM_SERVER_URL: "https://stream.example.run.app" };
-    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, env);
+  it("pings the stream server (Cloud Run)", async () => {
+    fetchSpy.mockResolvedValue(Response.json({ status: "pong" }));
+    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, createMockEnv());
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
     expect(fetchSpy).toHaveBeenCalledWith(
-      "https://stream.example.run.app/ping",
+      `${SERVER}/ping`,
       expect.objectContaining({ method: "GET" }),
     );
-    expect(mockStubFetch).not.toHaveBeenCalled();
-    fetchSpy.mockRestore();
-  });
-
-  it("pings the session's stream container otherwise", async () => {
-    mockStubFetch.mockResolvedValue(
-      new Response(JSON.stringify({ status: "pong" }), { status: 200 }),
-    );
-    const env = createMockEnv();
-    const res = await app.request(
-      "/api/v1/stream/heartbeat",
-      { method: "POST", headers: { "x-stream-session-id": "rx-abc" } },
-      env,
-    );
-    expect(res.status).toBe(200);
-    const forwarded: Request = mockStubFetch.mock.calls[0]?.[0];
-    expect(new URL(forwarded.url).pathname).toBe("/ping");
-    expect(env.STREAM_CONTAINER.idFromName).toHaveBeenCalledWith("session-rx-abc");
   });
 
   it("passes 410 through when the stream hit its maximum lifetime (the receiver stops pinging)", async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(JSON.stringify({ status: "expired" }), { status: 410 }));
-    const env = { ...createMockEnv(), STREAM_SERVER_URL: "https://stream.example.run.app" };
-    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, env);
+    fetchSpy.mockResolvedValue(Response.json({ status: "expired" }, { status: 410 }));
+    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, createMockEnv());
     expect(res.status).toBe(410);
     expect(await res.json()).toMatchObject({ expired: true });
-    fetchSpy.mockRestore();
   });
 
   it("reports the stream server being down as 502", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("unreachable"));
-    const env = { ...createMockEnv(), STREAM_SERVER_URL: "https://stream.example.run.app" };
-    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, env);
+    fetchSpy.mockRejectedValue(new Error("unreachable"));
+    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, createMockEnv());
     expect(res.status).toBe(502);
-    fetchSpy.mockRestore();
+  });
+
+  it("reports a failing stream server as 502", async () => {
+    fetchSpy.mockResolvedValue(new Response("no", { status: 500 }));
+    const res = await app.request("/api/v1/stream/heartbeat", { method: "POST" }, createMockEnv());
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ ok: false });
+  });
+
+  it("answers stream_not_configured without STREAM_SERVER_URL", async () => {
+    const res = await app.request(
+      "/api/v1/stream/heartbeat",
+      { method: "POST", headers: { "x-stream-trace-id": "trace-1" } },
+      createMockEnv({ STREAM_SERVER_URL: undefined }),
+    );
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: NOT_CONFIGURED, traceId: "trace-1" });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });

@@ -50,10 +50,18 @@ async function routeGame(page: Page, origin: string, art: string, talks: boolean
 export async function open(
   browser: Browser,
   query = "?fake=1",
-  opts: { reducedMotion?: boolean; init?: () => void } = {},
+  opts: {
+    reducedMotion?: boolean;
+    /** The page's CSS viewport; the cloud renderer draws the launcher at 1280×720 (deviceScaleFactor 1–2). */
+    viewport?: { width: number; height: number };
+    deviceScaleFactor?: number;
+    /** Runs in the page before any of its scripts (e.g. a stub Audio). */
+    init?: () => void;
+  } = {},
 ) {
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
+    viewport: opts.viewport ?? { width: 1920, height: 1080 },
+    deviceScaleFactor: opts.deviceScaleFactor ?? 1,
     reducedMotion: opts.reducedMotion ? "reduce" : "no-preference",
   });
   if (opts.init) await context.addInitScript(opts.init);

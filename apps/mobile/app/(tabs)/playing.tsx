@@ -10,6 +10,7 @@ import { joinCards } from "../../components/ogs/friends/friends-view";
 import { CastStrip } from "../../components/ogs/playing/CastStrip";
 import { HeroSitting } from "../../components/ogs/playing/HeroSitting";
 import { PlayingNotice } from "../../components/ogs/playing/PlayingNotice";
+import { RoomCards } from "../../components/ogs/playing/RoomCards";
 import { SittingCard } from "../../components/ogs/playing/SittingCard";
 import { StartTonight } from "../../components/ogs/playing/StartTonight";
 import { Screen, SectionTitle } from "../../components/ogs/Screen";
@@ -25,6 +26,7 @@ import {
   startedBy,
   whatToStart,
 } from "../../services/playing-home";
+import { inviteTarget } from "../../services/rooms";
 import {
   appState,
   deviceId,
@@ -103,6 +105,8 @@ export default function PlayingScreen() {
   const toTv = () => router.navigate("/tv");
   const liveBy = state && current ? startedBy(state, current.hostDeviceId, deviceId()) : null;
   const retry = () => void appState.init().then(appState.refresh);
+  // Several couches, one room (spec §7): the multiCouch game live on this TV, once it names its room.
+  const invite = offline ? null : inviteTarget(state, games);
 
   return (
     <View style={styles.root}>
@@ -118,6 +122,7 @@ export default function PlayingScreen() {
         ) : null}
         {/* A friend's cast leads (slice 2): renders nothing when no friend is casting. */}
         {offline ? null : <FriendCastingCards />}
+        {offline ? null : <RoomCards />}
         {offline ? null : cast ? (
           // Unverifiable while OGS can't be reached, so the TV isn't claimed then.
           <CastStrip tvName={tvName ?? "the TV"} onTv={toTv} />
@@ -138,7 +143,21 @@ export default function PlayingScreen() {
             named={current.label !== ""}
             verb={liveVerb(liveBy)}
           />
-        ) : hero && heroGame ? (
+        ) : null}
+        {current && liveGame && invite ? (
+          <Button
+            testID="inviteFriends"
+            label="Invite friends to this game"
+            kind="ghost"
+            style={styles.invite}
+            onPress={() =>
+              router.push(
+                `/invite-friends?appId=${encodeURIComponent(invite.appId)}&room=${encodeURIComponent(invite.room)}&name=${encodeURIComponent(invite.name)}`,
+              )
+            }
+          />
+        ) : null}
+        {current && liveGame ? null : hero && heroGame ? (
           <HeroSitting
             testID="playingHero"
             compact={items.length > 1}
@@ -241,6 +260,7 @@ const styles = StyleSheet.create({
   lead: { fontFamily: fonts.display, fontSize: 28, color: colors.cream },
   sub: { color: colors.cream2, fontSize: 17, lineHeight: 24, marginTop: 6 },
   cast: { marginTop: 18 },
+  invite: { marginTop: -6, marginBottom: 18 },
   sectionWhere: {
     color: colors.lilac,
     fontSize: 14,

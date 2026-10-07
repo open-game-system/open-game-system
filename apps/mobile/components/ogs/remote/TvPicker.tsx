@@ -84,7 +84,11 @@ export function TvPicker({
                   {d.name}
                 </Text>
                 <Text style={[styles.status, current && styles.statusOn]}>
-                  {current ? "Casting now" : switching ? "Switching…" : "Tap to move the TV here"}
+                  {current
+                    ? "Casting now"
+                    : switching
+                      ? `Switching to ${d.name}…`
+                      : "Tap to move the TV here"}
                 </Text>
               </View>
               {switching ? (
@@ -130,7 +134,11 @@ export function TvPicker({
             </Pressable>
           </View>
         ) : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error} testID="tvPickerError">
+            {error}
+          </Text>
+        ) : null}
         {others > 0 ? (
           <Text style={styles.foot}>The game on the TV keeps its place when you switch.</Text>
         ) : null}

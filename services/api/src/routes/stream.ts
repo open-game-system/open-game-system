@@ -1,5 +1,7 @@
 import { type Context, Hono } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { addTracks, createSession, type RealtimeCredentials, renegotiate } from "../lib/realtime";
+import { recordError, requestEvent } from "../lib/wide-event";
 import {
   type IceServerConfig,
   type PublisherPrepareResponse,
@@ -15,9 +17,45 @@ const stream = new Hono<StreamEnv>();
 
 const TURN_TTL_SECONDS = 300;
 
+/** A secret this Worker needs is missing (reported as `stream_not_configured`). */
+class NotConfigured extends Error {
+  override name = "NotConfigured";
+}
+
+/**
+ * The API's error contract (`{ error: { code, message, status } }`), plus the stream routes' trace
+ * id and, for a failed stream server step, its own words (`details`).
+ */
+function streamError(
+  c: Context<StreamEnv>,
+  status: ContentfulStatusCode,
+  code: string,
+  message: string,
+  traceId: string,
+  details?: string,
+) {
+  const extra = details === undefined ? {} : { details };
+  const event = requestEvent(c);
+  if (status >= 500 && !event.error) event.error = { type: "StreamError", message };
+  return c.json({ error: { code, message, status }, ...extra, traceId }, status);
+}
+
+/** A thrown step: missing config, or the code of the route that failed. */
+function thrown(c: Context<StreamEnv>, error: unknown, code: string, traceId: string) {
+  const message = error instanceof Error ? error.message : String(error);
+  recordError(c, error);
+  return streamError(
+    c,
+    500,
+    error instanceof NotConfigured ? "stream_not_configured" : code,
+    message,
+    traceId,
+  );
+}
+
 function getRealtimeCredentials(env: Env): RealtimeCredentials {
   if (!env.CLOUDFLARE_REALTIME_APP_ID || !env.CLOUDFLARE_REALTIME_APP_SECRET) {
-    throw new Error(
+    throw new NotConfigured(
       "CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured",
     );
   }
@@ -26,15 +64,27 @@ function getRealtimeCredentials(env: Env): RealtimeCredentials {
     appSecret: env.CLOUDFLARE_REALTIME_APP_SECRET,
   };
 }
+/** The Cloud Run stream server (`stream-gpu`): the only renderer. */
+function streamServerUrl(env: Env): string {
+  if (!env.STREAM_SERVER_URL) throw new NotConfigured("STREAM_SERVER_URL must be configured");
+  return env.STREAM_SERVER_URL;
+}
+
 const SESSION_ID_HEADER = "x-stream-session-id";
 const DEBUG_TOKEN_HEADER = "x-debug-token";
 
-function logTrace(traceId: string, event: string, details?: Record<string, unknown>) {
-  if (details) {
-    console.log(`[trace:${traceId}] ${event}`, details);
-    return;
-  }
-  console.log(`[trace:${traceId}] ${event}`);
+/**
+ * A stream route's trace: its id (sent to the stream server and back to the caller) and the steps
+ * it took, which go in the request's wide event (`trace_id`, `stream_steps`) instead of one log
+ * line per step.
+ */
+type Trace = { id: string; step(name: string, details?: Record<string, unknown>): void };
+
+function streamTrace(c: Context<StreamEnv>): Trace {
+  const id = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+  const steps: Record<string, unknown>[] = [];
+  Object.assign(requestEvent(c), { trace_id: id, stream_steps: steps });
+  return { id, step: (name, details) => steps.push({ step: name, ...details }) };
 }
 
 export function normalizeIceServers(iceServers: IceServerConfig[]): IceServerConfig[] {
@@ -106,7 +156,7 @@ export function resolveSessionId(sessionIdHeader: string | null): string | null 
   return normalizedSessionId;
 }
 
-async function generateTurnIceServers(env: Env, traceId: string): Promise<IceServerConfig[]> {
+async function generateTurnIceServers(env: Env, trace: Trace): Promise<IceServerConfig[]> {
   const apiToken = env.CLOUDFLARE_TURN_API_TOKEN;
   const turnKeyId = env.CLOUDFLARE_TURN_KEY_ID;
 
@@ -114,7 +164,7 @@ async function generateTurnIceServers(env: Env, traceId: string): Promise<IceSer
     throw new Error("TURN credentials are not configured in Worker secrets");
   }
 
-  logTrace(traceId, "turn_credentials_request_start", { ttlSeconds: TURN_TTL_SECONDS });
+  trace.step("turn_credentials_request_start", { ttlSeconds: TURN_TTL_SECONDS });
   const response = await fetch(
     `https://rtc.live.cloudflare.com/v1/turn/keys/${turnKeyId}/credentials/generate-ice-servers`,
     {
@@ -129,7 +179,7 @@ async function generateTurnIceServers(env: Env, traceId: string): Promise<IceSer
 
   const bodyText = await response.text();
   if (!response.ok) {
-    logTrace(traceId, "turn_credentials_request_failed", {
+    trace.step("turn_credentials_request_failed", {
       status: response.status,
       body: bodyText,
     });
@@ -138,31 +188,36 @@ async function generateTurnIceServers(env: Env, traceId: string): Promise<IceSer
 
   const parsed = parseTurnCredentialsResponse(JSON.parse(bodyText));
   const iceServers = normalizeIceServers(parsed.iceServers);
-  logTrace(traceId, "turn_credentials_request_complete", {
+  trace.step("turn_credentials_request_complete", {
     serverCount: iceServers.length,
   });
   return iceServers;
 }
 
-function forwardToContainer(c: Context<StreamEnv>, targetPath: string) {
+/**
+ * Forwards this request to the stream server's bare path (no /api/v1/stream prefix) with its body,
+ * content type, session id and a trace id, and passes the answer through. Without
+ * STREAM_SERVER_URL: `stream_not_configured`, and nothing is called.
+ */
+async function forwardToStreamServer(c: Context<StreamEnv>, targetPath: string) {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = targetPath;
+  let base: string;
+  try {
+    base = streamServerUrl(c.env);
+  } catch (error) {
+    return thrown(c, error, "stream_forward_failed", traceId);
+  }
+  const headers = new Headers({ "x-stream-trace-id": traceId });
+  for (const name of ["content-type", SESSION_ID_HEADER]) {
+    const value = c.req.header(name);
+    if (value) headers.set(name, value);
+  }
   const hasBody = c.req.method !== "GET" && c.req.method !== "HEAD";
-  const forwardedRequest = new Request(containerUrl.toString(), {
+  return fetch(`${base}${targetPath}`, {
     method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-    body: hasBody ? c.req.raw.body : undefined,
-    ...(hasBody ? { duplex: "half" as const } : {}),
-  } as RequestInit);
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
-
-  return stub.fetch(forwardedRequest);
+    headers,
+    body: hasBody ? await c.req.text() : undefined,
+  });
 }
 
 /**
@@ -172,10 +227,15 @@ function forwardToContainer(c: Context<StreamEnv>, targetPath: string) {
  * shut it down), and once casting stops the pings stop, letting it scale to zero.
  */
 stream.post("/heartbeat", async (c) => {
+  let base: string;
   try {
-    const res = c.env.STREAM_SERVER_URL
-      ? await fetch(`${c.env.STREAM_SERVER_URL}/ping`, { method: "GET" })
-      : await forwardToContainer(c, "/ping");
+    base = streamServerUrl(c.env);
+  } catch (error) {
+    const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+    return thrown(c, error, "stream_heartbeat_failed", traceId);
+  }
+  try {
+    const res = await fetch(`${base}/ping`, { method: "GET" });
     // 410: the stream hit its maximum lifetime (a forgotten cast); the receiver stops pinging.
     if (res.status === 410) return c.json({ ok: false, expired: true }, 410);
     return c.json({ ok: res.ok }, res.ok ? 200 : 502);
@@ -189,11 +249,12 @@ stream.post("/heartbeat", async (c) => {
  * Returns TURN credentials for WebRTC connections.
  */
 stream.get("/ice-servers", async (c) => {
-  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+  const trace = streamTrace(c);
+  const traceId = trace.id;
   const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
 
   try {
-    const iceServers = await generateTurnIceServers(c.env, traceId);
+    const iceServers = await generateTurnIceServers(c.env, trace);
     return c.json({
       iceServers,
       traceId,
@@ -210,77 +271,57 @@ stream.get("/ice-servers", async (c) => {
 });
 
 /**
- * GET /api/v1/stream/health
- * Container health check — forwards to the StreamContainer DO.
+ * GET /api/v1/stream/ready
+ * Post-deploy readiness (scripts/stream-ready.mjs): which parts a cast needs are configured — the
+ * renderer (STREAM_SERVER_URL, the Cloud Run GPU service), Realtime (the SFU) and TURN (the GPU
+ * publisher reaches the SFU through it). Booleans only, never values; nothing is called or started.
  */
-stream.get("/health", async (c) => {
-  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  // Rewrite URL to strip the /api/v1/stream prefix — container expects bare paths
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = "/health";
-  const forwardedRequest = new Request(containerUrl.toString(), {
-    method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-  });
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
-
-  const response = await stub.fetch(forwardedRequest);
-  return response;
+stream.get("/ready", (c) => {
+  const set = (value: unknown) => typeof value === "string" && value.length > 0;
+  const renderer = { url: set(c.env.STREAM_SERVER_URL) };
+  const realtime =
+    set(c.env.CLOUDFLARE_REALTIME_APP_ID) && set(c.env.CLOUDFLARE_REALTIME_APP_SECRET);
+  const turn = set(c.env.CLOUDFLARE_TURN_API_TOKEN) && set(c.env.CLOUDFLARE_TURN_KEY_ID);
+  const ready = renderer.url && realtime && turn;
+  return c.json({ ready, renderer, realtime, turn }, ready ? 200 : 503);
 });
 
-/** The session id header (when valid) and the StreamContainer instance it names. */
-function streamTarget(c: Context<StreamEnv>) {
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-  return { sessionId, streamInstanceName };
-}
+/**
+ * GET /api/v1/stream/health
+ * The stream server's health check (on a scaled-to-zero GPU service this starts an instance).
+ */
+stream.get("/health", (c) => forwardToStreamServer(c, "/health"));
 
-type ContainerPost = (path: string, body: unknown) => Promise<Response>;
+type ServerPost = (path: string, body: unknown) => Promise<Response>;
 
-/** POSTs JSON to the stream server: directly (STREAM_SERVER_URL) or via the session's DO. */
-function containerPoster(
-  c: Context<StreamEnv>,
-  traceId: string,
-  streamInstanceName: string,
-): ContainerPost {
+/** POSTs JSON to the stream server (STREAM_SERVER_URL). */
+function serverPoster(base: string, trace: Trace): ServerPost {
   return (path, body) => {
-    const init = {
+    const url = `${base}${path}`;
+    trace.step("stream_server_fetch", { url });
+    return fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-stream-trace-id": traceId },
+      headers: { "Content-Type": "application/json", "x-stream-trace-id": trace.id },
       body: JSON.stringify(body),
-    };
-    if (c.env.STREAM_SERVER_URL) {
-      const url = `${c.env.STREAM_SERVER_URL}${path}`;
-      logTrace(traceId, "container_direct_fetch", { url });
-      return fetch(url, init);
-    }
-    const stub = c.env.STREAM_CONTAINER.get(c.env.STREAM_CONTAINER.idFromName(streamInstanceName));
-    const doUrl = new URL(c.req.url);
-    doUrl.pathname = path;
-    return stub.fetch(new Request(doUrl.toString(), init));
+    });
   };
 }
 
 /** TURN servers when configured and reachable, else none. */
-async function optionalIceServers(env: Env, traceId: string): Promise<IceServerConfig[]> {
+async function optionalIceServers(env: Env, trace: Trace): Promise<IceServerConfig[]> {
   try {
-    return await generateTurnIceServers(env, traceId);
+    return await generateTurnIceServers(env, trace);
   } catch {
-    logTrace(traceId, "turn_not_configured_using_defaults");
+    trace.step("turn_not_configured_using_defaults");
     return [];
   }
 }
 
-/** The error body of a failed container step (logged), or null when it succeeded. */
-async function failure(res: Response, traceId: string, event: string): Promise<string | null> {
+/** The error body of a failed stream server step (logged), or null when it succeeded. */
+async function failure(res: Response, trace: Trace, event: string): Promise<string | null> {
   if (res.ok) return null;
   const body = await res.text();
-  logTrace(traceId, event, { status: res.status, body });
+  trace.step(event, { status: res.status, body });
   return body;
 }
 
@@ -292,8 +333,8 @@ async function publishTracks(
   creds: RealtimeCredentials,
   sfuSessionId: string,
   prepared: PublisherPrepareResponse,
-  post: ContainerPost,
-  traceId: string,
+  post: ServerPost,
+  trace: Trace,
 ) {
   // Small delay to ensure PeerConnection is fully established
   await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -305,52 +346,67 @@ async function publishTracks(
       mid: t.mid,
     })),
   });
-  logTrace(traceId, "sfu_tracks_added");
+  trace.step("sfu_tracks_added");
   await post("/publisher/answer", { sessionDescription: sfuTracks.sessionDescription });
-  logTrace(traceId, "publisher_reanswer_applied");
+  trace.step("publisher_reanswer_applied");
 }
 
 /**
  * POST /api/v1/stream/start-stream
  * Two-phase SFU flow:
- * 1. Container /publisher/prepare → local SDP offer + track list
+ * 1. Stream server /publisher/prepare → local SDP offer + track list
  * 2. CF Realtime createSession(offer) → sessionId
  * 3. CF Realtime addTracks(sessionId, offer, tracks) → SFU answer
- * 4. Container /publisher/answer → complete WebRTC handshake
+ * 4. Stream server /publisher/answer → complete WebRTC handshake
  */
 stream.post("/start-stream", async (c) => {
-  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const { sessionId, streamInstanceName } = streamTarget(c);
+  const trace = streamTrace(c);
+  const traceId = trace.id;
+  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
 
   try {
     const creds = getRealtimeCredentials(c.env);
-    logTrace(traceId, "start_stream_begin", { sessionId, streamInstanceName });
-    const post = containerPoster(c, traceId, streamInstanceName);
+    const post = serverPoster(streamServerUrl(c.env), trace);
+    trace.step("start_stream_begin", { sessionId });
 
-    // Step 1: Ask container to prepare publisher (ICE servers optional — SFU provides its own TURN)
-    const iceServers = await optionalIceServers(c.env, traceId);
+    // Step 1: Ask the stream server to prepare the publisher (ICE servers optional — SFU provides its own TURN)
+    const iceServers = await optionalIceServers(c.env, trace);
     const requestBody = await c.req.json();
     const prepareRes = await post("/publisher/prepare", { url: requestBody.url, iceServers });
-    const prepareError = await failure(prepareRes, traceId, "publisher_prepare_failed");
+    const prepareError = await failure(prepareRes, trace, "publisher_prepare_failed");
     if (prepareError !== null)
-      return c.json({ error: "Publisher prepare failed", details: prepareError, traceId }, 500);
+      return streamError(
+        c,
+        500,
+        "publisher_prepare_failed",
+        "Publisher prepare failed",
+        traceId,
+        prepareError,
+      );
     const prepareData = parsePublisherPrepareResponse(await prepareRes.json());
-    logTrace(traceId, "publisher_prepared", { trackCount: prepareData.tracks.length });
+    trace.step("publisher_prepared", { trackCount: prepareData.tracks.length });
 
     // Step 2: Create Realtime SFU session with the local offer → get SFU answer
     const sfuSession = await createSession(creds, prepareData.sessionDescription);
-    logTrace(traceId, "sfu_session_created", { sfuSessionId: sfuSession.sessionId });
+    trace.step("sfu_session_created", { sfuSessionId: sfuSession.sessionId });
 
-    // Step 3: Apply SFU answer to container FIRST — PeerConnection must connect before adding tracks
+    // Step 3: Apply SFU answer to the stream server FIRST — PeerConnection must connect before adding tracks
     const answerRes = await post("/publisher/answer", {
       sessionDescription: sfuSession.sessionDescription,
     });
-    const answerError = await failure(answerRes, traceId, "publisher_answer_failed");
+    const answerError = await failure(answerRes, trace, "publisher_answer_failed");
     if (answerError !== null)
-      return c.json({ error: "Publisher answer failed", details: answerError, traceId }, 500);
+      return streamError(
+        c,
+        500,
+        "publisher_answer_failed",
+        "Publisher answer failed",
+        traceId,
+        answerError,
+      );
 
-    await publishTracks(creds, sfuSession.sessionId, prepareData, post, traceId);
-    logTrace(traceId, "start_stream_complete", { sfuSessionId: sfuSession.sessionId });
+    await publishTracks(creds, sfuSession.sessionId, prepareData, post, trace);
+    trace.step("start_stream_complete", { sfuSessionId: sfuSession.sessionId });
     return c.json({
       status: "success",
       traceId,
@@ -358,8 +414,8 @@ stream.post("/start-stream", async (c) => {
       tracks: prepareData.tracks,
     });
   } catch (error) {
-    logTrace(traceId, "start_stream_error", { message: (error as Error).message });
-    return c.json({ error: (error as Error).message, traceId }, 500);
+    trace.step("start_stream_error");
+    return thrown(c, error, "stream_start_failed", traceId);
   }
 });
 
@@ -369,22 +425,23 @@ stream.post("/start-stream", async (c) => {
  * Returns the SFU's SDP offer for the receiver to answer.
  */
 stream.post("/subscribe", async (c) => {
-  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+  const trace = streamTrace(c);
+  const traceId = trace.id;
 
   try {
     const creds = getRealtimeCredentials(c.env);
     const body = await c.req.json();
     const publisherSessionId = body.publisherSessionId;
     if (!publisherSessionId || typeof publisherSessionId !== "string") {
-      return c.json({ error: "publisherSessionId is required", traceId }, 400);
+      return streamError(c, 400, "invalid_body", "publisherSessionId is required", traceId);
     }
     const trackNames: string[] = body.trackNames ?? ["cast-video", "cast-audio"];
-    logTrace(traceId, "subscribe_begin", { publisherSessionId, trackNames });
+    trace.step("subscribe_begin", { publisherSessionId, trackNames });
 
     // Create subscriber session with NO SDP (per CF Realtime example)
     // The SFU generates the offer when we add remote tracks
     const subscriberSession = await createSession(creds);
-    logTrace(traceId, "subscriber_session_created", {
+    trace.step("subscriber_session_created", {
       subscriberSessionId: subscriberSession.sessionId,
     });
 
@@ -396,7 +453,7 @@ stream.post("/subscribe", async (c) => {
         sessionId: publisherSessionId,
       })),
     });
-    logTrace(traceId, "subscriber_tracks_added");
+    trace.step("subscriber_tracks_added");
 
     return c.json({
       subscriberSessionId: subscriberSession.sessionId,
@@ -404,8 +461,8 @@ stream.post("/subscribe", async (c) => {
       traceId,
     });
   } catch (error) {
-    logTrace(traceId, "subscribe_error", { message: (error as Error).message });
-    return c.json({ error: (error as Error).message, traceId }, 500);
+    trace.step("subscribe_error");
+    return thrown(c, error, "subscribe_failed", traceId);
   }
 });
 
@@ -414,17 +471,18 @@ stream.post("/subscribe", async (c) => {
  * Receiver sends its SDP answer to complete the WebRTC handshake.
  */
 stream.put("/subscribe/:subscriberSessionId/answer", async (c) => {
-  const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
+  const trace = streamTrace(c);
+  const traceId = trace.id;
   const subscriberSessionId = c.req.param("subscriberSessionId");
 
   try {
     const creds = getRealtimeCredentials(c.env);
     const body = await c.req.json();
     const sessionDescription = parseSessionDescription(body.sessionDescription);
-    logTrace(traceId, "subscribe_answer_begin", { subscriberSessionId });
+    trace.step("subscribe_answer_begin", { subscriberSessionId });
 
     const result = await renegotiate(creds, subscriberSessionId, sessionDescription);
-    logTrace(traceId, "subscribe_answer_complete");
+    trace.step("subscribe_answer_complete");
 
     return c.json({
       status: "success",
@@ -432,63 +490,32 @@ stream.put("/subscribe/:subscriberSessionId/answer", async (c) => {
       traceId,
     });
   } catch (error) {
-    logTrace(traceId, "subscribe_answer_error", { message: (error as Error).message });
-    return c.json({ error: (error as Error).message, traceId }, 500);
+    trace.step("subscribe_answer_error");
+    return thrown(c, error, "subscribe_answer_failed", traceId);
   }
 });
 
-/**
- * POST /api/v1/stream/publisher/prepare
- * Forwards to the StreamContainer DO → container to initialize publisher and get local SDP offer.
- */
-stream.post("/publisher/prepare", async (c) => {
-  return forwardToContainer(c, "/publisher/prepare");
-});
+/** POST /api/v1/stream/publisher/prepare: the stream server initializes its publisher (SDP offer). */
+stream.post("/publisher/prepare", (c) => forwardToStreamServer(c, "/publisher/prepare"));
 
-/**
- * POST /api/v1/stream/publisher/answer
- * Forwards the SFU's SDP answer to the StreamContainer DO → container to complete WebRTC handshake.
- */
-stream.post("/publisher/answer", async (c) => {
-  return forwardToContainer(c, "/publisher/answer");
-});
+/** POST /api/v1/stream/publisher/answer: the SFU's SDP answer to the stream server. */
+stream.post("/publisher/answer", (c) => forwardToStreamServer(c, "/publisher/answer"));
 
-/**
- * GET /api/v1/stream/publisher/state
- * Forwards to the StreamContainer DO → container for publisher debug state.
- */
-stream.get("/publisher/state", async (c) => {
-  return forwardToContainer(c, "/publisher/state");
-});
+/** GET /api/v1/stream/publisher/state: the stream server's publisher state, for debugging. */
+stream.get("/publisher/state", (c) => forwardToStreamServer(c, "/publisher/state"));
 
 /**
  * GET /api/v1/stream/debug-state
- * Debug endpoint — returns container state. Requires debug token if configured.
+ * The stream server's debug state. Requires the debug token when DEBUG_STATE_TOKEN is set.
  */
-stream.get("/debug-state", async (c) => {
+stream.get("/debug-state", (c) => {
   const traceId = c.req.header("x-stream-trace-id") || crypto.randomUUID();
-  const sessionId = resolveSessionId(c.req.header(SESSION_ID_HEADER) ?? null);
-  const streamInstanceName = sessionId ? `session-${sessionId}` : "default-singleton-debug-v3";
-
   if (
     !isDebugRequestAuthorized(c.env.DEBUG_STATE_TOKEN, c.req.header(DEBUG_TOKEN_HEADER) ?? null)
   ) {
-    return c.json({ error: "Forbidden", traceId }, 403);
+    return streamError(c, 403, "forbidden", "A valid x-debug-token is required", traceId);
   }
-
-  const id = c.env.STREAM_CONTAINER.idFromName(streamInstanceName);
-  const stub = c.env.STREAM_CONTAINER.get(id);
-  // Rewrite URL to strip the /api/v1/stream prefix — container expects /debug-state
-  const containerUrl = new URL(c.req.url);
-  containerUrl.pathname = "/debug-state";
-  const forwardedRequest = new Request(containerUrl.toString(), {
-    method: c.req.method,
-    headers: new Headers(c.req.raw.headers),
-  });
-  forwardedRequest.headers.set("x-stream-trace-id", traceId);
-
-  const response = await stub.fetch(forwardedRequest);
-  return response;
+  return forwardToStreamServer(c, "/debug-state");
 });
 
 export default stream;

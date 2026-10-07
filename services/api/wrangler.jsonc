@@ -31,8 +31,9 @@
     }
   ],
 
+  // No crons. An empty list is required: with no "triggers" key, wrangler keeps the old */5 cron.
   "triggers": {
-    "crons": ["*/5 * * * *"]
+    "crons": []
   },
 
   "d1_databases": [
@@ -43,22 +44,10 @@
     }
   ],
 
-  "containers": [
-    {
-      "name": "codeflare-containers",
-      "image": "./container/Dockerfile",
-      "class_name": "StreamContainer",
-      "max_instances": 2,
-      "instance_type": "standard"
-    }
-  ],
-
+  // Streaming renders only on Cloud Run (STREAM_SERVER_URL, a secret; the image builds from
+  // ./container). No Cloudflare container: v3 below deletes the old StreamContainer class.
   "durable_objects": {
     "bindings": [
-      {
-        "name": "STREAM_CONTAINER",
-        "class_name": "StreamContainer"
-      },
       {
         "name": "COUCH_SESSION",
         "class_name": "CouchSession"
@@ -74,11 +63,31 @@
     {
       "tag": "v2",
       "new_sqlite_classes": ["CouchSession"]
+    },
+    {
+      "tag": "v3",
+      "deleted_classes": ["StreamContainer"]
     }
   ],
 
+  // POST /api/v1/client-events: 120 batches a minute per profile (the cast receiver: per IP).
+  "ratelimits": [
+    {
+      "name": "CLIENT_EVENTS_LIMITER",
+      "namespace_id": "1101",
+      "simple": { "limit": 120, "period": 60 }
+    }
+  ],
+
+  // Workers Logs (read by sre-agent, .github/sre-agent.yml): every invocation, wide events as
+  // indexed fields. docs/agents/observability.md.
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
+  },
+
+  // env.CF_VERSION_METADATA.id is every wide event's `version`.
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
   }
 }

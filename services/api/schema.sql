@@ -13,22 +13,12 @@ CREATE TABLE IF NOT EXISTS api_keys (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS cast_sessions (
-  session_id TEXT PRIMARY KEY,
-  game_id TEXT NOT NULL,
-  device_id TEXT NOT NULL,
-  view_url TEXT NOT NULL,
-  stream_session_id TEXT,
-  stream_url TEXT,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'idle', 'ended')),
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+-- cast_sessions (v1 casting, removed 2026-10-06) is no longer created. Production D1 keeps the
+-- old table until someone drops it deliberately; this file is applied on every deploy, so it
+-- never drops anything.
 
 CREATE INDEX IF NOT EXISTS idx_devices_push_token ON devices(push_token);
 CREATE INDEX IF NOT EXISTS idx_api_keys_game_id ON api_keys(game_id);
-CREATE INDEX IF NOT EXISTS idx_cast_sessions_game_id ON cast_sessions(game_id);
-CREATE INDEX IF NOT EXISTS idx_cast_sessions_status ON cast_sessions(status);
 
 -- Profiles (OGS profiles slice 1, docs/product-specs/ogs-profiles.html). One profile per device.
 -- handle: unique @id without the "@". library: JSON array of catalogue app ids; NULL = whole catalogue.
@@ -150,6 +140,16 @@ CREATE TABLE IF NOT EXISTS session_live (
   since INTEGER NOT NULL
 );
 
+-- Several couches, one room (spec §7): the game's room on a session's TV, while it names one
+-- (written by the CouchSession DO from game.start / game.room). since: ms the room was set.
+CREATE TABLE IF NOT EXISTS session_rooms (
+  session_id TEXT PRIMARY KEY REFERENCES couch_sessions(id),
+  app_id TEXT NOT NULL,
+  room TEXT NOT NULL,
+  since INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_session_rooms_room ON session_rooms(app_id, room);
 CREATE INDEX IF NOT EXISTS idx_friendships_b ON friendships(profile_b);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_to ON friend_requests(to_profile_id);
 CREATE INDEX IF NOT EXISTS idx_session_members_profile ON session_members(profile_id);

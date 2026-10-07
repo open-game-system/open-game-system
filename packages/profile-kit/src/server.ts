@@ -1,8 +1,8 @@
-import { type GameToken, GameTokenSchema } from "@open-game-system/ogs-protocol";
+import { type CouchClaim, type GameToken, GameTokenSchema } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
 import { base64UrlToBytes, jsonPart } from "./token";
 
-export type { GameToken };
+export type { CouchClaim, GameToken };
 
 /** OGS's public signing keys (`GET <api>/.well-known/jwks.json`). */
 const JwkSchema = z.object({

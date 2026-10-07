@@ -1,0 +1,76 @@
+{
+  "at": "2026-10-05T22:20:38.302Z",
+  "mummPhone": "detox",
+  "results": [
+    {
+      "name": "the Mumm phone cast the Mumm TV (its launcher is up)",
+      "ok": true,
+      "detail": "TV code XXUYC9"
+    },
+    {
+      "name": "1. Night Flight made room R and the Mumm couch's sitting names it",
+      "ok": true,
+      "detail": "ZXXK"
+    },
+    {
+      "name": "2. the Mumm phone (iOS app) invited the Smiths and the Parks",
+      "ok": true,
+      "detail": "Detox: Invited Sam and Kim."
+    },
+    {
+      "name": "the invite link is opengame.org/play/<appId>?room=R",
+      "ok": true,
+      "detail": "https://opengame.org/play/night-flight?room=ZXXK"
+    },
+    {
+      "name": "3. the Smiths' link started Night Flight in room R on the Smith TV",
+      "ok": true,
+      "detail": "ZXXK"
+    },
+    {
+      "name": "4. Playing card for the Parks: Mumms and Smiths are playing",
+      "ok": true,
+      "detail": "Jonathan and Sam are playing Night Flight"
+    },
+    {
+      "name": "5. all three TVs show room R",
+      "ok": true,
+      "detail": "ZXXK,ZXXK,ZXXK"
+    },
+    {
+      "name": "the game sees three couches",
+      "ok": true,
+      "detail": "3,3,3"
+    },
+    {
+      "name": "a card played on a Smith phone moves the board on all three TVs",
+      "ok": true,
+      "detail": "owls -1,-1,-1 -> -1,4,-1, sun 1 -> 1"
+    },
+    {
+      "name": "6. Home on the Smith TV parks only that TV (Mumm and Park still in room R; Smiths away)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "Continue resumes the Smith TV in room R (same sitting, same frame)",
+      "ok": true,
+      "detail": "night-flight-muvt7gcx"
+    },
+    {
+      "name": "7. each couch keeps a sitting in room R",
+      "ok": true,
+      "detail": "ZXXK:Flight 1 ZXXK:Flight 1 ZXXK:Flight 1"
+    },
+    {
+      "name": "Detox: the Mumm phone's test passed",
+      "ok": true,
+      "detail": "exit 0"
+    },
+    {
+      "name": "synced 2x2 video saved",
+      "ok": true,
+      "detail": "/Users/jonathanmumm/src/open-game-system/docs/exec-plans/active/evidence/2026-10-05-multi-couch/multi-couch-2x2.mp4"
+    }
+  ]
+}

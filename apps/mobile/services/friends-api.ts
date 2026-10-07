@@ -8,7 +8,11 @@ import {
   FriendOutcomeSchema,
   type FriendRequests,
   FriendRequestsSchema,
+  type FriendRoom,
+  FriendRoomSchema,
   FriendSchema,
+  type GameInviteResult,
+  GameInviteResultSchema,
 } from "@open-game-system/ogs-protocol";
 import { createApiRequest, OgsApiError, type OgsApiOptions } from "./ogs-api";
 
@@ -25,6 +29,7 @@ function parsed<T>(schema: Parser<T>, data: unknown): T {
 
 const FriendsSchema = FriendSchema.array();
 const CastsSchema = CastingFriendSchema.array();
+const RoomsSchema = FriendRoomSchema.array();
 
 /** The friends API (slice 2): every answer parsed with the ogs-protocol schemas, here at the edge. */
 export function createFriendsApi(opts: OgsApiOptions) {
@@ -43,6 +48,17 @@ export function createFriendsApi(opts: OgsApiOptions) {
     /** Friends whose TV is live: the Join cards. */
     async casting(): Promise<CastingFriend[]> {
       return parsed(CastsSchema, await request("/api/v1/friends/casting", authed));
+    },
+    /** Rooms of multiCouch games friends' TVs are in: Join with your couch (spec §7). */
+    async rooms(): Promise<FriendRoom[]> {
+      return parsed(RoomsSchema, await request("/api/v1/friends/rooms", authed));
+    },
+    /** Invite friends to this game's room: a push each, and the play link. */
+    async inviteToGame(appId: string, room: string, to: string[]): Promise<GameInviteResult> {
+      return parsed(
+        GameInviteResultSchema,
+        await post(`/api/v1/games/${id(appId)}/invites`, { room, to }),
+      );
     },
     async createInvite(): Promise<FriendInvite> {
       return parsed(FriendInviteSchema, await post("/api/v1/friends/invites"));

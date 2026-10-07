@@ -14,6 +14,7 @@ import {
   findInvite,
   friendOf,
   friendsCasting,
+  friendsRooms,
   getRequest,
   listFriends,
   listRequests,
@@ -55,6 +56,9 @@ friends.get("/", async (c) => c.json(await listFriends(c.env.DB, meOf(c), Date.n
 
 /** GET /friends/casting — friends whose TV is live (the Join cards on Playing). */
 friends.get("/casting", async (c) => c.json(await friendsCasting(c.env.DB, meOf(c), Date.now())));
+
+/** GET /friends/rooms — rooms of multiCouch games friends' TVs are in (Join with your couch). */
+friends.get("/rooms", async (c) => c.json(await friendsRooms(c.env.DB, meOf(c), Date.now())));
 
 /** POST /friends/invites — Add a friend: a code, a link and a QR url; 10 min, single use. */
 friends.post("/invites", async (c) => {

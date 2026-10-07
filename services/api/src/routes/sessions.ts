@@ -127,7 +127,13 @@ sessions.post("/:sid/game-token", async (c) => {
   const host = couch.find((p) => p.id === row.host_profile_id);
   if (!host) return apiError(c, 404, "profile_not_found", "Profile not found");
   const players = playersOf(c.env, couch);
-  const grant = await grantFor(c, body.appId, host, { sid: row.id, players });
+  const grant = await grantFor(
+    c,
+    body.appId,
+    host,
+    { sid: row.id, players },
+    { sid: row.id, label: host.name },
+  );
   if (grant instanceof Response) return grant;
   return c.json({ ...grant, players });
 });

@@ -32,6 +32,7 @@ Persistent project knowledge. Review at the start of each task.
 - **Cast-kit standalone bridge was a mistake**: Building a separate bridge (WebViewBridge, HttpBridge) duplicated app-bridge and caused architecture mismatch in trivia-jam. Casting state is just another app-bridge store. Follow the notification-kit pattern.
 - **TV rendering: stream-kit, not browser-on-TV**: Chromecast's built-in browser is slow and limited. Server-side rendering via stream-kit + WebRTC video streaming gives consistent quality. The TV receiver is just a `<video>` element.
 - **SDK components should be headless**: Styled components (CastButton, etc.) belong in the consuming app, not the SDK. SDKs export hooks and types; apps compose the UI.
+- **The Cloudflare container is gone (2026-10-06)**: streaming renders only on Cloud Run (`stream-gpu`), named by `STREAM_SERVER_URL`; the image builds from `services/api/container` (server.ts, Dockerfile, its tsx tests), which the Worker build never touches. `StreamContainer` was removed with a `v3` `deleted_classes` migration (keep v1/v2: migrations are append-only), and `wrangler deploy`/`wrangler dev` no longer build Docker. Still on Cloudflare until the owner deletes them: the `codeflare-containers` container application and the `bun-stream-server` Worker. The three container lessons below are history.
 - **Cloudflare Containers: can't add to existing Worker**: Deploying a Worker with `containers` config creates a container image registry tied to that Worker name. If the registry wasn't created with the Worker originally, it won't auto-create later — even after deleting and recreating the Worker. The DO metadata also persists across Worker deletion and requires explicit `deleted_classes` migration. Keep containers on their own Worker until Cloudflare fixes this.
 - **Cloudflare DO metadata survives Worker deletion**: `wrangler delete` removes the script but not the Durable Object class registry. Redeploying without the DO class requires a `deleted_classes` migration in wrangler.toml. Once the migration runs, the entries can be removed.
 - **Cloudflare container registry is per-Worker and can't auto-create**: The registry was provisioned during beta onboarding for `bun-stream-server`. New Worker names get "The image registry does not exist" — both locally and in CI. Not an OrbStack issue. Workaround: reuse the existing Worker name, or file a Cloudflare support ticket to provision a new registry.
@@ -69,10 +70,103 @@ Persistent project knowledge. Review at the start of each task.
 - **Metro caches EXPO_PUBLIC_* values between Release builds**: switching `EXPO_PUBLIC_FAKE_CAST` (or any EXPO_PUBLIC_ value) between builds is silently ignored when Metro reuses its cache. Build with `EXTRA_PACKAGER_ARGS=--reset-cache` whenever env values change.
 - **Codex as a design judge**: `codex exec` needs `--skip-git-repo-check` outside the repo root, and the prompt must go in on stdin when images are passed with `-i` (with `-i … "prompt"` it hangs on "Reading prompt from stdin").
 - **One name for a sitting, phone and TV**: `sittingName` in `@open-game-system/ogs-protocol` (resume point, else "Started 7:42 PM") is the only rule; the phone's `sitting-title.ts` and the TV's `launcher/layout.ts` both call it. ogs-protocol is consumed from `dist/`, so `pnpm --filter @open-game-system/ogs-protocol build` after changing it. On the TV home each fact is said once: the focused game's status and tagline only in the spotlight (`launcher/facts.ts`), never on its card.
-- **Deploying the API (2026-10-04)**: deploy from a clean `git worktree` at HEAD (the container image is built from the working tree, so uncommitted `services/api/container` edits would ship). `wrangler deploy` builds the container with Docker; if `docker build` hangs at 0% CPU, the `desktop` credential helper is stuck: build with `DOCKER_CONFIG=<dir>` whose config.json has only `currentContext` and `cliPluginsExtraDirs: ["~/.docker/cli-plugins"]` (buildx), then delete that dir (wrangler writes registry auth into it). `git push` of this branch needs `git -c http.postBuffer=1048576000 push` (HTTP 400 otherwise). The launcher deploys with `pnpm --filter @open-game-system/tv run deploy` (without `run`, pnpm runs its own `deploy` command) (Pages project `ogs-tv`).
+- **Deploying the API (2026-10-04)**: deploy from a clean `git worktree` at HEAD. (Until 2026-10-06 `wrangler deploy` also built the Cloudflare container image with Docker; it no longer does. For a local Docker build of the Cloud Run image that hangs at 0% CPU, the `desktop` credential helper is stuck: build with `DOCKER_CONFIG=<dir>` whose config.json has only `currentContext` and `cliPluginsExtraDirs: ["~/.docker/cli-plugins"]` (buildx).) `git push` of this branch needs `git -c http.postBuffer=1048576000 push` (HTTP 400 otherwise). The launcher deploys with `pnpm --filter @open-game-system/tv run deploy` (without `run`, pnpm runs its own `deploy` command) (Pages project `ogs-tv`).
 - **Show a user's action at the tap, not at the reply (2026-10-04)**: Stop casting waited on `endCurrentSession` (the fake Chromecast's `/stop` replies only after it closes the page and saves its video, ~2 s; a real Cast session ends asynchronously too), so the remote lingered. `services/cast-stop.ts` marks the stop at the confirm and clears it once the cast is gone (a failed stop brings the remote back). To time this in Detox, `device.disableSynchronization()` around the check: with sync on, Detox waits for the pending fetch before it looks. To see a sub-second UI flash, record (`xcrun simctl io <sim> recordVideo`), extract every frame (`ffmpeg -fps_mode passthrough … f_%06d.png`; `-frame_pts` names collide) and OCR them with `tesseract`.
 - **Onboarding pager**: `scrollToIndex({ animated: true })` across two pages shows the page in between; `animatesMove` slides only to the page next door and jumps otherwise.
-- **Which renderer a cast uses (2026-10-05)**: the phone names the stream server in LOAD_VIEW (`streamServerUrl` = `EXPO_PUBLIC_OGS_STREAM`, else `<EXPO_PUBLIC_OGS_API>/api/v1/stream`); the receiver (opengame.org/receiver, Pages project `opengame-org`, deploy with `--branch main`) only falls back to its own default. The API then forwards to `STREAM_SERVER_URL` (the Cloud Run GPU `stream-gpu`, project `opengame-stream`, us-east4: L4, scale to zero, maxScale 1) or, unset, a Cloudflare Container per cast. The real casts before this went through the PR-5 preview Worker (hard-coded) while production pointed at `bun-stream-server` (a March Worker); production CI no longer forces that. The GPU publisher on Cloud Run reaches the SFU through TURN (only host + relay candidates in its logs), so the API needs `CLOUDFLARE_TURN_API_TOKEN`/`CLOUDFLARE_TURN_KEY_ID` too.
+- **Which renderer a cast uses (2026-10-05)**: the phone names the stream server in LOAD_VIEW (`streamServerUrl` = `EXPO_PUBLIC_OGS_STREAM`, else `<EXPO_PUBLIC_OGS_API>/api/v1/stream`); the receiver (opengame.org/receiver, Pages project `opengame-org`, deploy with `--branch main`) only falls back to its own default. The API then forwards to `STREAM_SERVER_URL` (the Cloud Run GPU `stream-gpu`, project `opengame-stream`, us-east4: L4, scale to zero, maxScale 1); unset, it answers `stream_not_configured` (the Cloudflare Container fallback was removed 2026-10-06). The real casts before this went through the PR-5 preview Worker (hard-coded) while production pointed at `bun-stream-server` (a March Worker); production CI no longer forces that. The GPU publisher on Cloud Run reaches the SFU through TURN (only host + relay candidates in its logs), so the API needs `CLOUDFLARE_TURN_API_TOKEN`/`CLOUDFLARE_TURN_KEY_ID` too.
 - **The idle stop reads the top page**: the renderer evaluates `window.__ogsActivityAt` on the page it streams, which for a cast is the launcher (games are cross-origin iframes it can't see into). The launcher keeps it fresh while any phone/tablet is online on the couch session, on any session change and on remote presses (`apps/tv/src/session/activity.ts`); `apps/tv/e2e/idle.e2e.ts` checks it with the renderer's own `isIdle` on a Playwright virtual clock.
 - **opengame.org was deployed from `main`, not this branch**: before deploying apps/web from a branch, diff `apps/web` against the commit of the live Pages deployment (`wrangler pages deployment list --project-name opengame-org` shows it) so laptop-cast fixes on main aren't rolled back.
 - **Launcher themes (2026-10-04)**: an `<audio>` element's `src` reads back absolute (`http://…/art/x/theme.mp3`), so the theme player (`apps/tv/src/ui/theme-player.ts`) keys a theme by the URL it was asked for, never `el.src`. The theme loops (`apps/tv/public/art/<appId>/theme.mp3`) are cut from each game's own music with no paid service: the produced lobby beds where a game has them (rocket-crew, bake-shop, story-nook `public/audio`), else the in-code synth score played in headless Chrome (`--autoplay-policy=no-user-gesture-required`) by bundling the game's `audio-engine.ts` + `music.ts` with esbuild and recording `graph.out` with a ScriptProcessor (no game repo edits). A loop is a window of a whole number of chord cycles (synth) or the best repeating lag (beds), its first 1.5 s equal-power crossfaded with what follows the window, so the end runs into the start; MP3 128 kbps, RMS −20 dBFS. MP3, not AAC: open-source Chromium builds may lack AAC, and the cloud renderer's Chrome is not verified to have it. Port 5190 may be taken by the repo-root e2e: `TV_E2E_PORT=5197 pnpm test:e2e`.
+
+## Google Cast session timing (2026-10-05)
+
+- **`endCurrentSession` resolves before the session has ended**: react-native-google-cast's iOS
+  bridge (`RNGCSessionManager.m`) calls `endSessionAndStopCasting:` and resolves at once; the session
+  stays `currentCastSession` until `didEndCastSession` (our `onSessionEnded`). And
+  `startSessionWithDevice:` answers NO "if there is a session currently established" (GCK docs),
+  which the bridge resolves as `false`. So "end, then start" must wait for the ended event, or the
+  start is refused silently: the owner's flaky TV switching ("sometimes it works… sometimes it
+  eventually works"). `cast-flow.ts` `endSessionAndWait` subscribes before asking, with a timeout.
+- **The fake Cast backend was kinder than the real one**: it awaited the TV's `/stop` and fired
+  ended before `endCurrentSession` resolved, and replaced a running session on start, so tests and
+  Detox never saw the bug. `EXPO_PUBLIC_FAKE_CAST_END_MS` (fake `endedAfterMs`) models the real
+  timing; `EXPO_PUBLIC_FAKE_CAST_URL_2` gives the Bedroom TV its own fake Chromecast.
+- **The remote unmounts mid-switch**: between the old session ending and the new launcher joining,
+  `ogsCastNow()` is false, so the TV tab swapped to the Cast screen and the picker's error state
+  vanished with the component. A flow that spans an unmount keeps its state outside React
+  (`cast-switch.ts`, like `cast-stop.ts`).
+- **app-bridge stores call a new subscriber at once**: `subscribe(fn)` runs `fn(current)` before
+  it returns its unsubscribe, so a listener that unsubscribes itself on the first call must not
+  use the returned function yet (`cast-switch.ts` `connected`).
+- **Logs before guesses**: client events go to `POST /api/v1/client-events` → Workers Logs. To read
+  a real-device switch: Workers Logs, filter `kind = client_event` and `attemptId`; a failed switch
+  is `cast.switch.done` level error, and its `cast.end.waited` / `cast.start.resolved` say why.
+
+## e2e (2026-10-04, Cast receiver)
+
+- **Reaching Playwright from a tester-army test**: `surfaceOf(engine)` only knows the engine instance the runner drives, and the runner and the test file load `e2e.config.ts` separately (two instances: "no attempt is running"). The config keeps one instance on `globalThis.__ogsWebEngine` and exports it; call `surfaceOf(webEngine).page()` only after the first `browser.goto` (the attempt opens lazily). `context().newPage()` gives a second page (the laptop / SFU peer) under the same `browser.route` handlers.
+- **tsx wraps named inner functions in `__name()`**: a `page.evaluate` callback that declares `const f = () => …` throws `ReferenceError: __name is not defined` in the browser. `receiver-kit.ts` adds `globalThis.__name = (fn) => fn` as a context init script.
+- **Loopback WebRTC between two pages of one Playwright Chromium works with no STUN/TURN**: create the offer, wait for `iceGatheringState === "complete"`, pass the SDP; frames arrive in under a second (`requestVideoFrameCallback`).
+- **Playwright's clock is per context and `runFor` replays every timer**: with a 30 fps canvas publisher in another page, `runFor(3 min)` took 27 s and 3 hours never finished. Step `fastForward(1 min)` instead (each due timer fires once per step, so a 1-minute heartbeat still counts right). The clock also runs with real time: allow for the seconds a WebRTC answer takes before asserting a 20 s timeout.
+- **A receiver stop must end the heartbeat itself**: the heartbeat is what keeps a GPU stream server up. A failed start, the no-phone stop and the 3-hour cap now all stop it (`endCast` / `cleanup`), instead of trusting `context.stop()` to close the page.
+- **Production API had no TURN on 2026-10-04**: `pnpm stream:ready https://opengame-api.jonathanrmumm.workers.dev` got only the STUN fallback from `/stream/ice-servers` (the PR-5 preview returns 6 TURN urls). The GPU publisher reaches the SFU through TURN, so set `CLOUDFLARE_TURN_API_TOKEN` / `CLOUDFLARE_TURN_KEY_ID` on production before casting through it.
+
+## Several households, one room (2026-10-05)
+
+- **A local API copy needed `--enable-containers=false` (until 2026-10-06)**: `wrangler dev` built the
+  stream container image with Docker and then hung every request. With the container removed, plain
+  `wrangler dev` (and `pnpm dev:local`) starts no Docker build.
+- **A joining household's phone must declare its own TV page**: Night Flight only rendered
+  `useCastViewUrl` for the room's host, so the Smiths' phone joined the room but their TV never framed
+  it. In a multiCouch game, every phone that started its couch's TV (`?tv=` on Night Flight) declares
+  it, host or not. The e2e found this; the unit tests could not.
+- **actor-kit's DO `send` RPC type has no `caller`, but the machine reads it**: the worker passes a
+  service event built in a variable (`{ ...event, caller: { type: "service" } }`) so the room's guard
+  can tell OGS (a verified token) from a client, without a cast. Its HTTP router sends any event with
+  the client's caller, so guards on service events must check `caller.type === "service"`.
+- **Phone pages in a fake OGS WebView for cross-surface e2e**: `window.ReactNativeWebView` answering
+  `BRIDGE_READY` with `STATE_INIT` for `cast`, `ogs` and `profile` (a real game token from the local API)
+  gives a game page everything the app gives it; read `SET_VIEW_URL` from what it posted and send
+  `game.view` to the couch, as the app does (`e2e/multi-couch.mjs`).
+- **Playwright never sees a bobbing card as "stable"**: Night Flight's playable cards animate, so the
+  e2e clicks them with `{ force: true }`.
+- **Record launchers at 960×540** (`recordVideo.size`) to keep the files small. (An older note here
+  said a 1280×720 viewport "crops" the launcher: that was the stage-centring bug below, not a rule.)
+- **Never centre a fixed-size, scaled stage with grid/flex** (`apps/tv` Stage, 2026-10-05): a 1920×1080
+  grid item in a smaller viewport overflows from the top-left, so `scale()` about its centre left the
+  launcher 25% down and right and running off the TV at 1280×720, which is the size the cloud renderer
+  draws (`STREAM_VIEWPORT`). Every launcher e2e ran at 1920×1080, where it happens to work. Position it
+  (`left/top: 50%`, `translate(-50%, -50%) scale(s)`), and test every screen at 720p, 1080p and 4K
+  (`apps/tv/e2e/viewports.e2e.ts`: every visible element inside the 5% TV-safe area). A focus
+  `scale()` on an element sitting on the safe line grows past it: scale away from the edge.
+- **ffmpeg `xstack` with a `color` filler runs forever**: cap the output with `-t` (the longest tile's
+  offset + length), or a 3-tile run never ends.
+- **Detox reloads the app before every test** (`e2e/setup.ts`: `beforeEach` → `reloadReactNative`), and
+  a cold start opens Library unless this phone is playing. A phone that must stay on a screen while
+  another process works (multi-couch's Mumm phone on Playing) waits inside the same `it`. The jump looked
+  like an app bug in the video; a revert of a "fix" in `app/index.tsx` records the mistake.
+- **A stuck `simctl io recordVideo`** ("Host recording is already in progress") survives a killed parent:
+  shut the simulator down and boot it again before the next recorded run.
+
+- **The Cast receiver must never show anything a sender didn't ask for (2026-10-05).** `receiver.html` used to fall back to `https://triviajam.tv` on the production stream server when no LOAD_VIEW arrived within 8 s. A slow launcher token or a racy TV switch on a real phone hit that window, so the TV opened an old game (and started a cloud stream nobody asked for). It now waits and keeps sending REQUEST_VIEW; only a `?viewUrl=` in the receiver's own URL starts a view without a sender.
+## One start, one sitting (2026-10-05)
+
+- **A game's bridge report labels OGS's sitting, it doesn't make one**: every game reports its sitting from
+  the phone page with its own id (`story-nook:XJNE`, `rocket-crew:KQTP`), while a cast start opens the couch
+  session's sitting (`story-nook-<time>`). The app posted the phone's report under the game's id, so one
+  Play was two sittings on the game's page ("Game 1", "Game 2", same minute). The launcher already used
+  the TV's `ogs:instance` only as a label; the app now files a bridge report under the couch's live sitting
+  of that game (`reportSittingFor`), and under the game's id only when playing on the phone alone.
+- **Detox on iOS can't match a RegExp id**: `by.id(/^gameSitting-/)` reaches the app as the literal string
+  and finds nothing (`by.text` inside a Pressable with an `accessibilityLabel` finds nothing either). Check
+  ids by name.
+- **Story Nook's start page makes a room it never uses**: in the app `/` redirects to `/tv/<new code>`
+  (spawning that room) before the page sends itself to `/host`, which makes the real one. Invisible to OGS
+  (that room never reports), but every start leaves an empty room behind.
+
+## Observability (2026-10-05)
+
+- **Hono logs unhandled errors itself**: without `app.onError`, Hono answers a plain-text 500 and calls `console.error(err)`, a second, unstructured error line next to the wide event. `app.onError` answers the error contract and the `wideEvent` middleware reads `c.error` (Hono sets it before `onError` runs), so each failure is one line.
+- **Request lines use `console.info`, client-event lines `console.log`**: the client-events tests spy on `console.log` and expect exactly the client lines, so the request middleware writes its ok line at info level (Workers Logs level `info`). Errors from both go to `console.error`; sre-agent reads only error level.
+- **`routePath(c, -1)` (hono/route) gives the matched pattern in middleware**: log it, never `c.req.path` (ids) or the URL (couch WebSocket upgrades carry `?token=`).
+- **A Worker module needs a `scheduled` export for its cron (2026-10-06).** `services/api` exported the Hono app as default (fetch only) and `handleScheduled` by name only, so its `*/5` cron failed every run with "Handler does not export a scheduled() function" from April until sre-agent's first dry run caught it. The handler only aged rows in the v1 `cast_sessions` table, which nothing writes any more (the app stopped calling `/api/v1/cast/sessions`), so the cron and `scheduled.ts` were removed rather than wired. Removing the `triggers` key is not enough: wrangler keeps the deployed crons unless the config says `"triggers": { "crons": [] }`. If a cron comes back, export `{ fetch: app.fetch, scheduled }` and test the default export, not the named handler.

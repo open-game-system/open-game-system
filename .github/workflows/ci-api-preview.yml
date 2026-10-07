@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -177,7 +177,6 @@ jobs:
     if: needs.deploy-preview.outputs.preview_url != ''
     env:
       E2E_API_PREVIEW_URL: ${{ needs.deploy-preview.outputs.preview_url }}
-      E2E_API_KEY: e2e-test-api-key
     steps:
       - uses: actions/checkout@v4
 
@@ -185,7 +184,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

@@ -15,12 +15,12 @@
     "db:migrate": "wrangler d1 execute opengame-api-db --file=schema.sql",
     "test:e2e": "playwright test",
     "db:local": "wrangler d1 execute opengame-api-db --local --file=schema.sql",
-    "dev:local": "wrangler dev --enable-containers=false",
+    "dev:local": "wrangler dev",
     "emulate": "node scripts/emulate.mjs",
-    "game-key": "node scripts/game-key.mjs"
+    "game-key": "node scripts/game-key.mjs",
+    "stream:ready": "node scripts/stream-ready.mjs"
   },
   "dependencies": {
-    "@cloudflare/containers": "^0.1.1",
     "@open-game-system/ogs-protocol": "workspace:*",
     "hono": "^4.12.8",
     "zod": "^4.3.6"
