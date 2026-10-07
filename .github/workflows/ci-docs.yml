@@ -1,0 +1,43 @@
+name: CI - Docs
+
+# The developer docs (apps/docs) are generated from docs/specification.md and the ogs-protocol schemas,
+# and their tests compare the profile-kit reference with the package's exports: run them whenever
+# any of those change, so an API change without a docs change fails here.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/docs/**"
+      - "docs/specification.md"
+      - "packages/profile-kit/**"
+      - "packages/ogs-protocol/**"
+      - ".github/workflows/ci-docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/docs/**"
+      - "docs/specification.md"
+      - "packages/profile-kit/**"
+      - "packages/ogs-protocol/**"
+      - ".github/workflows/ci-docs.yml"
+
+jobs:
+  ci-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck docs
+        run: pnpm turbo run typecheck --filter=@open-game-system/docs
+
+      - name: Build and test docs
+        run: pnpm turbo run test --filter=@open-game-system/docs

@@ -1,5 +1,7 @@
 # The OGS game contract
 
+**Rendered** for game developers and their agents at https://ogs-docs.pages.dev/contract (Markdown: https://ogs-docs.pages.dev/contract.md), built from this file by `apps/docs`; edit it here.
+
 **Status:** current (October 2026). This page is the single source of truth for what a web game does to
 run in OGS. When code and this page disagree, the schemas in `packages/ogs-protocol/src/` win and this
 page is fixed. Decision: [ADR 2026-10-04 OGS game contract](adrs/2026-10-04-ogs-game-contract.md).
@@ -149,6 +151,8 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 5. **The game never sees the app's or the launcher's own token**, only game tokens for itself.
 
 ## 6. How to test it
+
+Self-contained versions of these tests, for games outside this org: [Testing your game](../apps/docs/content/testing.md).
 
 - **TV page:** frame it from a tiny parent page, post the launcher messages to the iframe and assert on
   the page. Examples (Playwright + vitest seam tests):

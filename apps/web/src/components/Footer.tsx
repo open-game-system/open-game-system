@@ -62,6 +62,16 @@ const Footer = () => {
             <ul className="space-y-2 text-sm">
               <li>
                 <a
+                  href="https://ogs-docs.pages.dev"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Build a game for OGS
+                </a>
+              </li>
+              <li>
+                <a
                   href="https://github.com/open-game-system/specification"
                   className="text-muted-foreground hover:text-primary transition-colors"
                   target="_blank"
