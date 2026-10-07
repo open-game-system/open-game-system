@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { BASE, bearer, createProfile, createSession, ErrorSchema } from "./helpers";
 
-const ALL = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight"];
+const ALL = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight", "trivia-jam"];
 const LibrarySchema = z.object({ appIds: z.array(z.string()) });
 
 describe("GET /catalogue", () => {
-  it("lists the five games as manifests, no token needed", async () => {
+  it("lists the six games as manifests, no token needed", async () => {
     const res = await SELF.fetch(`${BASE}/catalogue`);
     expect(res.status).toBe(200);
     const body = z
