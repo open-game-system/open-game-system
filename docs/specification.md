@@ -141,8 +141,8 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
 
 ## 5. Rules
 
-1. **No cast button, no room code and no join UI on an OGS TV.** OGS casts; people join with the TV code.
-   Outside OGS the game may keep its own room code, QR and TV link.
+1. **No cast button, no room code and no join UI on an OGS TV.** OGS casts; people join with the TV code
+   or the launcher's QR (§8, planned). Outside OGS the game may keep its own room code, QR and TV link.
 2. **Nothing covers the TV's focal area.** HUD and toasts stay at the edges.
 3. **Still playable in a plain browser.** Every profile-kit call degrades to `null` / no-op there.
 4. **Silent while parked** (§2).
@@ -191,6 +191,27 @@ TVs are in: `{ appId, game, room, couches: [{ sessionId, label, host }], joined 
 Presence (`casting`/`playing`) carries the `room` too. Join a friend's cast (sitting on *their* couch) is
 unchanged.
 
+## 8. Joining and invites (planned)
+
+**Status: planned, not implemented.** Everything in this section is new and optional; a game that does
+none of it keeps running. Product spec: [ogs-join.html](product-specs/ogs-join.html). Decision:
+[ADR 2026-10-06 the launcher owns joining](adrs/2026-10-06-launcher-owns-joining.md). Acceptance:
+[join-and-invite.feature](acceptance/2026-10-06-join-and-invite.feature).
+
+| Item | Status | Contract |
+|---|---|---|
+| Games never draw join codes | planned (strengthens rule 1, §5) | On an OGS TV a game shows no room code, join QR, "join at" URL or cast button. The launcher draws the join QR next to the TV code on Home and Getting ready, and the invite card (below). Outside OGS the game may keep its own. |
+| `ogs:invite` | planned | game → launcher, no payload. "Show people how to join now" (for example a "waiting for players" state). The launcher shows its invite card in the safe corner for 30 s; repeated messages restart the timer, they do not stack. Ignored from a frame that is not the current game. Equivalent to a couch phone tapping Invite someone. profile-kit: `requestOgsInvite()`, a no-op outside OGS. |
+| `inviteCorner` (manifest) | planned | Optional: `top-right` (default), `top-left`, `bottom-right`, `bottom-left`. The corner where the launcher may draw the invite card, at most 220 x 120 CSS px on a 960 x 540 reference with a 24 px margin. The game keeps its focal area and HUD out of that rectangle. |
+| `guest` token claim | planned | A guest (joined from the browser, no OGS profile) gets game tokens with `guest: true`, a per-session `sub`, `name` and `avatar`, and no `handle`. Games must not keep a guest's scores across sessions. `GameTokenSchema` gains `guest?: boolean` and `handle` becomes optional only when `guest` is true. |
+| Guest phones | planned | A guest plays the game's `startUrl` in a plain browser (no app bridge): `useOgsProfile()` is `null` and the game keeps its name form unless it reads the guest identity the join page supplies as a game token. |
+| Transfer link | planned | A game's own site (outside OGS only) may link "Play on TV with OGS" to `https://opengame.org/play/<appId>?room=<room>`, the same link as a friend invite (§7). It is hidden when `isOGSCastAvailable()` or `useOgsSession()` says the game is inside OGS. Without `room` it just starts the game. |
+
+The join QR itself is launcher-level: it encodes `https://opengame.org/join/<code>` (the couch session's
+TV code) and is never a game's job. Every couch phone follows the TV: when the current game changes,
+every joined phone opens that game's phone page; Home returns them to the remote. Several households in
+one room are §7.
+
 ## Acceptance
 
 - [ogs-game-contract.feature](acceptance/2026-10-04-ogs-game-contract.feature): the TV page contract
@@ -200,3 +221,5 @@ unchanged.
   instances
 - [ogs-profiles.feature](acceptance/2026-10-04-ogs-profiles.feature): profiles and joining with the TV code
 - [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature): several couches in one room (§7)
+- [join-and-invite.feature](acceptance/2026-10-06-join-and-invite.feature): launcher join QR, web join, phones
+  follow the TV, invite card, transfer link (§8, planned)

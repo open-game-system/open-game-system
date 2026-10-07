@@ -63,7 +63,7 @@ with appId night-flight.
 
 Rules:
 - TDD, never weaken tests, and commit at every working milestone with `git commit -o <paths>`.
-- Gates: `pnpm typecheck && pnpm lint && pnpm test` (the examples/cast-receiver failures are already known).
+- Gates: `pnpm typecheck && pnpm lint && pnpm test` (all packages pass).
 - Update the docs AGENTS.md lists: spec, acceptance, architecture endpoint table, schema.sql if D1
   changes, lessons, roadmap.
 - Use pnpm only.

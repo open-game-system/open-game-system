@@ -14,3 +14,5 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-10-04 | [The OGS game contract: one spec for game developers; games integrate through profile-kit, never cast](2026-10-04-ogs-game-contract.md) | Accepted |
 | 2026-10-05 | [Several households: couches join the game's room](2026-10-05-couches-join-the-games-room.md) | Accepted |
 | 2026-10-06 | [Streaming renders only on Cloud Run; the Cloudflare container is removed](2026-10-06-streaming-cloud-run-only.md) | Accepted (supersedes the rendering/API parts of 2026-03-14 cast-kit) |
+| 2026-10-06 | [The launcher owns joining: join QR, web join for guests, phones follow the TV, invite card, transfer link (planned)](2026-10-06-launcher-owns-joining.md) | Accepted |
+| 2026-10-06 | [TV platform coverage estimates (unverified for custom receivers)](2026-10-06-tv-platform-coverage.md) | Accepted (planning input) |

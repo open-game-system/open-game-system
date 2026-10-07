@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OGS Join and Invite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Same tokens as ogs-app-v3.html. One column; each section = kicker, headline, one line, a picture. */
+:root {
+  --bg: #f3f2ee; --paper: #ffffff; --ink: #17161a; --ink-2: #57545e; --line: #d9d6cf; --ember: #d9482b; --ember-soft: #fbe3dc; --dusk: #2c2742; --ok: #2f7d4f; --ok-soft: #e1f0e6;
+  --wire: #8d8a93; --wire-fill: #f1efea; --screen: #fbfaf7;
+  --s-bear: #b9774a; --s-owl: #7b6bb0; --s-dragon: #3f9a6b; --s-dinosaur: #d39a2c; --s-whale: #3d7fb8; --s-firefly: #c9b23a;
+  --display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --ok-soft: #1c3226; --wire: #8a8696; --wire-fill: #26242d; --screen: #18171d; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #141318; --paper: #1d1c23; --ink: #f1efe9; --ink-2: #aeaab6; --line: #34313d; --ember: #f0704f; --ember-soft: #3a211b; --dusk: #cfc6f2; --ok: #6fc28d; --ok-soft: #1c3226; --wire: #8a8696; --wire-fill: #26242d; --screen: #18171d; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--display); margin: 0; padding: 32px 16px 64px }
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px }
+h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.02; margin: 0; letter-spacing: -0.02em; font-weight: 800; text-wrap: balance }
+h2 { font-size: 26px; margin: 0; letter-spacing: -0.01em; font-weight: 800; text-wrap: balance }
+.kicker { font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ember) }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 }
+section { display: flex; flex-direction: column; gap: 16px }
+.sub { color: var(--ink-2); margin: 0; max-width: 70ch }
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0 }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+.lane { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+.chip { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; padding: 6px 12px; font-size: 14px }
+.chip.bad { border-color: var(--ember); color: var(--ember); background: var(--ember-soft); text-decoration: line-through }
+.chip.good { border-color: var(--ok); color: var(--ok); background: var(--ok-soft) }
+.arrow { color: var(--ink-2) }
+a { color: var(--ember) }
+code { font-family: var(--mono); font-size: 12.5px; background: var(--wire-fill); padding: 1px 5px; border-radius: 4px }
+pre.code { font: 12.5px/1.55 var(--mono); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; margin: 0 }
+pre.code .c { color: var(--ink-2) } pre.code .add { color: var(--ok) } pre.code .del { color: var(--ember) }
+
+/* Phone mockups */
+.screens { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(214px, 1fr)); align-items: start }
+.shot { display: flex; flex-direction: column; gap: 10px; align-items: center; min-width: 0 }
+.shot .cap { font-size: 13px; line-height: 1.4; color: var(--ink-2); text-align: center; max-width: 230px }
+.shot .n { font: 600 11px var(--mono); color: var(--ember) }
+.phone { width: 200px; min-height: 410px; border: 2.5px solid var(--ink); border-radius: 30px; background: var(--screen); padding: 26px 14px 14px; display: flex; flex-direction: column; gap: 9px; position: relative; flex: none }
+.phone::before { content: ""; position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 54px; height: 9px; border-radius: 9px; background: var(--ink) }
+.ipad { width: 100%; max-width: 300px; min-height: 210px; border: 2.5px solid var(--ink); border-radius: 18px; background: var(--screen); padding: 14px; display: flex; flex-direction: column; gap: 8px; flex: none }
+.ttl { font: 800 17px/1.15 var(--display); letter-spacing: -0.01em }
+.t { font: 400 12px/1.35 var(--display); color: var(--ink-2) }
+.lbl { font: 600 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+.field { border: 1.5px solid var(--line); border-radius: 9px; background: var(--paper); padding: 7px 9px; font: 600 13px/1.2 var(--display); display: flex; justify-content: space-between; align-items: center; gap: 6px }
+.field.on { border-color: var(--ink) }
+.field small { font: 400 10px var(--display); color: var(--ok) }
+.btn { border-radius: 11px; padding: 9px; text-align: center; font: 700 13px/1 var(--display); border: 1.5px solid var(--ink); color: var(--ink) }
+.btn.hot { background: var(--ember); border-color: var(--ember); color: #fff }
+.btn.ghost { border-color: transparent; color: var(--ink-2); padding: 4px }
+.grow { flex: 1 }
+.av { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex: none; color: #fff; font: 700 8.5px/1 var(--mono); letter-spacing: .02em; text-transform: lowercase; position: relative }
+.av::after { content: ""; position: absolute; width: 38%; height: 38%; border-radius: 50%; background: rgba(255,255,255,.28); top: 14%; right: 12% }
+.av.lg { width: 64px; height: 64px; font-size: 10px }
+.av.sm { width: 24px; height: 24px; font-size: 0 }
+.av.bear { background: var(--s-bear) } .av.owl { background: var(--s-owl) } .av.dragon { background: var(--s-dragon) } .av.dinosaur { background: var(--s-dinosaur) } .av.whale { background: var(--s-whale) } .av.firefly { background: var(--s-firefly) }
+.av.sel { outline: 3px solid var(--ember); outline-offset: 2px }
+.avs { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center }
+.person { display: flex; gap: 8px; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; background: var(--paper); padding: 6px 8px; font: 600 12.5px/1.2 var(--display) }
+.person .meta { font: 400 10.5px var(--display); color: var(--ink-2) }
+.person .end { margin-left: auto; font: 600 10.5px var(--display); color: var(--ink-2) }
+.person .end.ok { color: var(--ok) }
+.person.dash { border-style: dashed; color: var(--ink-2) }
+.qr { width: 92px; height: 92px; margin: 0 auto; border-radius: 8px; background:
+  conic-gradient(from 90deg at 30% 30%, var(--ink) 25%, transparent 0) 0 0/18px 18px,
+  repeating-linear-gradient(45deg, var(--ink) 0 3px, transparent 3px 7px); border: 6px solid var(--paper); outline: 1.5px solid var(--line) }
+.code6 { font: 800 22px/1 var(--mono); letter-spacing: .14em; text-align: center }
+.banner { border: 1.5px solid var(--ok); background: var(--ok-soft); color: var(--ok); border-radius: 11px; padding: 8px; font: 600 12px/1.3 var(--display); display: flex; gap: 8px; align-items: center }
+.banner .btn { margin-left: auto; padding: 6px 9px; font-size: 11.5px; background: var(--ok); border-color: var(--ok); color: #fff }
+.hdr { display: flex; justify-content: space-between; align-items: center }
+.tabs { display: flex; border-top: 1.5px solid var(--line); padding-top: 6px }
+.tabs span { flex: 1; text-align: center; font: 600 10.5px/1 var(--display); color: var(--ink-2) }
+.tabs span.on { color: var(--ember) }
+.toast { border-radius: 10px; background: var(--ink); color: var(--bg); padding: 8px 10px; font: 600 12px/1.3 var(--display); display: flex; gap: 8px; align-items: center }
+
+/* TV mockup */
+.tvwrap { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; width: 100% }
+.tv { width: 100%; max-width: 560px; aspect-ratio: 16/9; border: 3px solid var(--ink); border-radius: 10px; background: #1b1830; color: #f1efe9; padding: 4%; display: flex; flex-direction: column; gap: 4%; position: relative; overflow: hidden }
+.tv .stand { }
+.tvtop { display: flex; justify-content: space-between; align-items: center; font: 600 clamp(9px, 1.8vw, 13px)/1.2 var(--display); color: #cfc6f2 }
+.tvgames { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3% }
+.tvgames div { aspect-ratio: 3/4; border-radius: 6px; background: #2f2a4d; border: 2px solid #3d3762; font: 700 clamp(7px, 1.4vw, 11px)/1.1 var(--display); padding: 6%; display: flex; align-items: flex-end }
+.tvgames div.f { border-color: #f0704f; box-shadow: 0 0 0 2px #f0704f }
+.couch { margin-top: auto; display: flex; gap: 2.5%; align-items: flex-end; border-top: 1px solid #3d3762; padding-top: 2.5% }
+.couch .p { display: flex; flex-direction: column; align-items: center; gap: 3px; font: 600 clamp(7px, 1.3vw, 10px)/1 var(--display); color: #f1efe9 }
+.couch .tvq { margin-left: auto; display: flex; align-items: center; gap: 6px; font: 600 clamp(7px, 1.3vw, 10px)/1.25 var(--display); color: #aeaab6 }
+.couch .tvq .qr { width: clamp(28px, 6vw, 44px); height: clamp(28px, 6vw, 44px); border-width: 3px; margin: 0; outline: none }
+
+/* Diagram */
+.flow { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 12px; overflow-x: auto }
+.flow svg { display: block; min-width: 720px; width: 100% }
+.flow .box { fill: var(--wire-fill); stroke: var(--wire); stroke-width: 1.5 }
+.flow .box.hot { fill: var(--ember-soft); stroke: var(--ember) }
+.flow .box.ok { fill: var(--ok-soft); stroke: var(--ok) }
+.flow text { fill: var(--ink); font: 600 13px var(--display) }
+.flow text.s { fill: var(--ink-2); font: 400 11.5px var(--mono) }
+.flow .ln { stroke: var(--ink-2); stroke-width: 1.5; fill: none }
+.flow .ln.dash { stroke-dasharray: 4 4 }
+.flow .ah { fill: var(--ink-2) }
+
+/* Two-column see / never */
+.seenot { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+.seenot ul { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px }
+.seenot li { display: flex; gap: 8px; align-items: baseline; font-size: 15px }
+.seenot li::before { font: 700 13px var(--mono); flex: none; width: 14px }
+.yes li::before { content: "+"; color: var(--ok) } .no li::before { content: "x"; color: var(--ember) }
+
+/* Tables */
+.tbl { overflow-x: auto; background: var(--paper); border: 1px solid var(--line); border-radius: 14px }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 720px }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+tr:last-child td { border-bottom: 0 }
+th { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2) }
+td.area { font-weight: 700; white-space: nowrap }
+.del { color: var(--ember) } .new { color: var(--ok) }
+
+/* Decision cards */
+.decisions { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+.dc { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px }
+.dc .qn { font: 600 11px var(--mono); color: var(--ember) }
+.dc b { font-size: 17px; line-height: 1.25 }
+.opt { border: 1.5px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; line-height: 1.35; display: flex; gap: 8px }
+.opt .k { font: 700 12px var(--mono); color: var(--ink-2); flex: none; padding-top: 1px }
+.opt.rec { border-color: var(--ok); background: var(--ok-soft) }
+.opt.rec .k { color: var(--ok) }
+.opt .r { margin-left: auto; font: 600 10px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ok); flex: none }
+.why { font-size: 13px; color: var(--ink-2) }
+@media (max-width: 480px) { .phone { width: 190px } .ipad { width: 100%; max-width: 300px } }
+/* v2 additions */
+.tabs.five span { font-size: 9px }
+.later { opacity: .55; border-style: dashed !important; filter: grayscale(1) }
+.sw { margin-left: auto; width: 30px; height: 17px; border-radius: 9px; background: var(--line); position: relative; flex: none }
+.sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--paper) }
+.sw.on { background: var(--ok) } .sw.on::after { left: 15px }
+.set { display: flex; align-items: center; gap: 8px; font: 600 12px/1.25 var(--display); padding: 6px 0; border-bottom: 1px solid var(--line) }
+.set .meta { font: 400 10.5px var(--display); color: var(--ink-2) }
+.lock { background: var(--dusk); color: var(--bg) }
+.notif { background: rgba(255,255,255,.88); color: #17161a; border-radius: 12px; padding: 8px 9px; font: 600 11.5px/1.3 var(--display); display: flex; gap: 8px; align-items: flex-start }
+.notif small { display: block; font: 400 10.5px/1.3 var(--display); color: #57545e }
+.btnrow { display: flex; gap: 6px; align-items: center; justify-content: center }
+.done { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+.done .panel { display: flex; gap: 12px; align-items: baseline; padding: 14px 16px }
+.done .qn { font: 600 11px var(--mono); color: var(--ok); flex: none; width: 22px }
+.done b { font-size: 15px }
+.done span.t2 { font-size: 14px; color: var(--ink-2) }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:14px">
+  <span class="kicker">OGS app · spec · joining and inviting · Oct 2026</span>
+  <h1>The launcher owns the door. Scan, name, you're on the couch.</h1>
+  <p class="lede">Joining is a launcher feature, not a game feature. The TV shows a join QR next to its code; a guest joins from the browser with no install; every couch phone follows the TV; invites mid-game show a small QR card in the corner the game allows. Games never draw join codes. Owner-approved direction, 2026-10-05/06. Everything on this page is <b>planned</b> unless it says otherwise.</p>
+  <p class="sub">Design canvas: <a href="https://claude.ai/artifact/5CoghVnLznn5pSdENvazJM">https://claude.ai/artifact/5CoghVnLznn5pSdENvazJM</a> (boards TV-Home-QR, Phone-Web-Join, Phone-Joined, TV-Game-Invite, Game-Lobby-Transfer, Sequence). Decision: <a href="../adrs/2026-10-06-launcher-owns-joining.md">ADR 2026-10-06 the launcher owns joining</a>. Acceptance: <a href="../acceptance/2026-10-06-join-and-invite.feature">join-and-invite.feature</a>. Contract additions: <a href="../specification.md">specification.md</a> §8.</p>
+</header>
+
+<section>
+  <span class="kicker">Why</span>
+  <h2>Keep our edge, steal AirConsole's door</h2>
+  <div class="grid">
+    <div class="panel"><b>AirConsole</b><p class="t">Best at: scan a QR, no install, one session for many games. Weak at: phones are anonymous gamepads, ads, needs a browser on the TV.</p></div>
+    <div class="panel"><b>Netflix TV games</b><p class="t">Best at: already on every TV, polish, household profiles. Weak at: a new QR scan for every game, the Netflix app required, closed catalogue.</p></div>
+    <div class="panel"><b>Rocketcrab</b><p class="t">Best at: a party lobby that frames any web game, name passed in, a transfer link from a game's own lobby. Weak at: no TV, a spoofable host flag, no identity across nights.</p></div>
+    <div class="panel"><b>Jackbox, Discord Activities</b><p class="t">Jackbox: a room code on the TV and a web phone page, the benchmark for "no install". Discord Activities: the host's session carries everyone into a game. Neither knows who you are across games or evenings.</p></div>
+  </div>
+  <p class="sub">What stays ours: games know who you are (signed tokens, avatars), sittings to Continue tomorrow, kids' iPads that follow, one cast all evening. What we take: a scan-and-you're-in door, and a "play this on your TV" link from a game's own site.</p>
+</section>
+
+<section>
+  <span class="kicker">1 · The join QR</span>
+  <h2>A QR next to the TV code, on Home and on Getting ready</h2>
+  <p class="sub">The launcher draws a card at the bottom-right of Home and Getting ready: the QR, "Scan to join, or type", the 6-character TV code, and <code>opengame.org/join</code>. The QR encodes <code>https://opengame.org/join/&lt;code&gt;</code>. The code still works typed in the app (the existing path). The card never covers the focal area; Home's focus row and the "3 on the couch" avatars sit on the left.</p>
+  <div class="panel">
+    <div class="lane"><span class="chip">phone camera scans the QR</span><span class="arrow">→</span><span class="chip">opengame.org/join/NT9WPH</span><span class="arrow">→</span><span class="chip good">OGS app installed: opens it, joins the couch</span></div>
+    <div class="lane" style="margin-top:8px"><span class="chip">not installed</span><span class="arrow">→</span><span class="chip good">web join page (section 2)</span></div>
+  </div>
+  <p class="sub"><b>Link behaviour.</b> <code>opengame.org/join/&lt;code&gt;</code> is a universal link (iOS) and app link (Android) for the OGS app, handled as <code>opengame://join/&lt;code&gt;</code>; with no app the browser lands on the web join page. An unknown or expired code shows "That couch isn't on any more" with a field to type another code. The QR is the same code as the typed one; it adds no new credential. Where the QR is drawn: <b>launcher only</b> (decision 7).</p>
+</section>
+
+<section>
+  <span class="kicker">2 · Guests in the browser</span>
+  <h2>No install: name, picture, you're on the couch</h2>
+  <div class="screens">
+    <div class="shot"><span class="n">WEB JOIN</span>
+      <div class="phone">
+        <span class="lbl">Living room TV</span>
+        <span class="ttl">Join the couch</span>
+        <span class="t">Dad, Mom and Juneau are here. No app needed.</span>
+        <span class="lbl">Your name</span>
+        <div class="field on">Grandma</div>
+        <span class="lbl">Your picture</span>
+        <div class="lane"><span class="av" style="background:var(--s-bear)">fox</span><span class="av" style="background:var(--s-owl)">owl</span><span class="av" style="background:var(--s-dragon)">bear</span><span class="av" style="background:var(--s-whale)">rabbit</span></div>
+        <span class="grow"></span>
+        <div class="btn hot">Join</div>
+        <div class="btn ghost">Have the OGS app? Open it instead</div>
+      </div>
+      <span class="cap">Browser at opengame.org/join/&lt;code&gt;. Fox, Owl, Bear and Rabbit are the picker's first four stickers.</span></div>
+    <div class="shot"><span class="n">ON THE COUCH</span>
+      <div class="phone">
+        <span class="ttl">Grandma</span>
+        <span class="t">On the couch · Living room TV</span>
+        <div class="panel" style="padding:10px"><span class="lbl">On the TV</span><br><b>Picking a game</b><br><span class="t">When a game starts, this phone becomes your controller. Home brings you back here.</span></div>
+        <div class="lane"><span class="chip">&#9650;</span><span class="chip">&#9664;</span><span class="chip">OK</span><span class="chip">&#9654;</span><span class="chip">&#9660;</span></div>
+        <div class="lane"><span class="chip">Invite someone</span><span class="chip">Home</span></div>
+        <span class="grow"></span>
+        <span class="t"><b>Keep Grandma for next time.</b> Get the OGS app to save your picture, scores and where you left off.</span>
+      </div>
+      <span class="cap">Home: the phone is a remote. The app upgrade is offered at the bottom, never a gate.</span></div>
+  </div>
+  <ul class="sub">
+    <li>A guest is a <b>guest profile</b>: name and sticker, valid for this couch session only, held in the browser (a cookie/local storage id). It is a full participant: it appears in <code>players</code>, gets a game token for each game, and plays on the couch.</li>
+    <li><b>The app is the upgrade, not the door.</b> "Get the app" carries the guest's name and sticker into onboarding as the starting profile; once the app joins the same couch, the guest entry is replaced by the real profile. Profile, friends, pushes and sittings only exist in the app.</li>
+    <li>A guest has no @id, no friends and no push, and its sittings are not kept after the couch ends. Game tokens for a guest carry <code>guest: true</code> (planned; <a href="../specification.md">specification.md</a> §8); <code>sub</code> is a per-session guest id. A game that keeps scores across nights should treat a guest as unsigned-in.</li>
+    <li>Guest phones play the game's <code>startUrl</code> in the browser itself (no WebView, no app bridge): the game's phone page sees <code>useOgsProfile()</code> as <code>null</code> and keeps its own name form unless the join page passes the guest identity (see §8 of the contract).</li>
+    <li>Limits: a couch accepts at most the same number of phones as today; the host can remove a phone from the couch (existing behaviour).</li>
+  </ul>
+</section>
+
+<section>
+  <span class="kicker">3 · Phones follow the TV</span>
+  <h2>Every couch phone is a remote on Home and the game's controller in a game</h2>
+  <div class="panel">
+    <div class="lane"><span class="chip">Home: every phone shows the remote</span><span class="arrow">→ game starts →</span><span class="chip good">every couch phone opens that game's phone page</span><span class="arrow">→ Home →</span><span class="chip">every phone is back on the remote</span></div>
+  </div>
+  <ul class="sub">
+    <li>The couch session's <code>current</code> game drives each joined phone. A phone does not tap "Join" or pick the game; it just follows. This extends today's behaviour (the app's Playing tab pins the live game) to <b>every</b> phone, app or browser, and to a phone that joins mid-game: it lands straight in the running game.</li>
+    <li>A game swap on the TV (a different game starts) swaps every phone's page. A parked game (Home) leaves phones on the remote; Continue puts them back in the game.</li>
+    <li>A phone may leave the game for the remote (back) and rejoin with the return pill; the follow rule only fires when the TV's <b>current game changes</b>, not on every state update.</li>
+    <li>Multi-household rooms are unchanged by this: each couch's phones follow their own TV. See the <a href="../exec-plans/active/2026-10-05-multi-couch-handoff.md">multi-couch handoff</a> and <a href="../specification.md">specification.md</a> §7.</li>
+  </ul>
+</section>
+
+<section>
+  <span class="kicker">4 · Invite mid-game</span>
+  <h2>A small QR card in the corner the game allows</h2>
+  <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+    <div class="lane"><span class="chip">a phone taps <b>Invite someone</b></span><span class="lbl">or</span><span class="chip">the game sends <code>ogs:invite</code></span><span class="arrow">→</span><span class="chip good">launcher shows the card in the manifest's safe corner</span></div>
+    <div class="lane"><span class="chip">QR + "Join this game" + the TV code</span><span class="chip">hides after 30 s</span><span class="chip">never over the focal area</span></div>
+  </div>
+  <ul class="sub">
+    <li>The card shows the same QR and TV code as Home ("Join this game", <code>NT9WPH</code>, "hides in 30 s"). It is drawn by the launcher over the game's frame, <b>in the corner named by the manifest</b>, so a game can protect its subject and HUD.</li>
+    <li>New optional manifest field <code>inviteCorner</code>: <code>top-right</code> (default) · <code>top-left</code> · <code>bottom-right</code> · <code>bottom-left</code>. The card is at most 220 × 120 CSS px at the TV's 960 × 540 reference, with a 24 px margin. A game reserves that rectangle in its layout (spec §8).</li>
+    <li>Triggers: any couch phone's <b>Invite someone</b> button (the remote, and in-game through the app's menu), or the game's <code>ogs:invite</code> message (for instance on its own "waiting for players" state). The launcher decides whether to show it; repeated triggers while visible restart the 30 s timer, they do not stack.</li>
+    <li>Joining from the card is the same as from Home: scan → join page or app → on the couch → the phone follows the TV into the running game (section 3).</li>
+    <li>Friend invites (push + <code>opengame.org/play/&lt;appId&gt;?room=&lt;room&gt;</code> for <code>multiCouch</code> games) are unchanged; this card is for people in the room.</li>
+  </ul>
+</section>
+
+<section>
+  <span class="kicker">5 · Transfer link</span>
+  <h2>"Play on TV with OGS" from a game's own site</h2>
+  <div class="screens">
+    <div class="shot"><span class="n">GAME'S OWN LOBBY</span>
+      <div class="phone">
+        <span class="t">triviajam.tv/room/KQTP</span>
+        <span class="ttl">Trivia Jam</span>
+        <span class="t">Room KQTP · 3 players waiting<br>Sam · Priya · Leo</span>
+        <span class="grow"></span>
+        <div class="panel" style="padding:10px"><b>Play this on your TV</b><br><span class="t">Opens OGS, casts, and brings Sam, Priya and Leo along. Hidden when already inside OGS.</span></div>
+        <div class="btn hot">Play on TV with OGS</div>
+      </div>
+      <span class="cap">A plain browser page on the game's own domain; the link goes to opengame.org/play/trivia-jam?room=KQTP.</span></div>
+  </div>
+  <ul class="sub">
+    <li><code>https://opengame.org/play/&lt;appId&gt;?room=&lt;room&gt;</code> is the same link as the friend invite (<a href="../specification.md">specification.md</a> §7). Opened on a phone with the app and a cast it sends <code>game.start { appId, room }</code>; with no cast it asks to cast first; with no app the page says how to get it.</li>
+    <li>Without <code>room</code> it just starts the game. With <code>room</code> the game joins that room instead of making one, and the players already in the room are carried over by the game itself (the game owns the room).</li>
+    <li>The game shows the link only when it is <b>not</b> inside OGS (<code>isOGSCastAvailable()</code> is false and <code>useOgsSession()</code> is <code>null</code>). Inside OGS the game never shows it, and never shows a cast button either.</li>
+  </ul>
+</section>
+
+<section>
+  <span class="kicker">6 · Households</span>
+  <h2>Several couches in one room: already specified</h2>
+  <p class="sub">Three households in one Trivia Jam room is the multi-couch design: <a href="../exec-plans/active/2026-10-05-multi-couch-handoff.md">docs/exec-plans/active/2026-10-05-multi-couch-handoff.md</a>, <a href="../adrs/2026-10-05-couches-join-the-games-room.md">ADR 2026-10-05</a>, <a href="../specification.md">specification.md</a> §7, <a href="../acceptance/2026-10-05-multi-couch.feature">multi-couch.feature</a>. This page does not repeat it. The only interaction: the join QR and web join page add people to <b>this</b> couch; adding another household is the friend invite and transfer link.</p>
+</section>
+
+<section>
+  <span class="kicker">7 · Where it lives</span>
+  <h2>Launcher-level, never game-level</h2>
+  <div class="grid">
+    <div class="panel"><span class="tag">Launcher (apps/tv)</span><p class="t">Draws every QR and code: Home, Getting ready, the invite card. Knows the safe corner.</p></div>
+    <div class="panel"><span class="tag">API + opengame.org</span><p class="t">Resolves <code>/join/&lt;code&gt;</code> to a couch, the web join page and its guest profile; <code>/play/&lt;appId&gt;</code>.</p></div>
+    <div class="panel"><span class="tag">Games</span><p class="t">Never draw a join code, QR or room-join UI on an OGS TV. May send <code>ogs:invite</code> and reserve the safe corner. May keep their own room code outside OGS.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Status</span>
+  <h2>Nothing here is built yet</h2>
+  <p class="sub">Every item on this page is planned. Order of work and rationale: <a href="../roadmap.md">roadmap.md</a> (Next: launcher QR and web join, phones follow the TV; Later: <code>ogs:invite</code> and the invite card, the transfer link). TV platform reach is a separate decision: <a href="../adrs/2026-10-06-tv-platform-coverage.md">ADR 2026-10-06 TV platform coverage</a>.</p>
+</section>
+
+</div>
+</body>
+</html>

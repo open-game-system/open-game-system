@@ -10,6 +10,7 @@ Acceptance tests in `docs/acceptance/` are the testable distillation of these sp
 |-----------|--------|
 | [push-notifications.md](push-notifications.md) | Device registration, JWT tokens, send notifications, providers |
 | [tv-casting.md](tv-casting.md) | Cast device discovery, session lifecycle, stream-kit rendering, receiver |
+| [ogs-join.html](ogs-join.html) | Joining and inviting (planned): launcher-owned join QR next to the TV code, web join page for guests (no install; the app is the upgrade), phones follow the TV, mid-game invite card in the manifest's safe corner (`ogs:invite`), "Play on TV with OGS" transfer link, multi-household pointer |
 | [ogs-profiles.html](ogs-profiles.html) | OGS profiles replace households: profile + @id + sticker at onboarding (everyone a full profile), optional back-up via Apple/Google/email, Friends and Profile tabs, TV session = whoever joined the cast, signed game-scoped profile token passed to games (bridge `profile` store, `ogs:start.token`), decisions recorded |
 | [ogs-app-v3.html](ogs-app-v3.html) | App rework v3 (current): Playing · TV · Library tabs, live game pinned + return pill, Add games inside Library, cast optional, games inside one stream |
 | [ogs-app-v2.html](ogs-app-v2.html) | App rework v2: library-first (Library · Shop tabs), optional cast via an on-TV bar with the remote, games inside one stream, launch from phone or TV, build plan |
