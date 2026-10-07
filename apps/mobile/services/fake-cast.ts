@@ -164,10 +164,10 @@ export function createFakeCastBackend(opts: {
         discovered = found;
         for (const l of deviceListeners) l(discovered);
       };
-      if (trickle) clearTimeout(trickle);
-      trickle = null;
       if (devices.length < 2 || discovered.length === devices.length) return publish(devices);
       publish(devices.slice(0, 1));
+      // A search while the second TV is on its way keeps its arrival (a restart would put it off).
+      if (trickle) return;
       trickle = setTimeout(() => {
         trickle = null;
         publish(devices);

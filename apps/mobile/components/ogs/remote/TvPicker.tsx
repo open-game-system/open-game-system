@@ -87,7 +87,10 @@ export function TvPicker({
                 <Text style={styles.name} numberOfLines={1}>
                   {d.name}
                 </Text>
-                <Text style={[styles.status, current && styles.statusOn]}>
+                <Text
+                  style={[styles.status, current && styles.statusOn]}
+                  testID={`tvPickerStatus-${d.id}`}
+                >
                   {current
                     ? "Casting now"
                     : switching
