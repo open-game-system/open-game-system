@@ -31,6 +31,8 @@ export const ManifestSchema = z.object({
     cover: z.string().min(1).optional(),
     logo: z.string().min(1).optional(),
     heroClean: z.string().min(1).optional(),
+    /** The game's music theme: a 20–40 s seamless audio loop (music only) the launcher's Home plays while the game is focused. */
+    theme: z.string().min(1).optional(),
     safe: z.object({ scale: z.number().positive(), ox: z.number(), oy: z.number() }).optional(),
   }),
   shop: z

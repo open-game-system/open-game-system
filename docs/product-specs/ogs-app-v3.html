@@ -192,6 +192,17 @@ flowchart LR
 </section>
 
 <section>
+  <span class="kicker">Launcher · sound</span>
+  <h2>Home plays the focused game's theme</h2>
+  <p class="sub">PS5-style (owner, 2026-10-04). On Home, the game the ring is on plays its music theme: quiet (volume 0.5), looped. Moving the ring crossfades to the next game's theme (about 600 ms). A game without a theme, or a card that isn't one game (Surprise me), is silence. Nothing plays anywhere else: Getting ready, a game's page, a game running, idle. Starting a game fades the theme out before the game's own sound starts; a parked game stays silent through <code>ogs:suspend</code>.</p>
+  <div class="grid">
+    <div class="panel"><span class="tag">Manifest</span><p style="margin:6px 0 0"><code>art.theme</code>: optional URL of a 20–40 s seamless MP3 loop (every Chrome build plays MP3; open-source Chromium may lack AAC), music only (no effects, no voice). The catalogue's five games carry one, rendered from each game's own score.</p></div>
+    <div class="panel"><span class="tag">Decision</span><p style="margin:6px 0 0"><code>themeFor(screen, focus, games)</code> is pure: Home + a focused game icon or sitting with a theme → that URL; anything else → none.</p></div>
+    <div class="panel"><span class="tag">Autoplay</span><p style="margin:6px 0 0">The cloud renderer's Chrome allows autoplay. A plain browser may refuse: the launcher catches the refusal, stays silent, and tries again on the next key press.</p></div>
+  </div>
+</section>
+
+<section>
   <span class="kicker">Session states</span>
   <h2>Not cast is a whole app, not an error</h2>
   <pre class="mermaid">
@@ -244,7 +255,8 @@ stateDiagram-v2
   "tvUrl":   "https://rocket-crew.example/tv",          // framed by the launcher: allow frame-ancestors opengame.org + autoplay
   "joinUrl": "https://rocket-crew.example/join",        // phones and kid iPads land here with a signed token
   "roles": [{ "id": "captain", "audience": "grownup" }, { "id": "fixer", "audience": "kid" }],
-  "art": { "tv": "/key.jpg", "safe": { "scale": 1.17, "ox": 50, "oy": 100 } },
+  "art": { "tv": "/key.jpg", "safe": { "scale": 1.17, "ox": 50, "oy": 100 },
+           "theme": "/art/rocket-crew/theme.mp3" },             // optional: Home plays it while the game is focused
   "shop": { "ages": "4+", "minutes": [8, 12], "players": "1 grown-up + 1–2 kids" },
   "suspend": true,                                      // optional: answers ogs:suspend with a resume point
   "instanceTtl": "7d"                                   // optional: how long a silent instance stays in Playing

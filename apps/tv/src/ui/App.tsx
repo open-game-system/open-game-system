@@ -15,6 +15,7 @@ import { buildHome, homeFocusRows, homeMove, recoverFocus } from "../launcher/ho
 import { nameForDevice, phoneOf, playersOf } from "../launcher/people";
 import { pageMove } from "../launcher/shortcuts";
 import { waitingForView } from "../launcher/starting";
+import { themeFor } from "../launcher/theme";
 import type { Connection, SessionClient } from "../session/client";
 import type { LauncherData } from "../session/data";
 import { Assembling } from "./Assembling";
@@ -25,6 +26,7 @@ import { Stage } from "./Stage";
 import { Surprise } from "./Surprise";
 import { useFrames } from "./useFrames";
 import { useNow } from "./useNow";
+import { useTheme } from "./useTheme";
 import { useViewTimeout } from "./useViewTimeout";
 
 export function App({ boot }: { boot: Boot }) {
@@ -106,6 +108,8 @@ function Living(props: {
     [data, suspended, now, surpriseSeed],
   );
   const grid = useMemo(() => homeFocusRows(home), [home]);
+  // PS5-style: Home plays the focused game's theme; every other screen is silent.
+  useTheme(themeFor({ screen: state.screen, focus: state.focus, home, games: data.games }));
   const pageGame = state.page ? games.get(state.page) : undefined;
 
   // The launcher owns its layout: a remote press arrives as focus.move, the ring's new place goes back.

@@ -64,7 +64,16 @@ describe("game manifest", () => {
     expect(ManifestSchema.parse({ ...valid(), art }).art).toEqual(art);
   });
 
-  it.each(["icon", "cover", "logo", "heroClean"])("an empty art.%s is rejected", (key) => {
+  it("keeps the optional theme: the audio loop the launcher plays while the game is focused", () => {
+    const art = { tile: "tile.png", theme: "/art/rocket-crew/theme.mp3" };
+    expect(ManifestSchema.parse({ ...valid(), art }).art).toEqual(art);
+  });
+
+  it("a game without a theme has none", () => {
+    expect(ManifestSchema.parse(valid()).art.theme).toBeUndefined();
+  });
+
+  it.each(["icon", "cover", "logo", "heroClean", "theme"])("an empty art.%s is rejected", (key) => {
     const art = { tile: "tile.png", [key]: "" };
     expect(ManifestSchema.safeParse({ ...valid(), art }).success).toBe(false);
   });
