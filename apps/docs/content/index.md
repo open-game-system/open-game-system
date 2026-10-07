@@ -1,14 +1,14 @@
 # Build a game for OGS
 
 OGS (Open Game System) puts web games on the living-room TV. A grown-up casts **once** from the OGS
-app; after that the TV shows one page all evening, the **TV launcher**, and every game plays inside
+app; after that the TV shows one page for as long as the cast lasts, the **TV launcher**, and every game plays inside
 it. Phones and iPads join the couch and play each game's phone page. Your game stays an ordinary web
 game: it gets a few `postMessage`s and a small library, and it keeps working in a plain browser.
 
 > **Building with a coding agent?** Point it at [the Quickstart](quickstart.md) or at
 > `https://ogs-docs.pages.dev/llms.txt`. Every page here is also plain Markdown: add `.md` to its URL.
 
-## How an evening works
+## How it works
 
 1. **Cast once.** The host opens the OGS app and casts to the TV (Chromecast, or any browser on the
    TV). The TV shows the launcher and a 6-character **TV code**.

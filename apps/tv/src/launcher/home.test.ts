@@ -100,7 +100,7 @@ describe("home: a row of game icons, the room, activity cards", () => {
     expect(night?.kind === "sitting" && night.tag).toBe("Tonight at 8:00");
   });
 
-  it("on a fresh evening shows only Surprise me under the icons", () => {
+  it("on a fresh couch shows only Surprise me under the icons", () => {
     const h = buildHome({ games: FIXTURE_GAMES, instances: [], suspended: [], now: NOW });
     expect(h.cards.map((c) => c.kind)).toEqual(["surprise"]);
     expect(h.icons).toHaveLength(6);

@@ -31,7 +31,7 @@ describe("launcher URL", () => {
     });
   });
 
-  it("runs fake mode on a fresh evening (nothing played yet) when asked", () => {
+  it("runs fake mode on a fresh couch (nothing played yet) when asked", () => {
     expect(parseParams("?fake=1&world=fresh")).toEqual({
       ok: true,
       params: { mode: "fake", hold: false, fresh: true },

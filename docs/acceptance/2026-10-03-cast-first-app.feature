@@ -238,7 +238,7 @@ Feature: Cast-first OGS app with games inside one stream
     And "Bedroom TV" appears when it is found
     And in a house with one TV it ends with "No other TVs nearby" and Look again
 
-  Scenario: Move the evening to another TV
+  Scenario: Move the cast to another TV
     Given the launcher is on "Living room TV" with Rocket Crew paused
     When Jonathan taps the TV chip on the remote and picks "Den TV"
     Then the cast stops on "Living room TV" and the launcher loads on "Den TV"

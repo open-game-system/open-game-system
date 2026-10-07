@@ -35,7 +35,7 @@ async function rendererSaysIdle(): Promise<boolean> {
 }
 
 describe("a launcher cast left on with nobody around ends after 20 minutes", () => {
-  it("is not idle while phones and the tablet are on the couch session, all evening", async () => {
+  it("is not idle while phones and the tablet are on the couch session, for the whole cast", async () => {
     expect(await rendererSaysIdle()).toBe(false);
     await page.clock.runFor(90 * MIN);
     expect(await rendererSaysIdle()).toBe(false);

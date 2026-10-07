@@ -57,7 +57,7 @@ describe("the launcher tells the stream server when players were last around", (
     expect(s.target.__ogsActivityAt).toBe(T0);
   });
 
-  it("stays active all evening while a phone or tablet is on the couch session", () => {
+  it("stays active for the whole cast while a phone or tablet is on the couch session", () => {
     const s = setup();
     s.advance(3 * 60 * MIN);
     expect(idleFor(s)).toBeLessThanOrEqual(ACTIVITY_TICK_MS);

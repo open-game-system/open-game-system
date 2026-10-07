@@ -106,7 +106,7 @@ function requestEnd(sm: SessionManagerLike, trace: CastTrace, t0: number) {
 }
 
 /**
- * Remote → TV picker: move the evening to another TV. Stops the cast on the old TV (without
+ * Remote → TV picker: move the cast to another TV. Stops the cast on the old TV (without
  * ending the couch session, so the current game keeps its place), waits until that session has
  * really ended (Google Cast refuses a new start until then: the "sometimes it doesn't work" of
  * 2026-10-05), then casts the launcher to the new one. Picking the TV you're already on does

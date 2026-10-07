@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "OGS TV launcher: the page the Chromecast stream shows all evening; frames each game's TV page",
+  "description": "OGS TV launcher: the page the Chromecast stream shows for the whole cast; frames each game's TV page",
   "scripts": {
     "dev": "vite --host --port 5180 --strictPort",
     "build": "vite build",

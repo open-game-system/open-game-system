@@ -526,7 +526,7 @@ function step<K extends ClientMessage["type"]>(
 }
 
 /**
- * The couch session's rules, as a pure function. One stream all evening: nothing here ever
+ * The couch session's rules, as a pure function. One stream per cast: nothing here ever
  * increments `casts` except a launcher connecting; swaps, Home and Continue only move state.
  */
 export function reduceSession(

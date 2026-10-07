@@ -55,13 +55,13 @@ const scenarios: Scenario[] = [
   },
   {
     id: "02-home-fresh",
-    label: "Home · fresh evening, nothing played",
+    label: "Home · fresh couch, nothing played",
     query: "?fake=1&world=fresh",
     run: async () => "[data-testid=home]",
   },
   {
     id: "03-home-evening",
-    label: "Home · evening with sittings (first focus)",
+    label: "Home · couch with sittings (first focus)",
     run: async () => "[data-testid=home]",
   },
   {

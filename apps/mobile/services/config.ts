@@ -36,7 +36,7 @@ export function launcherUrl(config: AppConfig, launcherToken: string): string {
   return `${config.tvBase}/?api=${api}&token=${encodeURIComponent(launcherToken)}`;
 }
 
-/** True when the receiver's view is the OGS launcher (the evening's one cast). */
+/** True when the receiver's view is the OGS launcher (the one cast). */
 export function isLauncherView(config: AppConfig, viewUrl: string | null): boolean {
   return !!viewUrl && viewUrl.startsWith(`${config.tvBase}/?`);
 }

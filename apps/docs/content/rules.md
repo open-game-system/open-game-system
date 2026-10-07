@@ -5,7 +5,7 @@ this page explains each rule and how to check it.
 
 ## 1. No cast button
 
-OGS casts once for the whole evening; the launcher frames your game. A game never starts a cast,
+OGS casts once and keeps that one cast across every game; the launcher frames your game. A game never starts a cast,
 never shows a cast button or a "cast to TV" prompt, and never ships a cast receiver for OGS. Inside
 the OGS app the app ignores a game's own cast actions anyway.
 

@@ -19,8 +19,8 @@ const DAY = 24 * 60 * 60 * 1000;
 const [JONATHAN, MOM, JUNEAU] = FIXTURE_MEMBERS;
 
 /**
- * The evening so far: Jonathan cast, Mom's phone and Juneau's iPad joined, Bake Shop paused at Day 4
- * (a fresh evening skips the Bake Shop sitting).
+ * The couch so far: Jonathan cast, Mom's phone and Juneau's iPad joined, Bake Shop paused at Day 4
+ * (a fresh couch skips the Bake Shop sitting).
  */
 function seed(now: number, fresh: boolean): SessionState {
   const played: [ClientMessage, number][] = [

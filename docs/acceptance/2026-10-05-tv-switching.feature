@@ -8,7 +8,7 @@
 # unresponsive if I want to cancel and switch to a different one… should we just close the modal?"
 # Root cause of the stale name: the couch session's TV name was set once when the session was
 # created, and a switch keeps the same session. Now the phone names the new TV (tv.rename).
-# Extends "Move the evening to another TV" in 2026-10-03-cast-first-app.feature.
+# Extends "Move the cast to another TV" in 2026-10-03-cast-first-app.feature.
 # Tests: apps/mobile/services/__tests__/cast-switch.seam.test.ts (fake Cast with real end timing),
 # cast-switch.test.ts, cast-flow-log.test.ts, components/ogs/remote/__tests__/remote-controls.test.ts;
 # packages/ogs-protocol session.rules.test.ts (tv.rename); services/api couch-session.test.ts and
@@ -67,7 +67,7 @@ Feature: Switching TVs works every time
   Scenario: Several taps mid-switch: only the last runs next
     Given a switch to "Bedroom TV" is under way
     When Jonathan taps "Den TV" and then "Living room TV"
-    Then "Den TV" is never cast to, and the evening ends on "Living room TV"
+    Then "Den TV" is never cast to, and the cast ends on "Living room TV"
     And tapping "Bedroom TV" again instead (the TV being switched to) drops the pick in between
 
   Scenario: A switch that fails says so, with Try again

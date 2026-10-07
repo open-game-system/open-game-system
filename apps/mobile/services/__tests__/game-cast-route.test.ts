@@ -35,7 +35,7 @@ describe("the game's cast-kit events inside OGS (spec v3, Architecture: Cast)", 
     });
   });
 
-  it("cast through OGS: the game's own cast/stop buttons can't end the evening's stream", () => {
+  it("cast through OGS: the game's own cast/stop buttons can't end the cast's stream", () => {
     for (const event of [
       { type: "START_CASTING" as const, deviceId: "cc" },
       { type: "STOP_CASTING" as const },

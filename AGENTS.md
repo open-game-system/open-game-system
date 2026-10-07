@@ -9,7 +9,7 @@
 - **Source layout:**
   - `apps/mobile/` — Expo/React Native companion app (managed workflow)
   - `apps/web/` — opengame.org marketing website (Vite + React + Tailwind + Cloudflare Pages)
-  - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream shows all evening; frames each game's TV page
+  - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream shows for the whole cast; frames each game's TV page
   - `apps/docs/` — game-developer docs site (ogs-docs.pages.dev): Markdown in `apps/docs/content/` + the contract from `docs/specification.md` → static HTML, `.md` twins, `llms.txt`
   - `packages/app-bridge-*/` — WebView-to-native two-way communication (6 packages)
   - `packages/cast-kit/` — TV casting SDK for web games (Google Cast via native bridge)

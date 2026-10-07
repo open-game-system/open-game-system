@@ -12,8 +12,8 @@ sessions), which described a model OGS no longer uses. That text is in git histo
 
 ## The model in one paragraph
 
-A grown-up casts **once** from the OGS app. The Chromecast (or any browser on the TV) shows one page all
-evening: the **TV launcher** (`apps/tv`). The launcher frames each game's **TV page** in an iframe and
+A grown-up casts **once** from the OGS app. The Chromecast (or any browser on the TV) shows one page for
+the whole cast: the **TV launcher** (`apps/tv`). The launcher frames each game's **TV page** in an iframe and
 swaps games without recasting. Phones and iPads play the game's **phone page** inside the app's
 WebView. People join the couch with the **TV code** (a 6-character code per couch session), not a game's
 room code. A game never casts, never shows a cast button, and still works in a plain browser.

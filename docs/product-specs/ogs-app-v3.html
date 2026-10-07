@@ -78,7 +78,7 @@ a { color: var(--ember) }
 <header style="display:flex;flex-direction:column;gap:14px">
   <span class="kicker">OGS app rework · product spec v3 · Oct 2026</span>
   <h1>Your games on any screen. Cast when you want the TV.</h1>
-  <p class="lede">OGS opens on what needs you, or your library. Play on the phone, or cast once and the TV becomes a game console for the evening: every game launches inside that one stream.</p>
+  <p class="lede">OGS opens on what needs you, or your library. Play on the phone, or cast once and the TV becomes a game console: every game launches inside that one stream.</p>
 </header>
 
 <section>
@@ -127,7 +127,7 @@ a { color: var(--ember) }
 
 <section>
   <span class="kicker">Flows</span>
-  <h2>The evening, storyboarded</h2>
+  <h2>Casting, storyboarded</h2>
   <p class="sub">Phone (and kid iPad) below each TV. The orange ring is the TV's focus.</p>
   <div id="flows" style="display:flex;flex-direction:column;gap:28px"></div>
 </section>
@@ -179,13 +179,13 @@ stateDiagram-v2
 flowchart LR
   P["Grown-up phone<br/>OGS app: Playing · TV · Library tabs · game"] -- "game.start · focus · select · home" --> S["Couch session<br/>Durable Object in services/api<br/>library · roster · focus · current and paused games"]
   K["Kid iPads<br/>paired, OGS app"] -- "subscribe" --> S
-  S -- "state (WebSocket)" --> L["OGS launcher page<br/>opengame.org/tv?session=…<br/>loaded once per evening"]
+  S -- "state (WebSocket)" --> L["OGS launcher page<br/>opengame.org/tv?session=…<br/>loaded once per cast"]
   L -- "frames the game's tvUrl + token" --> G["Game TV page<br/>(its own origin)"]
   L -. "tab capture → SFU → WebRTC" .-> C["Chromecast<br/>receiver loads the launcher URL once"]
   S -- "follow(game, role, joinUrl)" --> K
   </pre>
   <div class="grid">
-    <div class="panel"><span class="tag">Cast</span><p style="margin:6px 0 0">The app sends <code>LOAD_VIEW</code> with the launcher URL, never a game URL. The receiver keeps that page all evening.</p></div>
+    <div class="panel"><span class="tag">Cast</span><p style="margin:6px 0 0">The app sends <code>LOAD_VIEW</code> with the launcher URL, never a game URL. The receiver keeps that page for the whole cast.</p></div>
     <div class="panel"><span class="tag">Launch</span><p style="margin:6px 0 0">A tap in the library and a select on the TV both send <code>game.start</code>. The session is the one source of truth.</p></div>
     <div class="panel"><span class="tag">Switch</span><p style="margin:6px 0 0">The launcher swaps the framed game. The old one gets <code>ogs:suspend</code> and reports its resume point. No new stream.</p></div>
   </div>
@@ -274,7 +274,7 @@ stateDiagram-v2
         <tr><td><code>apps/mobile/services/game-history.ts</code></td><td>Last 20 URLs, never cleaned up</td><td>Replaced by instances (status reported by games, owned by the household, expired by OGS)</td></tr>
         <tr><td><code>apps/mobile/services/game-directory.ts</code></td><td>Static list compiled into the app</td><td>The family's library (synced) plus a browse catalogue behind "+ Add games", both from manifests</td></tr>
         <tr><td><code>apps/mobile/services/cast-store.ts</code></td><td>The game sets <code>viewUrl</code> over app-bridge; the cast lives in <code>app/game.tsx</code></td><td>App-level cast from the TV tab; <code>viewUrl</code> is always the launcher</td></tr>
-        <tr><td><code>apps/web/public/receiver.html</code></td><td>Loads whatever <code>LOAD_VIEW</code> sends, per game</td><td>Same contract; gets the launcher URL once per evening</td></tr>
+        <tr><td><code>apps/web/public/receiver.html</code></td><td>Loads whatever <code>LOAD_VIEW</code> sends, per game</td><td>Same contract; gets the launcher URL once per cast</td></tr>
         <tr><td>New <code>apps/tv</code></td><td>None</td><td>The launcher: the library as rows, game page, who's playing, frames games</td></tr>
         <tr><td><code>services/api</code></td><td>Cast sessions per game; stream routes</td><td><code>CouchSession</code> Durable Object; library, catalogue and Playing endpoints (instances from Tier 2 reports)</td></tr>
         <tr><td><code>packages/cast-kit-*</code></td><td>Games call <code>useCastViewUrl</code></td><td>Games call nothing; becomes the launcher↔game message helper</td></tr>
@@ -362,7 +362,7 @@ const F=[
 ['3 · Cast when you want the TV',[
 ['TV tab: one big Cast button.',off('TV off'),castTab()],
 ['Pick the living room TV.',off('TV off'),ph(`${w('Cast to')}<div class="tile focus" style="height:16px"></div><div class="tile" style="height:16px"></div><div style="flex:1"></div>`)],
-['Connecting once for the evening.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:6px"><span class="dot"></span>${w('OGS · connecting')}</div>`),ph(`<div class="ctr" style="flex:1">${w('Connecting')}</div>`)],
+['Connecting once.',tv(`<div class="ctr" style="height:100%;flex-direction:column;gap:6px"><span class="dot"></span>${w('OGS · connecting')}</div>`),ph(`<div class="ctr" style="flex:1">${w('Connecting')}</div>`)],
 ['The TV shows your library as a console home; the TV tab is now the remote.',tv(launcher(0,'Rocket Crew')),remote()]]],
 ['4 · Launch a game: from the phone or the TV',[
 ['From the phone: tap Rocket Crew in the library.',tv(launcher(1,'Rocket Crew')),lib(true)],

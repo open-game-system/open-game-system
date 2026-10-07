@@ -1,6 +1,6 @@
 // Fake Chromecast for simulator runs: the app (EXPO_PUBLIC_FAKE_CAST=1) POSTs { viewUrl } to
 // /load when it "casts"; this opens that URL in a 1920x1080 browser (the TV), records video, and
-// counts loads. A swap that recasts would show up as loads > 1 for the evening.
+// counts loads. A swap that recasts would show up as loads > 1 for the session.
 //
 //   node fake-chromecast.mjs [--port 5181] [--headed] [--evidence ./evidence]
 //   GET  /status  -> { loads, viewUrl, startedAt }

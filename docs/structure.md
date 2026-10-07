@@ -37,7 +37,7 @@
 |------|----------|---------|----------------------|
 | `apps/mobile` | `@open-game-system/mobile` | Host app (Expo/React Native), WebView + bridge | `app-bridge-native`, `app-bridge-react-native`, `app-bridge-types`, `app-bridge-testing` |
 | `apps/web` | `@open-game-system/web` | opengame.org marketing website (Vite + React + Tailwind) | None |
-| `apps/tv` | `@open-game-system/tv` | OGS TV launcher: the one page the Chromecast stream shows all evening; frames each game's TV page (Vite + React, Vitest + Playwright) | `ogs-protocol` |
+| `apps/tv` | `@open-game-system/tv` | OGS TV launcher: the one page the Chromecast stream shows for the whole cast; frames each game's TV page (Vite + React, Vitest + Playwright) | `ogs-protocol` |
 | `apps/docs` | `@open-game-system/docs` | Docs site for game developers and their coding agents (ogs-docs.pages.dev): `content/*.md` + `docs/specification.md` rendered to static HTML with `.md` twins, `llms.txt`, `llms-full.txt`; protocol tables generated from the zod schemas; tests fail when profile-kit's exports drift from the reference | `ogs-protocol` |
 
 ### Examples (`examples/`)

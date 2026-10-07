@@ -39,7 +39,7 @@ describe("app config from EXPO_PUBLIC_* env", () => {
   });
 });
 
-describe("the launcher URL the receiver loads once per evening", () => {
+describe("the launcher URL the receiver loads once per cast", () => {
   it("points the TV at the launcher with the API and a launcher token", () => {
     const url = launcherUrl(readConfig({}), "tok en/1");
     expect(url).toBe("http://localhost:5180/?api=http%3A%2F%2Flocalhost%3A8787&token=tok%20en%2F1");

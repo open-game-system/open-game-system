@@ -13,7 +13,7 @@ export type LaunchPlan =
 
 /**
  * Spec v3, Where a game plays: what a tap on a game does. Cast: everything but phone-only games
- * starts in the evening's one stream. Not cast: play here, unless the game needs a TV.
+ * starts in the one stream. Not cast: play here, unless the game needs a TV.
  */
 export function launchPlan(input: {
   manifest: Manifest;

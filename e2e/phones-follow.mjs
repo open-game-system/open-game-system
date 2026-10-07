@@ -423,7 +423,7 @@ try {
   check("Home brought Mom's phone back to the remote", true);
   await shoot("03-home-again");
   check(
-    "one cast all evening (no recast)",
+    "one cast throughout (no recast)",
     dadCouch.state.casts === 1,
     `casts ${dadCouch.state.casts}`,
   );

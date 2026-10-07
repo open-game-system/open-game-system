@@ -281,7 +281,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
         </View>
       ) : (
         <Text style={styles.lead}>
-          Cast once and the TV becomes your game console for the evening.
+          Cast once and the TV becomes your game console.
         </Text>
       )}
       <View style={styles.center}>

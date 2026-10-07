@@ -36,7 +36,7 @@ export function parseParams(search: string): ParamsResult {
   const q = new URLSearchParams(search);
   if (q.get("fake") === "1") {
     const hold = q.get("hold") === "1";
-    // `world=fresh`: the evening before anyone has played anything (design and tests).
+    // `world=fresh`: a couch before anyone has played anything (design and tests).
     const params: LauncherParams =
       q.get("world") === "fresh" ? { mode: "fake", hold, fresh: true } : { mode: "fake", hold };
     return { ok: true, params };

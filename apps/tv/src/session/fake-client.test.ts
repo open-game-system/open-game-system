@@ -21,7 +21,7 @@ describe("fake couch session", () => {
     expect(state?.devices.find((d) => d.deviceId === "juneau-ipad")?.profileId).toBe("juneau");
   });
 
-  it("seeds a fresh evening with the couch but nothing paused", () => {
+  it("seeds a fresh couch with the couch but nothing paused", () => {
     const c = createFakeClient({ now: () => NOW, fresh: true });
     const state = c.getSnapshot().state;
     expect(state?.suspended).toEqual([]);
@@ -31,7 +31,7 @@ describe("fake couch session", () => {
     expect(state?.casts).toBe(1);
   });
 
-  it("seeds the evening on the injected clock: Bake Shop started three days ago, paused 40 min in", () => {
+  it("seeds the couch on the injected clock: Bake Shop started three days ago, paused 40 min in", () => {
     const c = createFakeClient({ now: () => NOW });
     const day = 24 * 60 * 60 * 1000;
     const started = NOW - 3 * day;
