@@ -1,0 +1,208 @@
+name: Mobile Beta Release
+
+# Every merge to main that touches the app reaches testers (docs/adrs/2026-10-07-beta-distribution.md):
+# - native fingerprint unchanged → an over-the-air update on the "beta" channel (EAS Update)
+# - native fingerprint changed (or nothing recorded) → a new build: iOS to TestFlight, Android to
+#   Firebase App Distribution; once installable, the API records it and older apps show "Update OGS".
+# Builds run on GitHub's runners (`eas build --local`): free for this public repo, no EAS build credits.
+# Setup (secrets, variables, one-time credentials): docs/testing/beta-distribution.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - "packages/app-bridge-*/**"
+      - "packages/ogs-protocol/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/mobile-release.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+env:
+  EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.ready.outputs.ready }}
+      ios_build: ${{ steps.plan.outputs.ios_build }}
+      ios_fingerprint: ${{ steps.plan.outputs.ios_fingerprint }}
+      android_build: ${{ steps.plan.outputs.android_build }}
+      android_fingerprint: ${{ steps.plan.outputs.android_fingerprint }}
+    steps:
+      - id: ready
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -n "$EXPO_TOKEN" ] && [ -n "$RELEASE_TOKEN" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::Beta release is not set up yet (EXPO_TOKEN, RELEASE_TOKEN): see docs/testing/beta-distribution.md"; echo "ready=false" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.ready.outputs.ready == 'true'
+      - uses: pnpm/action-setup@v4
+        if: steps.ready.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.ready.outputs.ready == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+      - if: steps.ready.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - id: plan
+        if: steps.ready.outputs.ready == 'true'
+        working-directory: apps/mobile
+        run: node scripts/release/release.mjs plan
+
+  ota:
+    needs: plan
+    if: needs.plan.outputs.ready == 'true' && (needs.plan.outputs.ios_build == 'false' || needs.plan.outputs.android_build == 'false')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter=@open-game-system/mobile^...
+
+      # The bundle needs the beta profile's EXPO_PUBLIC_* (eas update does not read eas.json's env).
+      - name: Beta profile env
+        working-directory: apps/mobile
+        run: jq -r '.build.beta.env | to_entries[] | "\(.key)=\(.value)"' eas.json >> "$GITHUB_ENV"
+
+      - name: Publish the update (platforms that are not building)
+        working-directory: apps/mobile
+        env:
+          IOS_BUILD: ${{ needs.plan.outputs.ios_build }}
+          ANDROID_BUILD: ${{ needs.plan.outputs.android_build }}
+          MESSAGE: ${{ github.event.head_commit.message || github.sha }}
+        run: |
+          if [ "$IOS_BUILD" = "false" ] && [ "$ANDROID_BUILD" = "false" ]; then platform=all
+          elif [ "$IOS_BUILD" = "false" ]; then platform=ios
+          else platform=android; fi
+          npx eas-cli@latest update --channel beta --platform "$platform" \
+            --message "$(printf '%s' "$MESSAGE" | head -n 1)" --non-interactive
+
+  ios:
+    needs: plan
+    if: needs.plan.outputs.ready == 'true' && needs.plan.outputs.ios_build == 'true'
+    runs-on: macos-15
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build (beta profile, signing from EAS)
+        working-directory: apps/mobile
+        run: npx eas-cli@latest build --local --platform ios --profile beta --output "$RUNNER_TEMP/ogs.ipa" --non-interactive
+
+      - name: Read the build number and runtime version
+        id: built
+        env:
+          PLANNED: ${{ needs.plan.outputs.ios_fingerprint }}
+        run: |
+          cd "$RUNNER_TEMP" && rm -rf ipa && mkdir ipa && unzip -q ogs.ipa -d ipa
+          app=$(ls -d ipa/Payload/*.app)
+          build=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$app/Info.plist")
+          runtime=$(/usr/libexec/PlistBuddy -c "Print :EXUpdatesRuntimeVersion" "$app/Expo.plist")
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          # eas update computes the runtime the way the plan did; a build that embeds another one
+          # would never receive updates. Stop before testers get it.
+          if [ "$runtime" != "$PLANNED" ]; then
+            echo "::error::The build's runtime version ($runtime) is not the planned fingerprint ($PLANNED)"; exit 1
+          fi
+
+      - name: Upload to TestFlight
+        working-directory: apps/mobile
+        env:
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+        run: |
+          jq --arg id "$ASC_APP_ID" '.submit.beta.ios.ascAppId = $id' eas.json > eas.tmp && mv eas.tmp eas.json
+          npx eas-cli@latest submit --platform ios --profile beta --path "$RUNNER_TEMP/ogs.ipa" --non-interactive --wait
+
+      - name: Wait for App Store Connect to finish processing
+        working-directory: apps/mobile
+        timeout-minutes: 95
+        env:
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: node scripts/release/release.mjs wait-testflight "${{ steps.built.outputs.build }}"
+
+      - name: Record the release (older apps now update)
+        working-directory: apps/mobile
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          UPDATE_URL: ${{ vars.IOS_UPDATE_URL }}
+        run: node scripts/release/release.mjs record ios "${{ steps.built.outputs.build }}" "${{ needs.plan.outputs.ios_fingerprint }}" "$UPDATE_URL"
+
+  android:
+    needs: plan
+    if: needs.plan.outputs.ready == 'true' && needs.plan.outputs.android_build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build (beta profile, keystore from EAS)
+        working-directory: apps/mobile
+        run: npx eas-cli@latest build --local --platform android --profile beta --output "$RUNNER_TEMP/ogs.apk" --non-interactive
+
+      - name: Read the build number and runtime version
+        id: built
+        env:
+          PLANNED: ${{ needs.plan.outputs.android_fingerprint }}
+        run: |
+          analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
+          build=$("$analyzer" manifest version-code "$RUNNER_TEMP/ogs.apk")
+          runtime=$("$analyzer" resources value --config default --name expo_runtime_version --type string "$RUNNER_TEMP/ogs.apk")
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          # eas update computes the runtime the way the plan did; a build that embeds another one
+          # would never receive updates. Stop before testers get it.
+          if [ "$runtime" != "$PLANNED" ]; then
+            echo "::error::The build's runtime version ($runtime) is not the planned fingerprint ($PLANNED)"; exit 1
+          fi
+
+      - name: Upload to Firebase App Distribution
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_ANDROID_APP_ID: ${{ vars.FIREBASE_ANDROID_APP_ID }}
+          MESSAGE: ${{ github.event.head_commit.message || github.sha }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase.json" npx firebase-tools@latest \
+            appdistribution:distribute "$RUNNER_TEMP/ogs.apk" \
+            --app "$FIREBASE_ANDROID_APP_ID" --groups testers \
+            --release-notes "$(printf '%s' "$MESSAGE" | head -n 1)"
+          rm "$RUNNER_TEMP/firebase.json"
+
+      - name: Record the release (older apps now update)
+        working-directory: apps/mobile
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          UPDATE_URL: ${{ vars.ANDROID_UPDATE_URL }}
+        run: node scripts/release/release.mjs record android "${{ steps.built.outputs.build }}" "${{ needs.plan.outputs.android_fingerprint }}" "$UPDATE_URL"

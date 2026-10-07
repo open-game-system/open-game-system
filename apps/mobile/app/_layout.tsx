@@ -5,6 +5,7 @@ import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { AppErrorBoundary } from "../components/ogs/AppErrorBoundary";
 import { colors } from "../components/ogs/theme";
+import { UpdateRequired } from "../components/ogs/UpdateRequired";
 import { addDeepLinkListener, getInitialGameUrl } from "../services/deep-links";
 import { setGameUrl } from "../services/game-url-store";
 import {
@@ -15,9 +16,11 @@ import {
 import { isOnboardingComplete } from "../services/onboarding";
 import { jsErrors } from "../services/runtime";
 import { incrementSessionCount } from "../services/session-counter";
+import { openUpdate, useUpdateGate } from "../services/update-check";
 
 export default function RootLayout() {
   const [ogsDeviceId, setOgsDeviceId] = useState<string | null>(null);
+  const updateGate = useUpdateGate();
   const [fontsLoaded] = useFonts({
     "Fraunces-Display": require("../assets/fonts/Fraunces-Display.ttf"),
   });
@@ -63,6 +66,11 @@ export default function RootLayout() {
   }, [ogsDeviceId]);
 
   if (!fontsLoaded) return null;
+
+  // An older build than the latest beta: nothing else until it is updated.
+  if (updateGate.kind === "update") {
+    return <UpdateRequired onUpdate={() => openUpdate(updateGate.url)} />;
+  }
 
   return (
     <AppErrorBoundary onError={(error) => jsErrors.boundary(error, "root")}>

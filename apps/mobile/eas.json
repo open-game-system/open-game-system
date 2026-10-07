@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.9.1"
+    "version": ">= 5.9.1",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -41,9 +42,25 @@
       "ios": {
         "simulator": false
       }
+    },
+    "beta": {
+      "distribution": "store",
+      "channel": "beta",
+      "autoIncrement": true,
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_OGS_API": "https://opengame-api.jonathanrmumm.workers.dev",
+        "EXPO_PUBLIC_OGS_TV": "https://ogs-tv.pages.dev"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "beta": {}
   }
 }

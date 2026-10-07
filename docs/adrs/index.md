@@ -16,3 +16,4 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-10-06 | [Streaming renders only on Cloud Run; the Cloudflare container is removed](2026-10-06-streaming-cloud-run-only.md) | Accepted (supersedes the rendering/API parts of 2026-03-14 cast-kit) |
 | 2026-10-06 | [The launcher owns joining: join QR, web join for guests, phones follow the TV, invite card, transfer link (planned)](2026-10-06-launcher-owns-joining.md) | Accepted |
 | 2026-10-06 | [TV platform coverage estimates (unverified for custom receivers)](2026-10-06-tv-platform-coverage.md) | Accepted (planning input) |
+| 2026-10-07 | [Beta distribution: TestFlight + Firebase App Distribution, EAS Update, and a forced update](2026-10-07-beta-distribution.md) | Accepted |
