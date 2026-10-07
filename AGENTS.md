@@ -17,7 +17,7 @@
   - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
   - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
   - `services/api/` — Hono API on Cloudflare Workers (auth, push dispatch, households, catalogue, instances, CouchSession DO)
-  - `examples/` — Demo/reference apps (4 apps: expo-bridge-demo, web-game-demo, stream-react-demo, cast-receiver)
+  - `examples/` — Demo/reference apps (3 apps: expo-bridge-demo, web-game-demo, stream-react-demo)
   - `e2e/` — cross-surface e2e (tester.army `e2e`, fake Chromecast, couch flow); standalone install
 
 ## Feedback Commands
