@@ -33,6 +33,7 @@ const StateFrameSchema = z.object({
     devices: z.array(
       z.looseObject({ deviceId: z.string(), kind: z.string(), online: z.boolean() }),
     ),
+    tvName: z.string().optional(),
   }),
 });
 export type StateFrame = z.infer<typeof StateFrameSchema>;

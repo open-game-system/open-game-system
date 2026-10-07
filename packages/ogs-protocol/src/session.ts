@@ -24,6 +24,9 @@ export const DirectionSchema = z.enum(["up", "down", "left", "right"]);
 /** A game's own room code (multiCouch games, spec §7): opaque to OGS, safe in a URL. */
 export const RoomIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
 
+/** A TV's name as people see it ("Living room TV"): what Cast calls the device. */
+export const TvNameSchema = z.string().trim().min(1).max(60);
+
 /** Messages any client sends to the couch session. */
 export const ClientMessageSchema = z.discriminatedUnion("type", [
   z.object({
@@ -57,6 +60,8 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("game.view"), appId: z.string(), url: z.string().url() }),
   z.object({ type: z.literal("remote.take"), deviceId: z.string() }),
   z.object({ type: z.literal("end") }),
+  /** The caster moved the cast to another TV: the session is on that TV now, by its name. */
+  z.object({ type: z.literal("tv.rename"), name: TvNameSchema }),
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
@@ -135,6 +140,7 @@ export const SessionStateSchema = z.object({
   ),
   rosters: z.record(z.string(), z.array(RosterEntrySchema)),
   casts: z.number(),
+  tvName: z.string().optional(),
 });
 
 export interface SessionState {
@@ -159,6 +165,11 @@ export interface SessionState {
   rosters: Record<string, RosterEntry[]>;
   /** Count of LOAD_VIEW sends (recasts). A game swap must never change it. */
   casts: number;
+  /**
+   * The TV the cast is on, once it moved there (tv.rename). Until then clients show the name the
+   * session was created with.
+   */
+  tvName?: string;
 }
 
 /** Where a device should be: the launcher's resting screen, or a game in a role. */
@@ -463,6 +474,7 @@ const HANDLERS: Handlers = {
   "game.view": onGameView,
   "game.room": onGameRoom,
   "game.resume-point": onResumePoint,
+  "tv.rename": (s, msg) => ({ s: { ...s, tvName: msg.name } }),
   end: (s, _msg, now) => ({
     s: { ...suspendCurrent(s, now), screen: "home", page: null, cast: false },
   }),

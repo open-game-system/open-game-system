@@ -758,6 +758,38 @@ describe("couch session: game reports", () => {
   });
 });
 
+describe("couch session: the TV's name (the cast moved to another TV)", () => {
+  // Owner, 2026-10-06: after Change TV the phone's hero and the TV's header kept the old TV's name.
+  it("has no name of its own until the cast moves: clients show the session's created name", () => {
+    expect(run(living()).s.tvName).toBeUndefined();
+  });
+
+  it("tv.rename names the TV the cast is on now, for every client", () => {
+    const { s, last } = run([...living(), { type: "tv.rename", name: "Bedroom TV" }]);
+    expect(s.tvName).toBe("Bedroom TV");
+    expect(last[0]).toEqual({ to: "all", msg: { type: "state", state: s } });
+  });
+
+  it("the latest rename wins, and nothing else changes", () => {
+    const { s: before } = run([...living(), startRc]);
+    const { s } = run(
+      [
+        { type: "tv.rename", name: "Bedroom TV" },
+        { type: "tv.rename", name: "Living room TV" },
+      ],
+      before,
+    );
+    expect(s).toEqual({ ...before, tvName: "Living room TV" });
+  });
+
+  it("a rename moves no device: no follow, no recast", () => {
+    const { s: before } = run([...living(), startRc]);
+    const r = reduceSession(before, { type: "tv.rename", name: "Bedroom TV" }, T);
+    expect(follows(r.out)).toEqual([]);
+    expect(r.state.casts).toBe(before.casts);
+  });
+});
+
 describe("client message schema", () => {
   const messages: ClientMessage[] = [
     { type: "hello", deviceId: "d", kind: "phone", profile: member("dad") },
@@ -785,6 +817,7 @@ describe("client message schema", () => {
     { type: "game.view", appId: "rc", url: "https://rc.example/tv" },
     { type: "remote.take", deviceId: "d" },
     { type: "end" },
+    { type: "tv.rename", name: "Bedroom TV" },
   ];
 
   it.each(messages.map((m) => [m.type, m]))("accepts %s", (_type, msg) => {
@@ -809,6 +842,9 @@ describe("client message schema", () => {
     ["game.resume-point without a label", { type: "game.resume-point", appId: "rc" }],
     ["game.view with a non-URL", { type: "game.view", appId: "rc", url: "tv page" }],
     ["remote.take without a device", { type: "remote.take" }],
+    ["tv.rename without a name", { type: "tv.rename" }],
+    ["tv.rename with a blank name", { type: "tv.rename", name: "   " }],
+    ["tv.rename with a name over 60 characters", { type: "tv.rename", name: "T".repeat(61) }],
   ])("rejects %s", (_name, msg) => {
     expect(ClientMessageSchema.safeParse(msg).success).toBe(false);
   });
@@ -827,6 +863,12 @@ describe("session state schema", () => {
   it.each(["home", "game-page", "game"])("accepts the screen %s", (screen) => {
     const state = { ...initialSession("s-1", "dad"), screen };
     expect(SessionStateSchema.parse(state).screen).toBe(screen);
+  });
+
+  it("parses a renamed TV, and a state from before renames (no tvName)", () => {
+    const { s } = run([...living(), { type: "tv.rename", name: "Bedroom TV" }]);
+    expect(SessionStateSchema.parse(s)).toEqual(s);
+    expect(SessionStateSchema.parse(initialSession("s-1", "dad")).tvName).toBeUndefined();
   });
 
   it("rejects an unknown screen", () => {

@@ -83,6 +83,33 @@ describe("readFrame", () => {
   });
 });
 
+describe("readFrame: tv.rename (the cast moved to another TV)", () => {
+  const HOST_PHONE = {
+    ...PEER,
+    deviceId: "mom-phone",
+    kind: "phone" as const,
+    profile: { profileId: "mom", name: "Mom", sticker: "bear" },
+  };
+  const rename = JSON.stringify({ type: "tv.rename", name: "Bedroom TV" });
+
+  it("the caster's phone renames the TV", () => {
+    expect(readFrame(rename, HOST_PHONE)).toEqual({
+      msg: { type: "tv.rename", name: "Bedroom TV" },
+    });
+  });
+
+  it.each([
+    ["a tablet that joined", PEER],
+    ["another phone on the couch", { ...HOST_PHONE, profile: { ...PEER.profile } }],
+    ["the launcher", { ...HOST_PHONE, kind: "launcher" as const, profile: undefined }],
+    ["the caster's profile on a tablet", { ...HOST_PHONE, kind: "tablet" as const }],
+  ])("refuses it from %s (only the caster moves the cast)", (_label, peer) => {
+    expect(readFrame(rename, peer)).toEqual({
+      error: ["host_only", "Only the caster's phone moves the cast to another TV"],
+    });
+  });
+});
+
 describe("closeCode", () => {
   it.each([
     [1005, 1000],

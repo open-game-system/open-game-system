@@ -49,6 +49,14 @@ export async function viewOf(db: D1Database, row: SessionRow): Promise<SessionVi
   return host ? { sessionId: row.id, code: row.code, tvName: row.tv_name, host } : null;
 }
 
+/** The cast moved to another TV (tv.rename): the session is named for that TV from now on. */
+export function recordTvName(db: D1Database, sessionId: string, tvName: string) {
+  return db
+    .prepare("UPDATE couch_sessions SET tv_name = ? WHERE id = ?")
+    .bind(tvName, sessionId)
+    .run();
+}
+
 /** May these claims enter the session? Its own launcher, its host, or a profile that joined. */
 export async function mayEnter(db: D1Database, claims: Claims, row: SessionRow): Promise<boolean> {
   if (claims.kind === "launcher") return claims.sid === row.id;

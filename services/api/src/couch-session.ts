@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 import { type Peer as Recipient, recipients } from "./couch/route";
 import { recordLive, recordRoom, roomChange } from "./lib/presence";
+import { recordTvName } from "./lib/sessions";
 import { type EventFields, emit, errorFields, versionOf } from "./lib/wide-event";
 import type { Env } from "./types";
 
@@ -29,7 +30,7 @@ export type Peer = z.infer<typeof PeerSchema>;
 
 const STATE_KEY = "state";
 
-type ErrorCode = "invalid_json" | "invalid_message" | "identity_from_token";
+type ErrorCode = "invalid_json" | "invalid_message" | "identity_from_token" | "host_only";
 
 /**
  * One couch session per cast (`idFromName(sessionId)`): the host's phone, the TV launcher and
@@ -121,8 +122,13 @@ export class CouchSession extends DurableObject<Env> {
     }
   }
 
-  /** Friends' presence and Join cards read D1: whether the TV is connected and which game runs. */
+  /**
+   * Friends' presence and Join cards read D1: whether the TV is connected and which game runs, and
+   * the TV's name (a launcher that reloads and a phone that joins later read it from the row too).
+   */
   private async publishLive(before: SessionState, after: SessionState): Promise<void> {
+    if (after.tvName && after.tvName !== before.tvName)
+      await recordTvName(this.env.DB, after.sessionId, after.tvName);
     const room = roomChange(before, after);
     if (room) await recordRoom(this.env.DB, after.sessionId, room.room, Date.now());
     const appId = (s: SessionState) => s.current?.appId ?? null;
@@ -207,11 +213,17 @@ export function readFrame(
   }
   const parsed = ClientMessageSchema.safeParse(raw);
   if (!parsed.success) return { error: ["invalid_message", "Not a couch session message"] };
+  if (parsed.data.type === "tv.rename" && !isCasterPhone(peer))
+    return { error: ["host_only", "Only the caster's phone moves the cast to another TV"] };
   const msg = fromSender(parsed.data, peer);
   return msg
     ? { msg }
     : { error: ["identity_from_token", "hello and bye come from the token, not the client"] };
 }
+
+/** The phone of the profile that cast (the only one with Change TV). */
+const isCasterPhone = (peer: Peer) =>
+  peer.kind === "phone" && peer.profile?.profileId === peer.hostProfileId;
 
 /** 1005 and 1006 are reserved (never sent): echo them as a normal close. */
 export const closeCode = (code: number) => (code === 1005 || code === 1006 ? 1000 : code);
