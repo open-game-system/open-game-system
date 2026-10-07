@@ -28,6 +28,7 @@
 import crypto from "node:crypto";
 import http from "node:http";
 import url from "node:url";
+import { ensureExtensionApis } from "./extension-page";
 import { createStreamLifetime, isIdle } from "./stream-lifetime";
 import { streamVariant } from "./stream-variant";
 import type { Browser, Page } from "puppeteer";
@@ -434,27 +435,6 @@ async function getExtensionStreamingPage(browser: Browser, timeout = 15000): Pro
   }
 }
 
-/** Check if INITIALIZE_PUBLISHER function exists in the page */
-async function assertExtensionLoaded(page: Page, maxRetries = 3) {
-  const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const hasInitializePublisher = await page.evaluate(
-        () => typeof (globalThis as Record<string, unknown>).INITIALIZE_PUBLISHER === "function",
-      );
-      if (hasInitializePublisher) {
-        console.log("INITIALIZE_PUBLISHER function found in extension page");
-        return;
-      }
-    } catch (_error) {
-      console.log(`Attempt ${attempt + 1}: INITIALIZE_PUBLISHER not ready yet`);
-    }
-    await wait(100 ** attempt); // 100ms, 1s, 10s
-  }
-  throw new Error("Could not find INITIALIZE_PUBLISHER function in the browser context after retries");
-}
-
 /** Start monitoring active connections via Puppeteer polling */
 async function startConnectionMonitoring() {
   if (!streamingPage) {
@@ -767,8 +747,9 @@ async function handlePublisherPrepare(
     }
 
     // Ensure INITIALIZE_PUBLISHER function is loaded
-    await assertExtensionLoaded(streamingPage);
-    logTrace(traceId, "extension_initialize_publisher_detected");
+    // Its script and its extension APIs (a relaunched Chrome sometimes loads it without the APIs).
+    const reloads = await ensureExtensionApis(streamingPage);
+    logTrace(traceId, "extension_initialize_publisher_detected", { reloads });
 
     // Force a simple log to test console monitoring
     logTrace(traceId, "extension_console_probe_start");
