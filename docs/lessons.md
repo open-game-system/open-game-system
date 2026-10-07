@@ -176,8 +176,13 @@ Persistent project knowledge. Review at the start of each task.
 - **A follower's swipe back must not send home**: every game screen sent `home` on leaving while cast,
   so one kid stepping out parked the game for the whole couch. Leaving parks only for the game's host
   (or when nobody hosts it); the TV going Home closes followers' screens without a `home`.
-- **Rosters are never sent**: no client fills `game.start`'s `roster`, so kids' iPads (tablets follow by
-  roster seat) still stay on the remote. Phones follow as `"player"`.
+- **Rosters are never sent**: no client fills `game.start`'s `roster`, so kids' iPads, which followed
+  only by roster seat, stayed on the remote when a game started. Tablets now follow like phones (seat
+  when there is one, else `"player"`); never key a device's behaviour on data no client sends.
+- **A follower's page asks for its TV view too**: a phone or iPad that follows into a room game runs
+  the same phone page, whose `useCastViewUrl` the app forwards as `game.view`, and the launcher would
+  reframe the TV with the follower's page. The DO stamps `game.view` with the sender and the reducer
+  takes it only from the sitting's host (any device when nobody hosts).
 
 ## Observability (2026-10-05)
 

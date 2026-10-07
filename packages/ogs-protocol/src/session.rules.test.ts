@@ -130,10 +130,23 @@ describe("couch session: hello", () => {
     ]);
   });
 
-  it("a tablet not in the roster joining mid-game goes to the launcher", () => {
-    const { last } = run([...living(), startRc, hello("ipad-guest", "tablet", "guest")]);
+  // Behaviour change (2026-10-06, kids' iPads follow the TV, ogs-app-v3 "iPads follow"): an iPad
+  // not in the roster used to be sent to the launcher; it now joins the game as a player.
+  it("a tablet not in the roster joining mid-game joins the game as a player", () => {
+    const { s, last } = run([...living(), startRc, hello("ipad-guest", "tablet", "guest")]);
     expect(follows(last)).toEqual([
-      { to: { deviceId: "ipad-guest" }, msg: { type: "follow", target: { kind: "launcher" } } },
+      {
+        to: { deviceId: "ipad-guest" },
+        msg: {
+          type: "follow",
+          target: {
+            kind: "game",
+            appId: "rocket-crew",
+            instanceId: s.current?.instanceId,
+            roleId: "player",
+          },
+        },
+      },
     ]);
   });
 
@@ -533,14 +546,16 @@ describe("couch session: game.start", () => {
     expect(follows(r.out)).toEqual([]);
   });
 
+  // Behaviour change (2026-10-06, kids' iPads follow the TV): with nobody in a role the iPads used
+  // to be sent to the launcher; they now follow into the game as players.
   it("a game with no roster given or remembered starts with nobody in a role", () => {
     const { s, last } = run([...living(), { type: "game.start", appId: "bake-shop", mode: "new" }]);
     expect(s.current?.roster).toEqual([]);
     expect(s.rosters).toEqual({ "bake-shop": [] });
     expect(follows(last).map((o) => o.msg)).toEqual([
       expect.objectContaining({ target: expect.objectContaining({ roleId: "host" }) }),
-      { type: "follow", target: { kind: "launcher" } },
-      { type: "follow", target: { kind: "launcher" } },
+      expect.objectContaining({ target: expect.objectContaining({ roleId: "player" }) }),
+      expect.objectContaining({ target: expect.objectContaining({ roleId: "player" }) }),
     ]);
   });
 
@@ -641,8 +656,10 @@ describe("couch session: game.start", () => {
 
 describe("couch session: following the game", () => {
   // Behaviour change (2026-10-06, owner-approved "phones follow the TV"): phones other than the host
-  // used to get nothing; they now follow into the game as players. The tablets' follows are unchanged.
-  it("tablets follow by role; phones other than the host follow as players", () => {
+  // used to get nothing; they now follow into the game as players. Behaviour change (2026-10-06,
+  // kids' iPads follow the TV): Ava's iPad, not in the roster, used to go to the launcher; it now
+  // follows as a player too.
+  it("tablets follow by role, else as players; phones other than the host follow as players", () => {
     const { s, last } = run([...living(), hello("phone-mom", "phone", "mom"), startRc]);
     const id = s.current?.instanceId;
     expect(follows(last)).toEqual([
@@ -660,7 +677,13 @@ describe("couch session: following the game", () => {
           target: { kind: "game", appId: "rocket-crew", instanceId: id, roleId: "fixer" },
         },
       },
-      { to: { deviceId: "ipad-ava" }, msg: { type: "follow", target: { kind: "launcher" } } },
+      {
+        to: { deviceId: "ipad-ava" },
+        msg: {
+          type: "follow",
+          target: { kind: "game", appId: "rocket-crew", instanceId: id, roleId: "player" },
+        },
+      },
       {
         to: { deviceId: "phone-mom" },
         msg: {
@@ -691,6 +714,8 @@ describe("couch session: following the game", () => {
     }
   });
 
+  // Behaviour change (2026-10-06, kids' iPads follow the TV): Juneau's iPad, not in Bake Shop's
+  // roster, used to go to the launcher; it now follows into Bake Shop as a player.
   it("a swap re-sends every online tablet its new place", () => {
     const { s, last } = run([
       ...living(),
@@ -715,7 +740,18 @@ describe("couch session: following the game", () => {
           },
         },
       ],
-      [{ deviceId: "ipad-juneau" }, { type: "follow", target: { kind: "launcher" } }],
+      [
+        { deviceId: "ipad-juneau" },
+        {
+          type: "follow",
+          target: {
+            kind: "game",
+            appId: "bake-shop",
+            instanceId: s.current?.instanceId,
+            roleId: "player",
+          },
+        },
+      ],
       [
         { deviceId: "ipad-ava" },
         {
@@ -894,17 +930,129 @@ describe("couch session: every phone follows the TV", () => {
       msg: game(s, "player", "KQTP"),
     });
   });
+});
 
-  it("a kid's iPad keeps following by role only (not every phone's rule)", () => {
-    const { last } = run([...living(), hello("phone-mom", "phone", "mom"), startRc]);
-    expect(
-      follows(last).filter((o) =>
-        String((o.to as { deviceId: string }).deviceId).startsWith("ipad"),
-      ),
-    ).toEqual([
-      expect.objectContaining({ to: { deviceId: "ipad-juneau" } }),
+// Kids' iPads follow the TV like every couch phone (ogs-app-v3 "Same stream · iPads follow",
+// join-and-invite.feature "Kids' iPads follow the TV like every phone"): their roster seat when a roster was sent,
+// else "player"; into the TV's room; back to the launcher on Home and end.
+// Behaviour change (2026-10-06): replaces "a kid's iPad keeps following by role only".
+describe("couch session: kids' iPads follow the TV", () => {
+  const kids = (): ClientMessage[] => [
+    hello("phone-dad", "phone", "dad"),
+    hello("tv", "launcher"),
+    hello("ipad-juneau", "tablet", "juneau"),
+    hello("ipad-ava", "tablet", "ava"),
+  ];
+  const startNew: ClientMessage = { type: "game.start", appId: "rocket-crew", mode: "new" };
+  const game = (s: SessionState, roleId: string, room?: string) => ({
+    type: "follow",
+    target: {
+      kind: "game",
+      appId: s.current?.appId,
+      instanceId: s.current?.instanceId,
+      roleId,
+      ...(room ? { room } : {}),
+    },
+  });
+  const toLauncher = { type: "follow", target: { kind: "launcher" } };
+  const ipads = (out: Outbound[]) =>
+    follows(out).filter(
+      (o) => o.to !== "all" && o.to !== "launcher" && o.to.deviceId.startsWith("ipad"),
+    );
+
+  it("a game started with no roster sends every online iPad into it as a player", () => {
+    const { s, last } = run([...kids(), startNew]);
+    expect(ipads(last)).toEqual([
+      { to: { deviceId: "ipad-juneau" }, msg: game(s, "player") },
+      { to: { deviceId: "ipad-ava" }, msg: game(s, "player") },
+    ]);
+  });
+
+  it("an iPad in the roster keeps its seat; one not in it plays as a player", () => {
+    const { s, last } = run([...kids(), startRc]);
+    expect(ipads(last)).toEqual([
+      { to: { deviceId: "ipad-juneau" }, msg: game(s, "fixer") },
+      { to: { deviceId: "ipad-ava" }, msg: game(s, "player") },
+    ]);
+  });
+
+  it("the room the TV names is sent to every iPad", () => {
+    const { s, last } = run([
+      ...kids(),
+      startNew,
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+    ]);
+    expect(ipads(last)).toEqual([
+      { to: { deviceId: "ipad-juneau" }, msg: game(s, "player", "KQTP") },
+      { to: { deviceId: "ipad-ava" }, msg: game(s, "player", "KQTP") },
+    ]);
+  });
+
+  it("an iPad that joins after the room is named lands in the room", () => {
+    const { s, last } = run([
+      hello("phone-dad", "phone", "dad"),
+      hello("tv", "launcher"),
+      startNew,
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+      hello("ipad-juneau", "tablet", "juneau"),
+    ]);
+    expect(follows(last)).toEqual([
+      { to: { deviceId: "ipad-juneau" }, msg: game(s, "player", "KQTP") },
+    ]);
+  });
+
+  it("Home sends every iPad back to the launcher", () => {
+    const { last } = run([...kids(), startNew, { type: "home" }]);
+    expect(ipads(last)).toEqual([
+      { to: { deviceId: "ipad-juneau" }, msg: toLauncher },
       { to: { deviceId: "ipad-ava" }, msg: toLauncher },
     ]);
+  });
+
+  it("updates that keep the game send iPads nothing (an iPad that stepped out stays out)", () => {
+    const { s: playing } = run([
+      ...kids(),
+      startNew,
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+    ]);
+    for (const msg of [
+      { type: "game.view", appId: "rocket-crew", url: "https://rc.example/tv/KQTP" },
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+      { type: "game.resume-point", appId: "rocket-crew", label: "Mission 2" },
+      { type: "focus.set", itemId: "game:bake-shop" },
+      { type: "tv.rename", name: "Bedroom TV" },
+    ] satisfies ClientMessage[]) {
+      expect(ipads(reduceSession(playing, msg, T).out)).toEqual([]);
+    }
+  });
+
+  it("an iPad that connects with no game on is sent to the launcher (as before)", () => {
+    const { last } = run([
+      hello("phone-dad", "phone", "dad"),
+      hello("ipad-juneau", "tablet", "juneau"),
+    ]);
+    expect(follows(last)).toEqual([{ to: { deviceId: "ipad-juneau" }, msg: toLauncher }]);
+  });
+
+  it("an iPad that starts the game hosts it: one host follow, no player follow", () => {
+    const { s, last } = run([
+      ...kids(),
+      { type: "game.start", appId: "rocket-crew", mode: "new", hostDeviceId: "ipad-juneau" },
+    ]);
+    expect(
+      follows(last).filter(
+        (o) => o.to !== "all" && o.to !== "launcher" && o.to.deviceId === "ipad-juneau",
+      ),
+    ).toEqual([{ to: { deviceId: "ipad-juneau" }, msg: game(s, "host") }]);
+  });
+
+  it("the iPad that hosts gets no follow when the TV names the room it made", () => {
+    const { last } = run([
+      ...kids(),
+      { type: "game.start", appId: "rocket-crew", mode: "new", hostDeviceId: "ipad-juneau" },
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+    ]);
+    expect(ipads(last).map((o) => o.to)).toEqual([{ deviceId: "ipad-ava" }]);
   });
 });
 
@@ -919,6 +1067,45 @@ describe("couch session: game reports", () => {
     expect(run([view], playing).s).toEqual(playing);
     const { s: idle } = run(living());
     expect(run([view], idle).s).toEqual(idle);
+  });
+
+  // Only the host's (the room's) TV page counts: a following phone's game page also asks for its TV
+  // view, and the launcher must not reframe the TV for it. The DO stamps the sender's deviceId.
+  describe("which phone's TV page the launcher frames", () => {
+    const tvPage = "https://rc.example/tv/KQTP";
+    const view = (deviceId: string, url = tvPage): ClientMessage => ({
+      type: "game.view",
+      appId: "rocket-crew",
+      url,
+      deviceId,
+    });
+    const playing = () => run([...living(), hello("phone-mom", "phone", "mom"), startRc]).s;
+
+    it("the host phone's game.view frames its TV page", () => {
+      expect(run([view("phone-dad")], playing()).s.current?.viewUrl).toBe(tvPage);
+    });
+
+    it("a following phone's or iPad's game.view changes nothing", () => {
+      const before = playing();
+      for (const follower of ["phone-mom", "ipad-juneau"]) {
+        const r = reduceSession(before, view(follower), T);
+        expect(r.state).toEqual(before);
+      }
+    });
+
+    it("a follower can't replace the host's TV page", () => {
+      const { s } = run(
+        [view("phone-dad"), view("phone-mom", "https://rc.example/tv/OTHER")],
+        playing(),
+      );
+      expect(s.current?.viewUrl).toBe(tvPage);
+    });
+
+    it("with nobody hosting, any couch device's game.view frames", () => {
+      const { s: hostless } = run([hello("ipad-juneau", "tablet", "juneau"), startRc]);
+      expect(hostless.current?.hostDeviceId).toBeNull();
+      expect(run([view("ipad-juneau")], hostless).s.current?.viewUrl).toBe(tvPage);
+    });
   });
 
   it("a resume point for a running game updates its label", () => {
@@ -1003,6 +1190,7 @@ describe("client message schema", () => {
     },
     { type: "game.resume-point", appId: "rc", label: "Mission 6" },
     { type: "game.view", appId: "rc", url: "https://rc.example/tv" },
+    { type: "game.view", appId: "rc", url: "https://rc.example/tv", deviceId: "d" },
     { type: "remote.take", deviceId: "d" },
     { type: "end" },
     { type: "tv.rename", name: "Bedroom TV" },

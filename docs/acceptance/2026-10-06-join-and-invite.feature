@@ -1,6 +1,7 @@
-# Status: PLANNED, except "Every phone follows the TV" (built 2026-10-06 for app phones: couch session
+# Status: PLANNED, except "Every phone follows the TV" (built 2026-10-06 for app phones and kids' iPads: couch session
 # reducer packages/ogs-protocol/src/session.ts, app apps/mobile/services/couch-follow.ts; tests in
-# session.rules.test.ts "every phone follows the TV", couch-follow.test.ts, the API integration
+# session.rules.test.ts "every phone follows the TV" + "kids' iPads follow the TV" + "which phone's TV page
+# the launcher frames", couch-follow.test.ts, the API integration
 # couch.test.ts, and e2e/phones-follow.mjs). Browser guests (Grandma) follow once the web join page exists.
 # Spec: docs/product-specs/ogs-join.html. Contract: docs/specification.md §8. ADR: docs/adrs/2026-10-06-launcher-owns-joining.md.
 # Design canvas: https://claude.ai/artifact/5CoghVnLznn5pSdENvazJM (TV-Home-QR, Phone-Web-Join, Phone-Joined,
@@ -132,10 +133,23 @@ Feature: Joining and inviting is the launcher's job
     When its page reports its sitting over the bridge
     Then it is filed under the couch's live sitting, and the game's page lists one sitting
 
-  Scenario: Kids' iPads keep following by their seat
+  # Changed 2026-10-06 (v3 spec: kid iPads follow the TV): an iPad not in the roster used to stay on
+  # the remote, and no client sends a roster, so the kids' iPads never followed.
+  Scenario: Kids' iPads follow the TV like every phone
+    Given Juneau's and Ava's iPads are on the couch and no roster was sent
+    When Dad starts Rocket Crew and the TV page says ogs:room "KQTP"
+    Then both iPads open Rocket Crew's start page with ogsRoom=KQTP, as players
+    And when someone presses Home both iPads are back on the remote
+
+  Scenario: An iPad in the roster keeps its seat
     Given Juneau's iPad is in the roster as the Fixer
     When Rocket Crew starts
-    Then Juneau's iPad opens it as the Fixer, and an iPad not in the roster stays on the remote
+    Then Juneau's iPad opens it as the Fixer, and an iPad not in the roster opens it as a player
+
+  Scenario: Only the host's game page picks the TV page
+    Given Dad's phone hosts Rocket Crew and the TV frames its TV page
+    When Sam's phone or Juneau's iPad follows into the game and its page asks for its TV view
+    Then the TV keeps Dad's TV page
 
   # --- Mid-game invite ---
 

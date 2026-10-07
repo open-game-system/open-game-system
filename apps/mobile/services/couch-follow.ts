@@ -4,7 +4,7 @@ import { roomStartUrl } from "./rooms";
 /**
  * Every couch phone follows the TV (spec §8, join-and-invite.feature): what a follow the couch
  * session sends to a phone that is not the game's host does here. The host's own follow is
- * runtime's `onFollowHost`; this is everyone else (other phones, kids' iPads by role).
+ * runtime's `onFollowHost`; this is everyone else (other phones, kids' iPads).
  */
 
 export type FollowStep =

@@ -244,6 +244,53 @@ describe("couch session over real WebSockets", () => {
     });
   });
 
+  it("kids' iPads follow the TV with no roster: into the game as players, into the room the TV names, back on Home", async () => {
+    const { phone, tv, juneauPad, avaPad } = await livingRoom();
+    const pads = [juneauPad, avaPad];
+    const m = pads.map((p) => p.mark());
+    phone.send({ type: "game.start", appId: "rocket-crew", mode: "new" });
+    const s = await tv.state((x) => x.screen === "game");
+    const instanceId = s.current?.instanceId;
+    for (const [i, pad] of pads.entries())
+      expect(await pad.next(isGameFollow, m[i])).toEqual({
+        type: "follow",
+        target: { kind: "game", appId: "rocket-crew", instanceId, roleId: "player" },
+      });
+    const m2 = pads.map((p) => p.mark());
+    tv.send({ type: "game.room", appId: "rocket-crew", room: "KQTP" });
+    for (const [i, pad] of pads.entries())
+      expect(await pad.next(isGameFollow, m2[i])).toEqual({
+        type: "follow",
+        target: { kind: "game", appId: "rocket-crew", instanceId, roleId: "player", room: "KQTP" },
+      });
+    const m3 = pads.map((p) => p.mark());
+    phone.send({ type: "home" });
+    for (const [i, pad] of pads.entries())
+      expect(await pad.next((f) => f.type === "follow", m3[i])).toEqual({
+        type: "follow",
+        target: { kind: "launcher" },
+      });
+  });
+
+  it("only the host's game page picks the TV page: a following iPad's game.view is ignored", async () => {
+    const { phone, tv, juneauPad } = await livingRoom();
+    phone.send({ type: "game.start", appId: "rocket-crew", mode: "new" });
+    await tv.state((x) => x.screen === "game");
+    const hostView = "https://rocket-crew.example/tv/KQTP?t=host";
+    phone.send({ type: "game.view", appId: "rocket-crew", url: hostView });
+    await tv.state((x) => x.current?.viewUrl === hostView);
+    const m = tv.mark();
+    juneauPad.send({
+      type: "game.view",
+      appId: "rocket-crew",
+      url: "https://rocket-crew.example/tv/KQTP?t=juneau",
+    });
+    // A later frame from the host proves the iPad's was applied (or not) before it.
+    phone.send({ type: "game.resume-point", appId: "rocket-crew", label: "Mission 2" });
+    const s = await tv.state((x) => x.current?.label === "Mission 2", m);
+    expect(s.current?.viewUrl).toBe(hostView);
+  });
+
   it("launch from the TV: focus.set and two selects from the remote make the remote phone the host", async () => {
     const { phone, tv, phoneId } = await livingRoom();
     const m = phone.mark();

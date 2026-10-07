@@ -228,7 +228,10 @@ absent and clients show the name the session was created with. Only the caster's
 sends `follow` frames. The host phone gets `roleId: "host"` for a new sitting; every other online
 phone gets the current game (its roster role, else `"player"`, with `room` once named) when the
 sitting or its room changes or it comes online mid-game, and `{ kind: "launcher" }` on Home/end.
-Tablets keep their roster rule. In the app, `couch-session.ts` hands non-host follows to
+Kids' iPads (tablets) follow the same way; they are also re-sent their place when their roster
+seat changes, and sent to the launcher when they connect with no game on. `game.view` counts only
+from the host (the DO stamps the sender's `deviceId`, like `select`); a follower's page asking for its
+own TV view is ignored, so it never reframes the TV. In the app, `couch-session.ts` hands non-host follows to
 `couch-follow.ts` `followStep` (open `startUrl?ogsRoom=<room>`, wait for the room of a game with no
 static `tvUrl`, close the game screen on Home).
 

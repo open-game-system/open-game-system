@@ -244,7 +244,10 @@ function attachment(ws: WebSocket): Peer | null {
   return parsed.success ? parsed.data : null;
 }
 
-/** Messages naming a device act as the sender; hello/bye are the DO's alone. */
+/**
+ * Messages naming a device act as the sender (game.view too: only the host's TV page frames);
+ * hello/bye are the DO's alone.
+ */
 function fromSender(msg: ClientMessage, peer: Peer): ClientMessage | null {
   switch (msg.type) {
     case "hello":
@@ -252,6 +255,7 @@ function fromSender(msg: ClientMessage, peer: Peer): ClientMessage | null {
       return null;
     case "select":
     case "remote.take":
+    case "game.view":
       return { ...msg, deviceId: peer.deviceId };
     default:
       return msg;

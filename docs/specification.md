@@ -113,8 +113,8 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
   its room (`ogs:room`, §2) and opens `startUrl` with `ogsRoom=<room>` added to the query: the phone
   page must join that room (`ogsRoomFromUrl(location.href)`), never make a new one. A game that never
   reports its room gets no followers (their start page would make an empty room). Kids' iPads follow
-  by their seat in the couch's roster, as before. A following phone that swipes back steps out to the
-  remote; the TV keeps playing.
+  the same way (their roster seat when a roster was sent, else as a player). A following phone that
+  swipes back steps out to the remote; the TV keeps playing.
 - **Who's playing:** `useOgsProfile()` (`@open-game-system/profile-kit/react`) gives
   `{ id, handle, name, avatar, token }` from the app's `profile` bridge store (refreshed before the token
   expires). `undefined` while asking (up to 300 ms for the store, 5 s while the app says `asking`),
@@ -122,7 +122,8 @@ on `false`, and only what was playing before. Pattern: `createAudioPause` in
   avatar; with `null`, keep the form.
 - **The TV page of a room game:** the phone page declares it with cast-kit-react
   `useCastViewUrl(url)`. While cast through OGS the app forwards it to the couch session as `game.view`
-  (`apps/mobile/services/game-cast-route.ts`) for the launcher to frame, and drops the game's
+  (`apps/mobile/services/game-cast-route.ts`) for the launcher to frame (only the host phone's page
+  counts: a following phone's or iPad's `game.view` is ignored), and drops the game's
   `START_CASTING` / `STOP_CASTING` / `SHOW_CAST_PICKER`. A game with a static `tvUrl` needs nothing.
   `isOGSCastAvailable()` (cast-kit-core) tells the page it runs inside the OGS app.
 - **Sitting labels:** `reportOgsSitting(...)` goes through the app's `ogs` bridge store as
@@ -223,10 +224,11 @@ The join QR itself is launcher-level: it encodes `https://opengame.org/join/<cod
 TV code) and is never a game's job. Several households in one room are §7.
 
 **Built (2026-10-06): every couch phone follows the TV** (§3). When the current game (its sitting) or
-its room changes, the couch session sends every online phone a `follow`: the host `roleId: "host"`,
-every other phone its roster role or `"player"`, with `room` once the TV named it; on Home or end, the
-launcher. A phone that comes online mid-game is sent into it. Nothing else re-sends it, so a phone that
-stepped out stays on the remote. App phones only; browser guests follow when the web join page exists.
+its room changes, the couch session sends every online phone and kid's iPad a `follow`: the host
+`roleId: "host"`, every other one its roster role or `"player"`, with `room` once the TV named it; on
+Home or end, the launcher. A phone or iPad that comes online mid-game is sent into it. Nothing else
+re-sends it, so one that stepped out stays on the remote. Only the host's game page picks the TV page
+(`game.view`). App phones and iPads only; browser guests follow when the web join page exists.
 
 ## Acceptance
 
