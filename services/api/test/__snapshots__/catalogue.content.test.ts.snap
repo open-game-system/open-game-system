@@ -266,7 +266,7 @@ exports[`catalogue content > is exactly the six games as published 1`] = `
       ],
       "players": "2-10",
     },
-    "startUrl": "https://trivia-jam.jonathanrmumm.workers.dev/",
+    "startUrl": "https://triviajam.tv/",
     "tagline": "Every answer is a number. Closest guess wins, fastest breaks the tie.",
     "tv": "required",
   },

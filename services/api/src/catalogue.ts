@@ -134,7 +134,7 @@ const SEED: ManifestInput[] = [
     tagline: "Every answer is a number. Closest guess wins, fastest breaks the tie.",
     shape: "couch",
     tv: "required",
-    startUrl: workers("trivia-jam"),
+    startUrl: "https://triviajam.tv/",
     roles: [
       { id: "host", label: "Quizmaster", audience: "grownup" },
       { id: "player", label: "Player", audience: "grownup" },

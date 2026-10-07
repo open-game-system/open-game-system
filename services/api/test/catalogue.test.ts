@@ -5,6 +5,8 @@ import { CATALOGUE, catalogueIds, findManifest } from "../src/catalogue";
 
 /** Adult party games: no kid seat (Jon, 2026-10-06: Trivia Jam is for adults). */
 const ADULT_GAMES = ["trivia-jam"];
+/** Games served from their own domain instead of <appId>.jonathanrmumm.workers.dev (Jon, 2026-10-06). */
+const OWN_DOMAIN: Record<string, string> = { "trivia-jam": "https://triviajam.tv/" };
 const GAMES = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight", "trivia-jam"];
 
 describe("catalogue", () => {
@@ -19,7 +21,7 @@ describe("catalogue", () => {
     expect(m?.shape).toBe("couch");
     expect(m?.tv).toBe("required");
     expect(m?.tvUrl).toBeUndefined();
-    expect(m?.startUrl).toBe(`https://${appId}.jonathanrmumm.workers.dev/`);
+    expect(m?.startUrl).toBe(OWN_DOMAIN[appId] ?? `https://${appId}.jonathanrmumm.workers.dev/`);
     expect(m?.art.tile).toBe(`/art/${appId}/tv.jpg`);
     expect(m?.roles.some((r) => r.audience === "grownup")).toBe(true);
     // Family games have a kid seat; adult party games (trivia-jam) deliberately don't.
