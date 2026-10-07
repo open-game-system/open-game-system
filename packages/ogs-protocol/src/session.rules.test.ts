@@ -493,9 +493,12 @@ describe("couch session: home and end", () => {
     expect(s).toMatchObject({ screen: "home", page: null, cast: false, suspended: [] });
   });
 
-  it("end sends every online kid's iPad back to the launcher", () => {
+  // Behaviour change (2026-10-06, phones follow the TV): the host phone is now sent back to the
+  // launcher too (first, in device order); the kids' iPads' follows are unchanged.
+  it("end sends every online kid's iPad (and every phone) back to the launcher", () => {
     const { last } = run([...living(), startRc, { type: "end" }]);
     expect(follows(last)).toEqual([
+      { to: { deviceId: "phone-dad" }, msg: { type: "follow", target: { kind: "launcher" } } },
       { to: { deviceId: "ipad-juneau" }, msg: { type: "follow", target: { kind: "launcher" } } },
       { to: { deviceId: "ipad-ava" }, msg: { type: "follow", target: { kind: "launcher" } } },
     ]);
@@ -637,7 +640,9 @@ describe("couch session: game.start", () => {
 });
 
 describe("couch session: following the game", () => {
-  it("tablets follow by role; phones other than the host get nothing", () => {
+  // Behaviour change (2026-10-06, owner-approved "phones follow the TV"): phones other than the host
+  // used to get nothing; they now follow into the game as players. The tablets' follows are unchanged.
+  it("tablets follow by role; phones other than the host follow as players", () => {
     const { s, last } = run([...living(), hello("phone-mom", "phone", "mom"), startRc]);
     const id = s.current?.instanceId;
     expect(follows(last)).toEqual([
@@ -656,6 +661,13 @@ describe("couch session: following the game", () => {
         },
       },
       { to: { deviceId: "ipad-ava" }, msg: { type: "follow", target: { kind: "launcher" } } },
+      {
+        to: { deviceId: "phone-mom" },
+        msg: {
+          type: "follow",
+          target: { kind: "game", appId: "rocket-crew", instanceId: id, roleId: "player" },
+        },
+      },
     ]);
   });
 
@@ -716,6 +728,178 @@ describe("couch session: following the game", () => {
           },
         },
       ],
+    ]);
+  });
+});
+
+// Every couch phone follows the TV (join-and-invite.feature "Every phone follows the TV", spec §8).
+describe("couch session: every phone follows the TV", () => {
+  const phones = (): ClientMessage[] => [
+    hello("phone-dad", "phone", "dad"),
+    hello("tv", "launcher"),
+    hello("phone-mom", "phone", "mom"),
+    hello("phone-sam", "phone", "sam"),
+  ];
+  const startNew = (appId: string): ClientMessage => ({ type: "game.start", appId, mode: "new" });
+  const game = (s: SessionState, roleId: string, room?: string) => ({
+    type: "follow",
+    target: {
+      kind: "game",
+      appId: s.current?.appId,
+      instanceId: s.current?.instanceId,
+      roleId,
+      ...(room ? { room } : {}),
+    },
+  });
+  const toLauncher = { type: "follow", target: { kind: "launcher" } };
+
+  it("a game starting sends every other online phone into it as a player; the host still hosts", () => {
+    const { s, last } = run([...phones(), startNew("rocket-crew")]);
+    expect(follows(last)).toEqual([
+      { to: { deviceId: "phone-dad" }, msg: game(s, "host") },
+      { to: { deviceId: "phone-mom" }, msg: game(s, "player") },
+      { to: { deviceId: "phone-sam" }, msg: game(s, "player") },
+    ]);
+  });
+
+  it("a phone in the roster follows with its role", () => {
+    const { s, last } = run([
+      ...phones(),
+      { ...startNew("rocket-crew"), roster: [{ profileId: "mom", roleId: "fixer" }] },
+    ]);
+    expect(follows(last)).toContainEqual({ to: { deviceId: "phone-mom" }, msg: game(s, "fixer") });
+  });
+
+  it("a phone that joins mid-game is sent straight into the game", () => {
+    const { s, last } = run([
+      hello("phone-dad", "phone", "dad"),
+      hello("tv", "launcher"),
+      startNew("rocket-crew"),
+      hello("phone-gran", "phone", "gran"),
+    ]);
+    expect(follows(last)).toEqual([{ to: { deviceId: "phone-gran" }, msg: game(s, "player") }]);
+  });
+
+  it("a phone that joins with no game on gets no follow (it is the remote)", () => {
+    const { last } = run([...phones(), hello("phone-gran", "phone", "gran")]);
+    expect(follows(last)).toEqual([]);
+  });
+
+  it("a phone saying hello again while online gets no new follow", () => {
+    const { last } = run([
+      ...phones(),
+      startNew("rocket-crew"),
+      hello("phone-mom", "phone", "mom"),
+    ]);
+    expect(follows(last)).toEqual([]);
+  });
+
+  it("offline phones aren't told", () => {
+    const { last } = run([
+      ...phones(),
+      { type: "bye", deviceId: "phone-sam" },
+      startNew("rocket-crew"),
+    ]);
+    expect(follows(last).map((o) => o.to)).toEqual([
+      { deviceId: "phone-dad" },
+      { deviceId: "phone-mom" },
+    ]);
+  });
+
+  it("the room the TV names is sent to every following phone (not the host, which made it)", () => {
+    const { s, last } = run([
+      ...phones(),
+      startNew("rocket-crew"),
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+    ]);
+    expect(follows(last)).toEqual([
+      { to: { deviceId: "phone-mom" }, msg: game(s, "player", "KQTP") },
+      { to: { deviceId: "phone-sam" }, msg: game(s, "player", "KQTP") },
+    ]);
+  });
+
+  it("a phone that joins after the room is named is sent into the room", () => {
+    const { s, last } = run([
+      ...phones(),
+      startNew("rocket-crew"),
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+      hello("phone-gran", "phone", "gran"),
+    ]);
+    expect(follows(last)).toEqual([
+      { to: { deviceId: "phone-gran" }, msg: game(s, "player", "KQTP") },
+    ]);
+  });
+
+  it("a phone that stepped out is not dragged back: updates that keep the game send phones nothing", () => {
+    const { s: playing } = run([
+      ...phones(),
+      startNew("rocket-crew"),
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+    ]);
+    for (const msg of [
+      { type: "game.view", appId: "rocket-crew", url: "https://rc.example/tv/KQTP" },
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+      { type: "game.resume-point", appId: "rocket-crew", label: "Mission 2" },
+      { type: "game.start", appId: "rocket-crew", mode: "continue", hostDeviceId: "phone-mom" },
+      { type: "focus.set", itemId: "game:bake-shop" },
+      { type: "remote.take", deviceId: "phone-mom" },
+      { type: "tv.rename", name: "Bedroom TV" },
+    ] satisfies ClientMessage[]) {
+      expect(follows(reduceSession(playing, msg, T).out)).toEqual([]);
+    }
+  });
+
+  it("Home brings every phone, the host's too, back to the remote", () => {
+    const { last } = run([...phones(), startNew("rocket-crew"), { type: "home" }]);
+    expect(follows(last)).toEqual([
+      { to: { deviceId: "phone-dad" }, msg: toLauncher },
+      { to: { deviceId: "phone-mom" }, msg: toLauncher },
+      { to: { deviceId: "phone-sam" }, msg: toLauncher },
+    ]);
+  });
+
+  it("Home with no game on sends phones nothing", () => {
+    const { last } = run([...phones(), { type: "home" }]);
+    expect(follows(last)).toEqual([]);
+  });
+
+  it("switching games swaps every phone to the new game", () => {
+    const { s, last } = run([
+      ...phones(),
+      startNew("rocket-crew"),
+      { ...startNew("night-flight"), hostDeviceId: "phone-mom" },
+    ]);
+    expect(follows(last)).toEqual([
+      { to: { deviceId: "phone-mom" }, msg: game(s, "host") },
+      { to: { deviceId: "phone-dad" }, msg: game(s, "player") },
+      { to: { deviceId: "phone-sam" }, msg: game(s, "player") },
+    ]);
+  });
+
+  it("Continue into a sitting with a room sends the phones that room at once", () => {
+    const { s: home } = run([
+      ...phones(),
+      startNew("rocket-crew"),
+      { type: "game.room", appId: "rocket-crew", room: "KQTP" },
+      { type: "home" },
+    ]);
+    const { s, last } = run([{ type: "game.start", appId: "rocket-crew", mode: "continue" }], home);
+    expect(s.current?.room).toBe("KQTP");
+    expect(follows(last)).toContainEqual({
+      to: { deviceId: "phone-sam" },
+      msg: game(s, "player", "KQTP"),
+    });
+  });
+
+  it("a kid's iPad keeps following by role only (not every phone's rule)", () => {
+    const { last } = run([...living(), hello("phone-mom", "phone", "mom"), startRc]);
+    expect(
+      follows(last).filter((o) =>
+        String((o.to as { deviceId: string }).deviceId).startsWith("ipad"),
+      ),
+    ).toEqual([
+      expect.objectContaining({ to: { deviceId: "ipad-juneau" } }),
+      { to: { deviceId: "ipad-ava" }, msg: toLauncher },
     ]);
   });
 });

@@ -266,36 +266,60 @@ function hostFollow(s: SessionState, before: SessionState): Outbound[] {
   ];
 }
 
+const sameRoom = (a: SessionState, b: SessionState) => a.current?.room === b.current?.room;
+const cameOnline = (before: SessionState, d: Device) =>
+  before.devices.find((x) => x.deviceId === d.deviceId)?.online !== true;
+const follow = (d: Device, target: FollowTarget): Outbound => ({
+  to: { deviceId: d.deviceId },
+  msg: { type: "follow", target },
+});
+
+/** The current game in `roleId`, in its room when it has one. */
+function inGame(s: SessionState, roleId: string): FollowTarget {
+  if (!s.current) return { kind: "launcher" };
+  const { appId, instanceId, room } = s.current;
+  return { kind: "game", appId, instanceId, roleId, ...roomOf(room) };
+}
+
 /** Where a tablet belongs: its seat in the current game, else the launcher. */
 function followTarget(s: SessionState, d: Device): FollowTarget {
   const entry = rosterEntry(s, d.profileId);
-  return s.current && entry
-    ? {
-        kind: "game",
-        appId: s.current.appId,
-        instanceId: s.current.instanceId,
-        roleId: entry.roleId,
-        ...roomOf(s.current.room),
-      }
-    : { kind: "launcher" };
+  return entry ? inGame(s, entry.roleId) : { kind: "launcher" };
 }
 
-/** A tablet is told again when the sitting, its seat, or its being online changed. */
+/** A tablet is told again when the sitting, its room, its seat, or its being online changed. */
 function followChanged(s: SessionState, before: SessionState, d: Device): boolean {
   return (
     !sameSitting(s, before) ||
+    !sameRoom(s, before) ||
     rosterEntry(before, d.profileId)?.roleId !== rosterEntry(s, d.profileId)?.roleId ||
-    before.devices.find((x) => x.deviceId === d.deviceId)?.online !== true
+    cameOnline(before, d)
   );
 }
 
 function tabletFollow(s: SessionState, before: SessionState, d: Device): Outbound[] {
   if (d.kind !== "tablet" || !d.online || !followChanged(s, before, d)) return [];
-  return [{ to: { deviceId: d.deviceId }, msg: { type: "follow", target: followTarget(s, d) } }];
+  return [follow(d, followTarget(s, d))];
+}
+
+/**
+ * Every couch phone follows the TV (spec §8): into the current game (its roster role, else
+ * "player", in the game's room once the TV names it), and back to the launcher on Home. It fires
+ * when the sitting or its room changes, or when the phone comes online during a game; never on
+ * other updates, so a phone that stepped out to the remote stays there. The host has its own follow.
+ */
+function phoneFollow(s: SessionState, before: SessionState, d: Device): Outbound[] {
+  if (d.kind !== "phone" || !d.online || d.deviceId === s.current?.hostDeviceId) return [];
+  const moved = !sameSitting(s, before) || !sameRoom(s, before);
+  if (!moved && !(s.current && cameOnline(before, d))) return [];
+  return [follow(d, inGame(s, rosterEntry(s, d.profileId)?.roleId ?? "player"))];
 }
 
 function followAll(s: SessionState, before: SessionState): Outbound[] {
-  return [...hostFollow(s, before), ...s.devices.flatMap((d) => tabletFollow(s, before, d))];
+  return [
+    ...hostFollow(s, before),
+    ...s.devices.flatMap((d) => [...tabletFollow(s, before, d), ...phoneFollow(s, before, d)]),
+  ];
 }
 
 // ---------- One handler per message ----------
