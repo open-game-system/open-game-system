@@ -183,6 +183,14 @@ describe("Sign in on a new phone restores the profile", () => {
       .toHaveText(`@${handle}`)
       .withTimeout(5000);
     await expect(element(by.id("profileName"))).toHaveText("Jonathan Mumm");
+    // The sticker picked on the first phone (the owl), not the default.
+    await expect(element(by.id("profileCardSticker-owl"))).toExist();
+    // Signed in is past onboarding: a relaunch opens the app, not onboarding.
+    await device.launchApp({ newInstance: true });
+    await waitFor(element(by.id("libraryScreen")))
+      .toExist()
+      .withTimeout(10000);
+    await expect(element(by.id("onboardingScreen"))).not.toExist();
   });
 });
 
