@@ -9,6 +9,7 @@ function setup(over: Partial<Parameters<typeof createGameNotifications>[0]> = {}
     appId: () => "codebreakers",
     gameName: () => "Codebreakers",
     isKidDevice: () => false,
+    alreadyAllowed: async () => false,
     askPlayer: async (name) => {
       calls.push(`ask:${name}`);
       return true;
@@ -37,6 +38,25 @@ describe("the notifications bridge store", () => {
       id: "r1",
       result: { status: "granted", handle },
     });
+  });
+
+  it("a game the player already allowed: no sheet, straight to OGS", async () => {
+    const { n, calls } = setup({ alreadyAllowed: async () => true });
+    n.store.dispatch({ type: "REQUEST", id: "r9" });
+    await flush();
+    expect(calls).toEqual(["optIn:codebreakers:"]);
+    expect(n.store.getSnapshot().answer?.result).toEqual({ status: "granted", handle });
+  });
+
+  it("can't tell whether it was allowed (offline): asks", async () => {
+    const { n, calls } = setup({
+      alreadyAllowed: async () => {
+        throw new Error("offline");
+      },
+    });
+    n.store.dispatch({ type: "REQUEST", id: "r10" });
+    await flush();
+    expect(calls).toEqual(["ask:Codebreakers", "optIn:codebreakers:"]);
   });
 
   it("passes the handle to join", async () => {

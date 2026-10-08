@@ -310,6 +310,7 @@ export const gameNotifications = createGameNotifications({
     return appState.getSnapshot().catalogue.find((g) => g.appId === open)?.name ?? "This game";
   },
   isKidDevice: () => Device.deviceType === Device.DeviceType.TABLET,
+  alreadyAllowed: async (appId) => (await pushApi.grantedGames()).includes(appId),
   askPlayer: askToNotify,
   osPermission: pushPermissionGranted,
   optIn: (appId, join) => pushApi.optIn(appId, join),

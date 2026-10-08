@@ -17,6 +17,8 @@ export interface GameNotificationsDeps {
   gameName: () => string;
   /** A kid's iPad (a tablet): OGS never pushes to a kid, so the page is told no without asking. */
   isKidDevice: () => boolean;
+  /** The player already allowed this game (Settings lists it): answer without the sheet. */
+  alreadyAllowed: (appId: string) => Promise<boolean>;
   /** The app's own sheet: "Let <game> notify you?" → Allow (true) or Not now (false). */
   askPlayer: (gameName: string) => Promise<boolean>;
   /** The OS permission for OGS's notifications (asked once by the OS). */
@@ -46,7 +48,8 @@ export function createGameNotifications(deps: GameNotificationsDeps) {
   async function consent(join?: string): Promise<PushConsentResult> {
     const appId = deps.appId();
     if (!appId || deps.isKidDevice()) return DENIED;
-    if (!(await deps.askPlayer(deps.gameName()))) return DENIED;
+    const allowed = await deps.alreadyAllowed(appId).catch(() => false);
+    if (!allowed && !(await deps.askPlayer(deps.gameName()))) return DENIED;
     if (!(await deps.osPermission())) return DENIED;
     try {
       return await deps.optIn(appId, join);
