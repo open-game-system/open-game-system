@@ -63,29 +63,3 @@ function schemeGameUrl(path: string | null): string | null {
   const gamePath = withSlash(path);
   return isGamePath(gamePath) ? `https://${DEFAULT_GAME_DOMAIN}${gamePath}` : null;
 }
-
-/**
- * Get the initial URL that launched the app (cold start).
- */
-export async function getInitialGameUrl(): Promise<string | null> {
-  const initialUrl = await Linking.getInitialURL();
-  if (!initialUrl) return null;
-  console.log("[DeepLinks] Initial URL:", initialUrl);
-  return extractGameUrl(initialUrl);
-}
-
-/**
- * Subscribe to incoming URLs while the app is running (warm start).
- * Returns an event subscription that should be cleaned up on unmount.
- */
-export function addDeepLinkListener(
-  callback: (gameUrl: string) => void,
-): ReturnType<typeof Linking.addEventListener> {
-  return Linking.addEventListener("url", (event) => {
-    console.log("[DeepLinks] Incoming URL:", event.url);
-    const gameUrl = extractGameUrl(event.url);
-    if (gameUrl) {
-      callback(gameUrl);
-    }
-  });
-}

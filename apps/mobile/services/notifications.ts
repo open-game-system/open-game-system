@@ -8,15 +8,28 @@ import { Platform } from "react-native";
 const OGS_DEVICE_ID_KEY = "ogs_device_id";
 const API_BASE_URL = "https://api.opengame.org";
 
+/**
+ * Decides a foreground push: show the banner, or hand it to the open game's page (spec §9). Set by
+ * the runtime; until then every push shows.
+ */
+export type ForegroundGate = (n: Notifications.Notification) => boolean;
+let foregroundGate: ForegroundGate = () => true;
+export function setForegroundGate(gate: ForegroundGate) {
+  foregroundGate = gate;
+}
+
 // Configure how notifications are displayed when the app is in the foreground
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const show = foregroundGate(notification);
+    return {
+      shouldShowAlert: show,
+      shouldPlaySound: show,
+      shouldSetBadge: false,
+      shouldShowBanner: show,
+      shouldShowList: show,
+    };
+  },
 });
 
 /**
@@ -33,7 +46,7 @@ export async function getOrCreateDeviceId(): Promise<string> {
 }
 
 /** Granted already, or granted when asked now. */
-async function pushPermissionGranted(): Promise<boolean> {
+export async function pushPermissionGranted(): Promise<boolean> {
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === "granted") return true;
   const { status } = await Notifications.requestPermissionsAsync();

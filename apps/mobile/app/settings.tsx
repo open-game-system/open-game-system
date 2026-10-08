@@ -14,6 +14,11 @@ import {
 } from "react-native";
 import { SettingsRow, SettingsSection } from "../components/SettingsSection";
 import {
+  createGameNotificationSettings,
+  type GameNotificationRow,
+} from "../services/game-notification-settings";
+import { appState, pushApi } from "../services/runtime";
+import {
   isDebugOverlay,
   isDeveloperMode,
   isSoundsEnabled,
@@ -24,12 +29,27 @@ import {
 
 const TRACK_COLORS = { false: "#2a2a40", true: "#A855F6" } as const;
 
+const gameSettings = createGameNotificationSettings({
+  api: pushApi,
+  nameOf: (appId) => appState.getSnapshot().catalogue.find((g) => g.appId === appId)?.name ?? appId,
+});
+
 export default function SettingsScreen() {
   const router = useRouter();
   const [pushEnabled, setPushEnabled] = useState(true);
   const [soundsOn, setSoundsOn] = useState(true);
   const [devMode, setDevMode] = useState(false);
   const [debugOn, setDebugOn] = useState(false);
+  const [games, setGames] = useState<GameNotificationRow[]>([]);
+
+  // Games allowed to notify this profile (none without a profile, or offline).
+  useEffect(() => {
+    gameSettings.load().then(setGames, () => setGames([]));
+  }, []);
+
+  const handleToggleGame = useCallback((appId: string, on: boolean) => {
+    gameSettings.set(appId, on).then(setGames, () => {});
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -106,6 +126,24 @@ export default function SettingsScreen() {
             />
           </SettingsRow>
         </SettingsSection>
+
+        {/* Game notifications (spec §9): each game that asked and was allowed */}
+        {games.length > 0 ? (
+          <SettingsSection label="Game notifications">
+            {games.map((g, i) => (
+              <SettingsRow key={g.appId} isLast={i === games.length - 1}>
+                <Text style={styles.rowLabel}>{g.name}</Text>
+                <Switch
+                  testID={`gameNotifications-${g.appId}`}
+                  value={g.on}
+                  onValueChange={(on) => handleToggleGame(g.appId, on)}
+                  trackColor={TRACK_COLORS}
+                  thumbColor="#FFFFFF"
+                />
+              </SettingsRow>
+            ))}
+          </SettingsSection>
+        ) : null}
 
         {/* Developer */}
         <SettingsSection label="Developer">

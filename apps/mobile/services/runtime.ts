@@ -20,6 +20,7 @@ import { createCastTrace } from "./cast-trace";
 import { streamServerUrl } from "./cast-view";
 import { type ClientLogContext, clientEventsSender, createClientLog, hashId } from "./client-log";
 import { appConfig, isLauncherView } from "./config";
+import { askToNotify } from "./consent-sheet";
 import { followStep } from "./couch-follow";
 import {
   type CouchSession,
@@ -30,6 +31,7 @@ import {
 } from "./couch-session";
 import { createFakeCastBackend, fakeCastOptions } from "./fake-cast";
 import { isOgsCast } from "./game-cast-route";
+import { createGameNotifications } from "./game-notifications";
 import { createGamePresence } from "./game-presence";
 import { createGameProfile, createGameTokenClient } from "./game-profile";
 import { createGameUrls, rejoinUrl, rememberGame } from "./game-rejoin";
@@ -37,7 +39,10 @@ import { createGoogleCastBackend } from "./google-cast-backend";
 import { captureJsErrors, type RejectionTracker } from "./js-errors";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
+import { pushPermissionGranted, setForegroundGate } from "./notifications";
 import { createOgsApi } from "./ogs-api";
+import { createPushApi } from "./push-api";
+import { foregroundDecision } from "./push-foreground";
 import { createRoomJoiner, roomStartUrl } from "./rooms";
 import { sittingToOpen } from "./sittings";
 
@@ -295,6 +300,29 @@ couchHub.subscribe(() => castStop.castChanged());
 export const deviceId = () => appState.getSnapshot().identity?.deviceId ?? "this-phone";
 
 export const gamePresence = createGamePresence();
+
+/** Game pushes (spec §9): consent from the open game's page, and Settings. */
+export const pushApi = createPushApi({ baseUrl: config.apiBase, fetch: fetchImpl, auth });
+export const gameNotifications = createGameNotifications({
+  appId: () => gamePresence.openApp(),
+  gameName: () => {
+    const open = gamePresence.openApp();
+    return appState.getSnapshot().catalogue.find((g) => g.appId === open)?.name ?? "This game";
+  },
+  isKidDevice: () => Device.deviceType === Device.DeviceType.TABLET,
+  askPlayer: askToNotify,
+  osPermission: pushPermissionGranted,
+  optIn: (appId, join) => pushApi.optIn(appId, join),
+});
+// A push for the game on screen, whose page listens, goes to the page instead of a banner.
+setForegroundGate((n) => {
+  const { banner, toPage } = foregroundDecision(
+    { data: n.request.content.data, title: n.request.content.title, body: n.request.content.body },
+    { openAppId: gamePresence.openApp(), listening: gameNotifications.listening() },
+  );
+  if (toPage) gameNotifications.deliver(toPage);
+  return banner;
+});
 
 /** Each game's latest page (its room), so Rejoin returns there instead of starting a new one. */
 const gameUrls = createGameUrls();

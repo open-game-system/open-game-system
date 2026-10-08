@@ -1,5 +1,5 @@
 import * as Linking from "expo-linking";
-import { addDeepLinkListener, extractGameUrl, getInitialGameUrl } from "../deep-links";
+import { extractGameUrl } from "../deep-links";
 
 jest.mock("expo-linking", () => ({
   parse: jest.fn(),
@@ -176,109 +176,8 @@ describe("deep-links", () => {
     });
   });
 
-  describe("getInitialGameUrl", () => {
-    it("returns game URL when app was launched with a valid deep link", async () => {
-      mockGetInitialURL.mockResolvedValue(
-        "https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv",
-      );
-      mockParse.mockReturnValue({
-        path: "open",
-        queryParams: { url: "https://triviajam.tv" },
-        hostname: "opengame.org",
-        scheme: "https",
-      });
-
-      const logSpy = jest.spyOn(console, "log").mockImplementation();
-      const result = await getInitialGameUrl();
-      expect(result).toBe("https://triviajam.tv");
-      expect(logSpy).toHaveBeenCalledWith("[DeepLinks] Initial URL:", expect.any(String));
-      logSpy.mockRestore();
-    });
-
-    it("returns null when no initial URL", async () => {
-      mockGetInitialURL.mockResolvedValue(null);
-
-      const result = await getInitialGameUrl();
-      expect(result).toBeNull();
-      expect(mockParse).not.toHaveBeenCalled();
-    });
-
-    it("returns null when initial URL is not a game link", async () => {
-      mockGetInitialURL.mockResolvedValue("myapp://settings");
-      mockParse.mockReturnValue({
-        path: "settings",
-        queryParams: {},
-        hostname: null,
-        scheme: "myapp",
-      });
-
-      const result = await getInitialGameUrl();
-      expect(result).toBeNull();
-    });
-  });
-
-  describe("addDeepLinkListener", () => {
-    it("registers URL event listener and calls callback with game URL", () => {
-      const mockSubscription = { remove: jest.fn() };
-      let capturedHandler: (event: { url: string }) => void;
-
-      mockAddEventListener.mockImplementation((_event: string, handler: unknown) => {
-        capturedHandler = handler as (event: { url: string }) => void;
-        return mockSubscription as any;
-      });
-
-      const callback = jest.fn();
-      const subscription = addDeepLinkListener(callback);
-
-      expect(mockAddEventListener).toHaveBeenCalledWith("url", expect.any(Function));
-      expect(subscription).toBe(mockSubscription);
-
-      // Simulate incoming URL
-      mockParse.mockReturnValue({
-        path: "open",
-        queryParams: { url: "https://triviajam.tv/games/live" },
-        hostname: "opengame.org",
-        scheme: "https",
-      });
-
-      capturedHandler!({
-        url: "https://opengame.org/open?url=https%3A%2F%2Ftriviajam.tv%2Fgames%2Flive",
-      });
-      expect(callback).toHaveBeenCalledWith("https://triviajam.tv/games/live");
-    });
-
-    it("does not call callback when incoming URL is not a game link", () => {
-      let capturedHandler: (event: { url: string }) => void;
-
-      mockAddEventListener.mockImplementation((_event: string, handler: unknown) => {
-        capturedHandler = handler as (event: { url: string }) => void;
-        return { remove: jest.fn() } as any;
-      });
-
-      const callback = jest.fn();
-      addDeepLinkListener(callback);
-
-      mockParse.mockReturnValue({
-        path: "settings",
-        queryParams: {},
-        hostname: null,
-        scheme: "myapp",
-      });
-
-      capturedHandler!({ url: "myapp://settings" });
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    it("logs each incoming URL", () => {
-      const log = jest.spyOn(console, "log").mockImplementation(() => {});
-      addDeepLinkListener(jest.fn());
-      const handler = mockAddEventListener.mock.calls[0]?.[1];
-      mockParse.mockReturnValue({ path: null, queryParams: {}, hostname: null, scheme: "myapp" });
-      handler?.({ url: "myapp://" });
-      expect(log).toHaveBeenCalledWith("[DeepLinks] Incoming URL:", "myapp://");
-      log.mockRestore();
-    });
-  });
+  // getInitialGameUrl and addDeepLinkListener were removed 2026-10-08: the root layout routes every
+  // link through services/link-routing.ts (catalogue origins, play links), tested there.
 
   describe("extractGameUrl edges", () => {
     let error: jest.SpyInstance;

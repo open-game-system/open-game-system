@@ -1,0 +1,48 @@
+import { readPlayLink } from "@open-game-system/ogs-protocol";
+import { extractGameUrl } from "./deep-links";
+
+export type LinkTarget =
+  | { kind: "play"; appId: string; room: string }
+  | { kind: "game"; url: string };
+
+const originOf = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Where a link or a notification tap goes (spec §9, "Taps and links"): an invite or transfer link
+ * starts the game in its room; any page on a catalogue game's origin opens in that game's WebView,
+ * exactly there; otherwise the older rules (opengame.org/open?url=…). Null: not a game link.
+ */
+export function routeLink(url: string, startUrls: readonly string[]): LinkTarget | null {
+  const play = readPlayLink(url);
+  if (play) return { kind: "play", appId: play.appId, room: play.room };
+  const origin = originOf(url);
+  if (origin?.startsWith("https://") && startUrls.some((s) => originOf(s) === origin))
+    return { kind: "game", url };
+  const game = extractGameUrl(url);
+  return game ? { kind: "game", url: game } : null;
+}
+
+/**
+ * Opens a link (from outside the app) or a notification tap's url. A push's url was checked by OGS
+ * (the game's origin), so it opens even when it matches nothing yet (the catalogue not loaded).
+ */
+export function openLink(
+  url: string,
+  from: "link" | "push",
+  deps: {
+    startUrls: readonly string[];
+    play: (appId: string, room: string) => void;
+    game: (url: string) => void;
+  },
+): void {
+  const target = routeLink(url, deps.startUrls);
+  if (target?.kind === "play") deps.play(target.appId, target.room);
+  else if (target) deps.game(target.url);
+  else if (from === "push") deps.game(url);
+}

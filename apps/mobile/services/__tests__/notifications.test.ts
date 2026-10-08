@@ -11,6 +11,7 @@ import {
   initializePushNotifications,
   registerDeviceWithAPI,
   registerForPushNotifications,
+  setForegroundGate,
 } from "../notifications";
 
 jest.mock("expo-notifications", () => ({
@@ -471,6 +472,29 @@ describe("notifications", () => {
         shouldShowBanner: true,
         shouldShowList: true,
       });
+    });
+
+    it("asks the foreground gate: a push the open game takes shows nothing", async () => {
+      const seen: unknown[] = [];
+      setForegroundGate((n) => {
+        seen.push(n);
+        return false;
+      });
+      const note = { request: { content: { data: { type: "game-push" } } } };
+      const shown = await Reflect.apply(
+        foregroundHandler?.handleNotification ?? (() => null),
+        undefined,
+        [note],
+      );
+      expect(seen).toEqual([note]);
+      expect(shown).toEqual({
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+        shouldShowBanner: false,
+        shouldShowList: false,
+      });
+      setForegroundGate(() => true);
     });
 
     it("logs the push token, the device id and a rotated token", async () => {
