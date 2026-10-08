@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type ClientLike, handleClick, handlePush, PAGE_ANSWER_MS } from "./sw-core";
+import { type ClientLike, handleClick, handlePush, PAGE_ANSWER_MS, pushText } from "./sw-core";
 
 const payload = {
   title: "Clue: RIVER 2",
@@ -126,11 +126,16 @@ describe("a push arriving at the game's service worker", () => {
 });
 
 describe("tapping the notification", () => {
-  it("focuses a window already on that page", async () => {
+  it("focuses a window already on that page, without moving it", async () => {
     let focused = false;
+    const went: string[] = [];
     const w = windowClient({
       focus: async () => {
         focused = true;
+        return w.client;
+      },
+      navigate: async (u) => {
+        went.push(u);
         return w.client;
       },
     });
@@ -140,6 +145,7 @@ describe("tapping the notification", () => {
       { clients: async () => [w.client], open: async (u) => void opened.push(u) },
     );
     expect(focused).toBe(true);
+    expect(went).toEqual([]);
     expect(opened).toEqual([]);
   });
 
@@ -173,5 +179,13 @@ describe("tapping the notification", () => {
       { clients: async () => [], open: async (u) => void opened.push(u) },
     );
     expect(opened).toEqual([]);
+  });
+});
+
+describe("a push event's data", () => {
+  it("is its text, or null when the push carries none", () => {
+    expect(pushText({ text: () => "hi" })).toBe("hi");
+    expect(pushText(null)).toBeNull();
+    expect(pushText(undefined)).toBeNull();
   });
 });

@@ -38,13 +38,12 @@ export class OgsNotifyError extends Error {
 
 const ErrorBodySchema = z.object({ error: z.object({ code: z.string(), message: z.string() }) });
 
-const readJson = async (res: Response): Promise<unknown> => {
-  try {
-    return await res.json();
-  } catch {
-    return null;
-  }
-};
+/** The body as JSON, or null when it isn't JSON. */
+const readJson = (res: Response): Promise<unknown> =>
+  res.json().then(
+    (json: unknown) => json,
+    () => null,
+  );
 
 export function createOgsNotifier(opts: OgsNotifierOptions) {
   const doFetch = opts.fetch ?? ((url: string, init: RequestInit) => fetch(url, init));
@@ -59,7 +58,8 @@ export function createOgsNotifier(opts: OgsNotifierOptions) {
     const json = await readJson(res);
     if (!res.ok) {
       const err = ErrorBodySchema.safeParse(json);
-      if (err.success) throw new OgsNotifyError(err.data.error.code, err.data.error.message, res.status);
+      if (err.success)
+        throw new OgsNotifyError(err.data.error.code, err.data.error.message, res.status);
       throw new OgsNotifyError("http_error", `OGS answered HTTP ${res.status}`, res.status);
     }
     return GameNotificationResultSchema.parse(json);

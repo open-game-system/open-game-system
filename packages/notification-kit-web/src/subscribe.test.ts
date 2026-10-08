@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type BrowserEnv, subscribeOgsPush } from "./subscribe";
+import { type BrowserEnv, browserEnv, isIos, madeWith, subscribeOgsPush } from "./subscribe";
 
 /** A 65-byte uncompressed P-256 point, base64url (the shape OGS answers). */
 const keyOf = (fill: number) =>
@@ -39,6 +39,7 @@ function env(
 ) {
   const log: string[] = [];
   const posted: unknown[] = [];
+  const headers: Record<string, string>[] = [];
   const fresh = fakeSub(KEY, "https://push.example.net/new");
   const e: BrowserEnv = {
     serviceWorker: {
@@ -65,11 +66,12 @@ function env(
       log.push(`${init?.method ?? "GET"} ${url}`);
       if (url.endsWith("/push-key")) return Response.json({ publicKey: KEY });
       posted.push(JSON.parse(String(init?.body)));
+      headers.push({ "content-type": new Headers(init?.headers).get("content-type") ?? "" });
       return Response.json(over.answer ?? { status: "granted", handle });
     },
     ...over,
   };
-  return { e, log, posted };
+  return { e, log, posted, headers };
 }
 
 const opts = { appId: "codebreakers", apiUrl: "https://api.test" };
@@ -156,7 +158,10 @@ describe("subscribeOgsPush", () => {
   });
 
   it("OGS can't do web push right now (no key, an error, a bad answer): unavailable", async () => {
-    const down = env({ fetch: async () => new Response("{}", { status: 503 }) });
+    const down = env({
+      fetch: async () =>
+        Response.json({ publicKey: KEY, status: "granted", handle }, { status: 503 }),
+    });
     await expect(subscribeOgsPush(opts, down.e)).resolves.toEqual({
       status: "unsupported",
       reason: "unavailable",
@@ -181,5 +186,100 @@ describe("subscribeOgsPush", () => {
     const f = env();
     await subscribeOgsPush({ appId: "codebreakers" }, f.e);
     expect(f.log).toContain("GET https://api.opengame.org/api/v1/games/codebreakers/push-key");
+  });
+});
+
+describe("which subscription was made with the key", () => {
+  it("compares the key bytes; no options or no key never match", () => {
+    const k = keyBytes(KEY);
+    expect(madeWith(fakeSub(KEY).sub, k)).toBe(true);
+    expect(madeWith(fakeSub(OTHER).sub, k)).toBe(false);
+    const { options: _, ...noOptions } = fakeSub(KEY).sub;
+    expect(madeWith(noOptions, k)).toBe(false);
+    expect(madeWith({ ...noOptions, options: { applicationServerKey: null } }, k)).toBe(false);
+  });
+});
+
+describe("iPhone and iPad", () => {
+  it("tells iOS from a user agent, iPadOS by a Mac agent with touch", () => {
+    expect(
+      isIos({
+        userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)",
+        maxTouchPoints: 5,
+      }),
+    ).toBe(true);
+    expect(
+      isIos({ userAgent: "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X)", maxTouchPoints: 5 }),
+    ).toBe(true);
+    expect(
+      isIos({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", maxTouchPoints: 5 }),
+    ).toBe(true);
+    expect(
+      isIos({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", maxTouchPoints: 0 }),
+    ).toBe(false);
+    expect(
+      isIos({ userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)", maxTouchPoints: 1 }),
+    ).toBe(false);
+    expect(
+      isIos({ userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9)", maxTouchPoints: 5 }),
+    ).toBe(false);
+  });
+});
+
+describe("browserEnv (the page's real browser)", () => {
+  const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)";
+  const sw = {
+    register: async () => ({
+      pushManager: { getSubscription: async () => null, subscribe: async () => fakeSub(KEY).sub },
+    }),
+  };
+
+  it("a Safari tab on iPhone: no push, an iOS tab", () => {
+    const e = browserEnv({
+      navigator: { userAgent: IPHONE, maxTouchPoints: 5 },
+      matchMedia: () => ({ matches: false }),
+      fetch,
+    });
+    expect(e).toMatchObject({
+      serviceWorker: undefined,
+      pushSupported: false,
+      isIosBrowserTab: true,
+    });
+  });
+
+  it("a Home Screen app on iPhone is not a tab", () => {
+    const e = browserEnv({
+      navigator: { userAgent: IPHONE, maxTouchPoints: 5, serviceWorker: sw },
+      matchMedia: () => ({ matches: true }),
+      PushManager: class {},
+      fetch,
+    });
+    expect(e).toMatchObject({ serviceWorker: sw, pushSupported: true, isIosBrowserTab: false });
+  });
+
+  it("no navigator (a worker or a server): nothing", () => {
+    const e = browserEnv({ fetch });
+    expect(e).toMatchObject({
+      serviceWorker: undefined,
+      pushSupported: false,
+      isIosBrowserTab: false,
+    });
+  });
+
+  it("asks Notification for permission, or is denied without it", async () => {
+    const asked = browserEnv({ Notification: { requestPermission: async () => "granted" }, fetch });
+    expect(await asked.permission()).toBe("granted");
+    expect(await browserEnv({ fetch }).permission()).toBe("denied");
+  });
+
+  it("fetches through the page's fetch", async () => {
+    const urls: string[] = [];
+    const e = browserEnv({ fetch: async (url) => (urls.push(url), new Response("{}")) });
+    await e.fetch("https://api.test/x");
+    expect(urls).toEqual(["https://api.test/x"]);
+  });
+
+  it("reads the real globals by default", () => {
+    expect(browserEnv().pushSupported).toBe("PushManager" in globalThis);
   });
 });

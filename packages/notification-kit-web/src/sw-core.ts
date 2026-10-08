@@ -71,6 +71,10 @@ const parsePayload = (raw: string | null) => {
   }
 };
 
+/** A push event's data as text (a push may carry none). */
+export const pushText = (data: { text(): string } | null | undefined): string | null =>
+  data ? data.text() : null;
+
 /** The push event: hand it to a focused window that handles it, or show the notification. */
 export async function handlePush(raw: string | null, deps: PushDeps): Promise<void> {
   const payload = parsePayload(raw);

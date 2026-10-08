@@ -19,21 +19,17 @@ type SubscriptionLike = {
   unsubscribe(): Promise<boolean>;
 };
 
+type PushManagerLike = {
+  getSubscription(): Promise<SubscriptionLike | null>;
+  subscribe(opts: {
+    userVisibleOnly: true;
+    applicationServerKey: Uint8Array<ArrayBuffer>;
+  }): Promise<SubscriptionLike>;
+};
+
 /** The browser parts used (a fake in tests; `browserEnv()` in a page). */
 export interface BrowserEnv {
-  serviceWorker:
-    | {
-        register(url: string): Promise<{
-          pushManager: {
-            getSubscription(): Promise<SubscriptionLike | null>;
-            subscribe(opts: {
-              userVisibleOnly: true;
-              applicationServerKey: Uint8Array<ArrayBuffer>;
-            }): Promise<SubscriptionLike>;
-          };
-        }>;
-      }
-    | undefined;
+  serviceWorker: { register(url: string): Promise<{ pushManager: PushManagerLike }> } | undefined;
   pushSupported: boolean;
   /** iPhone or iPad Safari, not a Home Screen app. */
   isIosBrowserTab: boolean;
@@ -55,75 +51,99 @@ export const DEFAULT_OGS_API_URL = "https://api.opengame.org";
 
 const bytes = (b64url: string): Uint8Array<ArrayBuffer> =>
   Uint8Array.from(atob(b64url.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
-const sameKey = (key: ArrayBuffer | null | undefined, want: Uint8Array) =>
-  key != null && new Uint8Array(key).join() === want.join();
 
-const unavailable: WebPushConsent = { status: "unsupported", reason: "unavailable" };
+/** Whether a subscription was made with this key (the key rotates: then it must be remade). */
+export const madeWith = (sub: SubscriptionLike, key: Uint8Array): boolean =>
+  new Uint8Array(sub.options?.applicationServerKey ?? new ArrayBuffer(0)).join() === key.join();
 
-async function json(env: BrowserEnv, url: string, init?: RequestInit): Promise<unknown> {
-  const res = await env.fetch(url, init);
-  if (!res.ok) throw new Error(`OGS answered ${res.status}`);
-  return res.json();
+/** The response's JSON when OGS answered 2xx; null otherwise. */
+const okJson = async (res: Response): Promise<unknown> => (res.ok ? res.json() : null);
+
+/** The subscription to hand OGS: the current one if it uses this key, else a new one. */
+async function subscriptionFor(
+  push: PushManagerLike,
+  key: Uint8Array<ArrayBuffer>,
+): Promise<SubscriptionLike> {
+  const existing = await push.getSubscription();
+  if (existing && madeWith(existing, key)) return existing;
+  await existing?.unsubscribe();
+  return push.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+}
+
+type Sw = NonNullable<BrowserEnv["serviceWorker"]>;
+
+/** Register sw.js, subscribe with the game's key and hand OGS the subscription (permission granted). */
+async function optIn(
+  sw: Sw,
+  env: BrowserEnv,
+  api: string,
+  opts: SubscribeOptions,
+): Promise<WebPushConsent> {
+  try {
+    const registration = await sw.register(opts.serviceWorkerUrl ?? "/sw.js");
+    const { publicKey } = z
+      .object({ publicKey: z.string() })
+      .parse(await okJson(await env.fetch(`${api}/push-key`)));
+    const subscription = await subscriptionFor(registration.pushManager, bytes(publicKey));
+    const join = opts.handle ? { handle: opts.handle } : {};
+    const answer = await env.fetch(`${api}/push-subscriptions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription: subscription.toJSON(), ...join }),
+    });
+    return PushConsentResultSchema.parse(await okJson(answer));
+  } catch {
+    return { status: "unsupported", reason: "unavailable" };
+  }
 }
 
 export async function subscribeOgsPush(
   opts: SubscribeOptions,
   env: BrowserEnv = browserEnv(),
 ): Promise<WebPushConsent> {
-  if (!env.serviceWorker || !env.pushSupported)
+  const sw = env.pushSupported ? env.serviceWorker : undefined;
+  if (!sw)
     return {
       status: "unsupported",
       reason: env.isIosBrowserTab ? "add-to-home-screen" : "no-push",
     };
   // First, while the tap still counts: iOS only shows the prompt from a user gesture.
   if ((await env.permission()) !== "granted") return { status: "denied" };
-  const api = `${opts.apiUrl ?? DEFAULT_OGS_API_URL}/api/v1/games/${encodeURIComponent(opts.appId)}`;
-  try {
-    const registration = await env.serviceWorker.register(opts.serviceWorkerUrl ?? "/sw.js");
-    const { publicKey } = z
-      .object({ publicKey: z.string() })
-      .parse(await json(env, `${api}/push-key`));
-    const key = bytes(publicKey);
-    const existing = await registration.pushManager.getSubscription();
-    const current =
-      existing && sameKey(existing.options?.applicationServerKey, key) ? existing : null;
-    if (existing && !current) await existing.unsubscribe();
-    const subscription =
-      current ??
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: key,
-      }));
-    const answer = await json(env, `${api}/push-subscriptions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subscription: subscription.toJSON(),
-        ...(opts.handle ? { handle: opts.handle } : {}),
-      }),
-    });
-    return PushConsentResultSchema.parse(answer);
-  } catch {
-    return unavailable;
-  }
+  return optIn(
+    sw,
+    env,
+    `${opts.apiUrl ?? DEFAULT_OGS_API_URL}/api/v1/games/${encodeURIComponent(opts.appId)}`,
+    opts,
+  );
+}
+
+/** iPhone or iPad (iPadOS reports a Mac user agent; touch tells them apart). */
+export const isIos = (nav: { userAgent: string; maxTouchPoints: number }): boolean =>
+  /iPad|iPhone|iPod/.test(nav.userAgent) ||
+  (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1);
+
+/** The parts of the page's globals browserEnv reads (globalThis in a page; a fake in tests). */
+export interface PageGlobals {
+  navigator?: {
+    userAgent: string;
+    maxTouchPoints: number;
+    serviceWorker?: BrowserEnv["serviceWorker"];
+  };
+  matchMedia?: (query: string) => { matches: boolean };
+  Notification?: { requestPermission(): Promise<"granted" | "denied" | "default"> };
+  PushManager?: unknown;
+  fetch(url: string, init?: RequestInit): Promise<Response>;
 }
 
 /** The real browser, read when called (never at import, so server rendering is safe). */
-export function browserEnv(): BrowserEnv {
-  const nav = typeof navigator === "undefined" ? undefined : navigator;
-  // iPadOS reports a Mac user agent; touch tells them apart.
-  const ios =
-    nav !== undefined &&
-    (/iPad|iPhone|iPod/.test(nav.userAgent) ||
-      (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1));
-  const standalone =
-    typeof matchMedia !== "undefined" && matchMedia("(display-mode: standalone)").matches;
+export function browserEnv(g: PageGlobals = globalThis): BrowserEnv {
+  const nav = g.navigator;
+  const standalone = g.matchMedia?.("(display-mode: standalone)").matches === true;
   return {
-    serviceWorker: nav && "serviceWorker" in nav ? nav.serviceWorker : undefined,
-    pushSupported: typeof window !== "undefined" && "PushManager" in window,
-    isIosBrowserTab: ios && !standalone,
-    permission: async () =>
-      typeof Notification === "undefined" ? "denied" : Notification.requestPermission(),
-    fetch: (url, init) => fetch(url, init),
+    serviceWorker: nav?.serviceWorker,
+    pushSupported: g.PushManager !== undefined,
+    isIosBrowserTab: nav !== undefined && isIos(nav) && !standalone,
+    permission: async () => (g.Notification ? g.Notification.requestPermission() : "denied"),
+    fetch: (url, init) => g.fetch(url, init),
   };
 }

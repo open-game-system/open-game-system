@@ -4,7 +4,7 @@
  * (`/sw.js`); subscribeOgsPush registers it. It shows OGS pushes, or hands one to a focused window
  * of the game whose page listens (onOgsNotification), and opens the game at the push's url on a tap.
  */
-import { type ClientLike, handleClick, handlePush } from "./sw-core";
+import { type ClientLike, handleClick, handlePush, pushText } from "./sw-core";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -27,7 +27,7 @@ const windows = async () =>
 
 self.addEventListener("push", (event) => {
   event.waitUntil(
-    handlePush(event.data?.text() ?? null, {
+    handlePush(pushText(event.data), {
       clients: windows,
       show: (title, options) => self.registration.showNotification(title, options),
       wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),

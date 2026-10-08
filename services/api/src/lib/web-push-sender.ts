@@ -15,10 +15,21 @@ export async function webPushTopic(tag: string): Promise<string> {
 
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
+/** A day to live, normal urgency, and a topic from the tag so a later push replaces this one. */
+async function pushOptions(tag: string | undefined) {
+  const base = { ttl: WEB_PUSH_TTL_S, urgency: "normal" as const };
+  return tag ? { ...base, topic: await webPushTopic(tag) } : base;
+}
+
+/** 2xx: the push service took it; 404/410: the subscription is gone; anything else: an error. */
+const outcomeOf = (res: Response): WebSendResult => {
+  if (res.ok) return "ok";
+  return res.status === 404 || res.status === 410 ? "gone" : "error";
+};
+
 /**
  * Sends one web push (RFC 8291 aes128gcm, RFC 8292 VAPID) to a subscription with the game's VAPID
- * keys. `ok`: the push service took it; `gone`: 404/410, the subscription no longer exists; `error`:
- * anything else (rate limits, a bad subscription, the network).
+ * keys. Never throws: a bad subscription or the network is an `error`.
  */
 export async function sendWebPush(
   sub: WebSubscriptionRow,
@@ -28,15 +39,12 @@ export async function sendWebPush(
 ): Promise<WebSendResult> {
   const doFetch: Fetch = opts.fetch ?? ((url, init) => fetch(url, init));
   try {
-    const topic = payload.tag ? await webPushTopic(payload.tag) : undefined;
     const request = await buildPushPayload(
-      { data: payload, options: { ttl: WEB_PUSH_TTL_S, urgency: "normal", ...(topic ? { topic } : {}) } },
+      { data: payload, options: await pushOptions(payload.tag) },
       { endpoint: sub.endpoint, expirationTime: null, keys: { p256dh: sub.p256dh, auth: sub.auth } },
       { subject: opts.subject, publicKey: vapid.publicKey, privateKey: vapid.privateKey },
     );
-    const res = await doFetch(sub.endpoint, request);
-    if (res.ok) return "ok";
-    return res.status === 404 || res.status === 410 ? "gone" : "error";
+    return outcomeOf(await doFetch(sub.endpoint, request));
   } catch {
     return "error";
   }
