@@ -1,16 +1,11 @@
 import { z } from "zod";
+import { base64url } from "./base64url";
 
 /**
  * Push handles and their surfaces (docs/product-specs/push-notifications.md): one opaque handle per
  * player per game; a surface is where it can be reached (the OGS app for a profile, or a web push
  * subscription). Consent in the app is kept per profile and game in push_grants.
  */
-
-const base64url = (bytes: Uint8Array) =>
-  btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
 
 /** `ph_` + 22 random url-safe characters (16 bytes). */
 export const newPushHandle = () => `ph_${base64url(crypto.getRandomValues(new Uint8Array(16)))}`;

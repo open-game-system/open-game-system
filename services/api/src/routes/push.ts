@@ -4,10 +4,10 @@ import {
   PushConsentRequestSchema,
   type PushConsentResult,
 } from "@open-game-system/ogs-protocol";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { catalogueFor } from "../catalogue";
 import { apiError, invalidBody, parseBody } from "../lib/http";
-import { deliver } from "../lib/push-delivery";
+import { deliver, type PushMessage } from "../lib/push-delivery";
 import { grantOgs } from "../lib/push-handles";
 import { pushSenders } from "../lib/push-senders";
 import { gameKeyAuth } from "../middleware/game-key-auth";
@@ -42,6 +42,30 @@ push.post("/:appId/push-handles", anyToken, deviceOnly, async (c) => {
 /** True when `url` is on the game's origin (the origin of its startUrl). */
 const sameOrigin = (url: string, startUrl: string) => new URL(url).origin === new URL(startUrl).origin;
 
+/** The request body as JSON, or undefined when it isn't JSON. */
+const jsonBody = (c: Context): Promise<{ raw: unknown } | null> =>
+  c.req.json().then(
+    (raw: unknown) => ({ raw }),
+    () => null,
+  );
+
+/** The handles and the checked message, or the error: not JSON, missing fields, a url off the game's origin. */
+async function readSend(
+  c: Context,
+  appId: string,
+  startUrl: string,
+): Promise<{ to: string[]; message: PushMessage } | Response> {
+  const body = await jsonBody(c);
+  if (!body) return invalidBody(c, "Request body must be valid JSON");
+  const parsed = GameNotificationRequestSchema.safeParse(body.raw);
+  if (!parsed.success)
+    return apiError(c, 400, "missing_fields", "to (1-100 push handles), title (≤ 60) and body (≤ 180) are required");
+  const { title, body: text, tag, whenOpen } = parsed.data;
+  const url = parsed.data.url ?? startUrl;
+  if (!sameOrigin(url, startUrl)) return invalidBody(c, "url must be on the game's origin");
+  return { to: parsed.data.to, message: { appId, title, body: text, url, tag, whenOpen } };
+}
+
 /**
  * POST /games/:appId/notifications — a game server (its API key) tells players something:
  * `{ to: [handle], title, body, url?, tag?, whenOpen? }` → one status per handle, in order.
@@ -50,22 +74,11 @@ push.post("/:appId/notifications", gameKeyAuth, async (c) => {
   const appId = c.req.param("appId") ?? "";
   const game = findGame(c.env, appId);
   if (!game) return apiError(c, 404, "unknown_game", "No game with that appId");
-  let raw: unknown;
-  try {
-    raw = await c.req.json();
-  } catch {
-    return invalidBody(c, "Request body must be valid JSON");
-  }
-  const parsed = GameNotificationRequestSchema.safeParse(raw);
-  if (!parsed.success)
-    return apiError(c, 400, "missing_fields", "to (1-100 push handles), title (≤ 60) and body (≤ 180) are required");
-  const req = parsed.data;
-  const url = req.url ?? game.startUrl;
-  if (!sameOrigin(url, game.startUrl)) return invalidBody(c, "url must be on the game's origin");
-  const message = { appId, title: req.title, body: req.body, url, tag: req.tag, whenOpen: req.whenOpen };
+  const send = await readSend(c, appId, game.startUrl);
+  if (send instanceof Response) return send;
   const senders = pushSenders(c.env);
   const results: GameNotificationResult["results"] = [];
-  for (const to of req.to) results.push({ to, status: await deliver(c.env.DB, to, message, senders) });
+  for (const to of send.to) results.push({ to, status: await deliver(c.env.DB, to, send.message, senders) });
   const result: GameNotificationResult = { results };
   return c.json(result);
 });

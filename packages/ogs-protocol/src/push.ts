@@ -86,18 +86,26 @@ export const WebPushPayloadSchema = OgsNotificationSchema.extend({ whenOpen: Whe
 export type WebPushPayload = z.infer<typeof WebPushPayloadSchema>;
 
 /**
- * The app's `notifications` bridge store for a game's WebView: the page asks for consent (`REQUEST`,
- * optionally joining an existing handle) and the app answers in `state.consent`; a swallowed push
- * arrives as `state.last` with an increasing `seq`.
+ * The app's `notifications` bridge store for a game's WebView. The page asks for consent with
+ * `REQUEST` (an id, optionally a handle to join) and the app answers in `state.answer` with that id;
+ * the page says whether it handles pushes itself (`LISTENING`). A push swallowed while the game is
+ * in front arrives as `state.last`, with a `seq` that only grows.
  */
 export const NotificationsBridgeStateSchema = z.object({
-  consent: z.union([z.literal("idle"), z.literal("asking"), PushConsentResultSchema]),
+  answer: z.object({ id: z.string(), result: PushConsentResultSchema }).nullable(),
   last: z.object({ seq: z.number().int(), notification: OgsNotificationSchema }).nullable(),
 });
 export type NotificationsBridgeState = z.infer<typeof NotificationsBridgeStateSchema>;
 
 export const NotificationsBridgeEventSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("REQUEST"), handle: PushHandleSchema.optional() }),
-  z.object({ type: z.literal("NOTIFICATION"), notification: OgsNotificationSchema }),
+  z.object({ type: z.literal("REQUEST"), id: z.string().min(1), handle: PushHandleSchema.optional() }),
+  z.object({ type: z.literal("LISTENING"), on: z.boolean() }),
 ]);
 export type NotificationsBridgeEvent = z.infer<typeof NotificationsBridgeEventSchema>;
+
+/** sw.js → an open window of the game: a push it swallowed (the page answers on the port). */
+export const ServiceWorkerNotificationMessageSchema = z.object({
+  type: z.literal("ogs:notification"),
+  notification: OgsNotificationSchema,
+});
+export type ServiceWorkerNotificationMessage = z.infer<typeof ServiceWorkerNotificationMessageSchema>;

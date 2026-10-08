@@ -77,6 +77,7 @@ const handleOf = async (sub: string, appId = "codebreakers") =>
   z.string().parse((await optIn(sub, appId)).body.handle);
 const send = (handles: string[], extra: Record<string, unknown> = {}, key = cbKey, appId = "codebreakers") =>
   call("POST", `/api/v1/games/${appId}/notifications`, key, { to: handles, title: "Your clue, Keyholder", body: "Moon is up.", ...extra });
+const ErrorBody = z.object({ error: z.unknown() });
 const statusOf = (res: { body: Record<string, unknown> }) =>
   z.object({ results: z.array(z.object({ to: z.string(), status: z.string() })) }).parse(res.body).results;
 
@@ -163,7 +164,7 @@ describe("sending", () => {
     const h = await handleOf("sam");
     const res = await send([h], { url: "https://elsewhere.example/x" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatchObject({ code: "invalid_body" });
+    expect(res.body.error).toEqual({ code: "invalid_body", message: "url must be on the game's origin", status: 400 });
     expect(expoCalls).toHaveLength(0);
   });
 
@@ -234,19 +235,48 @@ describe("the game's API key", () => {
   it("needs a key", async () => {
     const res = await call("POST", "/api/v1/games/codebreakers/notifications", null, { to: [], title: "t", body: "b" });
     expect(res.status).toBe(401);
-    expect(res.body.error).toMatchObject({ code: "missing_auth" });
+    expect(res.body.error).toEqual({ code: "missing_auth", message: "Authorization header is required", status: 401 });
+  });
+
+  it("needs the Bearer scheme, at the start, with the key after it", async () => {
+    const invalidAuth = { code: "invalid_auth", message: "Authorization header must use Bearer scheme", status: 401 };
+    for (const header of [`Basic ${cbKey}`, `xBearer ${cbKey}`, "Bearer ", "Bearer"]) {
+      const res = await app.request(
+        "/api/v1/games/codebreakers/notifications",
+        { method: "POST", headers: { Authorization: header }, body: "{}" },
+        env(),
+      );
+      expect(res.status, header).toBe(401);
+      expect(ErrorBody.parse(await res.json()).error, header).toEqual(invalidAuth);
+    }
+  });
+
+  it("accepts any whitespace after Bearer, and is case-insensitive", async () => {
+    for (const header of [`bearer ${cbKey}`, `Bearer   ${cbKey}`]) {
+      const res = await app.request(
+        "/api/v1/games/codebreakers/notifications",
+        { method: "POST", headers: { Authorization: header, "Content-Type": "application/json" }, body: JSON.stringify({ to: ["ph_doesnotexist000000"], title: "t", body: "b" }) },
+        env(),
+      );
+      expect(res.status, header).toBe(200);
+    }
+  });
+
+  it("a key with trailing text is a different key", async () => {
+    const res = await send(["ph_doesnotexist000000"], {}, `${cbKey} extra`);
+    expect(res.status).toBe(401);
   });
 
   it("rejects an unknown key", async () => {
     const res = await send(["ph_doesnotexist000000"], {}, "ogsk_notarealkey");
     expect(res.status).toBe(401);
-    expect(res.body.error).toMatchObject({ code: "invalid_api_key" });
+    expect(res.body.error).toEqual({ code: "invalid_api_key", message: "The provided API key is invalid", status: 401 });
   });
 
   it("rejects another game's key", async () => {
     const res = await send(["ph_doesnotexist000000"], {}, rcKey);
     expect(res.status).toBe(403);
-    expect(res.body.error).toMatchObject({ code: "wrong_game" });
+    expect(res.body.error).toEqual({ code: "wrong_game", message: "This API key belongs to another game", status: 403 });
   });
 
   it("rejects a revoked key", async () => {
@@ -262,13 +292,17 @@ describe("the game's API key", () => {
       .run();
     const res = await send(["ph_doesnotexist000000"], {}, ghost.key, "ghost");
     expect(res.status).toBe(404);
-    expect(res.body.error).toMatchObject({ code: "unknown_game" });
+    expect(res.body.error).toEqual({ code: "unknown_game", message: "No game with that appId", status: 404 });
   });
 
   it("rejects a malformed body with missing_fields", async () => {
     const res = await call("POST", "/api/v1/games/codebreakers/notifications", cbKey, { to: ["ph_doesnotexist000000"] });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatchObject({ code: "missing_fields" });
+    expect(res.body.error).toEqual({
+      code: "missing_fields",
+      message: "to (1-100 push handles), title (≤ 60) and body (≤ 180) are required",
+      status: 400,
+    });
   });
 
   it("rejects a body that isn't JSON with invalid_body", async () => {
@@ -278,6 +312,7 @@ describe("the game's API key", () => {
       env(),
     );
     expect(res.status).toBe(400);
+    expect(ErrorBody.parse(await res.json()).error).toEqual({ code: "invalid_body", message: "Request body must be valid JSON", status: 400 });
   });
 });
 
@@ -293,10 +328,14 @@ describe("the app's notification settings", () => {
 
   it("marks the app surface active when the game opens, so it wins over an older surface", async () => {
     const h = await handleOf("sam");
+    const other = await handleOf("sam", "rocket-crew");
+    await d1.db.prepare("UPDATE push_surfaces SET last_active_at = 1").run();
     const res = await call("POST", "/api/v1/me/push-active/codebreakers", await phone("sam"));
     expect(res.status).toBe(200);
     const at = await d1.db.prepare("SELECT last_active_at AS t FROM push_surfaces WHERE handle_id = ?").bind(h).first("t");
     expect(Number(at)).toBeGreaterThan(Date.now() - 5000);
+    const untouched = await d1.db.prepare("SELECT last_active_at AS t FROM push_surfaces WHERE handle_id = ?").bind(other).first("t");
+    expect(untouched).toBe(1);
   });
 });
 

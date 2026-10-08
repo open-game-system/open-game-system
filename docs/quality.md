@@ -40,6 +40,18 @@ Grade each package/domain. Update after major changes.
 | notification-kit-core | 66.67% | 18 | 9 | Survivors are bridge safety patterns (optional chaining). |
 | notification-kit-server | 82.35% | 28 | 6 | Survivors are error message strings. |
 
+## Game push (2026-10-08)
+
+Stryker on the new modules only (`--mutate` list), `coverageAnalysis: off` (per-test coverage
+misattributes the D1-proxy route tests and reports false survivors):
+
+| Scope | Score | Killed / timeout | Survived | Notes |
+|-------|-------|------------------|----------|-------|
+| services/api push (api-keys, base64url, push-delivery, push-handles, game-key-auth, push, push-settings, devices) | 99.5% | 216 | 1 | Equivalent: `c.req.param("appId") ?? ""` (the route always has the param) |
+| packages/ogs-protocol push.ts | 100% | 56 | 0 | |
+
+CRAP: every function in the new API modules is under 8 (max 7, 42 functions).
+
 ## CRAP (2026-10-04)
 
 Target: CRAP < 8 for every function. Measure from a package dir after `pnpm test:coverage`:

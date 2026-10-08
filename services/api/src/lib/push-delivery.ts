@@ -89,15 +89,16 @@ async function toApp(db: D1Database, profileId: string, m: PushMessage, senders:
   return results.some((r) => r.deviceActive) ? "failed" : "gone";
 }
 
+const WebKeysSchema = z.object({ endpoint: z.string(), p256dh: z.string(), auth: z.string() });
+const WEB_OUTCOME: Record<WebSendResult, SurfaceOutcome> = { ok: "sent", gone: "gone", error: "failed" };
+
 async function toWeb(db: D1Database, s: SurfaceRow, m: PushMessage, senders: PushSenders): Promise<SurfaceOutcome> {
-  if (!s.endpoint || !s.p256dh || !s.auth) return "gone";
-  const result = await senders.web(
-    m.appId,
-    { endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth },
-    { title: m.title, body: m.body, url: m.url, whenOpen: m.whenOpen, ...(m.tag ? { tag: m.tag } : {}) },
-  );
+  const sub = WebKeysSchema.safeParse(s);
+  if (!sub.success) return "gone";
+  const payload = { title: m.title, body: m.body, url: m.url, whenOpen: m.whenOpen, ...(m.tag ? { tag: m.tag } : {}) };
+  const result = await senders.web(m.appId, sub.data, payload);
   if (result === "gone") await db.prepare("DELETE FROM push_surfaces WHERE id = ?").bind(s.id).run();
-  return result === "ok" ? "sent" : result === "gone" ? "gone" : "failed";
+  return WEB_OUTCOME[result];
 }
 
 /** One handle's answer from its surfaces' outcomes: sent beats failed beats gone beats not_permitted. */

@@ -120,6 +120,32 @@ describe("which surface gets it", () => {
     expect(sent).toEqual([]);
   });
 
+  it("a web surface missing any one key is gone", async () => {
+    const h = await grantOgs(d1.db, "jordan", "codebreakers", 1);
+    await d1.db.prepare("DELETE FROM push_surfaces").run();
+    for (const [endpoint, p256dh, auth] of [
+      [null, "p", "a"],
+      ["https://push.example/y", null, "a"],
+      ["https://push.example/z", "p", null],
+    ]) {
+      await d1.db.prepare("DELETE FROM push_surfaces").run();
+      await d1.db
+        .prepare("INSERT INTO push_surfaces (id, handle_id, kind, endpoint, p256dh, auth, last_active_at, created_at) VALUES ('w3', ?, 'web', ?, ?, ?, 1, 1)")
+        .bind(h, endpoint, p256dh, auth)
+        .run();
+      expect(await deliver(d1.db, h, message, senders)).toBe("gone");
+    }
+    expect(sent).toEqual([]);
+  });
+
+  it("an app surface with no consent record at all is not sent to", async () => {
+    const h = await bothSurfaces(300, 200);
+    await d1.db.prepare("DELETE FROM push_grants").run();
+    await d1.db.prepare("DELETE FROM push_surfaces WHERE kind = 'web'").run();
+    expect(await deliver(d1.db, h, message, senders)).toBe("not_permitted");
+    expect(sent).toEqual([]);
+  });
+
   it("sends no tag when the message has none", async () => {
     const h = await bothSurfaces(100, 200);
     await deliver(d1.db, h, { ...message, tag: undefined, whenOpen: "banner" }, senders);

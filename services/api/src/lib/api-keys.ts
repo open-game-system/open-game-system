@@ -1,15 +1,11 @@
+import { base64url } from "./base64url";
+
 /**
  * Per-game API keys (spec §9): the game server's one credential for OGS. Shown once when issued;
  * OGS keeps only a SHA-256 hash and a short prefix to tell keys apart.
  */
 export const API_KEY_PREFIX = "ogsk_";
 export const NOTIFICATIONS_SCOPE = "notifications:send";
-
-const base64url = (bytes: Uint8Array) =>
-  btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
 
 export async function hashApiKey(key: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));

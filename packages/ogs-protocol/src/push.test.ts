@@ -4,10 +4,14 @@ import {
   GameNotificationResultSchema,
   isPushHandle,
   NotificationsBridgeEventSchema,
+  NotificationsBridgeStateSchema,
   OgsPushDataSchema,
+  PushConsentRequestSchema,
   PushConsentResultSchema,
   PushHandleSchema,
   PushSubscriptionRequestSchema,
+  ServiceWorkerNotificationMessageSchema,
+  WebPushPayloadSchema,
 } from "./push";
 
 const handle = "ph_abcdefghijklmnop";
@@ -20,7 +24,7 @@ describe("push handles", () => {
   });
 
   it("rejects anything else", () => {
-    for (const bad of ["", "ph_short", `ph_${"a".repeat(65)}`, "xx_abcdefghijklmnop", "ph_abc def ghijklmnop"])
+    for (const bad of ["", "ph_short", `ph_${"a".repeat(65)}`, "xx_abcdefghijklmnop", "ph_abc def ghijklmnop", "xph_abcdefghijklmnop"])
       expect(isPushHandle(bad)).toBe(false);
   });
 });
@@ -65,6 +69,14 @@ describe("a game's send request", () => {
   });
 });
 
+describe("consent from the app", () => {
+  it("may name a handle to join, and only a push handle", () => {
+    expect(PushConsentRequestSchema.parse({})).toEqual({});
+    expect(PushConsentRequestSchema.parse({ handle })).toEqual({ handle });
+    expect(PushConsentRequestSchema.safeParse({ handle: "nope" }).success).toBe(false);
+  });
+});
+
 describe("results", () => {
   it("is one status per handle", () => {
     for (const status of ["sent", "not_permitted", "gone", "failed"])
@@ -87,9 +99,30 @@ describe("what a device receives", () => {
     expect(OgsPushDataSchema.safeParse({ ...data, type: "game-invite" }).success).toBe(false);
   });
 
-  it("the bridge hands the page a swallowed push", () => {
-    const event = { type: "NOTIFICATION", notification: { title: "T", body: "B", url: "https://c.example/" } };
-    expect(NotificationsBridgeEventSchema.parse(event)).toEqual(event);
+  it("the page asks with an id and says when it listens", () => {
+    expect(NotificationsBridgeEventSchema.parse({ type: "REQUEST", id: "r1" })).toEqual({ type: "REQUEST", id: "r1" });
+    expect(NotificationsBridgeEventSchema.parse({ type: "REQUEST", id: "r1", handle })).toEqual({ type: "REQUEST", id: "r1", handle });
+    expect(NotificationsBridgeEventSchema.parse({ type: "LISTENING", on: true })).toEqual({ type: "LISTENING", on: true });
+    expect(NotificationsBridgeEventSchema.safeParse({ type: "REQUEST", id: "" }).success).toBe(false);
+  });
+
+  it("the app answers by id, and hands over a swallowed push with a seq", () => {
+    const state = {
+      answer: { id: "r1", result: { status: "granted", handle } },
+      last: { seq: 3, notification: { title: "T", body: "B", url: "https://c.example/" } },
+    };
+    expect(NotificationsBridgeStateSchema.parse(state)).toEqual(state);
+    expect(NotificationsBridgeStateSchema.parse({ answer: null, last: null })).toEqual({ answer: null, last: null });
+  });
+
+  it("the service worker hands an open window the push", () => {
+    const msg = { type: "ogs:notification", notification: { title: "T", body: "B", url: "https://c.example/", tag: "x" } };
+    expect(ServiceWorkerNotificationMessageSchema.parse(msg)).toEqual(msg);
+    expect(ServiceWorkerNotificationMessageSchema.safeParse({ type: "other" }).success).toBe(false);
+  });
+
+  it("a web push payload carries whenOpen", () => {
+    expect(WebPushPayloadSchema.parse({ title: "T", body: "B", url: "https://c.example/", whenOpen: "banner" }).whenOpen).toBe("banner");
   });
 });
 
