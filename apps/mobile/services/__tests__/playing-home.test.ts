@@ -16,7 +16,8 @@ import {
 
 const MIN = 60 * 1000;
 const DAY = 24 * 60 * MIN;
-const NOW = 100 * DAY;
+// Noon local time (day 100 of 1970): "3 hours ago" is the same day in every timezone, as CI runs in UTC.
+const NOW = new Date(1970, 0, 101, 12).getTime();
 
 const game = (appId: string, tv: Manifest["tv"] = "required"): Manifest => ({
   appId,
