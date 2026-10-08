@@ -21,8 +21,8 @@ no push has reached a real device.
 
 | Repo | Branch | Commits | State |
 |---|---|---|---|
-| open-game-system | `feat/game-push` (worktree `~/src/ogs-push-links`, based on `docs/push-and-links`) | 13 | Committed; draft PR opened |
-| pocket-draft | `feat/ogs-push` (local only: the repo has no remote) | 2 | Committed, not pushed (nowhere to push) |
+| open-game-system | `feat/game-push` (worktree `~/src/ogs-push-links`, based on `docs/push-and-links`) | 15 | Committed and pushed; draft PR opened |
+| pocket-draft | `feat/ogs-push` (local only: the repo has no remote) | 3 | Committed, not pushed (nowhere to push) |
 | codebreakers | `spec/play-over-days` | 2 (docs only) | Committed on the branch; `main` untouched |
 
 ## Steps
@@ -31,7 +31,7 @@ no push has reached a real device.
 |---|---|---|---|---|
 | 1 API | `push_handles`, `push_surfaces`, `push_grants`, `game_api_keys` (hashed, prefixed, scoped). `POST /games/:appId/push-handles`, `POST /games/:appId/notifications`, `GET/DELETE /me/push-grants`, `POST /me/push-active/:appId`. `issue-key` script. Routing to the last-active surface, falling through to the next. Never a tablet. The url must be on the game's origin. `/notifications/send` and device tokens removed | yes | 534 unit + 177 integration; Stryker 99.5%; CRAP ≤ 7 | Not deployed. `api_keys` (plaintext) is still in production D1 until someone drops it |
 | 2 profile-kit + app | profile-kit: `requestOgsNotifications`, `onOgsNotification`. App: `notifications` bridge store, consent sheet (RN Alert), no sheet when the player already allowed the game, Settings "Game notifications" switches, foreground gate, link routing by catalogue origin plus `opengame.org/play`. app.json and opengame.org's AASA claim `/play/*` | yes | 1022 app tests, 118 profile-kit; Stryker 100% on every new module; CRAP ≤ 6 | No native build (needed for the new Android filter and for iOS to fetch the new AASA), so nothing has run on a phone |
-| 3 Pocket Draft | Seam tests first (9). Then `PUSH_HANDLE` after the first lock-in; stall nudge 10 min after one GM locks (alarm, once per round); "opponent joined", "draft done", "opponent ready"; connected seats skipped (the DO stamps its live sockets); learn rooms never push | yes (local) | 984 tests, typecheck, build, `gm:sim` 10/10; Stryker in the table below | No OGS key set (`OGS_API_KEY`), so pushes go nowhere yet. Not deployed |
+| 3 Pocket Draft | Seam tests first (9), then direct rule tests (9). Then `PUSH_HANDLE` after the first lock-in; stall nudge 10 min after one GM locks (alarm, once per round); "opponent joined", "draft done", "opponent ready"; connected seats skipped (the DO stamps its live sockets); learn rooms never push | yes (local) | 993 tests, typecheck, build, `gm:sim` 10/10; Stryker 92–100% | No OGS key set (`OGS_API_KEY`), so pushes go nowhere yet. Not deployed |
 | 4 web push | Per-game VAPID keys, encrypted under `PUSH_KEY_SECRET`; `GET /push-key`; `POST /push-subscriptions` (origin check); RFC 8291/8292 via `@block65/webcrypto-web-push`. New package notification-kit-web (`subscribeOgsPush`, `sw.js`). notification-kit-server is now `createOgsNotifier` | yes | `http_ece` decrypts what we send; the VAPID JWT verifies with Node crypto; end-to-end send to a web-only handle; `sw.js` in real Chromium (4 Playwright tests via DevTools pushes); Stryker 92–100% | RFC 8291 Appendix A vector not run: the library can't fix the salt and local key. `PUSH_KEY_SECRET` not set anywhere. No real push service called |
 | 5 Codebreakers | "Play over days" spec section and `docs/play-over-days.feature` | yes, on `spec/play-over-days` | — | Implementation waits for your approval (by design) |
 | 6 docs site | Notifications page, profile-kit reference (drift test green), quickstart step 13, testing (pushes), rules (rule 10), contract §9 status | yes | Docs tests 19/19 | — |
@@ -47,7 +47,7 @@ no push has reached a real device.
 | app push services (5 modules) | 100% | 6 |
 | notification-kit-web | subscribe 100%, sw-core 94% (3 equivalent) | 6 |
 | notification-kit-server | 96% (1 equivalent) | 3 |
-| pocket-draft push modules | see the end of this page | — |
+| pocket-draft push modules | 92–100% (3 equivalent) | — |
 
 API runs use `--coverageAnalysis off`, because per-test coverage reported false survivors (lesson in `docs/lessons.md`).
 
@@ -153,8 +153,43 @@ The full log: `.swarm/decisions.tsv` in the worktree (git-ignored, so it is also
 
 ## Pocket Draft Stryker
 
-(Filled in below when the run finished.)
+| Module | Score | Survivors |
+|---|---|---|
+| push.rules.ts | 95.6% (97.3% of covered) | 1 left: `seat !== null` (a handle is only ever set for a seated GM, so equivalent) |
+| notifier.ts | 100% | — |
+| ogsNotifier.ts | 96% (100% of covered) | — |
+| liveCallers.ts | 92% | 2 equivalent: dropping "service"/"system" from the caller-type enum still excludes those sockets |
+| client/pushOptIn.ts | 100% | — |
 
 ## Decision log (copy of `.swarm/decisions.tsv`)
 
-(Appended below.)
+```text
+time	step	decision	why	evidence	result
+22:44	1	Add 'failed' push status beside sent/not_permitted/gone	Spec had no status for a transient provider error; calling it gone would make games drop live handles	packages/ogs-protocol/src/push.ts	added; spec to update
+22:44	1	Kid = tablet device kind (no kid flag exists on profiles)	API has no kid marker; kids' iPads are profile_devices kind=tablet (session.ts ClientKind). Consent from a tablet is denied; delivery only to phone devices	services/api/schema.sql profile_devices.kind; claims.kind	adopted
+22:50	1	Deleted test/notifications.test.ts, test/notifications-send.test.ts, test/integration/notifications.test.ts	They test POST /api/v1/notifications/send and device-token JWTs, removed by ADR 2026-10-07 decision 9	git rm in step-1 commit	deleted
+22:50	1	Changed devices.test.ts + integration/devices-notifications: registration returns no deviceToken; api_keys checks -> game_api_keys	ADR decision 9 + game-push.feature 'device-token endpoint is gone'	comments in the tests	changed
+22:50	1	Repointed integration cors/content-type tests from /notifications/send to /games/codebreakers/notifications	They test CORS/body handling, used the removed route as an example	comments in the tests	changed
+22:50	1	Push routes mounted before the games router	games.use('*', anyToken) would 401 a game server's API-key request	src/index.ts	adopted
+22:50	1	Kept api_keys table out of schema.sql, new game_api_keys (hashed)	schema.sql only creates; prod keeps the old table, as done for cast_sessions	schema.sql comment	adopted
+22:50	1	tag sent in Expo data only	Expo collapse on iOS unverified; web push will use tag natively	push-delivery.ts	adopted, verify on device
+23:00	1	Stryker coverageAnalysis off for API push modules	perTest coverage misattributed D1-proxy tests (false survivors in revokeGrant etc., killed when run by hand)	/tmp/stryker-ph.log vs manual mutation	adopted
+23:00	1	Integration setup hashes the test key itself	setup calling src/hashApiKey made its mutants break setup, which Stryker reports as survived	test/integration/setup.ts	fixed
+23:00	1	Accepted equivalent mutant: c.req.param('appId') ?? ''	Hono types param as string|undefined; the route always has it	src/routes/push.ts	accepted
+23:02	2	site.test.ts page count 8 -> 9	The count pins the page set; the Notifications page is a new page the ADR asks for, not new code passing	apps/docs/test/site.test.ts	changed
+23:02	2	Wrote the Notifications docs page in step 2, not step 6	profile-kit reference links to it, and the docs link test must stay green per step	apps/docs/content/notifications.md	adopted
+23:02	2	Named server API createOgsNotifier({appId, apiKey, baseUrl?}) and web API subscribeOgsPush({appId, handle?}); sw.js copied from dist	Docs needed names before step 4; chosen to mirror profile-kit's Ogs naming	notifications.md	adopted
+23:07	2	Removed getInitialGameUrl/addDeepLinkListener and their 6 tests	Dead after _layout moved to services/link-routing.ts (catalogue origins + play links); extractGameUrl and its tests kept	services/deep-links.ts	deleted
+23:07	2	Kept deep-links' hard-coded triviajam rules as the fallback under catalogue routing	Semantic stability: every existing deep-link test still passes; catalogue routing is additive	services/link-routing.ts	adopted
+23:07	2	Push taps still open their url when nothing matches	Cold start from a tap happens before the catalogue loads; OGS already checked the origin	link-routing openLink	adopted
+23:07	2	Consent sheet = RN Alert (Allow / Not now)	Smallest native-free sheet; no new screen	services/consent-sheet.ts	adopted, check look on device
+23:19	3	Pocket Draft stall wake lives in an alarm-only private view, not public.wakeAt	Existing test pins the exact public context after a lock; the stall time is server-internal; the DO syncs its alarm from both	room.rules withViews, room.server #syncAlarm	adopted
+23:19	3	Connected = DO stamps callers with a live socket on every event	actor-kit declares CONNECT/DISCONNECT but never sends them	room.server.ts send()	adopted
+23:19	3	Pocket Draft calls OGS with a local fetch client, not notification-kit-server	The kit is rewritten in step 4 and is not vendored here yet; same request shape, swap later	packages/room/src/ogsNotifier.ts	adopted
+23:32	4	Used @block65/webcrypto-web-push 2.0.0 (Workers-ready, aes128gcm + VAPID)	Step asks to prefer a Workers library; proven by http_ece round-trip decrypt and a Node-verified VAPID JWT; RFC 8291 Appendix A vector not run (the library gives no way to fix the salt and local key)	services/api/test/web-push-sender.test.ts	adopted
+23:32	4	Rewrote notification-kit-server: createOgsNotifier replaces createNotificationClient; its 5 old tests replaced	The old client called the removed device-token endpoint; greenfield, no shim	packages/notification-kit-server	changed
+23:32	4	Left notification-kit-core and notification-kit-react as they are	They belong to the old bridge-store design; removing them is out of this plan's scope	-	left for owner
+23:32	4	subscribeOgsPush asks Notification permission before any network wait	iOS shows the prompt only from a user gesture; awaits before it can lose the tap	subscribe.ts	adopted
+23:32	4	sw.js e2e runs full Chromium (channel chromium), pushes via DevTools deliverPushMessage	The Playwright headless shell has no notifications	e2e/sw.e2e.ts	adopted
+23:43	3	App answers granted without the sheet when the player already allowed the game	A game asks again in every new room; asking each time would nag	apps/mobile/services/game-notifications.ts alreadyAllowed	adopted
+```
