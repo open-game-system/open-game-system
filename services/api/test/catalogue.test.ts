@@ -19,7 +19,7 @@ const GAMES = [
 ];
 /** Grown-up games played over days on phones, with the TV optional (2026-10-05). */
 const ASYNC_GAMES = ["pocket-draft"];
-/** Games with a theme loop cut from their own music (2026-10-04); the rest are silent on Home. */
+/** Games with a theme loop cut from their own music (2026-10-04; Trivia Jam, Codebreakers, Pocket Draft 2026-10-07); the rest are silent on Home. */
 const THEMED = [
   "rocket-crew",
   "bake-shop",
@@ -27,6 +27,9 @@ const THEMED = [
   "peekaboo-garden",
   "night-flight",
   "little-vigilante",
+  "trivia-jam",
+  "codebreakers",
+  "pocket-draft",
 ];
 
 describe("catalogue", () => {
@@ -43,7 +46,7 @@ describe("catalogue", () => {
     expect(m?.multiCouch).toBe(true);
     expect(m?.startUrl).toBe("https://pocket-draft-room.jonathanrmumm.workers.dev/");
     expect(m?.art.tile).toBe("/art/pocket-draft/tv.jpg");
-    expect(m?.art.theme).toBeUndefined();
+    expect(m?.art.theme).toBe("/art/pocket-draft/theme.mp3");
     expect(m?.roles.map((r) => r.audience)).toEqual(["grownup"]);
   });
 
