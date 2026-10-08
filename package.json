@@ -20,7 +20,10 @@
       "@swc/core",
       "esbuild",
       "workerd"
-    ]
+    ],
+    "overrides": {
+      "@expo/dom-webview@>=55.0.0 <55.0.6": "55.0.6"
+    }
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.8",
