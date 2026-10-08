@@ -22,6 +22,7 @@
     "stream:ready": "node scripts/stream-ready.mjs"
   },
   "dependencies": {
+    "@block65/webcrypto-web-push": "2.0.0",
     "@open-game-system/ogs-protocol": "workspace:*",
     "hono": "^4.12.8",
     "zod": "^4.3.6"
@@ -33,6 +34,7 @@
     "@playwright/test": "^1.58.2",
     "@vitest/coverage-v8": "^4.1.0",
     "emulate": "0.12.1",
+    "http_ece": "1.2.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0",
     "wrangler": "^4.147.0"

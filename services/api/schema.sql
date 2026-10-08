@@ -207,3 +207,13 @@ CREATE TABLE IF NOT EXISTS push_grants (
 -- old table until someone drops it deliberately; this file is applied on every deploy, so it
 -- never drops anything.
 CREATE INDEX IF NOT EXISTS idx_push_surfaces_profile ON push_surfaces(profile_id);
+
+-- Web push (spec §9): one VAPID key pair per game, made on first use. The private key (its `d`) is
+-- AES-GCM encrypted under the Worker secret PUSH_KEY_SECRET; public_key is the raw P-256 point.
+CREATE TABLE IF NOT EXISTS push_vapid_keys (
+  app_id TEXT PRIMARY KEY,
+  public_key TEXT NOT NULL,
+  private_key_enc TEXT NOT NULL,
+  iv TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);

@@ -34,6 +34,10 @@ export interface Env {
   PLAY_BASE_URL?: string;
   /** POST /client-events: Workers rate limiting, keyed per profile (the receiver per IP). */
   CLIENT_EVENTS_LIMITER?: RateLimit;
+  /** Web push: encrypts each game's VAPID private key (secret). Unset: web push answers 503. */
+  PUSH_KEY_SECRET?: string;
+  /** The VAPID subject push services can reach OGS at (default https://opengame.org). */
+  PUSH_VAPID_SUBJECT?: string;
   /** Expo push access token (secret), when the Expo project requires one for sending. */
   EXPO_ACCESS_TOKEN?: string;
   /** The deployed version (wrangler `version_metadata`); its id is every wide event's `version`. */

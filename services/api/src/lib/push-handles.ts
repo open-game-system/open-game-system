@@ -103,3 +103,46 @@ export function markOgsActive(db: D1Database, profileId: string, appId: string, 
     .bind(now, profileId, appId)
     .run();
 }
+
+/**
+ * The game's PWA subscribed (from its own origin): the handle that reaches this subscription. `join`
+ * (a handle of this game the page already holds) gains it; otherwise the handle it already had, or a
+ * new one. A subscription belongs to one handle: joining moves it.
+ */
+export async function grantWeb(
+  db: D1Database,
+  appId: string,
+  sub: { endpoint: string; p256dh: string; auth: string },
+  vapidPublicKey: string,
+  now: number,
+  join?: string,
+): Promise<string> {
+  const joinable = join && (await handleIsFor(db, join, appId)) ? join : null;
+  const existing = await db
+    .prepare(
+      `SELECT s.handle_id AS id FROM push_surfaces s JOIN push_handles h ON h.id = s.handle_id
+       WHERE s.endpoint = ? AND h.app_id = ?`,
+    )
+    .bind(sub.endpoint, appId)
+    .first<{ id: string }>();
+  const handle = joinable ?? existing?.id ?? (await createHandle(db, appId, now));
+  await db.batch([
+    db
+      .prepare(
+        `DELETE FROM push_surfaces WHERE endpoint = ? AND handle_id != ?
+         AND handle_id IN (SELECT id FROM push_handles WHERE app_id = ?)`,
+      )
+      .bind(sub.endpoint, handle, appId),
+    db
+      .prepare(
+        `INSERT INTO push_surfaces (id, handle_id, kind, endpoint, p256dh, auth, vapid_kid, last_active_at, created_at)
+         VALUES (?, ?, 'web', ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(handle_id, endpoint) DO UPDATE SET
+           p256dh = excluded.p256dh, auth = excluded.auth, vapid_kid = excluded.vapid_kid,
+           last_active_at = excluded.last_active_at`,
+      )
+      .bind(crypto.randomUUID(), handle, sub.endpoint, sub.p256dh, sub.auth, vapidPublicKey, now, now),
+  ]);
+  return handle;
+}
+
