@@ -197,12 +197,17 @@ jobs:
         env:
           PLANNED: ${{ needs.plan.outputs.android_fingerprint }}
         run: |
-          analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
-          build=$("$analyzer" manifest version-code "$RUNNER_TEMP/ogs.apk")
-          runtime=$("$analyzer" resources value --config default --name expo_runtime_version --type string "$RUNNER_TEMP/ogs.apk")
-          # SDK 55 writes the sentinel "file:fingerprint" and ships the value as an asset.
-          if [ "$runtime" = "file:fingerprint" ]; then
-            runtime=$(unzip -p "$RUNNER_TEMP/ogs.apk" "$(unzip -Z1 "$RUNNER_TEMP/ogs.apk" | grep -E '(^|/)fingerprint$' | head -n 1)")
+          # aapt2, not apkanalyzer (its manifest parser chokes on this APK's binary manifest).
+          aapt2=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name aapt2 | sort -V | tail -n 1)
+          apk="$RUNNER_TEMP/ogs.apk"
+          build=$("$aapt2" dump badging "$apk" | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" | head -n 1)
+          # SDK 55 ships the runtime version as the fingerprint asset ("file:fingerprint" in the
+          # expo_runtime_version string); older setups put the value in that string itself.
+          asset=$(unzip -Z1 "$apk" | grep -E '(^|/)fingerprint$' | head -n 1 || true)
+          if [ -n "$asset" ]; then
+            runtime=$(unzip -p "$apk" "$asset")
+          else
+            runtime=$("$aapt2" dump resources "$apk" | grep -A1 'string/expo_runtime_version' | sed -n 's/.*"\(.*\)".*/\1/p' | head -n 1)
           fi
           echo "build=$build" >> "$GITHUB_OUTPUT"
           # eas update computes the runtime the way the plan did; a build that embeds another one
