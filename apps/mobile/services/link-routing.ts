@@ -5,12 +5,11 @@ export type LinkTarget =
   | { kind: "play"; appId: string; room: string }
   | { kind: "game"; url: string };
 
-const originOf = (url: string): string | null => {
+/** The URL's origin, or undefined when it isn't a URL. */
+const originOf = (url: string): string | undefined => {
   try {
     return new URL(url).origin;
-  } catch {
-    return null;
-  }
+  } catch {}
 };
 
 /**

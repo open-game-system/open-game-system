@@ -49,7 +49,7 @@ describe("the app's push API", () => {
 
   it("rejects an answer that isn't a consent result", async () => {
     const f = fakeFetch(() => ({ body: { status: "granted" } }));
-    await expect(api(f).optIn("codebreakers")).rejects.toThrow();
+    await expect(api(f).optIn("codebreakers")).rejects.toMatchObject({ code: "BAD_RESPONSE" });
   });
 
   it("lists, revokes and marks games active", async () => {
@@ -60,6 +60,7 @@ describe("the app's push API", () => {
     await expect(a.grantedGames()).resolves.toEqual(["codebreakers"]);
     await a.revoke("codebreakers");
     await a.active("codebreakers");
+    expect(f.calls.every((c) => c.auth === "Bearer dev-token")).toBe(true);
     expect(f.calls.map((c) => `${c.method} ${c.url.replace("https://api.test", "")}`)).toEqual([
       "GET /api/v1/me/push-grants",
       "DELETE /api/v1/me/push-grants/codebreakers",

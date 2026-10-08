@@ -80,7 +80,10 @@ describe("the notifications bridge store", () => {
     n.store.dispatch({ type: "REQUEST", id: "r5" });
     await flush();
     expect(n.store.getSnapshot().answer?.result).toEqual({ status: "denied" });
-    expect(warn).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      "[notifications] could not opt in with OGS:",
+      expect.any(Error),
+    );
     warn.mockRestore();
   });
 
@@ -99,6 +102,16 @@ describe("the notifications bridge store", () => {
     await flush();
     expect(calls).toEqual([]);
     expect(n.store.getSnapshot()).toEqual({ answer: null, last: null });
+  });
+
+  it("a listener that unsubscribes hears nothing more; on() hands back an unsubscribe", () => {
+    const { n } = setup();
+    const seen: unknown[] = [];
+    const off = n.store.subscribe((s) => seen.push(s.last?.seq));
+    off();
+    n.deliver({ title: "A", body: "a", url: "https://cb.example/" });
+    expect(seen).toEqual([]);
+    expect(typeof n.store.on("REQUEST", () => {})).toBe("function");
   });
 
   it("LISTENING says whether the page handles pushes", () => {

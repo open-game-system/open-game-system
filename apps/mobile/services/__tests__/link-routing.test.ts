@@ -41,6 +41,10 @@ describe("where a link or a notification tap goes", () => {
     });
   });
 
+  it("only https game origins open in the app, even if a start URL is http (local dev)", () => {
+    expect(routeLink("http://dev.local:8787/room/A", ["http://dev.local:8787/"])).toBeNull();
+  });
+
   it("with no catalogue loaded yet, falls back to the old rules", () => {
     expect(routeLink("https://triviajam.tv/host/new", [])).toBeNull();
   });

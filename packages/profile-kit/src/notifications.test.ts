@@ -148,8 +148,8 @@ describe("onOgsNotification in the game's PWA", () => {
       addEventListener: (_t, l) => {
         listener = l;
       },
-      removeEventListener: () => {
-        listener = null;
+      removeEventListener: (type) => {
+        if (type === "message") listener = null;
       },
     };
     const send = (data: unknown) => {

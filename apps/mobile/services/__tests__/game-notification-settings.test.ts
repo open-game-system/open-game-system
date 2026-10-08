@@ -64,10 +64,26 @@ describe("Settings: notifications per game", () => {
   });
 
   it("an unknown game changes nothing", async () => {
-    const f = fakeApi([]);
+    const f = fakeApi(["codebreakers"]);
     const s = createGameNotificationSettings({ api: f.api, nameOf: names });
     await s.load();
-    await expect(s.set("ghost", false)).resolves.toEqual([]);
+    await expect(s.set("ghost", false)).resolves.toEqual([
+      { appId: "codebreakers", name: "Codebreakers", on: true },
+    ]);
     expect(f.calls).toEqual([]);
+  });
+
+  it("before loading, nothing is listed and nothing can change", async () => {
+    const f = fakeApi(["codebreakers"]);
+    const s = createGameNotificationSettings({ api: f.api, nameOf: names });
+    await expect(s.set("codebreakers", false)).resolves.toEqual([]);
+    expect(f.calls).toEqual([]);
+  });
+
+  it("switching one game leaves the others as they are", async () => {
+    const f = fakeApi(["codebreakers", "pocket-draft"]);
+    const s = createGameNotificationSettings({ api: f.api, nameOf: names });
+    await s.load();
+    expect((await s.set("pocket-draft", false)).map((r) => r.on)).toEqual([true, false]);
   });
 });
