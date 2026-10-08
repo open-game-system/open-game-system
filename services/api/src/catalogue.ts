@@ -200,6 +200,28 @@ const SEED: ManifestInput[] = [
     shop: { ages: "10+", minutes: [15, 40], players: "4-10" },
   },
   {
+    appId: "bobberbrook",
+    name: "Bobberbrook",
+    tagline: "Run around a painted lake together, cast at the swirls and fill the family fish journal.",
+    shape: "couch",
+    tv: "required",
+    startUrl: workers("bobberbrook"),
+    roles: [
+      { id: "host", label: "Grown-up", audience: "grownup" },
+      { id: "fisher", label: "Fisher", audience: "kid" },
+      { id: "little", label: "Little fisher", audience: "little" },
+    ],
+    art: {
+      icon: "/art/bobberbrook/icon.png",
+      cover: "/art/bobberbrook/cover.jpg",
+      logo: "/art/bobberbrook/logo.png",
+      heroClean: "/art/bobberbrook/hero-clean.jpg",
+      tile: "/art/bobberbrook/tv.jpg",
+      hero: "/art/bobberbrook/tv.jpg",
+    },
+    shop: { ages: "3+", minutes: [10, 40], players: "1-4" },
+  },
+  {
     appId: "pocket-draft",
     name: "Pocket Draft",
     tagline: "Bid on a football team, then watch it play.",
