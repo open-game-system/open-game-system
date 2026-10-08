@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type ClientLike, handleClick, handlePush, PAGE_ANSWER_MS, pushText } from "./sw-core";
+import {
+  type ClientLike,
+  handleClick,
+  handlePush,
+  mustShowEveryPush,
+  PAGE_ANSWER_MS,
+  pushText,
+} from "./sw-core";
 
 const payload = {
   title: "Clue: RIVER 2",
@@ -69,6 +76,14 @@ describe("a push arriving at the game's service worker", () => {
       },
     ]);
     expect(d.shown).toEqual([]);
+  });
+
+  it("Safari (every push must show): the page still hears it, and the notification shows too", async () => {
+    const w = windowClient({ answer: { handled: true } });
+    const d = deps([w.client]);
+    await handlePush(JSON.stringify(payload), { ...d.deps, showEveryPush: true });
+    expect(w.posted).toHaveLength(1);
+    expect(d.shown).toHaveLength(1);
   });
 
   it("a focused window with no handler (no answer in time): shows it", async () => {
@@ -187,5 +202,23 @@ describe("a push event's data", () => {
     expect(pushText({ text: () => "hi" })).toBe("hi");
     expect(pushText(null)).toBeNull();
     expect(pushText(undefined)).toBeNull();
+  });
+});
+
+describe("browsers that revoke a subscription after pushes that show nothing", () => {
+  it("are Safari and every iOS browser (WebKit), not Chrome, Edge or Firefox", () => {
+    const safariMac =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15";
+    const iphone =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+    const chromeIos =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0 Mobile/15E148 Safari/604.1";
+    const chrome =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36";
+    const edge = `${chrome} Edg/130.0`;
+    const firefox =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:131.0) Gecko/20100101 Firefox/131.0";
+    expect([safariMac, iphone, chromeIos].map(mustShowEveryPush)).toEqual([true, true, true]);
+    expect([chrome, edge, firefox].map(mustShowEveryPush)).toEqual([false, false, false]);
   });
 });

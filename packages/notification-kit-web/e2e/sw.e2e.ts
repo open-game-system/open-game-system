@@ -5,7 +5,6 @@
  */
 import { readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import { resolve } from "node:path";
 import { type Browser, type BrowserContext, chromium, type Page } from "playwright";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -39,16 +38,17 @@ beforeAll(async () => {
     res.end(PAGE);
   });
   await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
-  origin = `http://localhost:${(server.address() as AddressInfo).port}`;
-  // Full Chromium (new headless): the headless shell has no notifications.
-  browser = await chromium.launch({ channel: "chromium" });
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("no port");
+  origin = `http://localhost:${address.port}`;
 });
-afterAll(async () => {
-  await browser?.close();
-  await new Promise((r) => server.close(r));
-});
+afterAll(() => new Promise((r) => server.close(r)));
 
 beforeEach(async () => {
+  // A browser per test: DevTools lists service worker registrations across contexts, so a shared
+  // browser can hand the push to an earlier test's registration. Full Chromium (new headless): the
+  // headless shell has no notifications.
+  browser = await chromium.launch({ channel: "chromium" });
   context = await browser.newContext();
   await context.grantPermissions(["notifications"], { origin });
   page = await context.newPage();
@@ -57,36 +57,56 @@ beforeEach(async () => {
   // The worker claims the page; wait until it controls it.
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
 });
-afterEach(() => context?.close());
+afterEach(async () => {
+  devtools = null;
+  await browser?.close();
+});
+
+/** The page's registration, found once per test through one DevTools session that stays open. */
+let devtools: Promise<(data: string) => Promise<unknown>> | null = null;
+function deliverer() {
+  devtools ??= (async () => {
+    const cdp = await context.newCDPSession(page);
+    const registrationId = await new Promise<string>((resolveId) => {
+      cdp.on(
+        "ServiceWorker.workerRegistrationUpdated",
+        (e: { registrations: { registrationId: string; isDeleted: boolean }[] }) => {
+          const live = e.registrations.find((r) => !r.isDeleted);
+          if (live) resolveId(live.registrationId);
+        },
+      );
+      void cdp.send("ServiceWorker.enable");
+    });
+    return (data: string) =>
+      cdp.send("ServiceWorker.deliverPushMessage", { origin, registrationId, data });
+  })();
+  return devtools;
+}
 
 /** Delivers a push to the page's registration through DevTools. */
 async function push(payload: object) {
-  const cdp = await context.newCDPSession(page);
-  const registrationId = await new Promise<string>((resolveId) => {
-    cdp.on(
-      "ServiceWorker.workerRegistrationUpdated",
-      (e: { registrations: { registrationId: string; isDeleted: boolean }[] }) => {
-        const live = e.registrations.find((r) => !r.isDeleted);
-        if (live) resolveId(live.registrationId);
-      },
-    );
-    void cdp.send("ServiceWorker.enable");
-  });
-  await cdp.send("ServiceWorker.deliverPushMessage", {
-    origin,
-    registrationId,
-    data: JSON.stringify(payload),
-  });
+  const deliver = await deliverer();
+  await deliver(JSON.stringify(payload));
 }
 
-const shown = () =>
-  page.evaluate(async () =>
-    (await (await navigator.serviceWorker.ready).getNotifications()).map((n) => ({
+/**
+ * The notifications the worker has shown, read inside the worker: reading them from the page
+ * (`navigator.serviceWorker.ready.getNotifications()`) sometimes came back empty in headless Chromium
+ * while the worker's own registration listed them.
+ */
+const shown = async () => {
+  const worker = context.serviceWorkers()[0];
+  if (!worker) return [];
+  return worker.evaluate(async () => {
+    const registration: unknown = Reflect.get(globalThis, "registration");
+    if (!(registration instanceof ServiceWorkerRegistration)) return [];
+    return (await registration.getNotifications()).map((n) => ({
       title: n.title,
       tag: n.tag,
       url: n.data?.url,
-    })),
-  );
+    }));
+  });
+};
 const heard = () => page.evaluate(() => Reflect.get(window, "__heard"));
 
 const payload = {

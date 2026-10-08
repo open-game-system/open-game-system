@@ -52,7 +52,7 @@ misattributes the D1-proxy route tests and reports false survivors):
 | packages/profile-kit notifications.ts | 100% | 99 | 0 | |
 | apps/mobile push services (push-foreground, game-notifications, push-api, link-routing, game-notification-settings) | 100% | 164 | 0 | perTest coverage (jest) was fine here |
 | services/api web push (vapid-keys, web-push-sender, push-senders) | 92% (vapid-keys 86%) | 87 | 7 | Equivalent: 6 Web Crypto type guards that can't be reached (`"privateKey" in pair`, `jwk instanceof ArrayBuffer`, `?? ""`) and the AES key's `extractable` flag |
-| packages/notification-kit-web (subscribe, sw-core) | 98% (subscribe 100%, sw-core 94%) | 134 | 3 | Equivalent: a timeout answering `undefined` instead of `false`, and `raw ?? ""` / an empty catch around `JSON.parse` |
+| packages/notification-kit-web (subscribe, sw-core) | 98% (subscribe 100%, sw-core 95%) | 145 | 3 | Equivalent: a timeout answering `undefined` instead of `false`, and `raw ?? ""` / an empty catch around `JSON.parse` |
 | packages/notification-kit-server | 96% | 25 | 1 | Equivalent: `readJson` answering `undefined` instead of `null` |
 
 CRAP: every function in the new modules is under 8 (API max 7, app max 6, notification-kit-web max 6, profile-kit max 4, notification-kit-server max 3). The sw.js listeners have no unit coverage; they are one-line wrappers over tested functions and run in the Chromium e2e (`packages/notification-kit-web/e2e/sw.e2e.ts`).

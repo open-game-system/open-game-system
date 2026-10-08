@@ -122,9 +122,10 @@ tablets.
   player is elsewhere in the app, the app shows its own banner; a tap opens the game. Background or closed:
   the OS shows it.
 - **PWA:** `sw.js` looks for a focused window of the game (`clients.matchAll`). If there is one and
-  `whenOpen` is `deliver`, it posts the push to that window and shows nothing; otherwise `showNotification`.
-  (Unverified: Safari may revoke a subscription after pushes that show nothing; verify on an iPad before
-  swallowing on iOS, else iOS web always shows a banner.)
+  `whenOpen` is `deliver`, it posts the push to that window; if the page handles it, Chrome, Edge and
+  Firefox show nothing. **Safari (macOS, and every browser on iOS) always shows the notification too:**
+  WebKit revokes a push subscription after three pushes that show nothing ("Enforce silent push quota";
+  Discourse lost iOS subscriptions this way). Checked 2026-10-08.
 - **In the page:** `onOgsNotification((n) => …)` (profile-kit) fires for a swallowed push, in the app and in
   the PWA. If the page registered no handler, the banner shows instead, so nothing is lost.
 

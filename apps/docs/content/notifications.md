@@ -20,8 +20,9 @@ game's PWA, whichever the player used last, and a tap opens your game at the pag
    `POST /api/v1/games/<appId>/notifications` with your game's API key.
 3. **OGS delivers** to the surface the player used last (the OGS app, or your PWA), and falls through
    to the other one if the first is gone.
-4. **If your game is open and in front**, there is no banner: your page hears it with
-   `onOgsNotification`. With no handler registered, the banner shows.
+4. **If your game is open and in front**, your page hears it with `onOgsNotification`, and there is no
+   banner, except in Safari and on iOS web: WebKit revokes a subscription after three pushes that show
+   nothing, so there the banner shows as well. With no handler registered, the banner shows.
 
 A push handle (`ph_…`) is opaque: it names no device, profile or subscription, and a handle for your game
 is refused for any other. OGS never pushes to a kid's iPad.

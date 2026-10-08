@@ -36,7 +36,17 @@ export interface PushDeps {
   wait(ms: number): Promise<void>;
   /** A MessageChannel (injected in tests). */
   channel?: () => Channel;
+  /** This browser revokes the subscription after pushes that show nothing (Safari): always show. */
+  showEveryPush?: boolean;
 }
+
+/**
+ * WebKit (Safari, and every browser on iOS) revokes a push subscription after three pushes that show
+ * no notification (WebKit "Enforce silent push quota"). There, a push is shown even when the open page
+ * handled it. Chromium (Chrome, Edge) and Firefox let a focused page take it.
+ */
+export const mustShowEveryPush = (userAgent: string): boolean =>
+  /AppleWebKit/.test(userAgent) && !/Chrome\/|Edg\//.test(userAgent);
 
 const realChannel = (): Channel => {
   const c = new MessageChannel();
@@ -82,7 +92,8 @@ export async function handlePush(raw: string | null, deps: PushDeps): Promise<vo
   const { whenOpen, ...notification } = payload;
   if (whenOpen === "deliver") {
     const focused = (await deps.clients()).find((c) => c.focused);
-    if (focused && (await pageHandled(focused, notification, deps))) return;
+    const handled = focused !== undefined && (await pageHandled(focused, notification, deps));
+    if (handled && !deps.showEveryPush) return;
   }
   const tag = notification.tag ? { tag: notification.tag } : {};
   await deps.show(notification.title, {

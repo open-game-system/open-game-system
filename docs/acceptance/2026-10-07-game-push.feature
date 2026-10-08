@@ -124,12 +124,20 @@ Feature: Games notify players through OGS
     Then the app shows its own banner
     And tapping it opens Codebreakers at the push's url
 
-  Scenario: Open in the PWA: the worker swallows it
-    Given Alex has the Codebreakers PWA open and focused
+  Scenario: Open in the PWA (Chrome, Edge, Firefox): the worker swallows it
+    Given Alex has the Codebreakers PWA open and focused in Chrome
     And the page registered onOgsNotification
     When Codebreakers' server sends to ["ph_A"]
     Then no system notification shows
     And the page's handler receives it
+
+  # Changed 2026-10-08: WebKit revokes a subscription after three pushes that show nothing.
+  Scenario: Open in the PWA on Safari or iOS: the page hears it and the notification shows too
+    Given Alex has the Codebreakers PWA open and focused on an iPad
+    And the page registered onOgsNotification
+    When Codebreakers' server sends to ["ph_A"]
+    Then the page's handler receives it
+    And the system notification shows as well
 
   Scenario: No handler means a banner
     Given Sam has Codebreakers open in the OGS app and the page registered no handler
