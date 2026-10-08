@@ -15,8 +15,9 @@ Watch it: GitHub → Actions → **Mobile Beta Release**. Run it by hand with **
 
 Done (2026-10-07): Firebase project `opengame-35033` (Android app `org.opengame.app`, group
 `testers`, service account `ogs-app-distribution`), `RELEASE_TOKEN` (GitHub + Worker),
-`FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_ANDROID_APP_ID`, `ANDROID_UPDATE_URL`, the Android
-`beta` keystore on EAS. Open: iOS credentials, `EXPO_TOKEN`, App Store Connect (app, API key,
+`FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_ANDROID_APP_ID`, `ANDROID_UPDATE_URL`, `EXPO_TOKEN`,
+the `beta` keystore and App Store signing on EAS. Open: App Store Connect (the iOS job skips until
+`ASC_APP_ID` is set) (app, API key,
 TestFlight group, `ASC_*`, `IOS_UPDATE_URL`).
 
 Steps marked **(you)** need an Apple, Google or Expo login.
