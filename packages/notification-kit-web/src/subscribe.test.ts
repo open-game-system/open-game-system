@@ -95,6 +95,7 @@ describe("subscribeOgsPush", () => {
         },
       },
     ]);
+    expect(f.headers).toEqual([{ "content-type": "application/json" }]);
   });
 
   it("passes the handle to join, and a custom worker path", async () => {
@@ -250,7 +251,7 @@ describe("browserEnv (the page's real browser)", () => {
   it("a Home Screen app on iPhone is not a tab", () => {
     const e = browserEnv({
       navigator: { userAgent: IPHONE, maxTouchPoints: 5, serviceWorker: sw },
-      matchMedia: () => ({ matches: true }),
+      matchMedia: (q: string) => ({ matches: q === "(display-mode: standalone)" }),
       PushManager: class {},
       fetch,
     });
