@@ -177,6 +177,13 @@ jobs:
           java-version: 17
       - run: pnpm install --frozen-lockfile
 
+      # The default Gradle daemon (512 MB metaspace) runs out of memory in KSP (AsyncStorage's Room).
+      # User-level properties override the generated android/gradle.properties.
+      - name: Gradle memory
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" >> ~/.gradle/gradle.properties
+
       - name: Build (beta profile, keystore from EAS)
         working-directory: apps/mobile
         run: npx eas-cli@latest build --local --platform android --profile beta --output "$RUNNER_TEMP/ogs.apk" --non-interactive
