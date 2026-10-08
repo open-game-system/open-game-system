@@ -1,6 +1,7 @@
 import { defineConfig } from "tsdown";
 
-// Bundles ogs-protocol (not on npm at this version); zod stays a dependency.
+// Games install this from a packed tarball like profile-kit: ogs-protocol is bundled in, zod stays a
+// dependency.
 export default defineConfig({
   entry: ["src/index.ts"],
   format: ["esm", "cjs"],

@@ -14,7 +14,8 @@
 | `packages/app-bridge-testing` | `@open-game-system/app-bridge-testing` | Test utilities and mocks for app-bridge | `app-bridge-types` |
 | `packages/notification-kit-core` | `@open-game-system/notification-kit-core` | Shared notification types and logic | None (external `app-bridge` dep) |
 | `packages/notification-kit-react` | `@open-game-system/notification-kit-react` | React hooks for receiving notifications in-game | `notification-kit-core` |
-| `packages/notification-kit-server` | `@open-game-system/notification-kit-server` | Server SDK for sending notifications via opengame-api | `notification-kit-core` |
+| `packages/notification-kit-server` | `@open-game-system/notification-kit-server` | `createOgsNotifier`: a game server sends pushes to push handles (spec §9) | `ogs-protocol` (bundled) |
+| `packages/notification-kit-web` | `@open-game-system/notification-kit-web` | `subscribeOgsPush` for a game's PWA and OGS's `sw.js` (spec §9) | `ogs-protocol` (bundled) |
 | `packages/stream-kit-types` | `@open-game-system/stream-kit-types` | Core type definitions for streaming protocol | None |
 | `packages/stream-kit-web` | `@open-game-system/stream-kit-web` | Client-side WebRTC/PeerJS streaming | `stream-kit-types` |
 | `packages/stream-kit-react` | `@open-game-system/stream-kit-react` | React hooks for stream lifecycle | `stream-kit-types`, `stream-kit-web` |
@@ -73,7 +74,7 @@ Layer 0 (no internal deps):
 Layer 1:
   app-bridge-web, app-bridge-native, app-bridge-testing
   stream-kit-web, stream-kit-server
-  notification-kit-react, notification-kit-server
+  notification-kit-react, notification-kit-server, notification-kit-web
 
 Layer 2:
   app-bridge-react, app-bridge-react-native
