@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`catalogue content > is exactly the seven games as published 1`] = `
+exports[`catalogue content > is exactly the games as published 1`] = `
 [
   {
     "appId": "rocket-crew",
@@ -311,6 +311,39 @@ exports[`catalogue content > is exactly the seven games as published 1`] = `
     "startUrl": "https://codebreakers.jonathanrmumm.workers.dev/",
     "tagline": "Two expeditions, one vault. One-word clues, twenty-five tablets, one curse.",
     "tv": "required",
+  },
+  {
+    "appId": "pocket-draft",
+    "art": {
+      "cover": "/art/pocket-draft/cover.jpg",
+      "hero": "/art/pocket-draft/tv.jpg",
+      "heroClean": "/art/pocket-draft/hero-clean.jpg",
+      "icon": "/art/pocket-draft/icon.png",
+      "logo": "/art/pocket-draft/logo.png",
+      "tile": "/art/pocket-draft/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "multiCouch": true,
+    "name": "Pocket Draft",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "gm",
+        "label": "GM",
+      },
+    ],
+    "shape": "async",
+    "shop": {
+      "ages": "10+",
+      "minutes": [
+        20,
+        60,
+      ],
+      "players": "2",
+    },
+    "startUrl": "https://pocket-draft-room.jonathanrmumm.workers.dev/",
+    "tagline": "Bid on a football team, then watch it play.",
+    "tv": "optional",
   },
 ]
 `;

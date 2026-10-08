@@ -3,11 +3,20 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { BASE, bearer, createProfile, createSession, ErrorSchema } from "./helpers";
 
-const ALL = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight", "trivia-jam", "codebreakers"];
+const ALL = [
+  "rocket-crew",
+  "bake-shop",
+  "story-nook",
+  "peekaboo-garden",
+  "night-flight",
+  "trivia-jam",
+  "codebreakers",
+  "pocket-draft",
+];
 const LibrarySchema = z.object({ appIds: z.array(z.string()) });
 
 describe("GET /catalogue", () => {
-  it("lists the seven games as manifests, no token needed", async () => {
+  it("lists every game as a manifest, no token needed", async () => {
     const res = await SELF.fetch(`${BASE}/catalogue`);
     expect(res.status).toBe(200);
     const body = z
@@ -15,8 +24,8 @@ describe("GET /catalogue", () => {
         z.object({
           appId: z.string(),
           name: z.string(),
-          shape: z.literal("couch"),
-          tv: z.literal("required"),
+          shape: z.enum(["couch", "live", "async"]),
+          tv: z.enum(["none", "optional", "required"]),
           startUrl: z.string().url(),
           roles: z.array(z.object({ id: z.string(), label: z.string(), audience: z.string() })),
           art: z.object({ tile: z.string() }),
@@ -29,6 +38,11 @@ describe("GET /catalogue", () => {
       name: "Rocket Crew",
       startUrl: "https://rocket-crew.jonathanrmumm.workers.dev/",
       art: { tile: "/art/rocket-crew/tv.jpg" },
+    });
+    // Not every game is a couch game that needs the TV: Pocket Draft is played over days on phones.
+    expect(body.find((m) => m.appId === "pocket-draft")).toMatchObject({
+      shape: "async",
+      tv: "optional",
     });
   });
 });

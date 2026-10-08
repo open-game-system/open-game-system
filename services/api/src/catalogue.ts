@@ -175,6 +175,25 @@ const SEED: ManifestInput[] = [
     },
     shop: { ages: "12+", minutes: [15, 30], players: "4-8" },
   },
+  {
+    appId: "pocket-draft",
+    name: "Pocket Draft",
+    tagline: "Bid on a football team, then watch it play.",
+    shape: "async",
+    tv: "optional",
+    startUrl: "https://pocket-draft-room.jonathanrmumm.workers.dev/",
+    multiCouch: true,
+    roles: [{ id: "gm", label: "GM", audience: "grownup" }],
+    art: {
+      icon: "/art/pocket-draft/icon.png",
+      cover: "/art/pocket-draft/cover.jpg",
+      logo: "/art/pocket-draft/logo.png",
+      heroClean: "/art/pocket-draft/hero-clean.jpg",
+      tile: "/art/pocket-draft/tv.jpg",
+      hero: "/art/pocket-draft/tv.jpg",
+    },
+    shop: { ages: "10+", minutes: [20, 60], players: "2" },
+  },
 ];
 
 export const CATALOGUE: readonly Manifest[] = SEED.map((m) => RoomGameManifestSchema.parse(m));
