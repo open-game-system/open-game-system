@@ -13,6 +13,12 @@ Watch it: GitHub → Actions → **Mobile Beta Release**. Run it by hand with **
 
 ## One-time setup
 
+Done (2026-10-07): Firebase project `opengame-35033` (Android app `org.opengame.app`, group
+`testers`, service account `ogs-app-distribution`), `RELEASE_TOKEN` (GitHub + Worker),
+`FIREBASE_SERVICE_ACCOUNT_JSON`, `FIREBASE_ANDROID_APP_ID`, `ANDROID_UPDATE_URL`, the Android
+`beta` keystore on EAS. Open: iOS credentials, `EXPO_TOKEN`, App Store Connect (app, API key,
+TestFlight group, `ASC_*`, `IOS_UPDATE_URL`).
+
 Steps marked **(you)** need an Apple, Google or Expo login.
 
 ### 1. Expo
@@ -47,7 +53,8 @@ Steps marked **(you)** need an Apple, Google or Expo login.
    `org.opengame.app`. Copy the **App ID** (`1:…:android:…`) → GitHub **variable**
    `FIREBASE_ANDROID_APP_ID`.
 2. **(you)** App Distribution → Get started → Testers & Groups → a group with alias **`testers`**,
-   add emails. Invite links → create one → GitHub **variable** `ANDROID_UPDATE_URL`.
+   add emails. GitHub **variable** `ANDROID_UPDATE_URL`: `https://appdistribution.firebase.google.com/testerapps`
+   (the tester's list of apps and their latest builds).
 3. **(you)** Google Cloud console (same project) → IAM → Service accounts → create one with role
    **Firebase App Distribution Admin** → Keys → JSON → GitHub secret
    `FIREBASE_SERVICE_ACCOUNT_JSON` (the file's contents).
