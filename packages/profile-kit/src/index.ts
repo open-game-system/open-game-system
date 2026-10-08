@@ -1,4 +1,10 @@
 import { createWebBridge } from "@open-game-system/app-bridge-web";
+import {
+  createOgsNotifications,
+  type NotificationsStores,
+  type OgsNotification,
+  type PushConsentResult,
+} from "./notifications";
 import { listenForPause } from "./pause";
 import {
   createProfileSource,
@@ -10,6 +16,7 @@ import { type InstanceReportInput, type OgsStores, reportOgsInstance } from "./r
 import { postOgsRoom } from "./room";
 import { createSessionSource, type SessionSnapshot } from "./session";
 
+export * from "./notifications";
 export { listenForPause } from "./pause";
 export * from "./profile";
 export * from "./report";
@@ -17,13 +24,22 @@ export { ogsRoomFromUrl } from "./room";
 export * from "./session";
 export { readGameToken } from "./token";
 
-type Bridge = ReturnType<typeof createWebBridge<ProfileStores & OgsStores>>;
+type Bridge = ReturnType<typeof createWebBridge<ProfileStores & OgsStores & NotificationsStores>>;
 let bridge: Bridge | null = null;
 let profileSource: Source<ProfileSnapshot> | null = null;
 let sessionSource: Source<SessionSnapshot> | null = null;
+let notifications: ReturnType<typeof createOgsNotifications> | null = null;
+
+const sharedNotifications = () => {
+  notifications ??= createOgsNotifications({
+    bridge: sharedBridge(),
+    serviceWorker: "serviceWorker" in navigator ? navigator.serviceWorker : undefined,
+  });
+  return notifications;
+};
 
 const sharedBridge = (): Bridge => {
-  bridge ??= createWebBridge<ProfileStores & OgsStores>();
+  bridge ??= createWebBridge<ProfileStores & OgsStores & NotificationsStores>();
   return bridge;
 };
 const nobody: Source<null> = { getSnapshot: () => null, subscribe: () => () => {} };
@@ -68,4 +84,25 @@ export function onOgsPause(onPause: (paused: boolean) => void): () => void {
 export function reportOgsRoom(room: string): "launcher" | "none" {
   if (typeof window === "undefined") return "none";
   return postOgsRoom(room, window);
+}
+
+/**
+ * Asks the player, inside the OGS app, whether this game may notify them (call it from a tap). The
+ * app shows its own sheet; resolves `{ status: "granted", handle }` (send the handle to your server,
+ * which sends with it), `{ status: "denied" }`, or null outside the OGS app (in a PWA use
+ * notification-kit-web's subscribeOgsPush). Pass a handle you already hold to join it.
+ */
+export function requestOgsNotifications(join?: { handle?: string }): Promise<PushConsentResult | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  return sharedNotifications().request(join);
+}
+
+/**
+ * Hears a push that arrived while this game is open and in front (in the OGS app or the game's PWA):
+ * no system banner is shown for it. Returns a function that stops listening. With no handler, the
+ * banner shows as usual.
+ */
+export function onOgsNotification(handler: (notification: OgsNotification) => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  return sharedNotifications().listen(handler);
 }
