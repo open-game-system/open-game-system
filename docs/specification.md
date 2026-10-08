@@ -230,6 +230,26 @@ Home or end, the launcher. A phone or iPad that comes online mid-game is sent in
 re-sends it, so one that stepped out stays on the remote. Only the host's game page picks the TV page
 (`game.view`). App phones and iPads only; browser guests follow when the web join page exists.
 
+## 9. Notifications and links (planned)
+
+**Status: planned, not implemented.** Optional: a game that does none of it keeps running. Product spec:
+[push-notifications.md](product-specs/push-notifications.md). Decision:
+[ADR 2026-10-07 game push and app links](adrs/2026-10-07-game-push-and-app-links.md). Acceptance:
+[game-push.feature](acceptance/2026-10-07-game-push.feature), [game-links.feature](acceptance/2026-10-07-game-links.feature).
+
+| Item | Status | Contract |
+|---|---|---|
+| Push handle | planned | An opaque id (`ph_…`) for one player in one game. The game's server stores it on the seat. It never names a device, profile or subscription; a handle for another game is refused. |
+| Opt in, in the app | planned | profile-kit `requestOgsNotifications({ handle? })` from a tap: the app asks "Let <game> notify you?"; resolves `{ status: "granted", handle }`, `{ status: "denied" }`, or `null` outside the app. Never for a kid's profile. |
+| Opt in, on the web | planned | notification-kit-web `subscribeOgsPush({ handle? })` from a tap in the game's PWA or tab: browser permission, subscribed with OGS's VAPID key for this game, `{ status: "granted", handle }`. `{ status: "unsupported", reason: "add-to-home-screen" }` in a Safari tab on iOS. The game serves OGS's `sw.js` at its origin root. |
+| Send | planned | `POST /api/v1/games/:appId/notifications` with the game's API key: `{ to: [handle], title, body, url?, tag?, whenOpen? }`. `url` on the `startUrl` origin. Each handle answers `sent`, `not_permitted` or `gone` (drop it). OGS picks the handle's last-active surface (the OGS app or the PWA). Skip seats that are connected to your room. |
+| While open | planned | profile-kit `onOgsNotification(handler)`: a push that arrives while the game is open and in front goes to the handler, not a banner (`whenOpen: "deliver"`, the default). No handler, or `whenOpen: "banner"`: the banner shows. |
+| API key | planned | The game server's only OGS credential, one per game, kept as a secret (`OGS_API_KEY`). Issued by OGS on request. Token verification still needs none. |
+| Links | planned | With the OGS app installed, a link to a game's URL opens that URL in the game's WebView: `opengame.org/play/<appId>` always; a game's own domain only when it is in the app's associated domains and serves the association files. Typed addresses never open the app: show "Open in OGS" (the transfer link, §8) outside OGS. |
+
+Rule 5 holds: OGS never gives a game a device id, push token or subscription. Nothing a game sends may target a
+kid, nag about streaks, or repeat what the TV is already showing.
+
 ## Acceptance
 
 - [ogs-game-contract.feature](acceptance/2026-10-04-ogs-game-contract.feature): the TV page contract
@@ -241,3 +261,6 @@ re-sends it, so one that stepped out stays on the remote. Only the host's game p
 - [multi-couch.feature](acceptance/2026-10-05-multi-couch.feature): several couches in one room (§7)
 - [join-and-invite.feature](acceptance/2026-10-06-join-and-invite.feature): launcher join QR, web join, phones
   follow the TV, invite card, transfer link (§8, planned)
+- [game-push.feature](acceptance/2026-10-07-game-push.feature) and
+  [game-links.feature](acceptance/2026-10-07-game-links.feature): push handles, opt-in, sending, while open,
+  links open the app (§9, planned)
