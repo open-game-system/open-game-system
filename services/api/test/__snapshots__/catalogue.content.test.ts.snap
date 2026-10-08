@@ -353,6 +353,48 @@ exports[`catalogue content > is exactly the games as published 1`] = `
     "tv": "required",
   },
   {
+    "appId": "bobberbrook",
+    "art": {
+      "cover": "/art/bobberbrook/cover.jpg",
+      "hero": "/art/bobberbrook/tv.jpg",
+      "heroClean": "/art/bobberbrook/hero-clean.jpg",
+      "icon": "/art/bobberbrook/icon.png",
+      "logo": "/art/bobberbrook/logo.png",
+      "tile": "/art/bobberbrook/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Bobberbrook",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "host",
+        "label": "Grown-up",
+      },
+      {
+        "audience": "kid",
+        "id": "fisher",
+        "label": "Fisher",
+      },
+      {
+        "audience": "little",
+        "id": "little",
+        "label": "Little fisher",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "3+",
+      "minutes": [
+        10,
+        40,
+      ],
+      "players": "1-4",
+    },
+    "startUrl": "https://bobberbrook.jonathanrmumm.workers.dev/",
+    "tagline": "Run around a painted lake together, cast at the swirls and fill the family fish journal.",
+    "tv": "required",
+  },
+  {
     "appId": "pocket-draft",
     "art": {
       "cover": "/art/pocket-draft/cover.jpg",
