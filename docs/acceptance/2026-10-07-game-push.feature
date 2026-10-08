@@ -1,4 +1,5 @@
-# Status: PLANNED, not built (2026-10-07).
+# Status: BUILT on feat/game-push (2026-10-08), not deployed. Scenario → test map:
+# docs/exec-plans/active/2026-10-08-push-overnight-briefing.md.
 # Spec: docs/product-specs/push-notifications.md. ADR: docs/adrs/2026-10-07-game-push-and-app-links.md.
 # Supersedes the device-token scenarios of the March 2026 push design (POST /api/v1/notifications/send).
 

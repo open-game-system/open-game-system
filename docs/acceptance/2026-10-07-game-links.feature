@@ -1,4 +1,5 @@
-# Status: PLANNED, not built (2026-10-07). Checked 2026-10-07: opengame.org's association file and the Android
+# Status: PARTLY BUILT on feat/game-push (2026-10-08): routing and the /play claim; the native build and
+# a real device check are open. Scenario → test map: docs/exec-plans/active/2026-10-08-push-overnight-briefing.md. Checked 2026-10-07: opengame.org's association file and the Android
 # intent filter cover only /open; triviajam.tv's covers only /games/*; triviajam.tv has no assetlinks.json;
 # apps/mobile/services/deep-links.ts hard-codes triviajam.tv.
 # Spec: docs/product-specs/push-notifications.md "Taps and links". ADR: docs/adrs/2026-10-07-game-push-and-app-links.md.

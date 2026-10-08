@@ -141,6 +141,20 @@ await expect(page.getByLabel("name")).toHaveCount(0); // no name form inside OGS
   `ogs` store too (`ogs: { reported: [] }` next to `profile`): profile-kit waits for the store before
   it dispatches.
 
+## Pushes (if your game sends them)
+
+- **Consent in the fake WebView:** give the fake a `notifications` store (`{ answer: null, last: null }`
+  next to `profile`). When the page dispatches `{ type: "REQUEST", id }`, answer with a
+  `STATE_INIT`/state update `{ answer: { id, result: { status: "granted", handle: "ph_testtesttesttest" } }, last: null }`
+  and assert the page sent the handle to your server.
+- **Pushes while open:** set `last: { seq: 1, notification: { title, body, url } }` and assert your
+  `onOgsNotification` handler ran.
+- **Your server's sends:** point `createOgsNotifier`'s `baseUrl` at a local stub that records requests;
+  assert who was sent to, that connected seats were skipped, and one push per handoff.
+- **Your sw.js:** serve the built `sw.js` from a local page and deliver a push through Chromium's DevTools
+  (`ServiceWorker.deliverPushMessage`), then read `registration.getNotifications()`. Use full Chromium:
+  Playwright's headless shell has no notifications.
+
 ## 3. Still a plain-browser game
 
 OGS games must keep working without OGS. Keep (or add) one end-to-end test that plays a short round

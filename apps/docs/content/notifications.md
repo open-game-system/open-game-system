@@ -4,7 +4,7 @@ Tell a player something happened while they were away: "Sam gave Moon a clue", "
 on you". Your server makes **one call** with a **push handle**; OGS delivers it to the OGS app or to your
 game's PWA, whichever the player used last, and a tap opens your game at the page you name.
 
-> **Status:** being built (October 2026). The contract is [§9 of the contract](contract.md#9-notifications-and-links-planned);
+> **Status:** built, not deployed yet (October 2026). The contract is [§9 of the contract](contract.md#9-notifications-and-links-planned);
 > this page is the how-to. Not for streaks, "come back and play", anything to a kid, or anything the TV
 > already shows.
 
@@ -55,7 +55,8 @@ import { subscribeOgsPush } from "@open-game-system/notification-kit-web";
 
 const answer = await subscribeOgsPush({ appId: "codebreakers", handle: seat.handle }); // from a tap
 if (answer.status === "granted") await api.saveHandle(seat.id, answer.handle);
-if (answer.status === "unsupported") showAddToHomeScreenOrOpenInOgs(); // a Safari tab on iOS
+if (answer.status === "unsupported" && answer.reason === "add-to-home-screen") showAddToHomeScreenOrOpenInOgs();
+// other reasons: "no-push" (this browser has none), "unavailable" (OGS can't take subscriptions now)
 ```
 
 - OGS holds your game's VAPID keys; you configure nothing.

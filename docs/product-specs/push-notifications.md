@@ -1,6 +1,6 @@
 # Game push notifications and links
 
-**Status:** planned, not built (2026-10-07). Decision: [ADR 2026-10-07 game push and app links](../adrs/2026-10-07-game-push-and-app-links.md).
+**Status:** built on `feat/game-push` (2026-10-08), not deployed; no push has reached a real device yet. Decision: [ADR 2026-10-07 game push and app links](../adrs/2026-10-07-game-push-and-app-links.md).
 Acceptance: [game-push.feature](../acceptance/2026-10-07-game-push.feature), [game-links.feature](../acceptance/2026-10-07-game-links.feature).
 Plan page: https://claude.ai/artifact/QXbL6sdxYAvY62e3kBTpTT
 

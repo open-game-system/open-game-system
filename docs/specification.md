@@ -232,7 +232,7 @@ re-sends it, so one that stepped out stays on the remote. Only the host's game p
 
 ## 9. Notifications and links (planned)
 
-**Status: planned, not implemented.** Optional: a game that does none of it keeps running. Product spec:
+**Status: built (2026-10-08), not deployed.** Optional: a game that does none of it keeps running. Product spec:
 [push-notifications.md](product-specs/push-notifications.md). Decision:
 [ADR 2026-10-07 game push and app links](adrs/2026-10-07-game-push-and-app-links.md). Acceptance:
 [game-push.feature](acceptance/2026-10-07-game-push.feature), [game-links.feature](acceptance/2026-10-07-game-links.feature).
