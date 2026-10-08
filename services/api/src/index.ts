@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { apiKeyAuth } from "./middleware/auth";
 import { anyToken } from "./middleware/profile-auth";
 import { onError, wideEvent } from "./middleware/wide-event";
+import appRelease from "./routes/app-release";
 import auth from "./routes/auth";
 import catalogue from "./routes/catalogue";
 import clientEvents from "./routes/client-events";
@@ -72,6 +73,9 @@ app.route("/api/v1/catalogue", catalogue);
 
 // Client wide events (app: profile token; cast receiver: none) → Workers Logs
 app.route("/api/v1/client-events", clientEvents);
+
+// Beta releases: the app reads the latest build per platform; CI records it (RELEASE_TOKEN)
+app.route("/api/v1/app-release", appRelease);
 
 // Stream routes (no API key required - called by web games directly)
 app.route("/api/v1/stream", stream);

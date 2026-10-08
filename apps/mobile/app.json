@@ -3,6 +3,12 @@
     "name": "opengame-app",
     "slug": "opengame-app",
     "version": "1.0.0",
+    "runtimeVersion": { "policy": "fingerprint" },
+    "updates": {
+      "url": "https://u.expo.dev/c0d03bd6-9398-4eba-94f6-69fbd071d599",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 3000
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "opengame",

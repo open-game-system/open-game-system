@@ -9,6 +9,8 @@ export interface Env {
   CLOUDFLARE_REALTIME_APP_ID: string;
   CLOUDFLARE_REALTIME_APP_SECRET: string;
   DEBUG_STATE_TOKEN?: string;
+  /** CI's bearer token for PUT /api/v1/app-release/:platform (a secret). Unset: every write is refused. */
+  RELEASE_TOKEN?: string;
   STREAM_SERVER_URL?: string;
   /** Sign in with Apple / Google: OIDC issuers (default: the real ones) and accepted client ids (CSV). */
   APPLE_ISSUER?: string;

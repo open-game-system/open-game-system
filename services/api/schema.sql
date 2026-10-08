@@ -154,3 +154,15 @@ CREATE INDEX IF NOT EXISTS idx_friendships_b ON friendships(profile_b);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_to ON friend_requests(to_profile_id);
 CREATE INDEX IF NOT EXISTS idx_session_members_profile ON session_members(profile_id);
 CREATE INDEX IF NOT EXISTS idx_couch_sessions_host ON couch_sessions(host_profile_id);
+
+-- Beta distribution (docs/adrs/2026-10-07-beta-distribution.md): the latest build CI shipped per
+-- platform. Older builds show "Update OGS" and open update_url (TestFlight / Firebase App Tester).
+-- fingerprint: the build's native fingerprint (its expo-updates runtime version); CI builds again
+-- when it changes. updated_at: ms.
+CREATE TABLE IF NOT EXISTS app_releases (
+  platform TEXT PRIMARY KEY CHECK (platform IN ('ios', 'android')),
+  build INTEGER NOT NULL,
+  fingerprint TEXT NOT NULL,
+  update_url TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);

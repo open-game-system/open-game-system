@@ -25,3 +25,20 @@ export async function parseBody<T>(c: Context, schema: Parser<T>): Promise<T | n
 
 export const invalidBody = (c: Context, message: string) =>
   apiError(c, 400, "invalid_body", message);
+
+/** Compares a presented secret with the expected one in constant time (for equal lengths). */
+export function timingSafeEqual(actual: string, expected: string): boolean {
+  if (actual.length !== expected.length) {
+    return false;
+  }
+
+  const encoder = new TextEncoder();
+  const actualBytes = encoder.encode(actual);
+  const expectedBytes = encoder.encode(expected);
+
+  let result = 0;
+  for (let i = 0; i < actualBytes.length; i++) {
+    result |= actualBytes[i] ^ expectedBytes[i];
+  }
+  return result === 0;
+}

@@ -1,6 +1,7 @@
 import type { ClientMessage, FollowTarget, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
@@ -57,8 +58,8 @@ let logIdentity: () => Pick<ClientLogContext, "profileId" | "sessionId" | "devic
   () => ({});
 let logAuth: () => { token: string } | null = () => null;
 const appVersion = Constants.expoConfig?.version;
-const appBuild =
-  Constants.expoConfig?.ios?.buildNumber ?? Constants.expoConfig?.android?.versionCode;
+/** The native build number (EAS sets it at build time; null in development). */
+const appBuild = Application.nativeBuildVersion;
 
 export const clientLog = createClientLog({
   send: clientEventsSender({ baseUrl: config.apiBase, fetch: fetchImpl, auth: () => logAuth() }),
