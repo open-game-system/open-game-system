@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.opengame.app",
+      "sha256_cert_fingerprints": [
+        "00:EF:59:A5:97:64:46:4F:AE:33:D3:3C:BF:17:26:B6:6B:A7:59:60:A3:3C:76:AF:B7:42:B6:0E:64:28:A7:63",
+        "5E:8E:0B:C2:05:FB:89:21:A7:45:CF:1A:79:33:8A:6B:3F:F5:A7:D6:15:83:49:91:D6:31:9E:27:47:A0:6A:20"
+      ]
+    }
+  }
+]

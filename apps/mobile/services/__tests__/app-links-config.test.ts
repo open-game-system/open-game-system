@@ -7,6 +7,7 @@ import appJson from "../../app.json";
 // The mobile tsconfig has no Node types; jest runs from apps/mobile.
 const fs = jest.requireActual<{ readFileSync(path: string, encoding: "utf8"): string }>("fs");
 const app = appJson.expo;
+const assetlinks = JSON.parse(fs.readFileSync("../web/public/.well-known/assetlinks.json", "utf8"));
 const aasa = JSON.parse(
   fs.readFileSync("../web/public/.well-known/apple-app-site-association", "utf8"),
 );
@@ -33,5 +34,21 @@ describe("app link config", () => {
     );
     expect(hosts).toEqual(["opengame.org/open", "opengame.org/play/"]);
     expect(app.android.intentFilters.every((f) => f.autoVerify)).toBe(true);
+  });
+
+  it("Android: opengame.org's assetlinks.json names the app and its EAS signing keys", () => {
+    expect(assetlinks).toEqual([
+      {
+        relation: ["delegate_permission/common.handle_all_urls"],
+        target: {
+          namespace: "android_app",
+          package_name: app.android.package,
+          sha256_cert_fingerprints: [
+            "00:EF:59:A5:97:64:46:4F:AE:33:D3:3C:BF:17:26:B6:6B:A7:59:60:A3:3C:76:AF:B7:42:B6:0E:64:28:A7:63",
+            "5E:8E:0B:C2:05:FB:89:21:A7:45:CF:1A:79:33:8A:6B:3F:F5:A7:D6:15:83:49:91:D6:31:9E:27:47:A0:6A:20",
+          ],
+        },
+      },
+    ]);
   });
 });
