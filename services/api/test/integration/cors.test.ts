@@ -24,8 +24,9 @@ describe("CORS — Workers Runtime", () => {
       expect(res.headers.get("Access-Control-Allow-Methods")).toBeTruthy();
     });
 
+    // Repointed 2026-10-07: /notifications/send was removed (ADR game push and app links).
     it("allows POST method in preflight for authenticated endpoints", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/notifications/send", {
+      const res = await SELF.fetch("https://api.test/api/v1/games/codebreakers/notifications", {
         method: "OPTIONS",
         headers: {
           Origin: "https://triviajam.tv",
@@ -83,8 +84,9 @@ describe("CORS — Workers Runtime", () => {
       expect(res.headers.get("Access-Control-Allow-Origin")).toBe("*");
     });
 
+    // Repointed 2026-10-07: /notifications/send was removed (ADR game push and app links).
     it("error responses also include CORS headers", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/notifications/send", {
+      const res = await SELF.fetch("https://api.test/api/v1/games/codebreakers/notifications", {
         method: "POST",
         headers: {
           Origin: "https://triviajam.tv",

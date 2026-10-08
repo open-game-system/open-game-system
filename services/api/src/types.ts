@@ -34,6 +34,8 @@ export interface Env {
   PLAY_BASE_URL?: string;
   /** POST /client-events: Workers rate limiting, keyed per profile (the receiver per IP). */
   CLIENT_EVENTS_LIMITER?: RateLimit;
+  /** Expo push access token (secret), when the Expo project requires one for sending. */
+  EXPO_ACCESS_TOKEN?: string;
   /** The deployed version (wrangler `version_metadata`); its id is every wide event's `version`. */
   CF_VERSION_METADATA?: WorkerVersionMetadata;
 }
@@ -44,11 +46,4 @@ export interface DeviceRow {
   push_token: string;
   created_at: string;
   updated_at: string;
-}
-
-export interface ApiKeyRow {
-  key: string;
-  game_id: string;
-  game_name: string;
-  created_at: string;
 }

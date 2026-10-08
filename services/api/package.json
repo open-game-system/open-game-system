@@ -18,6 +18,7 @@
     "dev:local": "wrangler dev",
     "emulate": "node scripts/emulate.mjs",
     "game-key": "node scripts/game-key.mjs",
+    "issue-key": "node scripts/issue-key.mjs",
     "stream:ready": "node scripts/stream-ready.mjs"
   },
   "dependencies": {

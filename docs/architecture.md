@@ -33,8 +33,8 @@ The Open Game System (OGS) is a platform that lets web games use native mobile c
  │  │notification-kit│─────►│  services/api               │
  │  │-server         │ │    │  (Cloudflare Worker + D1)   │
  │  └────────────────┘ │    │                             │
- │                     │    │  POST /notifications/send ──┼──► APNs (iOS)
- │  ┌────────────────┐ │    │                             │──► FCM  (Android)
+ │                     │    │  POST /games/:id/notifications ► Expo (app)
+ │  ┌────────────────┐ │    │                             │──► Web Push (PWA)
  │  │stream-kit      │ │    │                             │
  │  │-web            │─────►│  /stream/* ─────────────────┼──► Cloud Run stream-gpu
  │  └────────────────┘ │    └────────────────────────────┘      (headless Chrome,
@@ -105,18 +105,25 @@ Layer 3: notification-kit-react, notification-kit-server,
 
 ## Auth Model
 
-Bearer token authentication against `api_keys` table in D1:
+### Game API keys (game servers)
+
+A game's server sends pushes with its API key (spec §9). Keys are issued by
+`pnpm --filter @open-game-system/api issue-key <appId>` (printed once) and stored in
+`game_api_keys` as a SHA-256 hash with a 12-character display prefix, one game and one scope
+(`notifications:send`) each.
 
 ```
-Authorization: Bearer <api-key>
+Authorization: Bearer ogsk_…
       │
       ▼
-Auth middleware (services/api/src/middleware/auth.ts)
+gameKeyAuth (services/api/src/middleware/game-key-auth.ts)
       │
-      ├── SELECT * FROM api_keys WHERE key = ?
-      ├── 401 if missing/invalid
-      └── Sets gameId + gameName on Hono context → route handlers
+      ├── SELECT … FROM game_api_keys WHERE key_hash = sha256(key) AND revoked_at IS NULL AND scope = ?
+      ├── 401 missing_auth / invalid_auth / invalid_api_key
+      └── 403 wrong_game when the key's app_id is not :appId
 ```
+
+Game tokens need no key: games verify them against the public JWKS.
 
 ### Profile tokens (OGS profiles, slice 1)
 
@@ -252,7 +259,7 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `device_not_found`, `push_failed`, `session_not_found`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`, `internal_error` (500: an unhandled error, logged once by the request's wide event, see [agents/observability.md](agents/observability.md))
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `wrong_game`, `unknown_game`, `game_not_found`, `session_not_found`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`, `internal_error` (500: an unhandled error, logged once by the request's wide event, see [agents/observability.md](agents/observability.md))
 
 ## Database Schema (D1/SQLite)
 
@@ -263,7 +270,7 @@ someone drops it deliberately.
 | Table | Primary Key | Columns | Notes |
 |-------|-------------|---------|-------|
 | `devices` | `ogs_device_id` | platform, push_token, created_at, updated_at | Upsert on register |
-| `api_keys` | `key` | game_id, game_name, created_at | Manual inserts for now |
+| `game_api_keys` | `id` | app_id, prefix, key_hash (SHA-256, unique), scope, created_at, revoked_at (ms) | A game server's key; issued by `issue-key`, shown once. Replaced `api_keys` (plaintext) on 2026-10-07; production keeps the old table until dropped |
 | `profiles` | `id` | handle (unique @id), name, sticker, library (JSON app ids, NULL = whole catalogue), created_at | One per person |
 | `profile_devices` | `device_id` | profile_id, kind (phone/tablet), name, created_at | One profile per device |
 | `profile_logins` | `(provider, subject)` | profile_id, email, created_at | Back-up logins: apple/google (OIDC sub) or email |
@@ -277,6 +284,9 @@ someone drops it deliberately.
 | `session_live` | `session_id` | app_id, since (ms) | Row while the session's TV launcher is connected; written by the CouchSession DO |
 | `session_rooms` | `session_id` | app_id, room, since (ms) | The game's room on the session's TV (multiCouch, spec §7), while the TV is connected and the sitting names one; written by the CouchSession DO |
 | `app_releases` | `platform` (ios, android) | build, fingerprint, update_url, updated_at (ms) | The latest beta build per platform, written by CI (`.github/workflows/mobile-release.yml`), read by the app's forced update |
+| `push_handles` | `id` (`ph_…`) | app_id, created_at (ms) | One player in one game, opaque to the game |
+| `push_surfaces` | `id` | handle_id, kind (ogs/web), profile_id (ogs), endpoint/p256dh/auth/vapid_kid (web), last_active_at, created_at (ms) | Where a handle is reached; unique per (handle, profile) and (handle, endpoint) |
+| `push_grants` | `(profile_id, app_id)` | granted (0/1), updated_at (ms) | Consent in the app; 0 = turned off in Settings |
 | `instances` | `(profile_id, instance_id)` | app_id, status, title, detail, your_turn, starts_at, resume_url, source, updated_at (ms) | ogs-protocol `InstanceSchema` |
 
 Canonical schema: `services/api/schema.sql`
@@ -296,30 +306,31 @@ apps/mobile                     services/api                   D1
     │                               │  DO UPDATE SET token=...  │
     │                               │──────────────────────────►│
     │                               │                           │
-    │           200 OK              │                           │
+    │  200 { deviceId, registered } │                           │
     │◄──────────────────────────────│                           │
 ```
 
-### Send Notification
+### Game pushes
+
+Spec: `docs/product-specs/push-notifications.md`. ADR: `adrs/2026-10-07-game-push-and-app-links.md`.
 
 ```
-Game Server                     services/api                   D1           APNs/FCM
-    │                               │                           │               │
-    │  POST /notifications/send     │                           │               │
-    │  { deviceId, notification }   │                           │               │
-    │──────────────────────────────►│                           │               │
-    │                               │  Validate Bearer token    │               │
-    │                               │  SELECT * FROM devices    │               │
-    │                               │  WHERE ogs_device_id = ?  │               │
-    │                               │──────────────────────────►│               │
-    │                               │                           │               │
-    │                               │  getProviderForPlatform() │               │
-    │                               │──────────────────────────────────────────►│
-    │                               │                           │               │
-    │           200 OK              │                           │               │
-    │  { id, status: "sent" }       │                           │               │
-    │◄──────────────────────────────│                           │               │
+Game page (in the app)     apps/mobile          services/api                      Expo / Web Push
+  requestOgsNotifications ─► consent sheet ──► POST /games/:appId/push-handles
+                                               (phone token; tablet → denied)
+                                               push_grants + push_surfaces(ogs) ─► { handle }
+  ◄──────────────── { status: "granted", handle } ◄──────────────────────────────
+Game server
+  POST /games/:appId/notifications { to: [handle], title, body, url?, tag?, whenOpen? }
+  (game API key) ──────────────────────────► per handle: surfaces by last_active_at DESC
+                                               ogs: grant? → phones of the profile ─► Expo
+                                               web: subscription ──────────────────► Web Push
+                                               first that takes it wins; gone → drop, next
+  ◄── { results: [{ to, status: sent | not_permitted | gone | failed }] }
 ```
+
+App settings: `GET /me/push-grants`, `DELETE /me/push-grants/:appId`, `POST /me/push-active/:appId`
+(the game opened in the app; its surfaces become the most recent).
 
 ### Cast stream (Cloud Run renderer, Realtime SFU)
 

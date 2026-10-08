@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import { TEST_GAME_API_KEY } from "./helpers";
 
 describe("Devices & Notifications — D1 Integration", () => {
   beforeEach(async () => {
@@ -20,8 +21,8 @@ describe("Devices & Notifications — D1 Integration", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = (await res.json()) as { deviceToken: string };
-      expect(body.deviceToken).toBeTruthy();
+      // Changed 2026-10-07 (ADR game push and app links): no device token for games any more.
+      expect(await res.json()).toEqual({ deviceId: "device-abc123", registered: true });
 
       // Verify in D1
       const row = await env.DB.prepare("SELECT * FROM devices WHERE ogs_device_id = ?")
@@ -81,38 +82,31 @@ describe("Devices & Notifications — D1 Integration", () => {
     });
   });
 
-  describe("POST /api/v1/notifications/send", () => {
-    it("rejects without auth", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/notifications/send", {
+  // Replaced 2026-10-07: /notifications/send was removed (ADR game push and app links); the same
+  // auth checks now run against the game push send route.
+  describe("POST /api/v1/games/:appId/notifications", () => {
+    const send = (auth?: string) =>
+      SELF.fetch("https://api.test/api/v1/games/codebreakers/notifications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deviceToken: "some-jwt",
-          title: "Game starting!",
-          body: "Join now",
-        }),
+        headers: { "Content-Type": "application/json", ...(auth ? { Authorization: auth } : {}) },
+        body: JSON.stringify({ to: ["ph_doesnotexist000000"], title: "Your clue", body: "Moon is up." }),
       });
 
-      expect(res.status).toBe(401);
+    it("rejects without auth", async () => {
+      expect((await send()).status).toBe(401);
     });
 
     it("rejects with invalid API key", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/notifications/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer invalid-key",
-        },
-        body: JSON.stringify({
-          deviceToken: "some-jwt",
-          title: "Game starting!",
-          body: "Join now",
-        }),
-      });
-
+      const res = await send("Bearer invalid-key");
       expect(res.status).toBe(401);
       const body = (await res.json()) as { error: { code: string } };
       expect(body.error.code).toBe("invalid_api_key");
+    });
+
+    it("answers per handle with the game's key", async () => {
+      const res = await send(`Bearer ${TEST_GAME_API_KEY}`);
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ results: [{ to: "ph_doesnotexist000000", status: "not_permitted" }] });
     });
   });
 
@@ -128,22 +122,23 @@ describe("Devices & Notifications — D1 Integration", () => {
       expect(columns).toContain("updated_at");
     });
 
-    it("api_keys table has correct columns", async () => {
-      const result = await env.DB.prepare("PRAGMA table_info(api_keys)").all();
+    // Changed 2026-10-07: api_keys (plaintext) was replaced by game_api_keys (hashed).
+    it("game_api_keys table has correct columns", async () => {
+      const result = await env.DB.prepare("PRAGMA table_info(game_api_keys)").all();
 
       const columns = result.results.map((r: Record<string, unknown>) => r.name);
-      expect(columns).toContain("key");
-      expect(columns).toContain("game_id");
-      expect(columns).toContain("game_name");
+      expect(columns).toEqual(
+        expect.arrayContaining(["id", "app_id", "prefix", "key_hash", "scope", "revoked_at"]),
+      );
+      expect(columns).not.toContain("key");
     });
 
-    it("test API key is seeded", async () => {
-      const row = await env.DB.prepare("SELECT * FROM api_keys WHERE key = ?")
-        .bind("test-api-key")
-        .first();
+    it("test API key is seeded as a hash", async () => {
+      const row = await env.DB.prepare("SELECT * FROM game_api_keys WHERE id = 'k-test'").first();
 
       expect(row).toBeTruthy();
-      expect(row!.game_id).toBe("trivia-jam");
+      expect(row!.app_id).toBe("codebreakers");
+      expect(row!.key_hash).not.toBe(TEST_GAME_API_KEY);
     });
   });
 });

@@ -50,10 +50,14 @@ settings.
 1. The page calls `requestOgsNotifications()` (profile-kit) from a tap.
 2. The app shows its sheet: "Let <game> notify you?" with Allow / Not now. If OS notification permission for
    OGS is off, the sheet says so and links to Settings.
-3. Allow: OGS records the grant (profile, appId) and returns `{ status: "granted", handle }`. Not now:
-   `{ status: "denied" }`. Plain browser: `null`.
-4. The app's Settings lists each game with a toggle; turning one off revokes the grant (the handle's `ogs`
-   surface stops delivering, `not_permitted`).
+3. Allow: the app calls `POST /api/v1/games/:appId/push-handles { handle? }` with its profile token; OGS
+   records the grant (profile, appId) and returns `{ status: "granted", handle }`. Not now:
+   `{ status: "denied" }` (the app answers without calling OGS). Plain browser: `null`.
+4. The app's Settings lists each game with a toggle (`GET /api/v1/me/push-grants`); turning one off revokes
+   the grant (`DELETE /api/v1/me/push-grants/:appId`; the handle's `ogs` surface stops delivering). Opting in
+   again turns it back on with the same handle.
+5. When the game opens in the app, the app calls `POST /api/v1/me/push-active/:appId`, so its `ogs` surfaces
+   become the most recent.
 
 **In a PWA or browser tab:**
 
@@ -98,7 +102,8 @@ Response `200`: `{ results: [{ to, status }] }` with `status`:
 
 - `sent`: delivered to a surface.
 - `not_permitted`: no granted surface (consent revoked, a kid profile, or a handle of another game).
-- `gone`: no surface left (all reported gone); the game should drop the handle.
+- `gone`: no surface left (all reported gone, or no phone registered); the game should drop the handle.
+- `failed`: every surface errored for now (for example Expo rate limiting); try again later.
 
 Errors use the standard shape: `invalid_body` (400), `missing_fields` (400), `missing_auth` / `invalid_auth` /
 `invalid_api_key` (401), `wrong_game` (403, key for another game), `unknown_game` (404).
@@ -106,8 +111,9 @@ Errors use the standard shape: `invalid_body` (400), `missing_fields` (400), `mi
 **Game servers skip connected seats.** The game knows which seats have a live connection to the room; it does
 not send to those. OGS does not need to know.
 
-**Never a kid.** OGS answers `not_permitted` for a handle whose `ogs` surface is a kid's profile, and never
-creates such a surface.
+**Never a kid.** Profiles carry no age, so OGS uses the device: a kid's iPad is a `tablet` device. A consent
+request from a tablet is always `denied`, and OGS delivers to a profile's `phone` devices only, never its
+tablets.
 
 ## Arriving while the game is open
 

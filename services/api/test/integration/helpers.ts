@@ -4,6 +4,9 @@ import { z } from "zod";
 
 export const BASE = "https://api.test/api/v1";
 
+/** Codebreakers' game API key, seeded hashed by setup.ts. */
+export const TEST_GAME_API_KEY = "ogsk_integration-test-key-codebreakers";
+
 export const ProfileSchema = z.object({
   id: z.string(),
   handle: z.string(),
