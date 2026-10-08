@@ -78,32 +78,26 @@ API runs use `--coverageAnalysis off`, because per-test coverage reported false 
 
 The full log: `.swarm/decisions.tsv` in the worktree (git-ignored, so it is also copied at the end of this page).
 
-## What needs you
+## What needs you (updated 2026-10-08, after the morning's "go")
 
-1. **Step 0: one push to your iPhone.** Set up EAS push credentials for iOS (APNs key for
-   `org.opengame.app`), run a build that registers your phone, then do one test send (ask me first).
-2. **Deploy the API with two new secrets**, `PUSH_KEY_SECRET` (any long random string), then issue keys:
+Done since the overnight run:
+- **API deployed** to `opengame-api.jonathanrmumm.workers.dev` with `PUSH_KEY_SECRET` set and the new tables
+  in production D1. Smoke tests: health 200, `push-key` 200, unknown game 404, wrong origin 403, sends
+  without a key 401, old `/notifications/send` 404.
+- **Pocket Draft's API key issued** (only its hash is stored) and set as `OGS_API_KEY` on `pocket-draft-room`.
+  Pocket Draft's live code doesn't send pushes until `feat/ogs-push` is deployed.
+- **opengame.org deployed** with `assetlinks.json` (the EAS keystores' SHA-256 values, read from Expo) and
+  the AASA with `/play/*`. Google's Digital Asset Links API reads the fingerprint.
+- **Safari question answered from sources:** WebKit revokes a subscription after three pushes that show
+  nothing. `sw.js` now always shows on Safari and iOS (and still tells the page).
 
-   ```bash
-   cd ~/src/ogs-push-links/services/api && openssl rand -base64 48 | wrangler secret put PUSH_KEY_SECRET
-   ```
-
-   ```bash
-   pnpm -s --filter @open-game-system/api issue-key pocket-draft --remote | (cd ~/src/pocket-draft/packages/room && wrangler secret put OGS_API_KEY)
-   ```
-
-3. **Safari on your iPad:** add a test page to the Home Screen, subscribe, and send a push while it is
-   open and focused. Check whether Safari revokes the subscription after pushes that show nothing (we
-   swallow them while the page is in front). If it does, iOS web must always show a banner.
-4. **A native app build** for the `opengame.org/play/` Android intent filter, and so iOS fetches the
-   updated AASA (`/play/*`). `opengame.org` needs a deploy of `apps/web` for the AASA change.
-5. **Android App Links:** `opengame.org/.well-known/assetlinks.json` needs the release signing SHA-256.
-   I didn't make one up.
-6. **triviajam.tv:** its AASA covers only `/games/*` and it has no `assetlinks.json` (trivia-jam repo, not
-   touched).
-7. **Codebreakers "Play over days":** approve or change the spec (`spec/play-over-days`, three open
-   questions at its end).
-8. **Pocket Draft has no git remote:** its branch lives only on this Mac.
+Still needs you:
+1. **Step 0: one push to your iPhone.** EAS push credentials for iOS need your Apple login (`eas credentials`)
+   and a build on your phone. I can send the test push after that, with your OK.
+2. **A native app build** (the Android `/play/` intent filter; iOS picks up the new AASA on install).
+3. **triviajam.tv:** its AASA covers only `/games/*` and it has no `assetlinks.json` (trivia-jam repo).
+4. **Codebreakers "Play over days":** approve or change the spec (`spec/play-over-days`).
+5. **Deploy Pocket Draft's `feat/ogs-push`** when you want its pushes live (the repo has no remote).
 
 ## Scenario → test
 
