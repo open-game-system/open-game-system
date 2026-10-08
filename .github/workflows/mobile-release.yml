@@ -130,9 +130,17 @@ jobs:
         working-directory: apps/mobile
         env:
           ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          jq --arg id "$ASC_APP_ID" '.submit.beta.ios.ascAppId = $id' eas.json > eas.tmp && mv eas.tmp eas.json
+          # EAS Submit authenticates with the App Store Connect API key from the secrets (not stored on EAS).
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+          jq --arg app "$ASC_APP_ID" --arg key "$RUNNER_TEMP/asc.p8" --arg kid "$ASC_KEY_ID" --arg iss "$ASC_ISSUER_ID" \
+            '.submit.beta.ios = { ascAppId: $app, ascApiKeyPath: $key, ascApiKeyId: $kid, ascApiKeyIssuerId: $iss }' \
+            eas.json > eas.tmp && mv eas.tmp eas.json
           npx eas-cli@latest submit --platform ios --profile beta --path "$RUNNER_TEMP/ogs.ipa" --non-interactive --wait
+          rm -f "$RUNNER_TEMP/asc.p8"
 
       - name: Wait for App Store Connect to finish processing
         working-directory: apps/mobile

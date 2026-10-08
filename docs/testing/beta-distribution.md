@@ -40,8 +40,8 @@ Steps marked **(you)** need an Apple, Google or Expo login.
 2. **(you)** Users and Access → Integrations → App Store Connect API → generate a key with role
    **App Manager**. Download the `.p8` once.
    - GitHub secrets: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the file's contents).
-   - EAS (for `eas submit`): `npx eas-cli credentials -p ios` → App Store Connect API Key → add the
-     same key.
+   - EAS Submit gets it from those secrets in CI (the workflow writes it into the `beta` submit
+     profile); nothing is stored on EAS.
 3. **(you)** TestFlight → Internal Testing → **+** a group (e.g. "Family"), turn on automatic
    distribution, add testers (they need App Store Connect users). For friends: External Testing → a
    group → enable the **public link**.
