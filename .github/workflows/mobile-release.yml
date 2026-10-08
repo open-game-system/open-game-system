@@ -119,6 +119,10 @@ jobs:
           app=$(ls -d ipa/Payload/*.app)
           build=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$app/Info.plist")
           runtime=$(/usr/libexec/PlistBuddy -c "Print :EXUpdatesRuntimeVersion" "$app/Expo.plist")
+          # SDK 55 writes the sentinel "file:fingerprint" and ships the value in EXUpdates.bundle.
+          if [ "$runtime" = "file:fingerprint" ]; then
+            runtime=$(cat "$(find "$app" -path '*EXUpdates.bundle/fingerprint' | head -n 1)")
+          fi
           echo "build=$build" >> "$GITHUB_OUTPUT"
           # eas update computes the runtime the way the plan did; a build that embeds another one
           # would never receive updates. Stop before testers get it.
@@ -196,6 +200,10 @@ jobs:
           analyzer="$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer"
           build=$("$analyzer" manifest version-code "$RUNNER_TEMP/ogs.apk")
           runtime=$("$analyzer" resources value --config default --name expo_runtime_version --type string "$RUNNER_TEMP/ogs.apk")
+          # SDK 55 writes the sentinel "file:fingerprint" and ships the value as an asset.
+          if [ "$runtime" = "file:fingerprint" ]; then
+            runtime=$(unzip -p "$RUNNER_TEMP/ogs.apk" "$(unzip -Z1 "$RUNNER_TEMP/ogs.apk" | grep -E '(^|/)fingerprint$' | head -n 1)")
+          fi
           echo "build=$build" >> "$GITHUB_OUTPUT"
           # eas update computes the runtime the way the plan did; a build that embeds another one
           # would never receive updates. Stop before testers get it.
