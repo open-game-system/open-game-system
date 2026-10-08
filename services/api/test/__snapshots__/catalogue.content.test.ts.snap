@@ -313,6 +313,44 @@ exports[`catalogue content > is exactly the games as published 1`] = `
     "tv": "required",
   },
   {
+    "appId": "little-vigilante",
+    "art": {
+      "cover": "/art/little-vigilante/cover.jpg",
+      "hero": "/art/little-vigilante/tv.jpg",
+      "heroClean": "/art/little-vigilante/hero-clean.jpg",
+      "icon": "/art/little-vigilante/icon.png",
+      "logo": "/art/little-vigilante/logo.png",
+      "theme": "/art/little-vigilante/theme.mp3",
+      "tile": "/art/little-vigilante/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Little Vigilante",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "host",
+        "label": "Host",
+      },
+      {
+        "audience": "grownup",
+        "id": "player",
+        "label": "Townsperson",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "10+",
+      "minutes": [
+        15,
+        40,
+      ],
+      "players": "4-10",
+    },
+    "startUrl": "https://little-vigilante.jonathanrmumm.workers.dev/",
+    "tagline": "One night, secret roles, and a town that has to guess who's behind the mask.",
+    "tv": "required",
+  },
+  {
     "appId": "pocket-draft",
     "art": {
       "cover": "/art/pocket-draft/cover.jpg",

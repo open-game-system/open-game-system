@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATALOGUE, catalogueIds, findManifest } from "../src/catalogue";
 
-/** Adult party games: no kid seat (Jon, 2026-10-06: Trivia Jam is for adults). */
-const ADULT_GAMES = ["trivia-jam", "codebreakers"];
+/** Adult party games: no kid seat (Jon, 2026-10-06: Trivia Jam is for adults; 2026-10-07: Little Vigilante is 10+ hidden roles). */
+const ADULT_GAMES = ["trivia-jam", "codebreakers", "little-vigilante"];
 /** Games served from their own domain instead of <appId>.jonathanrmumm.workers.dev (Jon, 2026-10-06). */
 const OWN_DOMAIN: Record<string, string> = { "trivia-jam": "https://triviajam.tv/" };
 const GAMES = [
@@ -15,11 +15,19 @@ const GAMES = [
   "night-flight",
   "trivia-jam",
   "codebreakers",
+  "little-vigilante",
 ];
 /** Grown-up games played over days on phones, with the TV optional (2026-10-05). */
 const ASYNC_GAMES = ["pocket-draft"];
 /** Games with a theme loop cut from their own music (2026-10-04); the rest are silent on Home. */
-const THEMED = ["rocket-crew", "bake-shop", "story-nook", "peekaboo-garden", "night-flight"];
+const THEMED = [
+  "rocket-crew",
+  "bake-shop",
+  "story-nook",
+  "peekaboo-garden",
+  "night-flight",
+  "little-vigilante",
+];
 
 describe("catalogue", () => {
   it("lists the deployed games in order: couch games, then async games", () => {
