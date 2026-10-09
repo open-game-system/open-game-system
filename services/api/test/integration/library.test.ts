@@ -13,6 +13,7 @@ const ALL = [
   "codebreakers",
   "little-vigilante",
   "bobberbrook",
+  "run-set-jimmy",
   "pocket-draft",
 ];
 const LibrarySchema = z.object({ appIds: z.array(z.string()) });
