@@ -395,6 +395,40 @@ exports[`catalogue content > is exactly the games as published 1`] = `
     "tv": "required",
   },
   {
+    "appId": "run-set-jimmy",
+    "art": {
+      "cover": "/art/run-set-jimmy/cover.jpg",
+      "hero": "/art/run-set-jimmy/tv.jpg",
+      "heroClean": "/art/run-set-jimmy/hero-clean.jpg",
+      "icon": "/art/run-set-jimmy/icon.png",
+      "logo": "/art/run-set-jimmy/logo.png",
+      "theme": "/art/run-set-jimmy/theme.mp3",
+      "tile": "/art/run-set-jimmy/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "multiCouch": true,
+    "name": "Run Set Jimmy",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "player",
+        "label": "Player",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "10+",
+      "minutes": [
+        45,
+        90,
+      ],
+      "players": "2-7",
+    },
+    "startUrl": "https://run-set-jimmy.jonathanrmumm.workers.dev/",
+    "tagline": "Seven rounds of runs and sets. Lowest score wins.",
+    "tv": "required",
+  },
+  {
     "appId": "pocket-draft",
     "art": {
       "cover": "/art/pocket-draft/cover.jpg",
