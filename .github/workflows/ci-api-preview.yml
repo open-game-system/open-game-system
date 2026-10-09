@@ -94,12 +94,6 @@ jobs:
             --file=services/api/schema.sql \
             --remote
 
-      - name: Seed E2E test data
-        run: |
-          npx wrangler d1 execute "opengame-api-pr-${PR_NUMBER}-db" \
-            --command="INSERT OR IGNORE INTO api_keys (key, game_id, game_name) VALUES ('e2e-test-api-key', 'e2e-test-game', 'E2E Test Game')" \
-            --remote
-
       - name: Deploy preview Worker
         id: deploy
         working-directory: services/api

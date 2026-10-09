@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
+import { TEST_GAME_API_KEY } from "./helpers";
 
 /**
  * Content-Type & Malformed Body Integration Tests
@@ -11,7 +12,7 @@ import { beforeEach, describe, expect, it } from "vitest";
  * - Empty request bodies
  */
 
-const API_KEY = "test-api-key";
+const API_KEY = TEST_GAME_API_KEY;
 
 function authHeaders(contentType?: string) {
   const h: Record<string, string> = {
@@ -58,9 +59,10 @@ describe("Content-Type & Body Validation — Workers Runtime", () => {
     });
   });
 
+  // Repointed 2026-10-07: /notifications/send was removed (ADR game push and app links).
   describe("Notification Send", () => {
     it("rejects malformed JSON body", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/notifications/send", {
+      const res = await SELF.fetch("https://api.test/api/v1/games/codebreakers/notifications", {
         method: "POST",
         headers: authHeaders("application/json"),
         body: "}{bad",
@@ -72,7 +74,7 @@ describe("Content-Type & Body Validation — Workers Runtime", () => {
     });
 
     it("rejects empty body", async () => {
-      const res = await SELF.fetch("https://api.test/api/v1/notifications/send", {
+      const res = await SELF.fetch("https://api.test/api/v1/games/codebreakers/notifications", {
         method: "POST",
         headers: authHeaders("application/json"),
         body: "",

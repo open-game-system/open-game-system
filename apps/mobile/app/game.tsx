@@ -16,6 +16,7 @@ import type { CastStores } from "../services/cast-store";
 import { parksOnLeave } from "../services/couch-follow";
 import { exitGame } from "../services/game-exit";
 import { loadingCaption } from "../services/game-loading";
+import type { NotificationsStores } from "../services/game-notifications";
 import type { ProfileStores } from "../services/game-profile";
 import { latestGameUrl, reportSittingFor, sittingId } from "../services/game-rejoin";
 import { consumePendingGameUrl, subscribeToGameUrl } from "../services/game-url-store";
@@ -25,9 +26,11 @@ import {
   couchHub,
   deviceId,
   gameCastStoreFor,
+  gameNotifications,
   gamePresence,
   gameProfile,
   ogsCastNow,
+  pushApi,
   rememberGameUrl,
   useApp,
 } from "../services/runtime";
@@ -37,7 +40,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
 const EDGE_WIDTH = 30;
 
-type Stores = CastStores & OgsStores & ProfileStores;
+type Stores = CastStores & OgsStores & ProfileStores & NotificationsStores;
 
 // One bridge for the app's lifetime. The game sees the app-level cast through a store that routes
 // its TV page to the couch session while cast through OGS (game.view, never a recast), and reports
@@ -56,6 +59,8 @@ const ogsStore = createOgsBridgeStore(
 bridge.setStore("ogs", ogsStore);
 // Who is playing: a token for the open game only (never the app's own token).
 bridge.setStore("profile", gameProfile.store);
+// Pushes (spec §9): the page asks for consent and hears pushes that arrive while it is in front.
+bridge.setStore("notifications", gameNotifications.store);
 const BridgeContext = createNativeBridgeContext<Stores>();
 const CastContext = BridgeContext.createNativeStoreContext("cast");
 
@@ -113,6 +118,7 @@ export default function GameScreen() {
   // A new game screen: nothing reported yet.
   useEffect(() => {
     ogsStore.reset();
+    gameNotifications.store.reset();
   }, []);
 
   // The open game gets its own token (refreshed before it expires); leaving drops it.
@@ -125,6 +131,8 @@ export default function GameScreen() {
   useEffect(() => {
     if (!appId) return;
     gamePresence.opening(appId);
+    // Pushes for this game now prefer this phone's app over the game's PWA (no profile yet: skip).
+    pushApi.active(appId).catch(() => {});
     return () => gamePresence.closed(appId);
   }, [appId]);
 

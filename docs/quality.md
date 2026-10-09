@@ -40,6 +40,23 @@ Grade each package/domain. Update after major changes.
 | notification-kit-core | 66.67% | 18 | 9 | Survivors are bridge safety patterns (optional chaining). |
 | notification-kit-server | 82.35% | 28 | 6 | Survivors are error message strings. |
 
+## Game push (2026-10-08)
+
+Stryker on the new modules only (`--mutate` list), `coverageAnalysis: off` (per-test coverage
+misattributes the D1-proxy route tests and reports false survivors):
+
+| Scope | Score | Killed / timeout | Survived | Notes |
+|-------|-------|------------------|----------|-------|
+| services/api push (api-keys, base64url, push-delivery, push-handles, game-key-auth, push, push-settings, devices) | 99.5% | 216 | 1 | Equivalent: `c.req.param("appId") ?? ""` (the route always has the param) |
+| packages/ogs-protocol push.ts | 100% | 56 | 0 | |
+| packages/profile-kit notifications.ts | 100% | 99 | 0 | |
+| apps/mobile push services (push-foreground, game-notifications, push-api, link-routing, game-notification-settings) | 100% | 164 | 0 | perTest coverage (jest) was fine here |
+| services/api web push (vapid-keys, web-push-sender, push-senders) | 92% (vapid-keys 86%) | 87 | 7 | Equivalent: 6 Web Crypto type guards that can't be reached (`"privateKey" in pair`, `jwk instanceof ArrayBuffer`, `?? ""`) and the AES key's `extractable` flag |
+| packages/notification-kit-web (subscribe, sw-core) | 98% (subscribe 100%, sw-core 95%) | 145 | 3 | Equivalent: a timeout answering `undefined` instead of `false`, and `raw ?? ""` / an empty catch around `JSON.parse` |
+| packages/notification-kit-server | 96% | 25 | 1 | Equivalent: `readJson` answering `undefined` instead of `null` |
+
+CRAP: every function in the new modules is under 8 (API max 7, app max 6, notification-kit-web max 6, profile-kit max 4, notification-kit-server max 3). The sw.js listeners have no unit coverage; they are one-line wrappers over tested functions and run in the Chromium e2e (`packages/notification-kit-web/e2e/sw.e2e.ts`).
+
 ## CRAP (2026-10-04)
 
 Target: CRAP < 8 for every function. Measure from a package dir after `pnpm test:coverage`:

@@ -6,19 +6,22 @@ CREATE TABLE IF NOT EXISTS devices (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS api_keys (
-  key TEXT PRIMARY KEY,
-  game_id TEXT NOT NULL,
-  game_name TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+-- api_keys (plaintext keys for the removed device-token push, 2026-10-07) is no longer created; see
+-- game_api_keys. Production D1 keeps the old table until someone drops it deliberately.
+
+-- Game pushes (docs/product-specs/push-notifications.md). A game server's API key: shown once,
+-- stored as a SHA-256 hash (prefix only for display), one game, one scope. Times: ms.
+CREATE TABLE IF NOT EXISTS game_api_keys (
+  id TEXT PRIMARY KEY,
+  app_id TEXT NOT NULL,
+  prefix TEXT NOT NULL,
+  key_hash TEXT NOT NULL UNIQUE,
+  scope TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  revoked_at INTEGER
 );
 
--- cast_sessions (v1 casting, removed 2026-10-06) is no longer created. Production D1 keeps the
--- old table until someone drops it deliberately; this file is applied on every deploy, so it
--- never drops anything.
-
 CREATE INDEX IF NOT EXISTS idx_devices_push_token ON devices(push_token);
-CREATE INDEX IF NOT EXISTS idx_api_keys_game_id ON api_keys(game_id);
 
 -- Profiles (OGS profiles slice 1, docs/product-specs/ogs-profiles.html). One profile per device.
 -- handle: unique @id without the "@". library: JSON array of catalogue app ids; NULL = whole catalogue.
@@ -165,4 +168,52 @@ CREATE TABLE IF NOT EXISTS app_releases (
   fingerprint TEXT NOT NULL,
   update_url TEXT NOT NULL,
   updated_at INTEGER NOT NULL
+);
+
+-- A push handle: one player in one game, opaque to the game.
+CREATE TABLE IF NOT EXISTS push_handles (
+  id TEXT PRIMARY KEY,
+  app_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+
+-- Where a handle can be reached: an OGS profile (the app, by Expo) or a web push subscription on
+-- the game's origin. last_active_at: when the player last opened the game there (ms).
+CREATE TABLE IF NOT EXISTS push_surfaces (
+  id TEXT PRIMARY KEY,
+  handle_id TEXT NOT NULL REFERENCES push_handles(id),
+  kind TEXT NOT NULL CHECK (kind IN ('ogs', 'web')),
+  profile_id TEXT REFERENCES profiles(id),
+  endpoint TEXT,
+  p256dh TEXT,
+  auth TEXT,
+  vapid_kid TEXT,
+  last_active_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  UNIQUE (handle_id, profile_id),
+  UNIQUE (handle_id, endpoint)
+);
+
+-- Consent in the app, per profile and game. granted 0: turned off in Settings.
+CREATE TABLE IF NOT EXISTS push_grants (
+  profile_id TEXT NOT NULL REFERENCES profiles(id),
+  app_id TEXT NOT NULL,
+  granted INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (profile_id, app_id)
+);
+
+-- cast_sessions (v1 casting, removed 2026-10-06) is no longer created. Production D1 keeps the
+-- old table until someone drops it deliberately; this file is applied on every deploy, so it
+-- never drops anything.
+CREATE INDEX IF NOT EXISTS idx_push_surfaces_profile ON push_surfaces(profile_id);
+
+-- Web push (spec §9): one VAPID key pair per game, made on first use. The private key (its `d`) is
+-- AES-GCM encrypted under the Worker secret PUSH_KEY_SECRET; public_key is the raw P-256 point.
+CREATE TABLE IF NOT EXISTS push_vapid_keys (
+  app_id TEXT PRIMARY KEY,
+  public_key TEXT NOT NULL,
+  private_key_enc TEXT NOT NULL,
+  iv TEXT NOT NULL,
+  created_at INTEGER NOT NULL
 );

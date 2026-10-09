@@ -280,9 +280,7 @@ function NotCast({ connecting }: { connecting: boolean }) {
           <Text style={styles.lead}>Your games keep their place: one tap casts them back.</Text>
         </View>
       ) : (
-        <Text style={styles.lead}>
-          Cast once and the TV becomes your game console.
-        </Text>
+        <Text style={styles.lead}>Cast once and the TV becomes your game console.</Text>
       )}
       <View style={styles.center}>
         <Pressable

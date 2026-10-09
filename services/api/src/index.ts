@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { apiKeyAuth } from "./middleware/auth";
 import { anyToken } from "./middleware/profile-auth";
 import { onError, wideEvent } from "./middleware/wide-event";
 import appRelease from "./routes/app-release";
@@ -14,8 +13,9 @@ import games from "./routes/games";
 import instances from "./routes/instances";
 import library from "./routes/library";
 import me from "./routes/me";
-import notifications from "./routes/notifications";
 import profiles from "./routes/profiles";
+import push from "./routes/push";
+import pushSettings from "./routes/push-settings";
 import sessions from "./routes/sessions";
 import stream from "./routes/stream";
 import wellKnown from "./routes/well-known";
@@ -38,10 +38,6 @@ app.get("/api/v1/health", (c) => {
 // Device registration (no API key required - called by the OGS app)
 app.route("/api/v1/devices", devices);
 
-// Notifications (API key required - called by game servers)
-app.use("/api/v1/notifications/*", apiKeyAuth);
-app.route("/api/v1/notifications", notifications);
-
 // Profiles (docs/product-specs/ogs-profiles.html): POST /profiles, GET /handles (no token)
 app.route("/api/v1", profiles);
 
@@ -51,6 +47,7 @@ app.use("/api/v1/me/*", anyToken);
 app.route("/api/v1/me", me);
 app.route("/api/v1/me", library);
 app.route("/api/v1/me", instances);
+app.route("/api/v1/me", pushSettings);
 
 // Back up and sign in (Apple, Google, email code)
 app.route("/api/v1/auth", auth);
@@ -62,6 +59,8 @@ app.route("/api/v1/sessions", sessions);
 app.route("/api/v1/friends", friends);
 
 // Games know who you are (slice 3): game tokens and OGS's public key
+// Game pushes first: sends use the game's API key, not the profile token the games router demands
+app.route("/api/v1/games", push);
 app.route("/api/v1/games", games);
 app.route("/.well-known", wellKnown);
 

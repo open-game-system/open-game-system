@@ -52,6 +52,13 @@ export const PAGES: PageDef[] = [
     source: content("messages.md"),
   },
   {
+    slug: "notifications",
+    nav: "Notifications",
+    summary:
+      "Push notifications for OGS games: push handles, opting in from the OGS app or your PWA, one send call with your game's API key, pushes while open, taps and links.",
+    source: content("notifications.md"),
+  },
+  {
     slug: "testing",
     nav: "Testing your game",
     summary:

@@ -247,6 +247,21 @@ the whole game end to end in a plain browser once more.
 Open a pull request to the OGS repository with your manifest and art kit:
 [Art kit and catalogue](art-and-catalogue.md#submit-to-the-catalogue).
 
+### 13. Tell players when it's their turn (optional)
+
+Only for a game where a player waits on someone who isn't looking: a turn over days, a round waiting
+on them, another couch joining. Skip it for a game everyone plays live in front of the TV.
+
+1. Right after the player's first move, from that tap, ask once: in the OGS app
+   `requestOgsNotifications()` (profile-kit); on your own site `subscribeOgsPush({ appId })`
+   (notification-kit-web, plus OGS's `sw.js` at your origin root). Send the handle to your server.
+2. Ask OGS for your game's API key and keep it as a secret (`OGS_API_KEY`).
+3. On your server, at each handoff, `createOgsNotifier({ appId, apiKey })` and send to the seats that
+   aren't connected. Drop a handle that answers `gone`.
+
+**Done when** a seam test shows a disconnected seat gets one push per handoff and a connected one gets
+none. Details: [Notifications](notifications.md).
+
 ## Done when
 
 - The seam tests pass, and the game plays end to end in a plain browser.

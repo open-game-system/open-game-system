@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { getOgsProfileSource, getOgsSessionSource, reportOgsSitting } from "./index";
+import {
+  getOgsProfileSource,
+  getOgsSessionSource,
+  onOgsNotification,
+  reportOgsSitting,
+  requestOgsNotifications,
+} from "./index";
 
 /** Rendering on the server (no window): nobody is playing and nothing is reported. */
 describe("profile-kit without a window", () => {
@@ -21,5 +27,11 @@ describe("profile-kit without a window", () => {
     expect(
       reportOgsSitting({ instanceId: "rocket-crew:PQWS", appId: "rocket-crew", status: "active" }),
     ).toBe("none");
+  });
+
+  it("asks nobody for notifications and hears none", async () => {
+    await expect(requestOgsNotifications()).resolves.toBeNull();
+    const off = onOgsNotification(() => {});
+    expect(() => off()).not.toThrow();
   });
 });

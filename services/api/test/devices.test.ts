@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import app from "../src/index";
-import {
-  DeviceTokenPayloadSchema,
-  OgsErrorSchema,
-  RegisterDeviceResponseSchema,
-} from "../src/schemas";
+import { OgsErrorSchema, RegisterDeviceResponseSchema } from "../src/schemas";
 
 const JWT_SECRET = "test-jwt-secret";
 
@@ -20,12 +16,6 @@ function createMockEnv() {
     },
     OGS_JWT_SECRET: JWT_SECRET,
   };
-}
-
-function decodeJwtPayload(jwt: string): unknown {
-  const parts = jwt.split(".");
-  if (parts.length !== 3) throw new Error("Not a JWT");
-  return JSON.parse(atob(parts[1]));
 }
 
 describe("Device registration", () => {
@@ -76,7 +66,9 @@ describe("Device registration", () => {
     expect(body.error.code).toBe("invalid_platform");
   });
 
-  it("returns deviceId, registered, and a signed JWT deviceToken", async () => {
+  // Changed 2026-10-07 (ADR game push and app links, decision 9): registration no longer issues a
+  // device token for games; it only records how OGS reaches the app.
+  it("returns deviceId and registered, and no device token", async () => {
     const env = createMockEnv();
     const res = await app.request(
       "/api/v1/devices/register",
@@ -93,14 +85,10 @@ describe("Device registration", () => {
     );
     expect(res.status).toBe(200);
 
-    const body = RegisterDeviceResponseSchema.parse(await res.json());
+    const json = await res.json();
+    const body = RegisterDeviceResponseSchema.parse(json);
     expect(body.deviceId).toBe("device-1");
     expect(body.registered).toBe(true);
-
-    // deviceToken must be a valid JWT with correct payload
-    const payload = DeviceTokenPayloadSchema.parse(decodeJwtPayload(body.deviceToken));
-    expect(payload.sub).toBe("device-1");
-    expect(payload.iss).toBe("ogs-api");
-    expect(payload.iat).toBeTypeOf("number");
+    expect(json).not.toHaveProperty("deviceToken");
   });
 });
