@@ -15,6 +15,7 @@ const ALL = [
   "bobberbrook",
   "run-set-jimmy",
   "settlewood",
+  "midnight-museum",
   "pocket-draft",
 ];
 const LibrarySchema = z.object({ appIds: z.array(z.string()) });
