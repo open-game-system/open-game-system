@@ -18,6 +18,7 @@ const GAMES = [
   "little-vigilante",
   "bobberbrook",
   "run-set-jimmy",
+  "midnight-museum",
 ];
 /** Grown-up games played over days on phones, with the TV optional (2026-10-05). */
 const ASYNC_GAMES = ["pocket-draft"];
