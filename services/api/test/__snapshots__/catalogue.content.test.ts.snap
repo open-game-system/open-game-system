@@ -436,6 +436,7 @@ exports[`catalogue content > is exactly the games as published 1`] = `
       "heroClean": "/art/midnight-museum/hero-clean.jpg",
       "icon": "/art/midnight-museum/icon.png",
       "logo": "/art/midnight-museum/logo.png",
+      "theme": "/art/midnight-museum/theme.mp3",
       "tile": "/art/midnight-museum/tv.jpg",
     },
     "instanceTtlMs": 604800000,

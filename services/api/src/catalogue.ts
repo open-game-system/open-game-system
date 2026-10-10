@@ -258,6 +258,7 @@ const SEED: ManifestInput[] = [
       cover: "/art/midnight-museum/cover.jpg",
       logo: "/art/midnight-museum/logo.png",
       heroClean: "/art/midnight-museum/hero-clean.jpg",
+      theme: "/art/midnight-museum/theme.mp3",
       tile: "/art/midnight-museum/tv.jpg",
       hero: "/art/midnight-museum/tv.jpg",
     },

@@ -34,6 +34,7 @@ const THEMED = [
   "codebreakers",
   "pocket-draft",
   "run-set-jimmy",
+  "midnight-museum",
 ];
 
 describe("catalogue", () => {
