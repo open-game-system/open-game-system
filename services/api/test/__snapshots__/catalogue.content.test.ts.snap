@@ -429,6 +429,38 @@ exports[`catalogue content > is exactly the games as published 1`] = `
     "tv": "required",
   },
   {
+    "appId": "settlewood",
+    "art": {
+      "cover": "/art/settlewood/cover.jpg",
+      "hero": "/art/settlewood/tv.jpg",
+      "heroClean": "/art/settlewood/hero-clean.jpg",
+      "icon": "/art/settlewood/icon.png",
+      "logo": "/art/settlewood/logo.png",
+      "tile": "/art/settlewood/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Settlewood",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "settler",
+        "label": "Settler",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "10+",
+      "minutes": [
+        45,
+        75,
+      ],
+      "players": "2-4",
+    },
+    "startUrl": "https://settlewood.jonathanrmumm.workers.dev/",
+    "tagline": "Settle a living island. Trade wood for sheep. First to ten wins.",
+    "tv": "required",
+  },
+  {
     "appId": "pocket-draft",
     "art": {
       "cover": "/art/pocket-draft/cover.jpg",
