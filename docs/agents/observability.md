@@ -56,10 +56,43 @@ The app and the Cast receiver post batches to `POST /api/v1/client-events`
 |-------|--------|-------|--------|---------|
 | `http.request` | server | info / error | `request_id` (cf-ray), `method`, `route` (pattern, never the path), `status`, `duration_ms`, `profile_id`, `device_kind`; stream routes add `trace_id`, `stream_steps` | One per HTTP request |
 | `couch.action` | server (CouchSession DO) | info / error | `action` (message type, or `rejected` + `rejected: <code>`), `session_id`, `host_profile_id`, `device_id`, `device_kind`, `profile_id`, `sent`, `duration_ms` | One per couch session frame (hello, bye, focus, select, remote…) |
-| `kind: "client_event"` (`name: cast.*`, `receiver.*`) | client | log / error | `name`, `level`, `attemptId`, `durationMs`, `error`, `errorType`, `data`, `source` (mobile/receiver), `profileId` (from the token), `build`, `version`, `platform`, `sessionId`, `deviceHash` | Cast lifecycle steps (docs/acceptance/2026-10-05-cast-logging.feature) |
+| `kind: "client_event"` (`name: cast.*`, `receiver.*`) | client | log / error | `name`, `level`, `attemptId`, `phoneAttemptId` (receiver only), `durationMs`, `error`, `errorType`, `data`, `source` (mobile/receiver), `profileId` (from the token), `build`, `version`, `platform`, `sessionId` (the couch session: the batch's, or the event's own), `deviceHash` | Cast lifecycle steps (docs/acceptance/2026-10-05-cast-logging.feature) |
 | `name: app.js_error` | client (app) | error | `errorType`, `errorStack`, `data.fatal` | RN global handler caught an error |
 | `name: app.unhandled_rejection` | client (app) | error | `errorType` (`UnhandledRejection` for a non-Error reason) | Unhandled promise rejection (release builds) |
 | `name: app.render_error` | client (app) | error | `errorType`, `errorStack`, `data.boundary` | The root error boundary caught a render error |
+
+### Client event fields
+
+A batch is `{ context, events }` (`services/api/src/routes/client-events.ts`, parsed with Zod; 1–50
+events, 64 KB). `context`: `app` (`mobile` | `receiver`), `build`, `version`, `platform`,
+`profileId` (ignored: the token's wins), `sessionId`, `deviceHash`. Each event: `name`, `at`,
+`level`, and optionally `attemptId`, `phoneAttemptId`, `sessionId` (ids, at most 64 characters),
+`durationMs`, `error`, `errorType`, `errorStack`, `data` (flat scalars). An event's `sessionId`
+wins over the batch's: the receiver's changes with each LOAD_VIEW.
+
+### Reading a cast attempt end to end
+
+One Cast tap is one phone `attemptId`; the TV's lines name it as `phoneAttemptId`. In Workers Logs,
+filter `kind = client_event`, then:
+
+1. **Phone**: `attemptId = <id>`. `cast.cast.requested` (`data.promptId` when the cast prompt asked),
+   `cast.start.requested` (`sessionStatus`, `sdkSession`, `currentTv`, `targetTv` hashed, and
+   `plan`: `start` | `already-connected` | `connecting` | `switch`), then one of
+   `cast.start.skipped` (`reason`), `cast.connect.waited` (`outcome`), `cast.end.*` (a switch),
+   `cast.start.resolved` (`started`; when false, `reason`: `refused-session-active` |
+   `refused-no-session`) or `cast.start.rejected`. `cast.load_view.sent` (`reason`: `connect` |
+   `request` | `change`) is the LOAD_VIEW that carried the id to the TV.
+2. **The prompt**: `cast.prompt.shown` / `confirmed` / `dismissed` (`how`) share `data.promptId`
+   (no attempt yet); `cast.prompt.error` (`reason`, `copyKey`: `no-answer` | `busy` |
+   `user-message`) carries the attempt that failed.
+3. **TV**: `phoneAttemptId = <id>` (or `sessionId = <couch session>`, which the phone's lines carry
+   too): `receiver.load_view.received` once per distinct view, `receiver.load_view.ignored`
+   (`why: duplicate`) for repeats, `receiver.stream.*`, `receiver.keepawake` /
+   `receiver.visibility` (`streaming`). The receiver's own run id is its `attemptId`; from it,
+   `receiver.launched` (`version`) and `receiver.sender` (`state`, `count`) show the lines before
+   any LOAD_VIEW.
+
+Older app builds send no ids in LOAD_VIEW: join those by `sessionId` or time.
 
 ## sre-agent
 

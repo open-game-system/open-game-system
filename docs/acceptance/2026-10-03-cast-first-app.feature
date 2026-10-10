@@ -132,6 +132,21 @@ Feature: Cast-first OGS app with games inside one stream
     And once the TV shows the launcher, Rocket Crew starts by itself and the launcher frames it
     And the session counts exactly 1 cast
 
+  # Owner, 2026-10-10: "<TV> didn't answer. Is it on?" while casting worked. Google Cast refuses a
+  # start while a session is established; the app now looks at the session first.
+  # Tests: services/__tests__/cast-flow-session.test.ts, library/__tests__/cast-prompt-outcomes.test.ts.
+  Scenario: Cast from the prompt while a Cast session is already up
+    Given a Cast session to the Living room TV is connected, connecting or resuming
+    When Jonathan taps Play on Rocket Crew's page, then Cast with the Living room TV chosen
+    Then no new Cast session is started: the new launcher goes to that session (once it connects)
+    And Rocket Crew starts by itself once the TV shows the launcher, with no "didn't answer"
+    When instead the session is on the Bedroom TV
+    Then that session ends, the app waits until it has ended, then casts to the Living room TV
+    And tapping Cast twice quickly starts one cast, not two
+    And "<TV> didn't answer. Is it on?" shows only when the TV can't be reached or nothing came up
+      in time; a start Cast refused because another cast is up says "Another cast is still running.
+      Try again in a moment."
+
   Scenario: Not now closes the cast prompt
     Given the TV is not cast
     When Jonathan taps Play on Rocket Crew's page, then "Not now"

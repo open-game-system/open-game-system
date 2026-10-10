@@ -45,3 +45,19 @@ Feature: Cast logs from the phone and the TV
     Then it POSTs those events without a token to its stream server's API (/api/v1/client-events)
     And the API logs them as source "receiver", authenticated false
     And they carry one run id per receiver and only hosts, never the view URL
+
+  # Owner, 2026-10-10: "didn't answer" while casting worked; the TV's lines could not be tied to
+  # the phone's attempt. Tests: cast-view.test.ts, cast-flow-session.test.ts,
+  # cast-prompt-outcomes.test.ts, client-events.test.ts, receiver-events.e2e.ts.
+  Scenario: A cast attempt reads end to end, phone and TV joined
+    When Jonathan taps Cast in the cast prompt
+    Then the app logs cast.prompt.shown, confirmed and dismissed (how) under one prompt id,
+      and cast.prompt.error with the reason and the copy shown when the prompt shows an error
+    And cast.start.requested says the session's status, the TV it is on and the target TV (hashed)
+      and what the cast does about it; cast.start.resolved says why when the start was refused
+    And each LOAD_VIEW names the phone's attempt id and the couch session id
+    And every receiver event after it carries them as phoneAttemptId and sessionId
+    And the receiver logs receiver.launched (its version) once, receiver.sender (connected or
+      disconnected, with the count), LOAD_VIEW received once per distinct view and
+      receiver.load_view.ignored (why: duplicate) for a repeat, and whether a stream is playing on
+      its keep-awake and visibility events

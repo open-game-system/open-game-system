@@ -111,6 +111,20 @@ Persistent project knowledge. Review at the start of each task.
   muted clip (`keepawake.mp4`/`.webm`, the NoSleep.js way) when the API is missing or refuses.
   Which one holds on a real TV is in the logs (`receiver.keepawake`, `receiver.visibility`); an
   e2e fake can't prove a device stays awake. Any new cast surface that plays WebRTC needs the same.
+- **Cast must look at the session before it starts one (2026-10-10)**: the cast prompt said "<TV>
+  didn't answer. Is it on?" while casting worked. Workers Logs: attempts 21cf-6, 24fr-7, t8ol-8
+  each had `cast.start.requested` then `cast.start.resolved {started:false}` 12–15 ms later, with
+  `cast.load_view.sent {reason:"change"}` just before (the new launcher going to a session already
+  up). The prompt shows whenever the phone isn't cast *through OGS*, which can be true while a Cast
+  session is up or resuming; `castToTv` then asked for a start, Google Cast answered NO
+  ("a session currently established") and `false` became "no-tv". `castToTv` now reads the store's
+  session (and the SDK's current session when the store names no TV): same TV connected → no
+  start; connecting → wait for connected; another TV → end, wait for ended, start; a start refused
+  with a session up is `refused-session-active`, not "didn't answer". One Cast at a time
+  (`cast-once.ts`). LOAD_VIEW now carries the phone's `attemptId` and the couch `sessionId`, which
+  the receiver logs on every event as `phoneAttemptId` / `sessionId` (recipe:
+  docs/agents/observability.md). The fake's `refuseWhileActive`
+  (`EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE=1`) refuses a start while a session is up, as GCK does.
 
 ## e2e (2026-10-04, Cast receiver)
 
