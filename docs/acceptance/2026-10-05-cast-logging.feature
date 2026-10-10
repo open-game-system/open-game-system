@@ -41,6 +41,7 @@ Feature: Cast logs from the phone and the TV
 
   Scenario: The TV receiver logs without credentials
     When the receiver gets LOAD_VIEW, starts or fails to start the stream, gets a heartbeat 410, or ends the cast
+    Or it takes, loses or lets go of what keeps the TV awake (receiver.keepawake), or the page hides, shows or goes (receiver.visibility)
     Then it POSTs those events without a token to its stream server's API (/api/v1/client-events)
     And the API logs them as source "receiver", authenticated false
     And they carry one run id per receiver and only hosts, never the view URL

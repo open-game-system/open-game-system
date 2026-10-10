@@ -63,6 +63,66 @@ const HUD_PAGE = `<!doctype html><html><body style="background:transparent;color
 
 const BLANK = "<!doctype html><html><body></body></html>";
 
+/**
+ * How the fake Screen Wake Lock API behaves: grants each request, rejects each (NotAllowedError,
+ * as a device that won't keep its screen on), or is missing from navigator.
+ */
+export type WakeLockMode = "grant" | "reject" | "missing";
+
+/**
+ * Stand-in for navigator.wakeLock and document.visibilityState on the receiver page, with a test
+ * handle (window.__wakeLock): every request, the locks held, the ones the page released, and the
+ * system's moves (`lose`: it drops the lock; `setVisibility`: the page hides or shows, and a hidden
+ * page loses its lock, as the spec says).
+ */
+const WAKE_LOCK_STUB = (mode: WakeLockMode) => `(() => {
+  if (location.pathname !== '/receiver.html') return;
+  let visibility = 'visible';
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibility });
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => visibility !== 'visible' });
+  const state = window.__wakeLock = {
+    mode: ${JSON.stringify(mode)}, requests: [], held: [], releasedByPage: 0,
+    lose() { state.held.slice().forEach((s) => s.drop()); },
+    setVisibility(v) {
+      visibility = v;
+      if (v !== 'visible') state.lose();
+      document.dispatchEvent(new Event('visibilitychange'));
+    },
+  };
+  class WakeLockSentinel extends EventTarget {
+    constructor() { super(); this.type = 'screen'; this.released = false; }
+    drop() {
+      if (this.released) return;
+      this.released = true;
+      state.held = state.held.filter((s) => s !== this);
+      this.dispatchEvent(new Event('release'));
+    }
+    release() { if (!this.released) state.releasedByPage++; this.drop(); return Promise.resolve(); }
+  }
+  if (state.mode === 'missing') {
+    delete Navigator.prototype.wakeLock;
+    return;
+  }
+  const wakeLock = {
+    request(type) {
+      state.requests.push(type);
+      if (state.mode === 'reject') return Promise.reject(new DOMException('Wake Lock permission request denied', 'NotAllowedError'));
+      if (visibility !== 'visible') return Promise.reject(new DOMException('The requesting page is not visible', 'NotAllowedError'));
+      const sentinel = new WakeLockSentinel();
+      state.held.push(sentinel);
+      return Promise.resolve(sentinel);
+    },
+  };
+  Object.defineProperty(Navigator.prototype, 'wakeLock', { configurable: true, get: () => wakeLock });
+})();`;
+
+/** The receiver's keep-awake clips (apps/web/public), served at the receiver's origin. */
+const KEEP_AWAKE: Record<string, { file: string; type: string }> = {
+  [`${ORIGIN}/keepawake.mp4`]: { file: "keepawake.mp4", type: "video/mp4" },
+  [`${ORIGIN}/keepawake.webm`]: { file: "keepawake.webm", type: "video/webm" },
+};
+const PUBLIC_DIR = new URL("../../apps/web/public/", import.meta.url);
+
 /** A message the receiver sent through the Cast context: `to` null = every sender. */
 export interface Sent {
   ns: string;
@@ -95,6 +155,19 @@ declare global {
     };
     peer: RTCPeerConnection;
     offerPeer: () => Promise<string>;
+    __wakeLock: {
+      mode: WakeLockMode;
+      /** Every navigator.wakeLock.request(type), in order. */
+      requests: string[];
+      /** Locks granted and not yet released (by the page or the system). */
+      held: unknown[];
+      /** Locks the page released itself (sentinel.release()). */
+      releasedByPage: number;
+      /** The system drops every lock it holds (each sentinel's "release" event). */
+      lose: () => void;
+      /** The page is hidden or shown (visibilitychange); a hidden page loses its lock. */
+      setVisibility: (state: "visible" | "hidden") => void;
+    };
     acceptAnswer: (sdp: string) => Promise<void>;
   }
 }
@@ -187,10 +260,17 @@ const AnswerBody = z.object({
 
 const STREAM_BASES = [STREAM, OTHER_STREAM, DEFAULT_STREAM];
 
-/** Opens the receiver page with `query`, every dependency faked. `clock`: Playwright's virtual clock. */
+/**
+ * Opens the receiver page with `query`, every dependency faked. `clock`: Playwright's virtual clock.
+ * `wakeLock`: how the fake Screen Wake Lock API answers (default: it grants every request).
+ */
 export async function openReceiver(
   browser: Browser,
-  { query = "", clock = false }: { query?: string; clock?: boolean } = {},
+  {
+    query = "",
+    clock = false,
+    wakeLock = "grant",
+  }: { query?: string; clock?: boolean; wakeLock?: WakeLockMode } = {},
 ): Promise<Receiver> {
   const blocked: string[] = [];
   const events: ClientEventPost[] = [];
@@ -275,6 +355,12 @@ export async function openReceiver(
       return route.fulfill({ headers: { "content-type": "text/html" }, body: BLANK });
     if (url === HUD_URL)
       return route.fulfill({ headers: { "content-type": "text/html" }, body: HUD_PAGE });
+    const clip = KEEP_AWAKE[url];
+    if (clip)
+      return route.fulfill({
+        headers: { "content-type": clip.type },
+        body: readFileSync(new URL(clip.file, PUBLIC_DIR)),
+      });
     blocked.push(url);
     return route.abort();
   });
@@ -289,6 +375,7 @@ export async function openReceiver(
   const page = live.page();
   // tsx (esbuild keepNames) wraps named functions in the test's page callbacks with __name().
   await live.context().addInitScript("globalThis.__name = (fn) => fn;");
+  await page.addInitScript(WAKE_LOCK_STUB(wakeLock));
   if (clock) await page.clock.install();
   await browser.goto(`${ORIGIN}/receiver.html${query}`);
 

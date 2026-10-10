@@ -28,8 +28,6 @@ jest.mock("expo-device", () => ({
   },
 }));
 
-
-
 jest.mock("expo-constants", () => ({
   __esModule: true,
   default: {
@@ -273,7 +271,11 @@ describe("notifications", () => {
       });
 
       const logSpy = jest.spyOn(console, "log").mockImplementation();
-      const result = await registerDeviceWithAPI("https://api.test", "device_xyz", "push-token-123");
+      const result = await registerDeviceWithAPI(
+        "https://api.test",
+        "device_xyz",
+        "push-token-123",
+      );
 
       expect(result).toBe(true);
       // Changed 2026-10-09: the configured API (api.opengame.org has no DNS record, so it never worked).

@@ -101,6 +101,16 @@ Persistent project knowledge. Review at the start of each task.
 - **Logs before guesses**: client events go to `POST /api/v1/client-events` → Workers Logs. To read
   a real-device switch: Workers Logs, filter `kind = client_event` and `attemptId`; a failed switch
   is `cast.switch.done` level error, and its `cast.end.waited` / `cast.start.resolved` say why.
+- **A WebRTC picture doesn't keep Google TV awake (2026-10-10)**: on the owner's Chromecast with
+  Google TV the screensaver (Ambient mode) came on ~5–6 min into a game and the cast died under it
+  (Workers Logs: `receiver.stream.started`, no `receiver.cast.ended`, a new cast 6 min later). The
+  receiver plays a WebRTC MediaStream in a plain `<video>` with no Cast media session, so the device
+  sees nothing playing; `disableIdleTimeout` only keeps Cast from closing the receiver app, it does
+  not stop the screensaver. The receiver now holds a Screen Wake Lock while a stream plays (taken
+  again on its `release` and on `visibilitychange` → visible) and falls back to a 16×16 looping
+  muted clip (`keepawake.mp4`/`.webm`, the NoSleep.js way) when the API is missing or refuses.
+  Which one holds on a real TV is in the logs (`receiver.keepawake`, `receiver.visibility`); an
+  e2e fake can't prove a device stays awake. Any new cast surface that plays WebRTC needs the same.
 
 ## e2e (2026-10-04, Cast receiver)
 

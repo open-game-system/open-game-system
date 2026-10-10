@@ -75,3 +75,25 @@ Feature: Cast receiver
   Scenario: Three hours at most
     When a cast has run for 3 hours, phones connected or not
     Then the receiver ends the cast the same way
+
+  # Keep the TV awake (owner, 2026-10-10: Google TV's screensaver came on a few minutes into a game).
+  # A WebRTC picture in a plain <video> isn't media playing to the device. e2e/tests/receiver-awake.e2e.ts.
+  Scenario: A playing stream keeps the TV awake
+    When the phone's view or the laptop's picture starts playing
+    Then the receiver takes a screen wake lock (not before anything plays)
+    And it logs receiver.keepawake {method: "wakeLock", ok: true}
+
+  Scenario: The wake lock is taken again
+    When the system drops the wake lock while the page shows, or the page is hidden and shows again
+    Then the receiver takes it again while the stream plays
+    And logs receiver.keepawake {step: "lost"} and receiver.visibility {state} for each change
+
+  Scenario: No wake lock: a keep-awake clip
+    When the device has no Screen Wake Lock API, or refuses the request
+    Then the receiver plays a tiny looping, muted, inline clip (keepawake.mp4, or .webm) out of sight
+    And logs the wake lock's failure (warn, with the reason) and receiver.keepawake {method: "video", ok: true}
+
+  Scenario: Nothing keeps the TV awake once the stream stops
+    When the cast ends, the laptop stops, the stream fails, or a new page's start fails
+    Then the wake lock is released and the clip paused, and neither is taken again until a stream plays
+    And each release is logged as receiver.keepawake {step: "stop"}

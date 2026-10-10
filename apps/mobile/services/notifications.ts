@@ -3,7 +3,6 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-
 /**
  * Decides a foreground push: show the banner, or hand it to the open game's page (spec §9). Set by
  * the runtime; until then every push shows.
