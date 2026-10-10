@@ -239,7 +239,7 @@ const SEED: ManifestInput[] = [
       tile: "/art/run-set-jimmy/tv.jpg",
       hero: "/art/run-set-jimmy/tv.jpg",
     },
-    shop: { ages: "10+", minutes: [45, 90], players: "2-7" },
+    shop: { ages: "10+", minutes: [45, 90], players: "3-7" },
   },
   {
     appId: "pocket-draft",
