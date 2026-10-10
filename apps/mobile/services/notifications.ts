@@ -1,12 +1,8 @@
 import Constants from "expo-constants";
-import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
-const OGS_DEVICE_ID_KEY = "ogs_device_id";
-const API_BASE_URL = "https://api.opengame.org";
 
 /**
  * Decides a foreground push: show the banner, or hand it to the open game's page (spec §9). Set by
@@ -31,19 +27,6 @@ Notifications.setNotificationHandler({
     };
   },
 });
-
-/**
- * Gets or creates a stable device ID persisted in SecureStore.
- */
-export async function getOrCreateDeviceId(): Promise<string> {
-  const existing = await SecureStore.getItemAsync(OGS_DEVICE_ID_KEY);
-  if (existing) {
-    return existing;
-  }
-  const deviceId = Crypto.randomUUID();
-  await SecureStore.setItemAsync(OGS_DEVICE_ID_KEY, deviceId);
-  return deviceId;
-}
 
 /** Granted already, or granted when asked now. */
 export async function pushPermissionGranted(): Promise<boolean> {
@@ -98,14 +81,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
 }
 
 /**
- * Registers the device with the OGS API.
+ * Registers this device's push token with the OGS API (`apiBase`, the app's configured API) under
+ * the profile's device id, which is how OGS finds a profile's phones (profile_devices).
  */
 export async function registerDeviceWithAPI(
+  apiBase: string,
   ogsDeviceId: string,
   pushToken: string,
 ): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/devices/register`, {
+    const response = await fetch(`${apiBase}/api/v1/devices/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -131,29 +116,27 @@ export async function registerDeviceWithAPI(
 }
 
 /**
- * Full initialization: get device ID, request permissions, register with API.
- * Returns the ogsDeviceId.
+ * Full initialization for the profile's device: request permission, get the push token, register it
+ * with the API. Returns the token, or null when there is none (denied, a simulator).
  */
-export async function initializePushNotifications(): Promise<string> {
-  const ogsDeviceId = await getOrCreateDeviceId();
-  console.log("[Notifications] Device ID:", ogsDeviceId);
-
+export async function initializePushNotifications(
+  apiBase: string,
+  deviceId: string,
+): Promise<string | null> {
+  console.log("[Notifications] Device ID:", deviceId);
   const pushToken = await registerForPushNotifications();
-  if (pushToken) {
-    await registerDeviceWithAPI(ogsDeviceId, pushToken);
-  }
-
-  return ogsDeviceId;
+  if (pushToken) await registerDeviceWithAPI(apiBase, deviceId, pushToken);
+  return pushToken;
 }
 
 /**
  * Listener for push token changes. Call this to keep the API in sync
  * when the OS rotates the push token.
  */
-export function addPushTokenListener(ogsDeviceId: string) {
+export function addPushTokenListener(apiBase: string, deviceId: string) {
   return Notifications.addPushTokenListener(async (token) => {
     console.log("[Notifications] Push token changed:", token.data);
-    await registerDeviceWithAPI(ogsDeviceId, token.data);
+    await registerDeviceWithAPI(apiBase, deviceId, token.data);
   });
 }
 

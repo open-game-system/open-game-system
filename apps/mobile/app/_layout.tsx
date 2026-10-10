@@ -2,7 +2,7 @@ import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { router, Stack } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AppErrorBoundary } from "../components/ogs/AppErrorBoundary";
 import { colors } from "../components/ogs/theme";
 import { UpdateRequired } from "../components/ogs/UpdateRequired";
@@ -14,7 +14,8 @@ import {
   initializePushNotifications,
 } from "../services/notifications";
 import { isOnboardingComplete } from "../services/onboarding";
-import { appState, jsErrors } from "../services/runtime";
+import { startPushRegistration } from "../services/push-registration";
+import { appState, config, jsErrors } from "../services/runtime";
 import { incrementSessionCount } from "../services/session-counter";
 import { openUpdate, useUpdateGate } from "../services/update-check";
 
@@ -27,23 +28,29 @@ const open = (url: string, from: "link" | "push") =>
   });
 
 export default function RootLayout() {
-  const [ogsDeviceId, setOgsDeviceId] = useState<string | null>(null);
   const updateGate = useUpdateGate();
   const [fontsLoaded] = useFonts({
     "Fraunces-Display": require("../assets/fonts/Fraunces-Display.ttf"),
   });
 
-  // Push setup once onboarding is done (the index route decides where the app opens).
+  // Push setup once onboarding is done (the index route decides where the app opens): this phone
+  // registers under its OGS profile's device id, as soon as the profile exists.
   useEffect(() => {
     let cancelled = false;
+    let stop: (() => void) | null = null;
     void (async () => {
-      if (!(await isOnboardingComplete())) return;
+      if (!(await isOnboardingComplete()) || cancelled) return;
       await incrementSessionCount();
-      const deviceId = await initializePushNotifications();
-      if (!cancelled) setOgsDeviceId(deviceId);
+      stop = startPushRegistration({
+        deviceId: () => appState.getSnapshot().identity?.deviceId ?? null,
+        subscribe: (listener) => appState.subscribe(listener),
+        register: (deviceId) => initializePushNotifications(config.apiBase, deviceId),
+        listen: (deviceId) => addPushTokenListener(config.apiBase, deviceId),
+      });
     })();
     return () => {
       cancelled = true;
+      stop?.();
     };
   }, []);
 
@@ -56,19 +63,14 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  // Push token + notification tap subscription (event listener).
+  // Notification taps (event listener).
   useEffect(() => {
-    if (!ogsDeviceId) return;
-    const tokenSub = addPushTokenListener(ogsDeviceId);
-    const notificationSub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = getGameUrlFromNotification(response.notification);
       if (url) open(url, "push");
     });
-    return () => {
-      tokenSub.remove();
-      notificationSub.remove();
-    };
-  }, [ogsDeviceId]);
+    return () => sub.remove();
+  }, []);
 
   if (!fontsLoaded) return null;
 
