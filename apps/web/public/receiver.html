@@ -83,6 +83,18 @@
       pointer-events: none;
       z-index: 5;
     }
+
+    /* The keep-awake clip: "visible" to the browser (on screen, not display:none), invisible to us. */
+    #keepawake {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      width: 2px;
+      height: 2px;
+      opacity: 0.01;
+      pointer-events: none;
+      z-index: 1;
+    }
   </style>
 </head>
 <body>
@@ -171,7 +183,7 @@
      * unauthenticated). Batched every few seconds, at once when the cast ends or fails. Never the
      * view URL (its query carries the launcher token): only hosts.
      */
-    const RX_VERSION = 'receiver-2026-10-05';
+    const RX_VERSION = 'receiver-2026-10-10';
     const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
     const rxRun = `rx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
@@ -210,6 +222,116 @@
     window.addEventListener('pagehide', rxFlush);
 
     /**
+     * Keep the TV awake while a stream plays (owner, 2026-10-10: Google TV's screensaver came on a
+     * few minutes into a game, and the cast died under it). The picture is a WebRTC MediaStream in a
+     * plain <video>, which the device doesn't count as media playing, and `disableIdleTimeout` only
+     * stops Cast from closing this app. So, while a stream plays:
+     *  1. a Screen Wake Lock, taken again when the system drops it or the page shows again;
+     *  2. without one (no API, or refused): a tiny looping, muted, inline clip, the NoSleep.js way
+     *     (keepawake.mp4, H.264 baseline; keepawake.webm, VP8, for browsers without H.264).
+     * Not done: reporting a Cast media session PLAYING through CAF's PlayerManager. That means a local
+     * LOAD of the clip into CAF's player, which takes over the element (src, loop, its own idle state),
+     * puts play/pause controls for it on every phone and Google Home, and on a Chromecast plays through
+     * the platform's media pipeline beside the WebRTC decoder; a sender's pause or stop would act on
+     * the clip, not the game. Revisit only if the logs show both steps above held and the TV slept.
+     * Each step is a receiver.keepawake event {method, ok, step}: a real TV's logs say which held.
+     */
+    let awakeWanted = false;
+    let wakeSentinel = null;
+    let wakePending = false;
+    let awakeClip = null;
+    let awakeClipOn = false;
+    function logAwake(method, ok, step, error) {
+      rxLog('keepawake', { level: ok ? 'info' : 'warn', error, data: { method, ok, step } });
+    }
+    function keepAwake() {
+      if (awakeWanted) return;
+      awakeWanted = true;
+      requestWakeLock('start');
+    }
+    async function requestWakeLock(step) {
+      if (!awakeWanted || wakeSentinel || wakePending) return;
+      if (!navigator.wakeLock || typeof navigator.wakeLock.request !== 'function') {
+        if (!awakeClipOn) logAwake('wakeLock', false, step, 'unsupported: no navigator.wakeLock');
+        playAwakeClip();
+        return;
+      }
+      // A hidden page can't hold one; it is taken again when the page shows (visibilitychange).
+      if (document.visibilityState !== 'visible') return;
+      wakePending = true;
+      let sentinel;
+      try {
+        sentinel = await navigator.wakeLock.request('screen');
+      } catch (e) {
+        wakePending = false;
+        logAwake('wakeLock', false, step, `${e && e.name}: ${e && e.message}`);
+        playAwakeClip();
+        return;
+      }
+      wakePending = false;
+      if (!awakeWanted) {
+        sentinel.release().catch(() => {});
+        return;
+      }
+      wakeSentinel = sentinel;
+      sentinel.addEventListener('release', () => {
+        if (wakeSentinel !== sentinel) return; // we let it go
+        wakeSentinel = null;
+        logAwake('wakeLock', false, 'lost');
+        requestWakeLock('reacquire');
+      });
+      logAwake('wakeLock', true, step);
+    }
+    function playAwakeClip() {
+      if (!awakeWanted || awakeClipOn) return;
+      awakeClipOn = true;
+      if (!awakeClip) {
+        awakeClip = document.createElement('video');
+        awakeClip.id = 'keepawake';
+        awakeClip.muted = true;
+        awakeClip.loop = true;
+        awakeClip.playsInline = true;
+        awakeClip.setAttribute('muted', '');
+        awakeClip.setAttribute('playsinline', '');
+        awakeClip.setAttribute('aria-hidden', 'true');
+        for (const [src, type] of [['keepawake.mp4', 'video/mp4'], ['keepawake.webm', 'video/webm']]) {
+          const source = document.createElement('source');
+          source.src = src;
+          source.type = type;
+          awakeClip.appendChild(source);
+        }
+        document.body.appendChild(awakeClip);
+      }
+      awakeClip.play().then(
+        () => logAwake('video', true, 'start'),
+        (e) => { awakeClipOn = false; logAwake('video', false, 'start', `${e && e.name}: ${e && e.message}`); },
+      );
+    }
+    /** The stream stopped (ended, failed or replaced): let the TV sleep again. */
+    function stopKeepAwake() {
+      if (!awakeWanted) return;
+      awakeWanted = false;
+      const sentinel = wakeSentinel;
+      wakeSentinel = null;
+      if (sentinel) {
+        sentinel.release().catch(() => {});
+        logAwake('wakeLock', true, 'stop');
+      }
+      if (awakeClipOn) {
+        awakeClipOn = false;
+        awakeClip.pause();
+        logAwake('video', true, 'stop');
+      }
+    }
+    // A screensaver or another app over this page shows up here; pagehide when the page goes.
+    document.addEventListener('visibilitychange', () => {
+      const state = document.visibilityState;
+      rxLog('visibility', { data: { state, streaming: awakeWanted }, now: state !== 'visible' });
+      if (state === 'visible') requestWakeLock('visible');
+    });
+    window.addEventListener('pagehide', () => rxLog('visibility', { data: { state: 'pagehide', streaming: awakeWanted }, now: true }));
+
+    /**
      * Debugging: mirror receiver logs and status back to whoever cast us (the OGS app or a CLI),
      * so a TV's view of each step is visible without remote-debugging the device.
      */
@@ -245,6 +367,7 @@
       clearPeerTimer();
       if (currentViewUrl === 'laptop') console.log('[Receiver] Laptop picture playing', video.videoWidth + 'x' + video.videoHeight);
       hideOverlay();
+      keepAwake();
     });
 
     function startConnectionTimeout() {
@@ -311,6 +434,7 @@
       clearConnectionTimeout();
       stopStallWatch();
       stopHeartbeat();
+      stopKeepAwake();
       if (pc) {
         pc.close();
         pc = null;
@@ -365,7 +489,10 @@
         } else if (conn.connectionState === 'disconnected' || conn.connectionState === 'failed') {
           isConnected = false;
           // 'disconnected' can recover on its own; only a failed connection ends the heartbeat.
-          if (conn.connectionState === 'failed') stopHeartbeat();
+          if (conn.connectionState === 'failed') {
+            stopHeartbeat();
+            stopKeepAwake();
+          }
           setStatus('Cast session ended', false);
         }
       };
@@ -442,6 +569,7 @@
     function peerFailed(why, text) {
       clearPeerTimer();
       stopStallWatch();
+      stopKeepAwake();
       isConnected = false;
       console.error('[Receiver] Laptop stream failed:', why);
       setStatus(text, false);
