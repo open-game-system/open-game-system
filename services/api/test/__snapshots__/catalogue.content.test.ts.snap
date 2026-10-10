@@ -461,6 +461,49 @@ exports[`catalogue content > is exactly the games as published 1`] = `
     "tv": "required",
   },
   {
+    "appId": "midnight-museum",
+    "art": {
+      "cover": "/art/midnight-museum/cover.jpg",
+      "hero": "/art/midnight-museum/tv.jpg",
+      "heroClean": "/art/midnight-museum/hero-clean.jpg",
+      "icon": "/art/midnight-museum/icon.png",
+      "logo": "/art/midnight-museum/logo.png",
+      "theme": "/art/midnight-museum/theme.mp3",
+      "tile": "/art/midnight-museum/tv.jpg",
+    },
+    "instanceTtlMs": 604800000,
+    "name": "Midnight Museum",
+    "roles": [
+      {
+        "audience": "grownup",
+        "id": "detective",
+        "label": "Detective",
+      },
+      {
+        "audience": "kid",
+        "id": "young-detective",
+        "label": "Young detective",
+      },
+      {
+        "audience": "little",
+        "id": "little",
+        "label": "Little one",
+      },
+    ],
+    "shape": "couch",
+    "shop": {
+      "ages": "5+",
+      "minutes": [
+        10,
+        25,
+      ],
+      "players": "2-4",
+    },
+    "startUrl": "https://midnight-museum.jonathanrmumm.workers.dev/",
+    "tagline": "Someone took the Moonstone! Peek in the crates, follow the clues and catch the thief before the doors.",
+    "tv": "required",
+  },
+  {
     "appId": "pocket-draft",
     "art": {
       "cover": "/art/pocket-draft/cover.jpg",
