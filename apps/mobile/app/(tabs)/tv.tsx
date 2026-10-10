@@ -6,6 +6,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../components/ogs/Button";
 import { ErrorLine } from "../../components/ogs/ErrorLine";
+import { castPromptError } from "../../components/ogs/library/play-action";
 import { padSize, RemotePad } from "../../components/ogs/RemotePad";
 import { JoinTv } from "../../components/ogs/remote/JoinTv";
 import { castTarget, lastStop } from "../../components/ogs/remote/last-stop";
@@ -228,7 +229,11 @@ function NotCast({ connecting }: { connecting: boolean }) {
     }
     try {
       const result = await castNow(tv);
-      if (result === "no-tv") setPhase("no-tv");
+      // A real failure (unreachable, nothing connected in time) is "No TV found"; a start Cast
+      // refused because another cast is up says so instead.
+      if (result === "no-tv" || result === "timeout") setPhase("no-tv");
+      else if (result === "refused-session-active")
+        setError({ text: castPromptError("busy", tv.name).text, action: "retry" });
     } catch (err) {
       setError(userMessage(err, "cast"));
     }

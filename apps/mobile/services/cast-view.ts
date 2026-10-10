@@ -53,13 +53,15 @@ function isViewRequest(message: ChannelMessage): boolean {
 /**
  * Opens the view channel and keeps the receiver supplied: sends the view now, and again whenever the
  * receiver asks (REQUEST_VIEW). A cold-starting receiver isn't listening yet when the session starts,
- * so the first send can be lost; its request once ready is what makes the cast reliable.
+ * so the first send can be lost; its request once ready is what makes the cast reliable. Each
+ * LOAD_VIEW names the phone's cast attempt and the couch session (`context`), for the logs.
  */
 export async function connectViewChannel(
   session: ViewChannelSession,
   getViewUrl: () => string | null,
   streamServerUrl: string,
   trace: CastTrace = noTrace,
+  context: () => { sessionId?: string } = () => ({}),
 ): Promise<{ send(reason?: string): Promise<void> } | null> {
   try {
     const channel = await session.addChannel(CAST_VIEW_NAMESPACE);
@@ -72,7 +74,7 @@ export async function connectViewChannel(
       // The view's host only: its query carries the launcher token.
       const data = { host: hostOf(viewUrl), reason };
       const t0 = trace.now();
-      await channel.sendMessage({ type: "LOAD_VIEW", viewUrl, streamServerUrl }).then(
+      await channel.sendMessage(loadView(viewUrl, streamServerUrl, trace, context)).then(
         () => trace.event("load_view.sent", { durationMs: trace.now() - t0, data }),
         (err: unknown) => {
           trace.event("load_view.failed", { error: err, durationMs: trace.now() - t0, data });
@@ -92,6 +94,24 @@ export async function connectViewChannel(
     console.warn("[Cast] Could not open the view channel:", err);
     return null;
   }
+}
+
+/**
+ * LOAD_VIEW, with what lets Workers Logs join the TV's events to the phone's: the cast attempt
+ * current on the phone (the receiver logs it as phoneAttemptId) and the couch session's id.
+ */
+function loadView(
+  viewUrl: string,
+  streamServerUrl: string,
+  trace: CastTrace,
+  context: () => { sessionId?: string },
+): Record<string, string> {
+  const msg: Record<string, string> = { type: "LOAD_VIEW", viewUrl, streamServerUrl };
+  const attemptId = trace.current();
+  const { sessionId } = context();
+  if (attemptId) msg.attemptId = attemptId;
+  if (sessionId) msg.sessionId = sessionId;
+  return msg;
 }
 
 function hostOf(url: string): string {
