@@ -30,6 +30,10 @@ const EventSchema = z.object({
   at: z.number().int().nonnegative(),
   level: z.enum(["debug", "info", "warn", "error"]),
   attemptId: z.string().max(64).optional(),
+  /** Receiver events: the phone's cast attempt that sent the view (its LOAD_VIEW). */
+  phoneAttemptId: z.string().max(64).optional(),
+  /** Receiver events: the couch session from that LOAD_VIEW (wins over the batch's). */
+  sessionId: z.string().max(64).optional(),
   durationMs: z.number().nonnegative().optional(),
   error: z.string().max(MAX_BATCH_BYTES).optional(),
   /** The error's class or a domain name; older builds don't send it (the event's name stands in). */
@@ -126,7 +130,7 @@ clientEvents.post("/", async (c) => {
       build: context.build,
       version: context.version,
       platform: context.platform,
-      sessionId: context.sessionId,
+      sessionId: event.sessionId ?? context.sessionId,
       deviceHash: context.deviceHash,
       // The token's profile, never the one the client claims.
       profileId,
@@ -135,6 +139,7 @@ clientEvents.post("/", async (c) => {
       level: event.level,
       at: event.at,
       attemptId: event.attemptId,
+      phoneAttemptId: event.phoneAttemptId,
       durationMs: event.durationMs,
       error,
       errorType,

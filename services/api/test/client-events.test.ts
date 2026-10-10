@@ -215,6 +215,52 @@ describe("POST /api/v1/client-events", () => {
     expect(lines(log)[0]).not.toHaveProperty("profileId");
   });
 
+  it("a receiver event carries the phone's attempt id and the couch session it got in LOAD_VIEW", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await post({
+      context: { app: "receiver", version: "receiver-2026-10-10b" },
+      events: [
+        event({
+          name: "receiver.load_view.received",
+          attemptId: "rx-1",
+          phoneAttemptId: "mhx-21cf-6",
+          sessionId: "couch-7",
+        }),
+        event({ name: "receiver.launched", attemptId: "rx-1" }),
+      ],
+    });
+    expect(r.status).toBe(202);
+    const [joined, launched] = lines(log);
+    // Joins the phone's line: its attemptId is phoneAttemptId here, the same sessionId.
+    expect(joined).toMatchObject({
+      attemptId: "rx-1",
+      phoneAttemptId: "mhx-21cf-6",
+      sessionId: "couch-7",
+    });
+    expect(launched).not.toHaveProperty("phoneAttemptId");
+    expect(launched).not.toHaveProperty("sessionId");
+  });
+
+  it("an event's own sessionId wins over the batch's (the receiver's changes with each LOAD_VIEW)", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await post(
+      { context: context({ sessionId: "couch-1" }), events: [event({ sessionId: "couch-2" })] },
+      { token: await phone() },
+    );
+    expect(lines(log)[0]).toMatchObject({ sessionId: "couch-2" });
+  });
+
+  it("join ids are parsed at the boundary: longer than 64 is 400 invalid_body", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const r = await post({
+      context: { app: "receiver" },
+      events: [event({ name: "receiver.launched", phoneAttemptId: "x".repeat(65) })],
+    });
+    expect(r.status).toBe(400);
+    expect(errorOf(r).code).toBe("invalid_body");
+    expect(log).not.toHaveBeenCalled();
+  });
+
   it("the app must send its token: 401 missing_auth", async () => {
     const r = await post({ context: context(), events: [event()] });
     expect(r.status).toBe(401);
