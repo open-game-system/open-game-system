@@ -1,13 +1,10 @@
 import Constants from "expo-constants";
-import * as Crypto from "expo-crypto";
 import * as Notifications from "expo-notifications";
 // Device is mocked via mockDevice variable above the jest.mock call
-import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import {
   addPushTokenListener,
   getGameUrlFromNotification,
-  getOrCreateDeviceId,
   initializePushNotifications,
   registerDeviceWithAPI,
   registerForPushNotifications,
@@ -31,14 +28,7 @@ jest.mock("expo-device", () => ({
   },
 }));
 
-jest.mock("expo-secure-store", () => ({
-  getItemAsync: jest.fn(),
-  setItemAsync: jest.fn(),
-}));
 
-jest.mock("expo-crypto", () => ({
-  randomUUID: jest.fn(),
-}));
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -69,27 +59,8 @@ beforeEach(() => {
 });
 
 describe("notifications", () => {
-  describe("getOrCreateDeviceId", () => {
-    it("returns existing device ID from SecureStore", async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("existing-uuid");
-
-      const result = await getOrCreateDeviceId();
-
-      expect(result).toBe("existing-uuid");
-      expect(SecureStore.getItemAsync).toHaveBeenCalledWith("ogs_device_id");
-      expect(Crypto.randomUUID).not.toHaveBeenCalled();
-    });
-
-    it("creates and persists new device ID when none exists", async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
-      (Crypto.randomUUID as jest.Mock).mockReturnValue("new-uuid-123");
-
-      const result = await getOrCreateDeviceId();
-
-      expect(result).toBe("new-uuid-123");
-      expect(SecureStore.setItemAsync).toHaveBeenCalledWith("ogs_device_id", "new-uuid-123");
-    });
-  });
+  // getOrCreateDeviceId was removed 2026-10-09: pushes register under the profile's device id
+  // (profile_devices), which is how the API finds a profile's phones. Its own random id never matched.
 
   describe("registerForPushNotifications", () => {
     it("returns null on simulator/emulator and logs appropriate message", async () => {
@@ -302,10 +273,11 @@ describe("notifications", () => {
       });
 
       const logSpy = jest.spyOn(console, "log").mockImplementation();
-      const result = await registerDeviceWithAPI("device_xyz", "push-token-123");
+      const result = await registerDeviceWithAPI("https://api.test", "device_xyz", "push-token-123");
 
       expect(result).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith("https://api.opengame.org/api/v1/devices/register", {
+      // Changed 2026-10-09: the configured API (api.opengame.org has no DNS record, so it never worked).
+      expect(mockFetch).toHaveBeenCalledWith("https://api.test/api/v1/devices/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -325,7 +297,7 @@ describe("notifications", () => {
       });
 
       const errorSpy = jest.spyOn(console, "error").mockImplementation();
-      const result = await registerDeviceWithAPI("device_xyz", "bad-token");
+      const result = await registerDeviceWithAPI("https://api.test", "device_xyz", "bad-token");
 
       expect(result).toBe(false);
       expect(errorSpy).toHaveBeenCalledWith(
@@ -339,7 +311,7 @@ describe("notifications", () => {
       mockFetch.mockRejectedValue(new Error("Network error"));
 
       const errorSpy = jest.spyOn(console, "error").mockImplementation();
-      const result = await registerDeviceWithAPI("device_xyz", "token");
+      const result = await registerDeviceWithAPI("https://api.test", "device_xyz", "token");
 
       expect(result).toBe(false);
       expect(errorSpy).toHaveBeenCalledWith(
@@ -351,8 +323,7 @@ describe("notifications", () => {
   });
 
   describe("initializePushNotifications", () => {
-    it("orchestrates full flow: device ID + permissions + registration", async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("device-123");
+    it("orchestrates full flow: permissions + token + registration under the profile's device", async () => {
       (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
         status: "granted",
       });
@@ -364,15 +335,16 @@ describe("notifications", () => {
         json: () => Promise.resolve({ registered: true }),
       });
 
-      const result = await initializePushNotifications();
+      const result = await initializePushNotifications("https://api.test", "device-123");
 
-      expect(result).toBe("device-123");
-      expect(mockFetch).toHaveBeenCalled();
+      expect(result).toBe("ExponentPushToken[token123]");
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.test/api/v1/devices/register",
+        expect.objectContaining({ body: expect.stringContaining('"ogsDeviceId":"device-123"') }),
+      );
     });
 
-    it("returns device ID even when push token is null (permissions denied)", async () => {
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
-      (Crypto.randomUUID as jest.Mock).mockReturnValue("new-device-id");
+    it("registers nothing when permission is denied", async () => {
       (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({
         status: "undetermined",
       });
@@ -380,9 +352,9 @@ describe("notifications", () => {
         status: "denied",
       });
 
-      const result = await initializePushNotifications();
+      const result = await initializePushNotifications("https://api.test", "device-123");
 
-      expect(result).toBe("new-device-id");
+      expect(result).toBeNull();
       expect(mockFetch).not.toHaveBeenCalled(); // No API call without push token
     });
   });
@@ -397,7 +369,7 @@ describe("notifications", () => {
         return mockRemove;
       });
 
-      const subscription = addPushTokenListener("device-123");
+      const subscription = addPushTokenListener("https://api.test", "device-123");
 
       expect(Notifications.addPushTokenListener).toHaveBeenCalled();
       expect(subscription).toBe(mockRemove);
@@ -411,7 +383,7 @@ describe("notifications", () => {
       capturedCallback!({ data: "new-push-token" });
 
       expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.opengame.org/api/v1/devices/register",
+        "https://api.test/api/v1/devices/register",
         expect.objectContaining({
           body: expect.stringContaining("new-push-token"),
         }),
@@ -499,18 +471,17 @@ describe("notifications", () => {
 
     it("logs the push token, the device id and a rotated token", async () => {
       const log = jest.spyOn(console, "log").mockImplementation();
-      (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("device-9");
       (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: "granted" });
       (Notifications.getExpoPushTokenAsync as jest.Mock).mockResolvedValue({ data: "tok-9" });
       mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
-      await initializePushNotifications();
+      await initializePushNotifications("https://api.test", "device-9");
       expect(log).toHaveBeenCalledWith("[Notifications] Device ID:", "device-9");
       expect(log).toHaveBeenCalledWith("[Notifications] Push token:", "tok-9");
       (Notifications.addPushTokenListener as jest.Mock).mockImplementation((cb) => {
         cb({ data: "tok-10" });
         return { remove: jest.fn() };
       });
-      addPushTokenListener("device-9");
+      addPushTokenListener("https://api.test", "device-9");
       expect(log).toHaveBeenCalledWith("[Notifications] Push token changed:", "tok-10");
       log.mockRestore();
     });
