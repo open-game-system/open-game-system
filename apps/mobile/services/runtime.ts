@@ -9,16 +9,30 @@ import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
 import { Platform, AppState as RNAppState } from "react-native";
+import { createCastPrompt } from "../components/ogs/library/play-action";
 import { createAppState } from "./app-state";
 import type { CastBackend } from "./cast-backend";
-import { castToTv, createGameCastStore, endForTonight, switchTv } from "./cast-flow";
+import {
+  type CastOutcome,
+  castToTv,
+  createGameCastStore,
+  endForTonight,
+  switchTv,
+} from "./cast-flow";
+import { createCastOnce } from "./cast-once";
 import { createCastStop } from "./cast-stop";
 import { createCastStore } from "./cast-store";
 import { announceSwitch, createCastSwitch } from "./cast-switch";
 import { castCommands, startCastSync } from "./cast-sync";
 import { createCastTrace } from "./cast-trace";
 import { streamServerUrl } from "./cast-view";
-import { type ClientLogContext, clientEventsSender, createClientLog, hashId } from "./client-log";
+import {
+  type ClientLogContext,
+  clientEventsSender,
+  createClientLog,
+  hashId,
+  type LogData,
+} from "./client-log";
 import { appConfig, isLauncherView } from "./config";
 import { askToNotify } from "./consent-sheet";
 import { followStep } from "./couch-follow";
@@ -118,6 +132,7 @@ export const castBackend: CastBackend =
         ...fakeCastOptions({
           EXPO_PUBLIC_FAKE_CAST_END_MS: process.env.EXPO_PUBLIC_FAKE_CAST_END_MS,
           EXPO_PUBLIC_FAKE_CAST_URL_2: process.env.EXPO_PUBLIC_FAKE_CAST_URL_2,
+          EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE: process.env.EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE,
         }),
       });
 
@@ -128,7 +143,11 @@ const streamServer = streamServerUrl(
   { EXPO_PUBLIC_OGS_STREAM: process.env.EXPO_PUBLIC_OGS_STREAM },
   config.apiBase,
 );
-startCastSync(castStore, castBackend.sessionManager, commands, streamServer, castTrace);
+// LOAD_VIEW names the couch session, so the TV's log lines join the phone's (appState is defined
+// below; this runs only once a session connects).
+startCastSync(castStore, castBackend.sessionManager, commands, streamServer, castTrace, () => ({
+  sessionId: appState.getSnapshot().session?.sessionId,
+}));
 castBackend.subscribeDevices((devices) => castStore.dispatch({ type: "DEVICES_UPDATED", devices }));
 
 const auth = () => {
@@ -417,20 +436,42 @@ export const roomJoiner = createRoomJoiner({
   open: (game, url) => pushGame(game, url),
 });
 
-/** Cast: a new couch session hosted by this profile, named for the TV. */
-export async function castNow(tv: { id: string; name: string }) {
-  castStop.reset();
-  castSwitch.dismiss();
-  const launcher = { launcherToken: () => appState.startSession(tv.name) };
-  return castToTv({
-    api: launcher,
-    config,
-    castStore,
-    backend: castBackend,
-    deviceId: tv.id,
-    trace: castTrace,
+/** One Cast at a time: a second tap while one runs shares its outcome (cast-once.ts). */
+const castOnce = createCastOnce<CastOutcome>();
+
+/**
+ * Cast: a new couch session hosted by this profile, named for the TV. Minds the Cast session
+ * already up (castToTv); `logData` joins the attempt to what asked for it (the cast prompt's id).
+ */
+export function castNow(tv: { id: string; name: string }, logData?: LogData) {
+  return castOnce.run(() => {
+    castStop.reset();
+    castSwitch.dismiss();
+    const launcher = { launcherToken: () => appState.startSession(tv.name) };
+    return castToTv({
+      api: launcher,
+      config,
+      castStore,
+      backend: castBackend,
+      deviceId: tv.id,
+      trace: castTrace,
+      logData,
+    });
   });
 }
+
+/**
+ * The app's one cast prompt (CastPrompt.tsx). Its shown / confirmed / dismissed events are the
+ * prompt's own (no cast attempt yet); prompt.error belongs to the attempt that just failed.
+ */
+export const castPrompt = createCastPrompt({
+  log: (name, data, level) =>
+    castTrace.event(name, {
+      level,
+      data,
+      ...(name === "prompt.error" ? {} : { attemptId: undefined }),
+    }),
+});
 
 /**
  * Remote → TV picker: "Switching to <TV>…" until the new TV is connected, one switch at a time,

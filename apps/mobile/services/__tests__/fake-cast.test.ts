@@ -457,3 +457,46 @@ describe("fake cast, the ending event (immediate mode)", () => {
     expect(events).toEqual(["ending", "ended"]);
   });
 });
+
+describe("fake cast, a start refused while a session is active (refuseWhileActive)", () => {
+  function backendWith(opts: { refuseWhileActive?: boolean }) {
+    return createFakeCastBackend({
+      mode: "two",
+      loadUrl: "http://tv.test/load",
+      fetch: async () => new Response("{}"),
+      ...opts,
+    });
+  }
+
+  it("refuses a start (false) while a session is up, for the same TV or another, as GCK does", async () => {
+    const { sessionManager: sm } = backendWith({ refuseWhileActive: true });
+    await expect(sm.startSession(FAKE_TV.id)).resolves.toBe(true);
+    await expect(sm.startSession(FAKE_TV.id)).resolves.toBe(false);
+    await expect(sm.startSession(FAKE_TV_2.id)).resolves.toBe(false);
+    const current = await sm.getCurrentCastSession();
+    await expect(current?.getCastDevice()).resolves.toEqual({
+      deviceId: FAKE_TV.id,
+      friendlyName: FAKE_TV.name,
+    });
+  });
+
+  it("starts again once the session has ended", async () => {
+    const { sessionManager: sm } = backendWith({ refuseWhileActive: true });
+    await sm.startSession(FAKE_TV.id);
+    await sm.endCurrentSession(true);
+    await expect(sm.startSession(FAKE_TV_2.id)).resolves.toBe(true);
+  });
+
+  it("unset (older runs): a start replaces the running session", async () => {
+    const { sessionManager: sm } = backendWith({});
+    await sm.startSession(FAKE_TV.id);
+    await expect(sm.startSession(FAKE_TV_2.id)).resolves.toBe(true);
+  });
+
+  it("EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE=1 turns it on; anything else leaves it off", () => {
+    expect(fakeCastOptions({ EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE: "1" })).toEqual({
+      refuseWhileActive: true,
+    });
+    expect(fakeCastOptions({ EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE: "0" })).toEqual({});
+  });
+});

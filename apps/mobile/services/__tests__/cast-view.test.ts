@@ -1,9 +1,11 @@
+import { createCastTrace } from "../cast-trace";
 import {
   CAST_VIEW_NAMESPACE,
   connectViewChannel,
   OGS_STREAM_SERVER_URL,
   streamServerUrl,
 } from "../cast-view";
+import { noLog } from "../client-log";
 
 type Msg = Record<string, unknown> | string;
 
@@ -60,6 +62,41 @@ describe("connectViewChannel", () => {
     f.fromReceiver(JSON.stringify({ type: "REQUEST_VIEW" }));
     await Promise.resolve();
     expect(f.sent[1]).toMatchObject({ viewUrl: "https://game/tv/CD?stream=1" });
+  });
+
+  it("LOAD_VIEW carries the phone's cast attempt id and the couch session id, for the receiver's logs", async () => {
+    const f = fakeSession();
+    const trace = createCastTrace(noLog);
+    const attempt = trace.begin("cast");
+    let sessionId = "couch-1";
+    await connectViewChannel(
+      f.session,
+      () => "https://game/tv/AB",
+      STREAM,
+      trace,
+      () => ({
+        sessionId,
+      }),
+    );
+    expect(f.sent[0]).toEqual({
+      type: "LOAD_VIEW",
+      viewUrl: "https://game/tv/AB",
+      streamServerUrl: STREAM,
+      attemptId: attempt,
+      sessionId: "couch-1",
+    });
+    // A later send (the receiver asking again) names the attempt and session current then.
+    const next = trace.begin("switch");
+    sessionId = "couch-2";
+    f.fromReceiver({ type: "REQUEST_VIEW" });
+    await Promise.resolve();
+    expect(f.sent[1]).toMatchObject({ attemptId: next, sessionId: "couch-2" });
+  });
+
+  it("no attempt or session yet: LOAD_VIEW has neither field", async () => {
+    const f = fakeSession();
+    await connectViewChannel(f.session, () => "https://game/tv/AB", STREAM, createCastTrace(noLog));
+    expect(Object.keys(f.sent[0])).toEqual(["type", "viewUrl", "streamServerUrl"]);
   });
 
   it("stays quiet until the game has a view", async () => {

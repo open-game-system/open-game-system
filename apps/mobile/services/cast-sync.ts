@@ -68,6 +68,8 @@ export function startCastSync(
   commands: { bind(sm: SessionManagerLike): void },
   streamServerUrl: string,
   trace: CastTrace = noTrace,
+  /** What LOAD_VIEW names besides the view (the couch session's id), for the receiver's logs. */
+  viewContext: () => { sessionId?: string } = () => ({}),
 ): () => void {
   commands.bind(sm);
   let channel: { send(): Promise<void> } | null = null;
@@ -84,6 +86,7 @@ export function startCastSync(
       () => store.getSnapshot().viewUrl,
       streamServerUrl,
       trace,
+      viewContext,
     ).then((c) => {
       if (mine === generation) channel = c;
     });

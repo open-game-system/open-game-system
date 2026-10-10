@@ -1,7 +1,7 @@
 import type { Manifest } from "@open-game-system/ogs-protocol";
-import { openGame, useOgsCast } from "../../../services/runtime";
+import { castPrompt, openGame, useOgsCast } from "../../../services/runtime";
 import type { Sitting } from "../../../services/sittings";
-import { castPrompt, playAction } from "./play-action";
+import { playAction } from "./play-action";
 
 /**
  * Play (a new game) or Rejoin a sitting of `game`, shared by Library, the game's page and Playing.

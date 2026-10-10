@@ -12,13 +12,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CastDevice } from "../../../services/cast-store";
-import { castBackend, castNow, waitForOgsCast } from "../../../services/runtime";
+import { castBackend, castNow, castPrompt, waitForOgsCast } from "../../../services/runtime";
 import { userMessage } from "../../../services/user-message";
 import { Button } from "../Button";
 import { lastStop } from "../remote/last-stop";
 import { NO_TV_CAUSES } from "../remote/no-tv";
 import { colors, fonts, TARGET } from "../theme";
-import { type CastPromptRequest, castAndPlay, castPrompt, castPromptView } from "./play-action";
+import { type CastPromptRequest, castPromptView, confirmCast } from "./play-action";
 
 /** How long the prompt looks for TVs before it says none was found (as the TV tab does). */
 const SEARCH_MS = 4000;
@@ -59,8 +59,8 @@ function CastPromptSheet({ request }: { request: CastPromptRequest }) {
     return () => clearTimeout(t);
   }, [searching]);
 
-  const play = () => {
-    castPrompt.dismiss();
+  const play = (how: "phone" | "played") => {
+    castPrompt.dismiss(how);
     request.play();
   };
   const confirm = async () => {
@@ -69,10 +69,18 @@ function CastPromptSheet({ request }: { request: CastPromptRequest }) {
     setConnecting(tv);
     setError(null);
     try {
-      const result = await castAndPlay(tv, { castNow, waitForCast: waitForOgsCast, play });
-      if (result === "no-answer") setError(`${tv.name} didn't answer. Is it on?`);
-    } catch (err) {
-      setError(userMessage(err, "cast").text);
+      setError(
+        await castPrompt.confirm(() =>
+          confirmCast(tv, {
+            promptId: castPrompt.promptId() ?? "",
+            castNow,
+            waitForCast: waitForOgsCast,
+            play: () => play("played"),
+            log: castPrompt.log,
+            errorText: (err) => userMessage(err, "cast").text,
+          }),
+        ),
+      );
     } finally {
       setConnecting(null);
     }
@@ -193,7 +201,7 @@ function CastPromptSheet({ request }: { request: CastPromptRequest }) {
               kind="ghost"
               testID="castPromptPhone"
               disabled={busy}
-              onPress={play}
+              onPress={() => play("phone")}
             />
           ) : null}
           <Pressable

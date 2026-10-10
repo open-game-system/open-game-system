@@ -127,6 +127,7 @@
      *
      * Sender messages (urn:x-cast:org.opengame.view):
      *   LOAD_VIEW {viewUrl, streamServerUrl} — the cloud renders viewUrl on a GPU and streams it (phones).
+     *     (+ attemptId, sessionId: the phone's cast attempt and couch session, logged as phoneAttemptId / sessionId)
      *   PEER_OFFER {sdp, iceServers, hudUrl?} — a laptop streams its picture straight to this TV over
      *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR, also
      *                                          later if the link fails or no picture arrives in time).
@@ -182,13 +183,20 @@
      * server's API (Workers Logs), with no credentials (it has none; the API marks them
      * unauthenticated). Batched every few seconds, at once when the cast ends or fails. Never the
      * view URL (its query carries the launcher token): only hosts.
+     * Joining the phone's lines: each LOAD_VIEW names the phone's cast attempt and the couch session;
+     * every event after it carries them (phoneAttemptId, sessionId). attemptId is this run's own id.
      */
-    const RX_VERSION = 'receiver-2026-10-10';
+    const RX_VERSION = 'receiver-2026-10-10b';
     const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
     const rxRun = `rx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
     let rxEvents = [];
     let rxFlushTimer = null;
+    /** From the last LOAD_VIEW: the phone's cast attempt and the couch session (ids, max 64). */
+    const rxJoin = { phoneAttemptId: null, sessionId: null };
+    function joinId(value) {
+      return typeof value === 'string' && value.length > 0 && value.length <= 64 ? value : null;
+    }
     function hostOf(url) {
       try { return new URL(url).host; } catch (e) { return 'unknown'; }
     }
@@ -199,6 +207,8 @@
     }
     function rxLog(name, fields = {}) {
       const event = { name: `receiver.${name}`, at: Date.now(), level: fields.level || (fields.error ? 'error' : 'info'), attemptId: rxRun };
+      if (rxJoin.phoneAttemptId) event.phoneAttemptId = rxJoin.phoneAttemptId;
+      if (rxJoin.sessionId) event.sessionId = rxJoin.sessionId;
       if (fields.error) event.error = String(fields.error).slice(0, 1000);
       if (fields.durationMs != null) event.durationMs = Math.max(0, Math.round(fields.durationMs));
       if (fields.data) event.data = fields.data;
@@ -220,6 +230,7 @@
       }
     }
     window.addEventListener('pagehide', rxFlush);
+    rxLog('launched', { data: { version: RX_VERSION, platform: rxPlatform } });
 
     /**
      * Keep the TV awake while a stream plays (owner, 2026-10-10: Google TV's screensaver came on a
@@ -242,7 +253,7 @@
     let awakeClip = null;
     let awakeClipOn = false;
     function logAwake(method, ok, step, error) {
-      rxLog('keepawake', { level: ok ? 'info' : 'warn', error, data: { method, ok, step } });
+      rxLog('keepawake', { level: ok ? 'info' : 'warn', error, data: { method, ok, step, streaming: awakeWanted } });
     }
     function keepAwake() {
       if (awakeWanted) return;
@@ -877,7 +888,16 @@
       if (!data) return;
       senderSpoke = true;
       if (data.type === 'LOAD_VIEW' && data.viewUrl) {
-        rxLog('load_view.received', { data: { view: hostOf(data.viewUrl), stream: hostOf(data.streamServerUrl || DEFAULT_STREAM_SERVER) } });
+        // The phone's cast attempt and couch session, for every event from here (null: an older app).
+        rxJoin.phoneAttemptId = joinId(data.attemptId);
+        rxJoin.sessionId = joinId(data.sessionId);
+        const view = hostOf(data.viewUrl);
+        // The view already showing (the phone's handshake repeats it): nothing to do, said once each.
+        if (started && data.viewUrl === currentViewUrl) {
+          rxLog('load_view.ignored', { data: { why: 'duplicate', view } });
+          return;
+        }
+        rxLog('load_view.received', { data: { view, stream: hostOf(data.streamServerUrl || DEFAULT_STREAM_SERVER) } });
         clearPeerTimer();
         peerReply = null;
         removeHud();
@@ -945,6 +965,10 @@
         try { context.sendCustomMessage(VIEW_NAMESPACE, senderId, { type: 'REQUEST_VIEW', accepts: ACCEPTS }); } catch (e) { /* no senders yet */ }
       };
       context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (e) => requestView(e.senderId));
+      // Who is connected, as the TV sees it (a phone's cast session coming and going).
+      const logSenders = (state) => rxLog('sender', { data: { state, count: context.getSenders().length } });
+      context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, () => logSenders('connected'));
+      context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => logSenders('disconnected'));
       // Never stream to an empty room: the cast keeps a cloud GPU running (and billing) until this
       // page closes. Stop 20 min after the last phone disconnects, and after 3 hours regardless.
       let noSenderTimer = null;

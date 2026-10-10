@@ -24,19 +24,28 @@ export const FAKE_TV_2: CastDevice = {
 };
 export const FAKE_TV_2_DELAY_MS = 1500;
 
+type FakeCastOptions = {
+  endedAfterMs?: number;
+  loadUrls?: Record<string, string>;
+  refuseWhileActive?: boolean;
+};
+
 /**
  * The fake's timing and TVs from the build's env: EXPO_PUBLIC_FAKE_CAST_END_MS (Cast's real end
- * timing, see endedAfterMs) and EXPO_PUBLIC_FAKE_CAST_URL_2 (the Bedroom TV's own fake Chromecast).
+ * timing, see endedAfterMs), EXPO_PUBLIC_FAKE_CAST_URL_2 (the Bedroom TV's own fake Chromecast)
+ * and EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE=1 (see refuseWhileActive).
  */
 export function fakeCastOptions(env: {
   EXPO_PUBLIC_FAKE_CAST_END_MS?: string;
   EXPO_PUBLIC_FAKE_CAST_URL_2?: string;
-}): { endedAfterMs?: number; loadUrls?: Record<string, string> } {
-  const out: { endedAfterMs?: number; loadUrls?: Record<string, string> } = {};
+  EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE?: string;
+}): FakeCastOptions {
+  const out: FakeCastOptions = {};
   const ms = Number(env.EXPO_PUBLIC_FAKE_CAST_END_MS);
   if (env.EXPO_PUBLIC_FAKE_CAST_END_MS && Number.isFinite(ms) && ms >= 0) out.endedAfterMs = ms;
   if (env.EXPO_PUBLIC_FAKE_CAST_URL_2)
     out.loadUrls = { [FAKE_TV_2.id]: env.EXPO_PUBLIC_FAKE_CAST_URL_2 };
+  if (env.EXPO_PUBLIC_FAKE_CAST_REFUSE_ACTIVE === "1") out.refuseWhileActive = true;
   return out;
 }
 
@@ -58,6 +67,12 @@ export function createFakeCastBackend(opts: {
    * answers NO "if there is a session currently established". Unset: ends at once (older runs).
    */
   endedAfterMs?: number;
+  /**
+   * startSession resolves false while a session is up (connected or ending), for any TV, as
+   * GCKSessionManager does, without the end timing (endedAfterMs implies it). Unset: a start
+   * replaces the running session (older runs).
+   */
+  refuseWhileActive?: boolean;
 }): CastBackend {
   const devices =
     opts.mode === "none" ? [] : opts.mode === "two" ? [FAKE_TV, FAKE_TV_2] : [FAKE_TV];
@@ -70,6 +85,7 @@ export function createFakeCastBackend(opts: {
   let currentDevice: CastDevice | null = null;
   let ending = false;
   const realTiming = opts.endedAfterMs !== undefined;
+  const refuseWhileActive = realTiming || opts.refuseWhileActive === true;
   const loadUrlFor = (device: CastDevice) => opts.loadUrls?.[device.id] ?? opts.loadUrl;
   const handlers = {
     starting: new Set<Handler<[]>>(),
@@ -113,7 +129,7 @@ export function createFakeCastBackend(opts: {
       const device = devices.find((d) => d.id === deviceId);
       if (!device) return false;
       // Real Cast: NO while a session is established (connected, or still ending).
-      if (realTiming && current) return false;
+      if (refuseWhileActive && current) return false;
       for (const h of handlers.starting) h();
       const session = makeSession(device);
       current = session;
