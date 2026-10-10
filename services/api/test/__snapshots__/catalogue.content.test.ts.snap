@@ -422,7 +422,7 @@ exports[`catalogue content > is exactly the games as published 1`] = `
         45,
         90,
       ],
-      "players": "2-7",
+      "players": "3-7",
     },
     "startUrl": "https://run-set-jimmy.jonathanrmumm.workers.dev/",
     "tagline": "Seven rounds of runs and sets. Lowest score wins.",
