@@ -27,5 +27,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Through turbo, so workspace packages the site imports (ogs-protocol) are built first.
       - name: Build web
-        run: pnpm --filter @open-game-system/web build
+        run: pnpm turbo build --filter=@open-game-system/web

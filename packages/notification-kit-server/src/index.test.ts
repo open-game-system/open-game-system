@@ -1,137 +1,118 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createNotificationClient, NotificationApiError } from "./index";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createOgsNotifier, DEFAULT_OGS_API_URL, OgsNotifyError } from "./index";
 
-// Mock the global fetch
-const globalFetch = vi.fn();
-(globalThis as any).fetch = globalFetch;
+/** The game server's side of pushes (spec §9): one call per moment, with the game's API key. */
+const handle = "ph_abcdefghijklmnop";
 
-describe("NotificationClient", () => {
-  beforeEach(() => {
-    globalFetch.mockReset();
+function stub(answer: { status?: number; body: unknown }) {
+  const calls: { url: string; init: RequestInit }[] = [];
+  const fetch = async (url: string, init: RequestInit) => {
+    calls.push({ url, init });
+    return new Response(JSON.stringify(answer.body), { status: answer.status ?? 200 });
+  };
+  return { calls, fetch };
+}
+
+describe("createOgsNotifier", () => {
+  it("posts to the game's notifications route with its API key and answers the results", async () => {
+    const s = stub({ body: { results: [{ to: handle, status: "sent" }] } });
+    const notify = createOgsNotifier({
+      appId: "codebreakers",
+      apiKey: "ogsk_k",
+      baseUrl: "https://api.test",
+      fetch: s.fetch,
+    });
+    const message = {
+      to: [handle],
+      title: "Clue: RIVER 2",
+      body: "Your guess.",
+      url: "https://cb.example/r/K",
+      tag: "cb-K",
+      whenOpen: "banner" as const,
+    };
+    await expect(notify(message)).resolves.toEqual({ results: [{ to: handle, status: "sent" }] });
+    expect(s.calls).toHaveLength(1);
+    expect(s.calls[0]?.url).toBe("https://api.test/api/v1/games/codebreakers/notifications");
+    expect(s.calls[0]?.init.method).toBe("POST");
+    const headers = new Headers(s.calls[0]?.init.headers);
+    expect(headers.get("Authorization")).toBe("Bearer ogsk_k");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(s.calls[0]?.init.body))).toEqual(message);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it("defaults to the production OGS API, and escapes the appId", async () => {
+    const s = stub({ body: { results: [] } });
+    await createOgsNotifier({ appId: "a/b", apiKey: "k", fetch: s.fetch })({
+      to: [handle],
+      title: "t",
+      body: "b",
+    });
+    expect(s.calls[0]?.url).toBe(`${DEFAULT_OGS_API_URL}/api/v1/games/a%2Fb/notifications`);
+    expect(DEFAULT_OGS_API_URL).toBe("https://api.opengame.org");
   });
 
-  describe("createNotificationClient", () => {
-    it("uses the default base URL if none provided", async () => {
-      globalFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "123", status: "sent" }),
-      });
-
-      const client = createNotificationClient({ apiKey: "test-key" });
-
-      await client.sendNotification({
-        deviceId: "d1",
-        notification: { title: "T", body: "B" },
-      });
-
-      expect(globalFetch).toHaveBeenCalledWith(
-        "https://api.opengame.org/api/v1/notifications/send",
-        expect.any(Object),
-      );
-    });
-
-    it("uses custom base URL", async () => {
-      globalFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "123", status: "sent" }),
-      });
-
-      const client = createNotificationClient({
-        apiKey: "test-key",
-        baseUrl: "http://localhost:8787",
-      });
-
-      await client.sendNotification({
-        deviceId: "d1",
-        notification: { title: "T", body: "B" },
-      });
-
-      expect(globalFetch).toHaveBeenCalledWith(
-        "http://localhost:8787/api/v1/notifications/send",
-        expect.any(Object),
-      );
-    });
+  it("checks the message before sending (title ≤ 60, 1-100 handles)", async () => {
+    const s = stub({ body: { results: [] } });
+    const notify = createOgsNotifier({ appId: "codebreakers", apiKey: "k", fetch: s.fetch });
+    await expect(notify({ to: [], title: "t", body: "b" })).rejects.toThrow();
+    await expect(notify({ to: [handle], title: "t".repeat(61), body: "b" })).rejects.toThrow();
+    expect(s.calls).toEqual([]);
   });
 
-  describe("sendNotification", () => {
-    it("sends correct headers and body", async () => {
-      globalFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "123", status: "sent" }),
-      });
-
-      const client = createNotificationClient({ apiKey: "test-key" });
-
-      const payload = {
-        deviceId: "d1",
-        notification: { title: "T", body: "B", data: { url: "/x" } },
-      };
-
-      await client.sendNotification(payload);
-
-      expect(globalFetch).toHaveBeenCalledWith(expect.any(String), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer test-key",
-        },
-        body: JSON.stringify(payload),
-      });
+  it("throws OgsNotifyError with the API's error code and status", async () => {
+    const s = stub({
+      status: 403,
+      body: {
+        error: { code: "wrong_game", message: "This API key belongs to another game", status: 403 },
+      },
     });
-
-    it("throws NotificationApiError when fetch is not ok", async () => {
-      globalFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({ error: { code: "auth_failed", message: "Invalid key", status: 401 } }),
-      });
-
-      const client = createNotificationClient({ apiKey: "test-key" });
-
-      try {
-        await client.sendNotification({ deviceId: "d1", notification: { title: "T", body: "B" } });
-        expect.unreachable("Should have thrown");
-      } catch (err: any) {
-        expect(err).toBeInstanceOf(NotificationApiError);
-        expect(err.code).toBe("auth_failed");
-        expect(err.status).toBe(401);
-        expect(err.message).toBe("Invalid key");
-      }
+    const notify = createOgsNotifier({ appId: "codebreakers", apiKey: "k", fetch: s.fetch });
+    const err = await notify({ to: [handle], title: "t", body: "b" }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(OgsNotifyError);
+    expect(err).toMatchObject({
+      code: "wrong_game",
+      status: 403,
+      message: "This API key belongs to another game",
+      name: "OgsNotifyError",
     });
   });
 
-  describe("sendBulkNotifications", () => {
-    it("returns mixed results gracefully", async () => {
-      // First fails, second succeeds
-      globalFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({ error: { code: "bad", message: "bad", status: 400 } }),
-      });
-      globalFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "success-id", status: "sent" }),
-      });
-
-      const client = createNotificationClient({ apiKey: "test-key" });
-
-      const result = await client.sendBulkNotifications({
-        deviceIds: ["d1", "d2"],
-        notification: { title: "T", body: "B" },
-      });
-
-      expect(globalFetch).toHaveBeenCalledTimes(2);
-      expect(result).toHaveLength(2);
-
-      // Failed item
-      expect(result[0]).toEqual({ id: "", status: "failed" });
-
-      // Success item
-      expect(result[1]).toEqual({ id: "success-id", status: "sent" });
+  it("an error body that isn't the OGS shape still throws, with the HTTP status", async () => {
+    const s = stub({ status: 502, body: "bad gateway" });
+    const err = await createOgsNotifier({ appId: "c", apiKey: "k", fetch: s.fetch })({
+      to: [handle],
+      title: "t",
+      body: "b",
+    }).catch((e: unknown) => e);
+    expect(err).toMatchObject({
+      code: "http_error",
+      status: 502,
+      message: "OGS answered HTTP 502",
     });
+  });
+
+  it("a 200 that isn't results throws", async () => {
+    const s = stub({ body: { nope: true } });
+    await expect(
+      createOgsNotifier({ appId: "c", apiKey: "k", fetch: s.fetch })({
+        to: [handle],
+        title: "t",
+        body: "b",
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe("without a fetch option", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("uses the global fetch", async () => {
+    const urls: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      urls.push(url);
+      return Response.json({ results: [] });
+    });
+    await createOgsNotifier({ appId: "c", apiKey: "k" })({ to: [handle], title: "t", body: "b" });
+    expect(urls).toEqual([`${DEFAULT_OGS_API_URL}/api/v1/games/c/notifications`]);
   });
 });

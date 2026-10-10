@@ -52,30 +52,20 @@ authClient.linkAccount()
     console.error('Error linking account', error);
   });`;
 
-  const notificationKitCode = `import { createNotificationClient } from '@open-game-system/notification-kit/client';
+  const notificationKitCode = `import { createOgsNotifier } from '@open-game-system/notification-kit-server';
 
-// Initialize the notification client
-const notificationClient = createNotificationClient({
-  apiKey: 'your-api-key'
+// Your game's OGS API key (a secret on your server)
+const notify = createOgsNotifier({ appId: 'trivia-jam', apiKey: env.OGS_API_KEY });
+
+// The push handles your game keeps per seat; OGS delivers to the OGS app or your PWA
+const { results } = await notify({
+  to: [seat.pushHandle],
+  title: 'Your turn',
+  body: 'Sam answered. Your move.',
+  url: 'https://triviajam.tv/games/3f7a6d8c',
+  tag: 'trivia-jam-3f7a6d8c',
 });
-
-// Send a notification
-notificationClient.sendNotification({
-  recipient: { gameUserId: 'user-123' },
-  notification: {
-    type: 'your_turn',
-    title: 'Your Turn',
-    body: "Player 2 has made their move. It's your turn now!",
-    data: { gameId: 'game-456' },
-    deepLink: 'https://triviajam.tv/games/3f7a6d8c-1e9b-4f82-a7d5-8e91c6b4d712'
-  }
-})
-.then((result) => {
-  console.log('Notification sent:', result.id);
-})
-.catch((error) => {
-  console.error('Error sending notification:', error);
-});`;
+for (const r of results) if (r.status === 'gone') forgetHandle(r.to);`;
 
   const castKitCode = `import { createCastClient } from '@open-game-system/cast-kit/client';
 

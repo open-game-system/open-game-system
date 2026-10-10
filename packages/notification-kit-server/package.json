@@ -1,7 +1,7 @@
 {
   "name": "@open-game-system/notification-kit-server",
-  "version": "0.0.0",
-  "description": "Server-side notification client for OGS",
+  "version": "0.1.0",
+  "description": "OGS game pushes from a game's server: createOgsNotifier",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -30,10 +30,11 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@open-game-system/ogs-protocol": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@open-game-system/notification-kit-core": "workspace:*"
+    "zod": "^3.25.76"
   }
 }

@@ -85,6 +85,29 @@ function readGameToken(token: string): GameToken | null
 Decodes a game token's claims **without verifying** it, for display only. Anything that matters
 must use `verifyOgsToken` on your server.
 
+#### `requestOgsNotifications`
+
+```ts
+function requestOgsNotifications(join?: { handle?: string }): Promise<PushConsentResult | null>
+```
+
+Asks the player, inside the OGS app, whether this game may notify them. Call it from a tap, at the
+first moment a push would help ("Ping me when it's my turn again?"). The app shows its own sheet and
+resolves `{ status: "granted", handle }` or `{ status: "denied" }`; `null` outside the OGS app (in
+your PWA use notification-kit-web's `subscribeOgsPush`). Send the handle to your server and store it
+on the seat; pass a handle you already hold (`{ handle }`) to add the app to it. A kid's iPad is always
+denied. See [Notifications](notifications.md).
+
+#### `onOgsNotification`
+
+```ts
+function onOgsNotification(handler: (notification: OgsNotification) => void): () => void
+```
+
+Hears a push that arrived while this game is open and in front, in the OGS app or in your PWA (from
+its `sw.js`). OGS shows no system banner for it, so show your own hint or just update the page.
+Returns a function that stops listening. With no handler, the banner shows as usual.
+
 ### Types
 
 #### `OgsProfile`
@@ -181,6 +204,23 @@ interface Source<T> {
 
 An external store, ready for React's `useSyncExternalStore` (or any framework). `getSnapshot` is
 stable while nothing changed.
+
+#### `OgsNotification`
+
+```ts
+type OgsNotification = { title: string; body: string; url: string; tag?: string }
+```
+
+A push as the page hears it (`onOgsNotification`).
+
+#### `PushConsentResult`
+
+```ts
+type PushConsentResult = { status: "granted"; handle: string } | { status: "denied" }
+```
+
+The player's answer to `requestOgsNotifications`. `handle` is opaque (`ph_…`): it names no device or
+profile.
 
 ### Lower level (tests and custom wiring)
 
@@ -339,6 +379,76 @@ type OgsStores = {
 ```
 
 The app's `ogs` bridge store: the page reports its sitting, the app posts it to OGS.
+
+#### `createOgsNotifications`
+
+```ts
+function createOgsNotifications(opts: OgsNotificationsOptions): {
+  request(join?: { handle?: string }): Promise<PushConsentResult | null>;
+  listen(handler: (n: OgsNotification) => void): () => void;
+}
+```
+
+`requestOgsNotifications` and `onOgsNotification` over any bridge and service worker.
+
+#### `OgsNotificationsOptions`
+
+```ts
+interface OgsNotificationsOptions {
+  bridge: NotificationsBridge;
+  serviceWorker?: ServiceWorkerLike;
+  timeoutMs?: number;
+  newId?: () => string;
+}
+```
+
+#### `NotificationsBridge`
+
+```ts
+interface NotificationsBridge {
+  isSupported(): boolean;
+  getStore(key: "notifications"):
+    | { getSnapshot(): unknown; subscribe(l: (state: unknown) => void): () => void; dispatch(event: NotificationsBridgeEvent): void }
+    | undefined;
+  subscribe(listener: () => void): () => void;
+}
+```
+
+What notifications need of an app bridge.
+
+#### `NotificationsStores`
+
+```ts
+type NotificationsStores = {
+  notifications: {
+    state: { answer: { id: string; result: PushConsentResult } | null; last: { seq: number; notification: OgsNotification } | null };
+    events: { type: "REQUEST"; id: string; handle?: string } | { type: "LISTENING"; on: boolean };
+  };
+};
+```
+
+The app's `notifications` bridge store: the page asks (`REQUEST`, answered by id in `answer`) and
+says whether it listens; a swallowed push arrives as `last` with a growing `seq`.
+
+#### `ServiceWorkerLike`
+
+```ts
+interface ServiceWorkerLike {
+  addEventListener(type: "message", listener: (ev: { data: unknown; ports: readonly { postMessage(m: unknown): void }[] }) => void): void;
+  removeEventListener(type: "message", listener: (ev: { data: unknown; ports: readonly { postMessage(m: unknown): void }[] }) => void): void;
+}
+```
+
+The parts of `navigator.serviceWorker` the PWA side uses: `sw.js` posts `{ type: "ogs:notification", notification }`
+and the page answers `{ handled: true }` on the message's port.
+
+#### `NOTIFICATIONS_TIMEOUT_MS`
+
+```ts
+const NOTIFICATIONS_TIMEOUT_MS = 300
+```
+
+How long to wait for the app's `notifications` store before deciding this is not the OGS app.
 
 ## `@open-game-system/profile-kit/react`
 

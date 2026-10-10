@@ -8,7 +8,7 @@ Acceptance tests in `docs/acceptance/` are the testable distillation of these sp
 
 | Spec File | Covers |
 |-----------|--------|
-| [push-notifications.md](push-notifications.md) | Device registration, JWT tokens, send notifications, providers |
+| [push-notifications.md](push-notifications.md) | Game pushes and links (planned): push handles, opt-in in the app or the PWA, one send endpoint with a per-game API key, OGS routes to the app (Expo) or the PWA (web push), swallowed while open, taps and links open the game in the app |
 | [tv-casting.md](tv-casting.md) | Cast device discovery, session lifecycle, stream-kit rendering, receiver |
 | [ogs-join.html](ogs-join.html) | Joining and inviting (planned): launcher-owned join QR next to the TV code, web join page for guests (no install; the app is the upgrade), phones follow the TV, mid-game invite card in the manifest's safe corner (`ogs:invite`), "Play on TV with OGS" transfer link, multi-household pointer |
 | [ogs-profiles.html](ogs-profiles.html) | OGS profiles replace households: profile + @id + sticker at onboarding (everyone a full profile), optional back-up via Apple/Google/email, Friends and Profile tabs, TV session = whoever joined the cast, signed game-scoped profile token passed to games (bridge `profile` store, `ogs:start.token`), decisions recorded |

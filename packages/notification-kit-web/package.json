@@ -1,0 +1,44 @@
+{
+  "name": "@open-game-system/notification-kit-web",
+  "version": "0.1.0",
+  "description": "OGS web push for a game's own site: subscribeOgsPush and the service worker (sw.js)",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./sw.js": "./dist/sw.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown && tsdown --config tsdown.sw.config.ts && mv dist/sw.iife.js dist/sw.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@open-game-system/ogs-protocol": "workspace:*",
+    "@vitest/coverage-v8": "^4.1.0",
+    "playwright": "^1.58.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

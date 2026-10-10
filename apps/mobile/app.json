@@ -41,6 +41,11 @@
               "scheme": "https",
               "host": "opengame.org",
               "pathPrefix": "/open"
+            },
+            {
+              "scheme": "https",
+              "host": "opengame.org",
+              "pathPrefix": "/play/"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

@@ -75,6 +75,16 @@ games, device ids or age. Don't ask for more.
 Inside the OGS app, join under the OGS name and avatar without a form, and hide your own join-code
 entry. Join once per seat; the app refreshes the token and a new token must not join again.
 
+## 10. Notifications only when it helps
+
+A push is for someone who isn't looking: their turn in a game that runs over days, a round waiting on
+them, another couch joining their room. Send at most one per handoff, never to a player connected to
+your room, never to a kid (OGS refuses anyway), and never a streak or "come back and play" nag. Ask for
+permission from a tap, at the moment it is useful, once. See [Notifications](notifications.md).
+
+**Check:** your server's send is only called from handoffs, and a seam test shows a connected seat gets no
+push.
+
 ## Taste
 
 - Your game's own look: don't copy another OGS game's art direction.

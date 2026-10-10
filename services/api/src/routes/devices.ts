@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { signJwt } from "../lib/jwt";
 import { RegisterDeviceSchema } from "../schemas";
 import type { Env } from "../types";
 
@@ -7,7 +6,7 @@ const devices = new Hono<{ Bindings: Env }>();
 
 /**
  * POST /api/v1/devices/register
- * Registers or updates a device's push token. Returns a signed JWT device token.
+ * Registers or updates a device's Expo push token (how OGS reaches the app; never shown to games).
  */
 devices.post("/register", async (c) => {
   let rawBody: unknown;
@@ -67,17 +66,7 @@ devices.post("/register", async (c) => {
     .bind(ogsDeviceId, platform, pushToken)
     .run();
 
-  // Sign a JWT device token
-  const deviceToken = await signJwt(
-    {
-      sub: ogsDeviceId,
-      iat: Math.floor(Date.now() / 1000),
-      iss: "ogs-api",
-    },
-    c.env.OGS_JWT_SECRET,
-  );
-
-  return c.json({ deviceId: ogsDeviceId, deviceToken, registered: true });
+  return c.json({ deviceId: ogsDeviceId, registered: true });
 });
 
 export default devices;
