@@ -179,6 +179,8 @@ route → 403 `profile_token_required`.
 | POST | `/api/v1/games/:appId/token` | phone/tablet | Game token for the app's WebView → `{ token, profile: { id, handle, name, avatar }, expiresAt }`. Optional `{ sid }`: the couch this phone is on, so the token carries `couch: { sid, label }`. 404 `game_not_found` / `session_not_found`, 403 `profile_token_required` (launcher) / `not_a_member`, 400 `invalid_body`, 503 `game_tokens_unavailable` |
 | POST | `/api/v1/games/:appId/invites` | phone/tablet | Invite friends to this game's room: `{ room, to: [profileId] }` → 201 `{ link, invited: [{ profileId, pushed }] }`; a push to each friend's devices, link `<PLAY_BASE_URL>/play/<appId>?room=` (default opengame.org). 403 `not_a_friend`, 409 `not_multi_couch`, 404 `game_not_found`, 400 `invalid_body` (spec §7) |
 | POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined, `couch: { sid, label: host's name }`); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
+| POST | `/api/v1/sessions/:sid/live-activities` | its launcher, host or a member | `LIVE_ACTIVITIES = "on"` only (else 404 `feature_disabled`). `{ activityId, pushToken (hex), app ("ogs" or a white-label appId), environment (sandbox/production) }` → 201 `{ activityId }`: a controller Live Activity's APNs token; the CouchSession DO pushes `liveactivity` updates/ends to it (`live_activity.push` wide event); 403 `not_a_member`, 404 `session_not_found` |
+| DELETE | `/api/v1/sessions/:sid/live-activities/:activityId` | its owner | → 204; 404 `activity_not_found` / `feature_disabled` |
 | GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
 | GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url }, realtime, turn }`; 200 ready / 503 not (needs the renderer, `STREAM_SERVER_URL` (Cloud Run), plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
@@ -318,6 +320,7 @@ someone drops it deliberately.
 | `app_devices` | `(device_id, app_id)` | platform, token (native APNs / FCM), apns_environment, updated_at (ms) | A device running a game's own app; dead tokens removed on send |
 | `catalogue_entries` | `app_id` | status (pending/live/rejected), manifest_json (live), pending_json, submitted_at, reviewed_at (ms), note | `ogs publish`; live entries join the seed in GET /catalogue |
 | `try_paths` | `app_id` | url, checked_at (ms) | `ogs try`; the catalogue's tryUrl |
+| `live_activities` | `activity_id` | session_id, profile_id, app ("ogs" or appId), push_token, apns_environment, updated_at (ms) | A controller Live Activity's APNs token (LIVE_ACTIVITIES); deleted when the cast ends or APNs says gone |
 
 Canonical schema: `services/api/schema.sql`
 

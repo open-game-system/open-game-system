@@ -44,6 +44,18 @@ export interface Env {
   EXPO_ACCESS_TOKEN?: string;
   /** The game-developer docs site: GET /dev/kits points at its pages and <base>/pkg/*.tgz (default https://ogs-docs.pages.dev). */
   OGS_DOCS_BASE?: string;
+  /**
+   * Live Activities (docs/acceptance/2026-10-21-live-activities.feature): "on" turns on the token
+   * routes and the couch session's liveactivity pushes. Anything else: off (404 feature_disabled).
+   */
+  LIVE_ACTIVITIES?: string;
+  /** The OGS app's APNs key for liveactivity pushes (secrets; services/api/docs/live-activities.md). */
+  APNS_KEY_ID?: string;
+  APNS_TEAM_ID?: string;
+  /** The .p8's PEM text. Never logged. */
+  APNS_P8?: string;
+  /** The OGS app's bundle id (default org.opengame.app). */
+  APNS_BUNDLE_ID?: string;
   /** The deployed version (wrangler `version_metadata`); its id is every wide event's `version`. */
   CF_VERSION_METADATA?: WorkerVersionMetadata;
 }
