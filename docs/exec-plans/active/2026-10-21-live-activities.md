@@ -1,6 +1,6 @@
 # Exec plan: iOS Live Activities for the controller phone
 
-**Status:** in progress (2026-10-21), branch `feat/live-activities`, ships dark.
+**Status:** built, committed on `feat/live-activities` (draft PR). Ships dark. Not deployed, not verified on a real device.
 Acceptance: [live-activities.feature](../../acceptance/2026-10-21-live-activities.feature).
 ADR: [2026-10-21 Live Activities in the shell](../../adrs/2026-10-21-live-activities.md).
 
@@ -76,3 +76,15 @@ controller.
   (EAS syncs capabilities on build; unverified).
 - Real-device check: lock screen, Dynamic Island (iPhone 14 Pro or later), tap returns to the controller,
   remote update after the APNs key is in.
+
+## Verified (2026-10-21)
+
+- `pnpm typecheck`, `pnpm lint` and `pnpm test` pass, as does the API integration suite (workers pool, 177 tests).
+- Stryker on the API's live-activities lib and routes scores 99.5%. The one survivor is an error message string.
+- Stryker on the shell's live-activity modules scores 92.3% (drivers 97.3%, native 93.9%, controller 88.9%, shell 88.1%). The remaining survivors are mostly defensive guards and timer clears.
+- `OGS_LIVE_ACTIVITIES=1 expo prebuild -p ios` then `xcodebuild` on the iOS 26.4 simulator (iPhone 17 Pro)
+  builds `OgsLiveActivity.appex` into the app. Dev Tools' preview starts the activity, updates it and
+  ends it. Screenshots are in [evidence/live-activities](../evidence/live-activities/): the lock screen,
+  the compact and expanded Dynamic Island, and the key art loaded through the app group.
+- Not verified: APNs remote pushes (no .p8 yet), EAS signing of the extension and app group,
+  push-to-start, and a lock-screen tap opening a cast controller on a real device.
