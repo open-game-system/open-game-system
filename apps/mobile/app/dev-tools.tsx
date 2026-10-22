@@ -1,4 +1,6 @@
-import { useRouter } from "expo-router";
+import { loadLiveActivityNative } from "@open-game-system/shell/modules/live-activity-native";
+import Constants from "expo-constants";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -12,9 +14,33 @@ import {
   View,
 } from "react-native";
 import { addRecentDevUrl, getRecentDevUrls } from "../services/dev-urls";
+import { liveActivitiesBuilt } from "../services/live-activity";
+import { createLiveActivityPreview } from "../services/live-activity-preview";
+import { config } from "../services/runtime";
+
+/** The Live Activity preview: only in a build with the widget (OGS_LIVE_ACTIVITIES=1). */
+const preview = createLiveActivityPreview(
+  liveActivitiesBuilt(Constants.expoConfig) ? loadLiveActivityNative() : null,
+  Date.now,
+);
+const PREVIEW_GAME = {
+  appId: "rocket-crew",
+  name: "Rocket Crew",
+  artUrl: `${config.tvBase}/art/rocket-crew/icon.png`,
+};
+const PREVIEW_ACTIONS = [
+  { id: "Start", label: "Start", run: () => void preview.start(PREVIEW_GAME) },
+  { id: "YourTurn", label: "Your turn", run: () => preview.yourTurn(PREVIEW_GAME.appId) },
+  { id: "End", label: "End", run: () => preview.end() },
+];
 
 export default function DevToolsScreen() {
   const router = useRouter();
+  // opengame://dev-tools?liveActivity=Start|YourTurn|End runs a preview step (simulator screenshots, e2e).
+  const { liveActivity } = useLocalSearchParams<{ liveActivity?: string }>();
+  useEffect(() => {
+    if (preview.available) PREVIEW_ACTIONS.find((a) => a.id === liveActivity)?.run();
+  }, [liveActivity]);
   const [urlInput, setUrlInput] = useState("");
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
 
@@ -96,6 +122,25 @@ export default function DevToolsScreen() {
             <InspectorRow label="Cast Devices" value="0 found" />
           </View>
         </View>
+
+        {/* Live Activity preview (lock screen + Dynamic Island) */}
+        {preview.available && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Live Activity</Text>
+            <View style={styles.groupedRows}>
+              {PREVIEW_ACTIONS.map(({ id, label, run }) => (
+                <TouchableOpacity
+                  key={id}
+                  testID={`devToolsLiveActivity-${id}`}
+                  style={styles.launchButton}
+                  onPress={run}
+                >
+                  <Text style={styles.launchButtonText}>{label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Recent URLs */}
         {recentUrls.length > 0 && (

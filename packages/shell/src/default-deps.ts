@@ -12,6 +12,8 @@ import { createDeviceSource } from "./device";
 import { expoHapticsPlayer } from "./expo-haptics-player";
 import { ogsGameStores } from "./game-stores";
 import { createGoogleCastBackend } from "./google-cast-backend";
+import { loadLiveActivityNative } from "./live-activity-native";
+import { shellLiveActivity } from "./live-activity-shell";
 import { apnsEnvironmentFromEntitlement } from "./native-push";
 import type { ShellRuntimeConfig, ShellRuntimeDeps } from "./shell-runtime";
 import { type AppleAuthModule, appleSignIn, unavailableSignIn } from "./sign-in-providers";
@@ -45,10 +47,7 @@ export function defaultShellDeps(
     }),
     notifications: Notifications,
     platform: Platform.OS === "android" ? "android" : "ios",
-    apnsEnvironment: async () =>
-      apnsEnvironmentFromEntitlement(
-        await Application.getIosPushNotificationServiceEnvironmentAsync(),
-      ),
+    apnsEnvironment,
     haptics: expoHapticsPlayer(),
     signInProviders: [
       Platform.OS === "ios" && apple
@@ -57,12 +56,26 @@ export function defaultShellDeps(
       unavailableSignIn("google"),
     ],
     // The Google Cast backend is made when the runtime asks for the stores, not here.
-    gameStores: (ctx) => ({
-      ...castGameStores(createGoogleCastBackend(), {
-        streamServerUrl: streamServerUrl({}, config.apiBase),
-        browserTvStorage: AsyncStorage,
-      })(ctx),
-      ...ogsGameStores({ askPlayer: askToNotify })(ctx),
-    }),
+    gameStores: (ctx) => {
+      // Live Activities (shell config `liveActivities`): off, the stores are exactly as before.
+      const live = config.liveActivities
+        ? shellLiveActivity(ctx, { native: loadLiveActivityNative(), environment: apnsEnvironment })
+        : null;
+      const stores = {
+        ...castGameStores(createGoogleCastBackend(), {
+          streamServerUrl: streamServerUrl({}, config.apiBase),
+          browserTvStorage: AsyncStorage,
+          ...(live ? { onSession: live.onSession } : {}),
+        })(ctx),
+        ...ogsGameStores({ askPlayer: askToNotify })(ctx),
+      };
+      return live ? live.attach(stores) : stores;
+    },
   };
+}
+
+async function apnsEnvironment() {
+  return apnsEnvironmentFromEntitlement(
+    await Application.getIosPushNotificationServiceEnvironmentAsync(),
+  );
 }

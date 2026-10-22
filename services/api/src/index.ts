@@ -20,6 +20,7 @@ import games from "./routes/games";
 import instances from "./routes/instances";
 import join from "./routes/join";
 import library from "./routes/library";
+import liveActivities from "./routes/live-activities";
 import me from "./routes/me";
 import profiles from "./routes/profiles";
 import push from "./routes/push";
@@ -67,6 +68,8 @@ app.route("/api/v1/me", pushSettings);
 app.route("/api/v1/auth", auth);
 
 // Couch sessions: one per cast, joined with the TV code
+// Controller Live Activities: push tokens per couch session (LIVE_ACTIVITIES = "on")
+app.route("/api/v1/sessions", liveActivities);
 app.route("/api/v1/sessions", sessions);
 // The join page's look at a couch by its TV code (no token)
 app.route("/api/v1/join", join);

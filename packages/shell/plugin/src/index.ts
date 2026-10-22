@@ -3,6 +3,14 @@
 import { withOgsShell } from "./with-ogs-shell";
 
 export { withAppScheme } from "./app-scheme";
+export {
+  addWidgetTarget,
+  appGroupFor,
+  extensionBundleId,
+  LIVE_ACTIVITY_TARGET,
+  withLiveActivityAppConfig,
+  withShellLiveActivity,
+} from "./live-activity";
 export { mergeNativeConfig, type NativeConfigPart } from "./merge-native-config";
 export {
   type IntentFilter,

@@ -25,7 +25,7 @@ export type NativeConfig = {
   extra: {
     ogsShell: Pick<
       ShellConfig,
-      "appId" | "gameUrl" | "branding" | "linkDomains" | "apiBase" | "tvBase"
+      "appId" | "gameUrl" | "branding" | "linkDomains" | "apiBase" | "tvBase" | "liveActivities"
     >;
   };
 };
@@ -93,6 +93,7 @@ export function nativeConfigFor(config: ShellConfig): NativeConfig {
         linkDomains: config.linkDomains,
         ...(config.apiBase ? { apiBase: config.apiBase } : {}),
         ...(config.tvBase ? { tvBase: config.tvBase } : {}),
+        ...(config.liveActivities ? { liveActivities: true } : {}),
       },
     },
   };

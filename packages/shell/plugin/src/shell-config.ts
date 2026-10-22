@@ -43,6 +43,12 @@ export const ShellConfigSchema = z.object({
   apiBase: z.url({ protocol: /^https?$/, error: "an http(s):// URL" }).optional(),
   /** The OGS TV launcher the Chromecast loads. Leave it out for production (DEFAULT_TV_BASE). */
   tvBase: z.url({ protocol: /^https?$/, error: "an http(s):// URL" }).optional(),
+  /**
+   * iOS Live Activities: while the phone is the controller for the game on the TV, the lock screen
+   * and Dynamic Island show it (adds the OgsLiveActivity widget extension and an app group). Off
+   * unless true.
+   */
+  liveActivities: z.boolean().optional(),
 });
 
 export type ShellConfig = z.infer<typeof ShellConfigSchema>;

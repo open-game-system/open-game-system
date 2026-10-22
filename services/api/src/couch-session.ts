@@ -10,6 +10,7 @@ import {
 } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
 import { type Peer as Recipient, recipients } from "./couch/route";
+import { apnsSenderFor, publishLiveActivity } from "./lib/live-activities";
 import { recordLive, recordRoom, roomChange } from "./lib/presence";
 import { recordTvName } from "./lib/sessions";
 import { type EventFields, emit, errorFields, versionOf } from "./lib/wide-event";
@@ -114,6 +115,14 @@ export class CouchSession extends DurableObject<Env> {
       this.state = state;
       await this.ctx.storage.put(STATE_KEY, state);
       await this.publishLive(before, state);
+      // Controller Live Activities follow the TV (LIVE_ACTIVITIES = "on"); never holds up the couch.
+      this.ctx.waitUntil(
+        publishLiveActivity(this.env, before, state, {
+          senderFor: apnsSenderFor(this.env, fetch, Date.now),
+          now: Date.now,
+          version,
+        }),
+      );
       const sent = this.route(out);
       couchActionEvent(version, peer, msg, { sent, duration_ms: Date.now() - started });
     } catch (error) {

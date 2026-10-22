@@ -337,3 +337,18 @@ CREATE TABLE IF NOT EXISTS couch_invites (
   sent_at INTEGER NOT NULL,
   PRIMARY KEY (session_id, profile_id)
 );
+
+-- Live Activities (docs/acceptance/2026-10-21-live-activities.feature): a phone's controller Live Activity
+-- and its APNs push token, under the couch session it follows. app: "ogs" (the OGS app, OGS's own APNs
+-- key) or a white-label app's appId (its uploaded key). Deleted when the session's cast ends, when APNs
+-- says the token is gone, or by the phone (DELETE). updated_at: ms.
+CREATE TABLE IF NOT EXISTS live_activities (
+  activity_id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL REFERENCES couch_sessions(id),
+  profile_id TEXT NOT NULL REFERENCES profiles(id),
+  app TEXT NOT NULL,
+  push_token TEXT NOT NULL,
+  apns_environment TEXT NOT NULL CHECK (apns_environment IN ('sandbox', 'production')),
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS live_activities_session ON live_activities (session_id);

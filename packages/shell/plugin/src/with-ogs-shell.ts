@@ -1,6 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 import { type ConfigPlugin, createRunOncePlugin, withPlugins } from "expo/config-plugins";
 import { withAppScheme } from "./app-scheme";
+import { withShellLiveActivity } from "./live-activity";
 import { mergeNativeConfig, type NativeConfigPart } from "./merge-native-config";
 import { type NativeConfig, nativeConfigFor, type PluginEntry } from "./native-config";
 import { parseShellConfig } from "./shell-config";
@@ -47,8 +48,11 @@ export function createShellPlugins(applyPlugins: ApplyPlugins) {
     withShellPush: partPlugin(parts.push),
     withShellSignIn: partPlugin(parts.signIn),
     withShellScheme,
-    withOgsShell: ((config, props) =>
-      all(withShellScheme(config, props), props)) satisfies ConfigPlugin<unknown>,
+    withOgsShell: ((config, props) => {
+      const shell = all(withShellScheme(config, props), props);
+      // Live Activities only when the shell config asks (the widget extension and an app group).
+      return parseShellConfig(props).liveActivities ? withShellLiveActivity(shell, props) : shell;
+    }) satisfies ConfigPlugin<unknown>,
   };
 }
 

@@ -38,6 +38,7 @@ plugins: ["expo-router", ["@open-game-system/shell", shell]],
 | `scheme` | the `appId` | Expo's `scheme`, set only when the app has none of its own |
 | `apiBase` | `DEFAULT_OGS_API` (production) | Point a test build at a preview OGS API |
 | `tvBase` | `DEFAULT_TV_BASE` (`https://ogs-tv.pages.dev`) | The OGS TV launcher the Chromecast and browser TVs load |
+| `liveActivities` | off | `true`: iOS Live Activities while the phone is the controller (the `OgsLiveActivity` widget extension, `NSSupportsLiveActivities`, app group `group.<bundleId>.ogs`). See "Live Activities" below |
 
 What it writes (`nativeConfigFor` in `plugin/src/native-config.ts`):
 
@@ -47,8 +48,8 @@ What it writes (`nativeConfigFor` in `plugin/src/native-config.ts`):
   `/play/<appId>`.
 - Plugins: `react-native-google-cast` (receiver `807AD5E9`, discovery from launch),
   `expo-notifications`, `expo-apple-authentication`, `expo-splash-screen`.
-- `extra.ogsShell`: `appId`, `gameUrl`, `branding`, `linkDomains` and, when set, `apiBase`/`tvBase`,
-  which the runtime reads.
+- `extra.ogsShell`: `appId`, `gameUrl`, `branding`, `linkDomains` and, when set, `apiBase`/`tvBase`/
+  `liveActivities`, which the runtime reads.
 
 It never sets the bundle id, Android package, Team ID or owner: those stay in the app's own config.
 Each part is also a plugin of its own (`withShellLinks`, `withShellCast`, `withShellPush`,
@@ -135,8 +136,31 @@ The OGS app is the shell's first consumer (`"@open-game-system/shell": "workspac
   `jest.mock` would then miss the shell's import). `bridge-resolution.test.ts` does the same for
   app-bridge-react-native's `react`, `react-native` and `react-native-webview`. A new native module
   goes into apps/mobile first, with the same specifier.
-- The shell is JS only, so apps/mobile's native fingerprint does not change: shell changes ship
-  over the OTA channel (`mobile-release.yml` and `ci-mobile.yml` watch `packages/shell/**`).
+- The shell's runtime is JS plus one small Expo module, `OgsLiveActivity` (`ios/module`, autolinked
+  through `expo-module.config.json`). A change to the JS ships over the OTA channel
+  (`mobile-release.yml` and `ci-mobile.yml` watch `packages/shell/**`); a change under `ios/` changes
+  the native fingerprint, so it ships as a new build.
+
+## Live Activities
+
+`liveActivities: true` in the shell config (the OGS app: `OGS_LIVE_ACTIVITIES=1` at prebuild, see
+`apps/mobile/app.config.js`). While the phone is the controller for the game on the TV, the lock screen and
+the Dynamic Island show the game: its name, key art (else a monogram), a status line and the TV code.
+A tap brings the app back to the controller (`<scheme>://live-activity/<appId>`; the shell keeps the page as it was).
+`docs/acceptance/2026-10-21-live-activities.feature` has the full behaviour.
+
+- **Plugin** (`plugin/src/live-activity.ts`, `withShellLiveActivity`): at every prebuild, copies
+  `ios/widget` and `ios/shared` into `ios/OgsLiveActivity`, adds the app-extension target (iOS 16.2,
+  bundle id `<bundleId>.OgsLiveActivity`, embedded in the app), sets `NSSupportsLiveActivities`, the app
+  group (both targets) and EAS's `appExtensions` entry. Nothing is hand-edited in `ios/`.
+- **Native** (`ios/module/OgsLiveActivityModule.swift`): `areActivitiesEnabled`, `startActivity`,
+  `updateActivity`, `endActivity`, `prepareArt` (key art into the app group), events `onPushToken`,
+  `onStateChange`, `onPushToStartToken`. `ios/shared/OgsGameActivityAttributes.swift` is compiled
+  into both targets.
+- **Runtime** (`src/live-activity*.ts`): starts when the cast connects, follows the game's
+  `INSTANCE_REPORT`s (`ogs` store; "Round 3 · Your turn"), throttled to one update per 5 s, ends with
+  the cast, after 30 min idle, or 4 h in. It does nothing when the user disallowed Live Activities. The
+  push token is registered with `POST /api/v1/sessions/:sid/live-activities` for remote updates.
 
 ## Tests
 

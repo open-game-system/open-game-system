@@ -349,3 +349,10 @@ save their fake logins to the real `~/.config/ogs/credentials.json`, replacing p
 (revoked and re-minted). packages/cli's tests now run with a throwaway HOME (`test/isolated-home.ts`,
 a Vitest setup file). Any package whose code writes under the home folder needs the same before
 Stryker runs on it.
+
+## Live Activities (2026-10-21)
+
+- The first time an app starts a Live Activity, iOS asks on the lock screen whether to allow Live Activities from the app. Until the user answers, ActivityKit takes the start but drops `update` calls. Simulator e2e has to tap **Allow** before it checks updates.
+- In the xcode npm lib, `addTarget` stores the target name quoted (`"OgsLiveActivity"`), so `pbxTargetByName("OgsLiveActivity")` misses it. Match on the unquoted name.
+- Edit build settings on the project object itself. A Zod-parsed copy of `pbxXCBuildConfigurationSection()` is never written back.
+- `simctl openurl` with a custom scheme always shows "Open in …?". Drive the simulator with an XCUITest (tap `springboard.buttons["Open"]`) or with Detox.
