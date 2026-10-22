@@ -7,6 +7,7 @@ export * from "./guest";
 export * from "./instance";
 export * from "./join";
 export * from "./join-page";
+export * from "./live-activity";
 export * from "./manifest";
 export * from "./native";
 export * from "./push";
