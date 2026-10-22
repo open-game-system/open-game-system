@@ -18,7 +18,11 @@ import type { ShellIdentity } from "./shell-identity";
  * SET_VIEW_URL is not used: the launcher shows the manifest's `tvUrl`. Casting is always available:
  * the shell's picker offers a browser TV when no Chromecast is found.
  */
-const SessionCreatedSchema = z.object({ sessionId: z.string().min(1), token: z.string().min(1) });
+const SessionCreatedSchema = z.object({
+  sessionId: z.string().min(1),
+  token: z.string().min(1),
+  code: z.string().min(1).optional(),
+});
 
 export interface SingleGameCastOptions {
   appId: string;
@@ -32,6 +36,8 @@ export interface SingleGameCastOptions {
   tvName?: string;
   /** The shell's own TV picker (Chromecasts + browser TV); default: Google Cast's dialog. */
   showPicker?: () => void;
+  /** The couch session made for the cast (its Live Activity tokens are registered under it). */
+  onSession?: (session: { sessionId: string; code: string | null }) => void;
 }
 
 export function createSingleGameCastStore(
@@ -52,6 +58,7 @@ export function createSingleGameCastStore(
       body: { tvName: opts.tvName ?? "TV" },
       token: identity.deviceToken,
     });
+    opts.onSession?.({ sessionId: created.sessionId, code: created.code ?? null });
     const launcher = `${opts.tvBase.replace(/\/+$/, "")}/?api=${encodeURIComponent(
       opts.apiBase,
     )}&token=${encodeURIComponent(created.token)}`;

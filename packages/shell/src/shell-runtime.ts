@@ -6,6 +6,7 @@ import type {
   State,
   Store,
 } from "@open-game-system/app-bridge-types";
+import { readLiveActivityLink } from "@open-game-system/ogs-protocol";
 import { createAccountStore } from "./account-store";
 import { createShellRequest, type ShellRequest } from "./api-client";
 import type { FetchLike, OgsApiOptions } from "./api-request";
@@ -44,6 +45,8 @@ export interface ShellRuntimeConfig {
   tvBase?: string;
   /** The guest profile's name (default "Player"). */
   guestName?: string;
+  /** The shell config's `liveActivities`: the build has the widget extension (iOS Live Activities). */
+  liveActivities?: boolean;
 }
 
 /** What other stores (cast, profile, notifications, ogs…) get from the runtime. */
@@ -235,7 +238,12 @@ export function createShellRuntime(config: ShellRuntimeConfig, deps: ShellRuntim
       setSheet({ visible: false });
     },
     signInWith: (provider: NativeProvider) => track(signIn.start(provider)),
-    webViewUrlFor: (incoming: string) => webViewUrlFor(incoming, config),
+    /**
+     * A Live Activity tap (`<scheme>://live-activity/<appId>`) only brings the app forward: the
+     * controller stays on its page (null, like any link that isn't the game's).
+     */
+    webViewUrlFor: (incoming: string) =>
+      readLiveActivityLink(incoming) ? null : webViewUrlFor(incoming, config),
     castUrl: (launcherUrl: string) => castLauncherUrl(launcherUrl, config.appId),
     /** Resolves when the work started so far (sign-in, push, page events) has finished. */
     idle: async (): Promise<void> => {

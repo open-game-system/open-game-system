@@ -22,6 +22,8 @@ const ExpoConfigSchema = z.object({
         .string()
         .regex(/^https?:\/\//)
         .optional(),
+      /** The plugin built the Live Activity widget in (the shell config's `liveActivities`). */
+      liveActivities: z.boolean().optional(),
     }),
   }),
 });

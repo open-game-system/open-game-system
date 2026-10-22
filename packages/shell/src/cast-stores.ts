@@ -41,7 +41,12 @@ function memoryStorage(): BrowserTvStorage {
  */
 export function castGameStores(
   backend: CastBackend,
-  opts: { streamServerUrl: string; browserTvStorage?: BrowserTvStorage },
+  opts: {
+    streamServerUrl: string;
+    browserTvStorage?: BrowserTvStorage;
+    /** The couch session each cast makes (single-cast.ts): the Live Activity registers under it. */
+    onSession?: (session: { sessionId: string; code: string | null }) => void;
+  },
 ) {
   return (ctx: ShellContext) => {
     const browserTvs = createScreenCastBackend({
@@ -60,6 +65,7 @@ export function castGameStores(
       getIdentity: ctx.getIdentity,
       commands,
       showPicker: openPicker,
+      ...(opts.onSession ? { onSession: opts.onSession } : {}),
     });
     tvs.subscribeDevices((devices) => cast.dispatch({ type: "DEVICES_UPDATED", devices }));
     const detach = ctx.castPicker.attach({
