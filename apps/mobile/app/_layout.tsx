@@ -92,6 +92,7 @@ export default function RootLayout() {
         <Stack.Screen name="invite-friends" options={{ presentation: "modal" }} />
         <Stack.Screen name="play/[appId]" />
         <Stack.Screen name="join/[code]" />
+        <Stack.Screen name="live-activity/[appId]" options={{ animation: "none" }} />
         <Stack.Screen name="dev-tools" />
         <Stack.Screen name="[...unmatched]" />
       </Stack>

@@ -1,5 +1,7 @@
 import type { ClientMessage, FollowTarget, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
+import { loadLiveActivityNative } from "@open-game-system/shell/modules/live-activity-native";
+import { apnsEnvironmentFromEntitlement } from "@open-game-system/shell/modules/native-push";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import Constants from "expo-constants";
@@ -56,8 +58,9 @@ import { createLastTv, rememberConnectedTv } from "./last-tv";
 import { launchPlan } from "./launch-plan";
 import type { ReturnPill } from "./leave-game";
 import { createLinkHold } from "./link-routing";
+import { createAppLiveActivity, liveActivitiesBuilt } from "./live-activity";
 import { pushPermissionGranted, setForegroundGate } from "./notifications";
-import { createOgsApi } from "./ogs-api";
+import { createApiRequest, createOgsApi } from "./ogs-api";
 import { createPushApi } from "./push-api";
 import { foregroundDecision } from "./push-foreground";
 import { createRoomJoiner, roomStartUrl } from "./rooms";
@@ -302,6 +305,39 @@ function startCouch(token: string, deviceIdOfMine: string, sessionId: string) {
   couch.start();
 }
 appState.subscribe(syncCouch);
+
+// --- Live Activity (lock screen + Dynamic Island while a game plays on the cast TV) ---------
+
+/** POST /api/v1/sessions/:sid/live-activities (the activity's push token, for remote updates). */
+const { request: apiRequest } = createApiRequest({
+  baseUrl: config.apiBase,
+  fetch: fetchImpl,
+  auth,
+});
+
+/**
+ * Off (no native module) unless the build has the widget extension (OGS_LIVE_ACTIVITIES=1);
+ * inert when the user disallowed Live Activities. The game screen reports its game's status.
+ */
+export const liveActivity = createAppLiveActivity({
+  native: liveActivitiesBuilt(Constants.expoConfig) ? loadLiveActivityNative() : null,
+  couch: { getState: () => couchHub.getSnapshot().state, subscribe: couchHub.subscribe },
+  findGame: (appId) => findGame(appId),
+  session: () => appState.getSnapshot().session,
+  tvBase: config.tvBase,
+  scheme: "opengame",
+  environment: async () =>
+    apnsEnvironmentFromEntitlement(
+      await Application.getIosPushNotificationServiceEnvironmentAsync(),
+    ),
+  post: (sessionId, registration) =>
+    apiRequest(`/api/v1/sessions/${encodeURIComponent(sessionId)}/live-activities`, {
+      method: "POST",
+      body: registration,
+      authed: true,
+    }),
+  now: Date.now,
+});
 
 // --- Derived state + actions ----------------------------------------------------------------
 

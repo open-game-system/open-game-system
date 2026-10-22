@@ -38,6 +38,7 @@ import {
   gameNotifications,
   gamePresence,
   gameProfile,
+  liveActivity,
   ogsCastNow,
   pushApi,
   rememberGameUrl,
@@ -61,8 +62,12 @@ bridge.setStore(
   gameCastStoreFor(() => currentAppId),
 );
 // While cast, the game's report labels the couch's live sitting (one start is one sitting).
+// The report also updates the lock screen's Live Activity for this game ("Round 3 · Your turn").
 const ogsStore = createOgsBridgeStore(
-  (report, source) => appState.report(report, source),
+  (report, source) => {
+    liveActivity.report(report);
+    return appState.report(report, source);
+  },
   (appId) => reportSittingFor(appId, couchHub.getSnapshot().state),
 );
 bridge.setStore("ogs", ogsStore);
