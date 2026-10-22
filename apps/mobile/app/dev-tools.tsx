@@ -1,6 +1,6 @@
 import { loadLiveActivityNative } from "@open-game-system/shell/modules/live-activity-native";
 import Constants from "expo-constants";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -36,6 +36,11 @@ const PREVIEW_ACTIONS = [
 
 export default function DevToolsScreen() {
   const router = useRouter();
+  // opengame://dev-tools?liveActivity=Start|YourTurn|End runs a preview step (simulator screenshots, e2e).
+  const { liveActivity } = useLocalSearchParams<{ liveActivity?: string }>();
+  useEffect(() => {
+    if (preview.available) PREVIEW_ACTIONS.find((a) => a.id === liveActivity)?.run();
+  }, [liveActivity]);
   const [urlInput, setUrlInput] = useState("");
   const [recentUrls, setRecentUrls] = useState<string[]>([]);
 
