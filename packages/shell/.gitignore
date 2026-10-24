@@ -1,2 +1,4 @@
 build/
 plugin/build/
+ios/.build/
+.swiftpm/
