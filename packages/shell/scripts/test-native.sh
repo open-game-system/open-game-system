@@ -5,4 +5,5 @@ set -euo pipefail
 cd "$(dirname "$0")/../ios"
 sim="${SIM:-$(xcrun simctl list devices available | grep -m1 -oE 'iPhone[^(]*\(([0-9A-F-]{36})\)' | grep -oE '[0-9A-F-]{36}')}"
 timeout 600 xcodebuild test -scheme AirplayDisplayCore -destination "platform=iOS Simulator,id=$sim" \
-  -derivedDataPath "${TMPDIR:-/tmp}/ogs-airplay-xctest" -quiet
+  -derivedDataPath "${TMPDIR:-/tmp}/ogs-airplay-xctest" 2>&1 |
+  grep -E "error:|failed|Executed [0-9]+ tests|\*\* TEST" | tail -20

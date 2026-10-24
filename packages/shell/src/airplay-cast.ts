@@ -51,6 +51,8 @@ export type AirplayLog = (name: string, data: LogData, level: LogLevel) => void;
 export interface AirplayCastDeps {
   display: AirplayDisplay;
   sheet: AirplaySheet;
+  /** The app's name on the TV's idle card and away notice (default: the bundle's name). */
+  appName?: string;
   log?: AirplayLog;
   /** A local notification: "Open <app> to keep the TV going" (the TV shows the same notice). */
   notifyAway?: () => Promise<void>;
@@ -64,6 +66,7 @@ export type AirplayCastBackend = CastBackend & { dispose(): void };
 export function createAirplayCastBackend(deps: AirplayCastDeps): AirplayCastBackend {
   const { display, sheet } = deps;
   const log: AirplayLog = deps.log ?? (() => {});
+  if (deps.appName) void display.setAppName(deps.appName).catch(() => {});
   let connected: DisplayInfo | null = null;
   let routes = false;
   let current: Session | null = null;

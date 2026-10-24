@@ -1,10 +1,15 @@
 import type { ClientMessage, FollowTarget, Manifest } from "@open-game-system/ogs-protocol";
 import { playingView } from "@open-game-system/ogs-protocol";
+import { createAirplayCastBackend } from "@open-game-system/shell/modules/airplay-cast";
+import { airplayDisplay, airplayNativeLog } from "@open-game-system/shell/modules/airplay-native";
+import { createAirplaySheet } from "@open-game-system/shell/modules/airplay-sheet";
+import { forwardNativeLog } from "@open-game-system/shell/modules/native-log-forward";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
+import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useSyncExternalStore } from "react";
@@ -86,11 +91,14 @@ let logAuth: () => { token: string } | null = () => null;
 const appVersion = Constants.expoConfig?.version;
 /** The native build number (EAS sets it at build time; null in development). */
 const appBuild = Application.nativeBuildVersion;
+/** This launch: the stored client log is kept and read back per launch (docs/agents/client-log.md). */
+export const launchId = `launch-${Crypto.randomUUID()}`;
 
 export const clientLog = createClientLog({
   send: clientEventsSender({ baseUrl: config.apiBase, fetch: fetchImpl, auth: () => logAuth() }),
   context: () => ({
     app: "mobile",
+    launchId,
     version: appVersion,
     build: `${appBuild ?? "dev"}${config.fakeCast === "off" ? "" : "+fake-cast"}`,
     platform: `${Platform.OS} ${Platform.Version}`,
@@ -156,7 +164,33 @@ export const browserTvs = createScreenCastBackend({
   storage: AsyncStorage,
 });
 
-export const castBackend: CastBackend = combineCastBackends(chromecasts, browserTvs);
+/**
+ * An Apple TV / AirPlay TV (ADR 2026-10-23-airplay-display): Screen Mirroring gives the app an
+ * external display and the phone renders the launcher on it; the cast flow is the Chromecast's.
+ * Every native event (screens, audio routes, the TV WebView) goes to the client log.
+ */
+export const airplaySheet = createAirplaySheet();
+forwardNativeLog(airplayNativeLog, clientLog);
+const airplay = createAirplayCastBackend({
+  display: airplayDisplay,
+  sheet: airplaySheet,
+  appName: "OGS",
+  log: (name, data, level) => clientLog.event(name, { level, data }),
+  appState: RNAppState,
+  async notifyAway() {
+    const { granted } = await Notifications.getPermissionsAsync();
+    if (!granted) return;
+    await Notifications.scheduleNotificationAsync({
+      content: { title: "OGS", body: "Open OGS to keep the TV going" },
+      trigger: null,
+    });
+  },
+});
+
+export const castBackend: CastBackend = combineCastBackends(
+  combineCastBackends(chromecasts, browserTvs),
+  airplay,
+);
 
 const commands = castCommands(() => castBackend.showCastDialog(), castTrace);
 export const castStore = createCastStore(commands);

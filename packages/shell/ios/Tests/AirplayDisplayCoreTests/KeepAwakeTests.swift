@@ -68,3 +68,31 @@ final class KeepAwakeTests: XCTestCase {
     XCTAssertEqual(vc.webView.configuration.mediaTypesRequiringUserActionForPlayback, [])
   }
 }
+
+@MainActor
+final class AppNameTests: XCTestCase {
+  func testTheTvSaysTheAppsName() {
+    let vc = TvViewController()
+    vc.appName = "OGS"
+    vc.loadViewIfNeeded()
+    XCTAssertEqual(vc.idleTitleText, "OGS")
+    XCTAssertEqual(vc.noticeText, "Open OGS to keep the TV going")
+    vc.appName = "Settlewood"
+    XCTAssertEqual(vc.noticeText, "Open Settlewood to keep the TV going")
+  }
+
+  func testTheControllerPassesTheNameToItsTvWindow() {
+    let tv = FakeScreen(bounds: CGRect(x: 0, y: 0, width: 1280, height: 720))
+    let c = ExternalDisplayController(center: NotificationCenter())
+    c.screens = { [UIScreen.main, tv] }
+    c.connectedScenes = { [] }
+    c.isAppActive = { true }
+    c.makeWindow = { _ in UIWindow(frame: .zero) }
+    c.appName = "OGS"
+    c.refresh()
+    let vc = c.window?.rootViewController as? TvViewController
+    XCTAssertEqual(vc?.noticeText, "Open OGS to keep the TV going")
+    c.appName = "Rocket Crew"
+    XCTAssertEqual(vc?.idleTitleText, "Rocket Crew")
+  }
+}

@@ -38,6 +38,7 @@ export type AirplayEvents = {
 export interface AirplayDisplayNative {
   start(tvUrl: string): Promise<void>;
   stop(): Promise<void>;
+  setAppName(name: string): Promise<void>;
   currentDisplay(): Promise<DisplayInfo | null>;
   detectRoutes(seconds: number): Promise<boolean>;
   recentLog(after: number): Promise<NativeLogEvent[]>;
@@ -55,6 +56,8 @@ export interface AirplayDisplay {
   start(tvUrl: string): Promise<void>;
   /** Back to the idle card. */
   stop(): Promise<void>;
+  /** The app's name on the TV's idle card and "Open <name> to keep the TV going". */
+  setAppName(name: string): Promise<void>;
   currentDisplay(): Promise<DisplayInfo | null>;
   /** Look for AirPlay receivers for a while; resolves with what is known now. */
   detectRoutes(seconds: number): Promise<boolean>;
@@ -79,6 +82,7 @@ export const noAirplayDisplay: AirplayDisplay = {
   available: false,
   start: async () => {},
   stop: async () => {},
+  setAppName: async () => {},
   currentDisplay: async () => null,
   detectRoutes: async () => false,
   onConnect: () => NOOP_SUB,
@@ -101,6 +105,7 @@ export function airplayDisplayOf(native: AirplayDisplayNative | null): AirplayDi
     available: true,
     start: (tvUrl) => native.start(tvUrl),
     stop: () => native.stop(),
+    setAppName: (name) => native.setAppName(name),
     currentDisplay: () => native.currentDisplay(),
     detectRoutes: (seconds) => native.detectRoutes(seconds),
     onConnect: (listener) => native.addListener("onConnect", listener),

@@ -22,6 +22,7 @@ export function fakeAirplayDisplay(
     available: opts.available ?? true,
     start: jest.fn(async (url: string) => void calls.push(`start ${url}`)),
     stop: jest.fn(async () => void calls.push("stop")),
+    setAppName: jest.fn(async (_name: string) => {}),
     currentDisplay: jest.fn(async () => current),
     detectRoutes: jest.fn(async () => opts.routes ?? false),
     onConnect: (l) => sub(on.connect, l),

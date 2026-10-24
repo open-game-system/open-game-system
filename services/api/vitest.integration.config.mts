@@ -27,6 +27,7 @@ export default defineConfig({
           GOOGLE_CLIENT_IDS: "ogs-test.apps.googleusercontent.com",
           OGS_GAME_SIGNING_KEY,
           AVATAR_BASE_URL: "https://tv.test",
+          CLIENT_LOG_KEY: "integration-log-key",
         },
         // Email: the pool can't observe the local send_email binding, so SEND_EMAIL is bound to a
         // recording outbox with the same contract; tests read it through EMAIL_OUTBOX.

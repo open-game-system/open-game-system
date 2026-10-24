@@ -21,6 +21,7 @@ function fakeNative() {
   const raw = {
     start: jest.fn(async (_url: string) => {}),
     stop: jest.fn(async () => {}),
+    setAppName: jest.fn(async (_name: string) => {}),
     currentDisplay: jest.fn(async () => ({ name: "Kitchen", width: 1, height: 2 })),
     detectRoutes: jest.fn(async (_seconds: number) => true),
     recentLog: jest.fn(async (_after: number): Promise<NativeLogEvent[]> => []),
@@ -48,6 +49,7 @@ describe("airplayDisplayOf: the module's display half", () => {
     await expect(d.detectRoutes(5)).resolves.toBe(false);
     await expect(d.start("https://x")).resolves.toBeUndefined();
     await expect(d.stop()).resolves.toBeUndefined();
+    await expect(d.setAppName("OGS")).resolves.toBeUndefined();
     for (const sub of [
       d.onConnect(() => {}),
       d.onDisconnect(() => {}),
@@ -65,6 +67,8 @@ describe("airplayDisplayOf: the module's display half", () => {
     await d.stop();
     expect(raw.start).toHaveBeenCalledWith("https://tv/?token=t");
     expect(raw.stop).toHaveBeenCalled();
+    await d.setAppName("OGS");
+    expect(raw.setAppName).toHaveBeenCalledWith("OGS");
     await expect(d.currentDisplay()).resolves.toEqual({ name: "Kitchen", width: 1, height: 2 });
     await expect(d.detectRoutes(30)).resolves.toBe(true);
     expect(raw.detectRoutes).toHaveBeenCalledWith(30);

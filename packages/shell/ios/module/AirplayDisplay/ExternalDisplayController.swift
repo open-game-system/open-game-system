@@ -51,6 +51,10 @@ final class ExternalDisplayController: NSObject {
   /// Keep-awake: the phone must not auto-lock while it is drawing the TV (a locked phone stops the TV).
   var setIdleTimerDisabled: (Bool) -> Void = { UIApplication.shared.isIdleTimerDisabled = $0 }
   private(set) var keepingAwake = false
+  /// The app's name on the TV's idle card and notice (JS sets it: the bundle's name may be a slug).
+  var appName: String = appDisplayName() {
+    didSet { tvController?.appName = appName }
+  }
 
   init(center: NotificationCenter = .default) {
     self.center = center
@@ -242,6 +246,7 @@ final class ExternalDisplayController: NSObject {
     }
     log.info("display.attach", info)
     let controller = TvViewController()
+    controller.appName = appName
     controller.log = log
     let win = makeWindow(next)
     win.frame = next.bounds
@@ -308,6 +313,10 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
   private var loadStarted = Date()
   private let idle = UIView()
   private let notice = UILabel()
+  private let idleTitle = UILabel()
+  var appName: String = appDisplayName() {
+    didSet { applyName() }
+  }
   private(set) var loadedUrl: URL?
 
   override func viewDidLoad() {
@@ -367,6 +376,13 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
   }
 
   var isShowingNotice: Bool { notice.alpha > 0.5 }
+  var noticeText: String? { notice.text }
+  var idleTitleText: String? { idleTitle.text }
+
+  private func applyName() {
+    idleTitle.text = appName
+    notice.text = "Open \(appName) to keep the TV going"
+  }
   var isIdle: Bool { !idle.isHidden }
 
   private func applyIdle(_ on: Bool) {
@@ -377,8 +393,7 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
   private func buildIdleCard() {
     idle.frame = view.bounds
     idle.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-    let title = UILabel()
-    title.text = appDisplayName()
+    let title = idleTitle
     title.font = UIFont(name: "Georgia-Bold", size: 72) ?? .boldSystemFont(ofSize: 72)
     title.textColor = UIColor(red: 0.98, green: 0.95, blue: 0.89, alpha: 1)
     let line = UILabel()
@@ -401,7 +416,7 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
 
   /// Sits along the bottom edge, away from the game's focal area.
   private func buildNotice() {
-    notice.text = "Open \(appDisplayName()) to keep the TV going"
+    applyName()
     notice.font = UIFont(name: "Georgia", size: 30) ?? .systemFont(ofSize: 30)
     notice.textColor = UIColor(red: 0.98, green: 0.95, blue: 0.89, alpha: 1)
     notice.backgroundColor = UIColor(red: 0.11, green: 0.09, blue: 0.2, alpha: 0.9)

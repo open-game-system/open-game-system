@@ -1,3 +1,4 @@
+import { AirplaySteps } from "@open-game-system/shell/modules/airplay-ui";
 import { SymbolView } from "expo-symbols";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
@@ -14,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { CastDevice } from "../../../services/cast-store";
 import {
+  airplaySheet,
   castBackend,
   castNow,
   castPrompt,
@@ -22,6 +24,7 @@ import {
 } from "../../../services/runtime";
 import { userMessage } from "../../../services/user-message";
 import { Button } from "../Button";
+import { airplayTheme } from "../remote/airplay-theme";
 import { BrowserTv } from "../remote/BrowserTv";
 import { lastStop } from "../remote/last-stop";
 import { noTvCauses } from "../remote/no-tv";
@@ -59,6 +62,8 @@ function CastPromptSheet({ request }: { request: CastPromptRequest }) {
   const [error, setError] = useState<string | null>(null);
   const last = useSyncExternalStore(lastTv.subscribe, lastTv.get, lastTv.get);
   const view = castPromptView({ devices, searching, picked, stopped, last });
+  // Cast to the Apple TV with no display yet: the Screen Mirroring steps, in this sheet.
+  const airplay = useSyncExternalStore(airplaySheet.subscribe, airplaySheet.get, airplaySheet.get);
 
   // The search runs for a few seconds each time it starts (a timer: legitimate effect).
   useEffect(() => {
@@ -109,127 +114,136 @@ function CastPromptSheet({ request }: { request: CastPromptRequest }) {
         testID="castPrompt"
       >
         <View style={styles.grab} />
-        <Text style={styles.title} accessibilityRole="header" testID="castPromptTitle">
-          Play {request.game.name} on the TV
-        </Text>
-        <ScrollView
-          style={styles.body}
-          contentContainerStyle={styles.bodyContent}
-          bounces={false}
-          testID="castPromptScroll"
-        >
-          {view.kind === "choose" ? (
-            <>
-              <Text style={styles.lead}>
-                {view.devices.length > 1
-                  ? `Pick a TV. ${request.game.name} starts as soon as it's cast.`
-                  : `${request.game.name} starts as soon as the TV is cast.`}
-              </Text>
-              <View
-                accessibilityRole="radiogroup"
-                accessibilityLabel="Which TV"
-                style={styles.list}
-              >
-                {view.devices.map((d) => (
-                  <TvRow
-                    key={d.id}
-                    tv={d}
-                    on={d.id === view.target.id}
-                    connecting={connecting?.id === d.id}
-                    disabled={busy}
-                    onPick={() => setPicked(d)}
-                  />
-                ))}
-              </View>
-            </>
-          ) : view.kind === "looking" ? (
-            <View style={[styles.row, styles.looking]} testID="castPromptLooking">
-              <View style={styles.icon}>
-                <ActivityIndicator color={colors.cream2} />
-              </View>
-              <Text style={styles.lookingText}>Looking for TVs…</Text>
-            </View>
-          ) : (
-            <View testID="castPromptNoTv" style={styles.noTv}>
-              <Text style={styles.noTvTitle}>No TV found</Text>
-              {/* Most households have no Chromecast: the way that works for them comes first. */}
-              <Text style={styles.lead}>No Chromecast? Any TV with a browser works.</Text>
-              <BrowserTv onPaired={setPicked} />
-              <Text style={styles.lead}>Have a Chromecast? Usually it's one of these:</Text>
-              {noTvCauses(Platform.OS).map(([title, body]) => (
-                <View key={title} style={styles.cause}>
-                  <Text style={styles.causeTitle}>{title}</Text>
-                  <Text style={styles.causeBody}>{body}</Text>
-                </View>
-              ))}
-              <View style={styles.noTvActions}>
-                <Button
-                  label="Try again"
-                  testID="castPromptRetry"
-                  onPress={() => setSearching(true)}
-                  style={styles.flex}
-                />
-                <Button
-                  label="Open Settings"
-                  kind="ghost"
-                  onPress={() => void Linking.openSettings()}
-                  style={styles.flex}
-                />
-              </View>
-            </View>
-          )}
-          {error ? (
-            <Text style={styles.error} testID="castPromptError">
-              {error}
-            </Text>
-          ) : null}
-        </ScrollView>
-        <View style={styles.actions}>
-          {view.kind === "choose" ? (
-            <Pressable
-              testID="castPromptConfirm"
-              accessibilityRole="button"
-              accessibilityLabel={
-                busy ? `Connecting to ${view.target.name}` : `Cast to ${view.target.name}`
-              }
-              disabled={busy}
-              onPress={() => void confirm()}
-              style={({ pressed }) => [styles.confirm, (pressed || busy) && styles.pressed]}
-            >
-              {busy ? (
-                <ActivityIndicator color={colors.ink} />
-              ) : (
-                <SymbolView
-                  name="tv"
-                  size={20}
-                  weight="semibold"
-                  tintColor={colors.ink}
-                  style={styles.castSym}
-                />
-              )}
-              <Text style={styles.confirmText} numberOfLines={1}>
-                {busy ? `Connecting to ${view.target.name}…` : "Cast"}
-              </Text>
-            </Pressable>
-          ) : null}
-          {request.phone ? (
-            <Button
-              label="Play on this phone"
-              kind="ghost"
-              testID="castPromptPhone"
-              disabled={busy}
-              onPress={() => play("phone")}
-            />
-          ) : null}
-          <Pressable
-            testID="castPromptDismiss"
-            accessibilityRole="button"
-            disabled={busy}
-            onPress={castPrompt.dismiss}
-            style={({ pressed }) => [styles.notNow, pressed && styles.pressed]}
+        {airplay.open ? (
+          <AirplaySteps
+            mode={airplay.mode}
+            onClose={() => airplaySheet.close()}
+            theme={airplayTheme}
+          />
+        ) : null}
+        <View style={airplay.open ? styles.hidden : styles.flexNone}>
+          <Text style={styles.title} accessibilityRole="header" testID="castPromptTitle">
+            Play {request.game.name} on the TV
+          </Text>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            bounces={false}
+            testID="castPromptScroll"
           >
-            <Text style={[styles.notNowText, busy && styles.dim]}>Not now</Text>
-          </Pressable>
+            {view.kind === "choose" ? (
+              <>
+                <Text style={styles.lead}>
+                  {view.devices.length > 1
+                    ? `Pick a TV. ${request.game.name} starts as soon as it's cast.`
+                    : `${request.game.name} starts as soon as the TV is cast.`}
+                </Text>
+                <View
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Which TV"
+                  style={styles.list}
+                >
+                  {view.devices.map((d) => (
+                    <TvRow
+                      key={d.id}
+                      tv={d}
+                      on={d.id === view.target.id}
+                      connecting={connecting?.id === d.id}
+                      disabled={busy}
+                      onPick={() => setPicked(d)}
+                    />
+                  ))}
+                </View>
+              </>
+            ) : view.kind === "looking" ? (
+              <View style={[styles.row, styles.looking]} testID="castPromptLooking">
+                <View style={styles.icon}>
+                  <ActivityIndicator color={colors.cream2} />
+                </View>
+                <Text style={styles.lookingText}>Looking for TVs…</Text>
+              </View>
+            ) : (
+              <View testID="castPromptNoTv" style={styles.noTv}>
+                <Text style={styles.noTvTitle}>No TV found</Text>
+                {/* Most households have no Chromecast: the way that works for them comes first. */}
+                <Text style={styles.lead}>No Chromecast? Any TV with a browser works.</Text>
+                <BrowserTv onPaired={setPicked} />
+                <Text style={styles.lead}>Have a Chromecast? Usually it's one of these:</Text>
+                {noTvCauses(Platform.OS).map(([title, body]) => (
+                  <View key={title} style={styles.cause}>
+                    <Text style={styles.causeTitle}>{title}</Text>
+                    <Text style={styles.causeBody}>{body}</Text>
+                  </View>
+                ))}
+                <View style={styles.noTvActions}>
+                  <Button
+                    label="Try again"
+                    testID="castPromptRetry"
+                    onPress={() => setSearching(true)}
+                    style={styles.flex}
+                  />
+                  <Button
+                    label="Open Settings"
+                    kind="ghost"
+                    onPress={() => void Linking.openSettings()}
+                    style={styles.flex}
+                  />
+                </View>
+              </View>
+            )}
+            {error ? (
+              <Text style={styles.error} testID="castPromptError">
+                {error}
+              </Text>
+            ) : null}
+          </ScrollView>
+          <View style={styles.actions}>
+            {view.kind === "choose" ? (
+              <Pressable
+                testID="castPromptConfirm"
+                accessibilityRole="button"
+                accessibilityLabel={
+                  busy ? `Connecting to ${view.target.name}` : `Cast to ${view.target.name}`
+                }
+                disabled={busy}
+                onPress={() => void confirm()}
+                style={({ pressed }) => [styles.confirm, (pressed || busy) && styles.pressed]}
+              >
+                {busy ? (
+                  <ActivityIndicator color={colors.ink} />
+                ) : (
+                  <SymbolView
+                    name="tv"
+                    size={20}
+                    weight="semibold"
+                    tintColor={colors.ink}
+                    style={styles.castSym}
+                  />
+                )}
+                <Text style={styles.confirmText} numberOfLines={1}>
+                  {busy ? `Connecting to ${view.target.name}…` : "Cast"}
+                </Text>
+              </Pressable>
+            ) : null}
+            {request.phone ? (
+              <Button
+                label="Play on this phone"
+                kind="ghost"
+                testID="castPromptPhone"
+                disabled={busy}
+                onPress={() => play("phone")}
+              />
+            ) : null}
+            <Pressable
+              testID="castPromptDismiss"
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={castPrompt.dismiss}
+              style={({ pressed }) => [styles.notNow, pressed && styles.pressed]}
+            >
+              <Text style={[styles.notNowText, busy && styles.dim]}>Not now</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
@@ -374,4 +388,6 @@ const styles = StyleSheet.create({
   notNow: { minHeight: TARGET, alignItems: "center", justifyContent: "center" },
   notNowText: { color: colors.cream2, fontSize: 17, fontWeight: "700" },
   dim: { opacity: 0.5 },
+  hidden: { display: "none" },
+  flexNone: { gap: 12, flexShrink: 1 },
 });

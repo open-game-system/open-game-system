@@ -69,6 +69,7 @@ export function shellAirplay(deps: ShellAirplayDeps) {
     const backend = createAirplayCastBackend({
       display: deps.display,
       sheet: ctx.airplaySheet,
+      appName: name,
       log: (event, data, level) => log.event(event, { level, data }),
       appState: deps.appState,
       async notifyAway() {

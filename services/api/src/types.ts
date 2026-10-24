@@ -1,3 +1,4 @@
+import type { ClientLog } from "./client-log-do";
 import type { CouchSession } from "./couch-session";
 
 export interface Env {
@@ -36,6 +37,10 @@ export interface Env {
   PLAY_BASE_URL?: string;
   /** POST /client-events: Workers rate limiting, keyed per profile (the receiver per IP). */
   CLIENT_EVENTS_LIMITER?: RateLimit;
+  /** The stored client log (one object per app launch + an index); unbound: nothing is stored. */
+  CLIENT_LOG?: DurableObjectNamespace<ClientLog>;
+  /** GET /client-events: the log key (a secret, header x-log-key). Unset: reading is closed. */
+  CLIENT_LOG_KEY?: string;
   /** Web push: encrypts each game's VAPID private key (secret). Unset: web push answers 503. */
   PUSH_KEY_SECRET?: string;
   /** The VAPID subject push services can reach OGS at (default https://opengame.org). */

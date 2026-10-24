@@ -60,6 +60,11 @@ public class OgsAirplayDisplayModule: Module {
       self.controller.start(url)
     }.runOnQueue(.main)
 
+    /// The app's name on the TV's idle card and "Open <name> to keep the TV going".
+    AsyncFunction("setAppName") { (name: String) in
+      self.controller.appName = name
+    }.runOnQueue(.main)
+
     /// Back to the idle card on the TV.
     AsyncFunction("stop") {
       self.controller.stop()

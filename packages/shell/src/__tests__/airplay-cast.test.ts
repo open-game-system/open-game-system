@@ -33,6 +33,24 @@ function lifecycle(backend: Awaited<ReturnType<typeof setup>>["backend"]) {
   return seen;
 }
 
+describe("the TV window's copy", () => {
+  it("names the app on the idle card and the away notice", async () => {
+    const fake = fakeDisplay();
+    createAirplayCastBackend({
+      display: fake.display,
+      sheet: createAirplaySheet(),
+      appName: "OGS",
+    });
+    expect(fake.display.setAppName).toHaveBeenCalledWith("OGS");
+  });
+
+  it("leaves the bundle's name when the app passes none", () => {
+    const fake = fakeDisplay();
+    createAirplayCastBackend({ display: fake.display, sheet: createAirplaySheet() });
+    expect(fake.display.setAppName).not.toHaveBeenCalled();
+  });
+});
+
 describe("the AirPlay TV in the device list", () => {
   it("is not offered without the native module (Android, Expo Go, tests)", async () => {
     const { backend } = await setup({

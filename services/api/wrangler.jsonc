@@ -51,6 +51,10 @@
       {
         "name": "COUCH_SESSION",
         "class_name": "CouchSession"
+      },
+      {
+        "name": "CLIENT_LOG",
+        "class_name": "ClientLog"
       }
     ]
   },
@@ -67,6 +71,10 @@
     {
       "tag": "v3",
       "deleted_classes": ["StreamContainer"]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": ["ClientLog"]
     }
   ],
 
