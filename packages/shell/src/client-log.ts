@@ -14,7 +14,12 @@ export type LogValue = string | number | boolean | null;
 export type LogData = Record<string, LogValue | undefined>;
 
 export type ClientLogContext = {
-  app: "mobile" | "receiver";
+  /** "shell": a game's own app (@open-game-system/shell); "mobile": the OGS app. */
+  app: "mobile" | "receiver" | "shell";
+  /** A game's own app: its OGS appId. */
+  appId?: string;
+  /** One id per app launch: the stored client log is kept and read back per launch. */
+  launchId?: string;
   build?: string;
   version?: string;
   platform?: string;
@@ -149,7 +154,9 @@ const Scalar = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const StoredSchema = z.array(
   z.object({
     context: z.object({
-      app: z.enum(["mobile", "receiver"]),
+      app: z.enum(["mobile", "receiver", "shell"]),
+      appId: z.string().optional(),
+      launchId: z.string().optional(),
       build: z.string().optional(),
       version: z.string().optional(),
       platform: z.string().optional(),

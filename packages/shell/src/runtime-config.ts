@@ -22,6 +22,8 @@ const ExpoConfigSchema = z.object({
         .string()
         .regex(/^https?:\/\//)
         .optional(),
+      /** The plugin's `cast.airplay`: offer an Apple TV / AirPlay TV (Screen Mirroring). */
+      airplay: z.boolean().optional(),
     }),
   }),
 });
@@ -40,13 +42,14 @@ export function readRuntimeConfig(expoConfig: unknown): OgsShellConfig {
     );
   }
   const { name, extra, scheme } = parsed.data;
-  const { apiBase, tvBase, ...shell } = extra.ogsShell;
+  const { apiBase, tvBase, airplay, ...shell } = extra.ogsShell;
   const schemes = scheme === undefined ? [] : [scheme].flat();
   return {
     ...shell,
     name,
     apiBase: apiBase ?? DEFAULT_OGS_API,
     ...(tvBase ? { tvBase } : {}),
+    ...(airplay ? { airplay: true } : {}),
     ...(schemes.length > 0 ? { schemes } : {}),
   };
 }

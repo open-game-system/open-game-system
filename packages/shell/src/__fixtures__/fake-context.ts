@@ -1,3 +1,4 @@
+import { createAirplaySheet } from "../airplay-sheet";
 import { createShellRequest } from "../api-client";
 import type { FetchLike } from "../api-request";
 import { createCastPicker } from "../cast-picker";
@@ -37,6 +38,7 @@ export function fakeContext(fetch: FetchLike, config: Partial<ShellRuntimeConfig
       stopListeners.push(listener);
     },
     castPicker: createCastPicker(),
+    airplaySheet: createAirplaySheet(),
   };
   return {
     ctx,

@@ -7,6 +7,7 @@ import type {
   Store,
 } from "@open-game-system/app-bridge-types";
 import { createAccountStore } from "./account-store";
+import { type AirplaySheet, createAirplaySheet } from "./airplay-sheet";
 import { createShellRequest, type ShellRequest } from "./api-client";
 import type { FetchLike, OgsApiOptions } from "./api-request";
 import { castLauncherUrl } from "./cast-launcher-url";
@@ -44,6 +45,8 @@ export interface ShellRuntimeConfig {
   tvBase?: string;
   /** The guest profile's name (default "Player"). */
   guestName?: string;
+  /** Offer an Apple TV / AirPlay TV through Screen Mirroring (the plugin's `cast.airplay`). */
+  airplay?: boolean;
 }
 
 /** What other stores (cast, profile, notifications, ogs…) get from the runtime. */
@@ -62,6 +65,8 @@ export interface ShellContext {
   onStop(listener: () => void): void;
   /** The shell's native TV picker: the cast store attaches its TVs and opens it (SHOW_CAST_PICKER). */
   castPicker: CastPicker;
+  /** The AirPlay "Show on TV" sheet (Screen Mirroring steps); <OgsShell /> renders it. */
+  airplaySheet: AirplaySheet;
 }
 
 type AnyStore = Store<State, Event>;
@@ -154,8 +159,10 @@ export function createShellRuntime(config: ShellRuntimeConfig, deps: ShellRuntim
 
   const stopListeners = new Set<() => void>();
   const castPicker = createCastPicker();
+  const airplaySheet = createAirplaySheet();
   const ctx: ShellContext = {
     castPicker,
+    airplaySheet,
     config,
     request,
     apiOptions: {
@@ -190,6 +197,7 @@ export function createShellRuntime(config: ShellRuntimeConfig, deps: ShellRuntim
     bridge,
     config,
     castPicker,
+    airplaySheet,
     getIdentity: () => identity,
     onIdentity: ctx.onIdentity,
     requestPush: ctx.requestPush,
