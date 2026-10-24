@@ -7,6 +7,10 @@
 // "@open-game-system/shell/app" (src/shell-app.ts), so this entry loads no WebView.
 
 export * from "./account-store";
+export * from "./airplay-cast";
+export * from "./airplay-display";
+export * from "./airplay-sheet";
+export * from "./airplay-shell";
 export * from "./api-client";
 export * from "./api-request";
 export * from "./cast-backend";
@@ -36,6 +40,7 @@ export * from "./hardware-back";
 export * from "./identity";
 export * from "./incoming-links";
 export * from "./js-errors";
+export * from "./native-log-forward";
 export * from "./native-push";
 export * from "./native-sign-in";
 export * from "./OfflineScreen";
@@ -44,6 +49,7 @@ export * from "./push-api";
 export * from "./push-foreground";
 export * from "./push-registration";
 export * from "./runtime-config";
+export * from "./ShowOnTvSheet";
 export * from "./SignInSheet";
 export * from "./screen-cast";
 export * from "./screens-api";

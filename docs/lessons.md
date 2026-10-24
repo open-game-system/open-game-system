@@ -349,3 +349,23 @@ save their fake logins to the real `~/.config/ogs/credentials.json`, replacing p
 (revoked and re-minted). packages/cli's tests now run with a throwaway HOME (`test/isolated-home.ts`,
 a Vitest setup file). Any package whose code writes under the home folder needs the same before
 Stryker runs on it.
+
+## AirPlay to an Apple TV (2026-10-23, from Crak & Bam's device test)
+
+- **AVRoutePickerView only routes audio and media.** Picking the Apple TV in it sends the sound and
+  no picture. An app can't start Screen Mirroring; show the Control Center steps instead and wait
+  for the external display (`UIScreen.didConnectNotification`, or a
+  `windowExternalDisplayNonInteractive` scene).
+- **An Expo app gets a bare external `UIScreen`, not a scene** (it runs on the app-delegate life
+  cycle). Handle both; the shell's `ExternalDisplayController` does.
+- **The Simulator's external display connects at 720x480, then switches to 1080p** (a mode change):
+  the TV window must follow `UIScreen.modeDidChangeNotification`, or the page sits in a corner.
+- **Don't become the Now Playing app**: a `.playback` session without `.mixWithOthers`, or setting
+  `MPNowPlayingInfoCenter`, puts a "now playing" card on the Apple TV over the game. Set
+  `allowsAirPlayForMediaPlayback = false` on every WebView too.
+- **A sound-only AirPlay route looks like an `.airPlay` output with no external screen.** Screen
+  Mirroring connects its screen a moment after its audio, so check after the route settles (1.5 s).
+- **iOS suspends a backgrounded app, so the TV freezes.** Tell the TV and the phone ("Open <app> to
+  keep the TV going"); keep the phone awake while it draws the TV.
+- **The launcher URL carries the launcher token in its query.** Native logs keep host + path only.
+

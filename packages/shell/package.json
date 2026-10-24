@@ -31,6 +31,11 @@
   },
   "files": [
     "app.plugin.js",
+    "expo-module.config.json",
+    "ios",
+    "!ios/Tests",
+    "!ios/Package.swift",
+    "!ios/.build",
     "build",
     "plugin/build",
     "src",
@@ -46,7 +51,8 @@
     "test": "pnpm run build:plugin && vitest run && jest --ci --passWithNoTests",
     "test:plugin": "pnpm run build:plugin && vitest run",
     "test:runtime": "jest --ci --passWithNoTests",
-    "test:mutate": "stryker run"
+    "test:mutate": "stryker run",
+    "test:native": "bash scripts/test-native.sh"
   },
   "dependencies": {
     "@open-game-system/app-bridge-native": "workspace:*",

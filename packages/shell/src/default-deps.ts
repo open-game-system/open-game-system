@@ -4,7 +4,9 @@ import * as Crypto from "expo-crypto";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
+import { airplayDisplay, airplayNativeLog } from "./airplay-native";
+import { shellAirplay } from "./airplay-shell";
 import { castGameStores } from "./cast-stores";
 import { streamServerUrl } from "./cast-view";
 import { askToNotify } from "./consent-sheet";
@@ -17,7 +19,8 @@ import type { ShellRuntimeConfig, ShellRuntimeDeps } from "./shell-runtime";
 import { type AppleAuthModule, appleSignIn, unavailableSignIn } from "./sign-in-providers";
 
 /**
- * The runtime's dependencies on a real device: Google Cast (the game's `cast` store), SecureStore,
+ * The runtime's dependencies on a real device: Google Cast (the game's `cast` store; with
+ * `airplay`, the Apple TV / AirPlay TV too), SecureStore,
  * expo-notifications, expo-haptics. Sign in with Apple on iOS when the app passes
  * expo-apple-authentication in; Google is not wired yet
  * (unavailable on both platforms in v1 of the runtime).
@@ -34,6 +37,24 @@ export function defaultShellDeps(
 ): ShellRuntimeDeps {
   const apple = options.appleAuthentication;
   const storage = SecureStore;
+  // The Apple TV / AirPlay TV (shell config cast.airplay): iOS only, on the native module.
+  const airplay =
+    config.airplay && Platform.OS === "ios"
+      ? shellAirplay({
+          display: airplayDisplay,
+          nativeLog: airplayNativeLog,
+          fetch: (url, init) => fetch(url, init),
+          now: Date.now,
+          newId: () => Crypto.randomUUID(),
+          platform: `${Platform.OS} ${Platform.Version}`,
+          ...(Application.nativeApplicationVersion
+            ? { version: Application.nativeApplicationVersion }
+            : {}),
+          ...(Application.nativeBuildVersion ? { build: Application.nativeBuildVersion } : {}),
+          appState: AppState,
+          notifications: Notifications,
+        })
+      : null;
   return {
     fetch: (url, init) => fetch(url, init),
     storage,
@@ -61,6 +82,7 @@ export function defaultShellDeps(
       ...castGameStores(createGoogleCastBackend(), {
         streamServerUrl: streamServerUrl({}, config.apiBase),
         browserTvStorage: AsyncStorage,
+        ...(airplay ? { airplay } : {}),
       })(ctx),
       ...ogsGameStores({ askPlayer: askToNotify })(ctx),
     }),

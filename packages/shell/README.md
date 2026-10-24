@@ -34,7 +34,7 @@ plugins: ["expo-router", ["@open-game-system/shell", shell]],
 | `splash` | none | `{ image, backgroundColor? }` → the `expo-splash-screen` plugin (width 200, `contain`); without it the plugin is added bare |
 | `branding` | `"hidden"` | `"powered-by"` shows "Powered by OGS" on the loading and offline screens (never over the game) |
 | `linkDomains` | `[]` | Your own bare hosts (`rocketcrew.tv`): iOS `applinks:` and Android `autoVerify` intent filters for `/` |
-| `cast` | `{ receiver: "ogs" }` | The only receiver: the OGS Cast app (`807AD5E9`) |
+| `cast` | `{ receiver: "ogs" }` | The only receiver: the OGS Cast app (`807AD5E9`). `airplay: true` also offers an Apple TV / AirPlay TV through Screen Mirroring (iOS; see "AirPlay" below) |
 | `scheme` | the `appId` | Expo's `scheme`, set only when the app has none of its own |
 | `apiBase` | `DEFAULT_OGS_API` (production) | Point a test build at a preview OGS API |
 | `tvBase` | `DEFAULT_TV_BASE` (`https://ogs-tv.pages.dev`) | The OGS TV launcher the Chromecast and browser TVs load |
@@ -47,7 +47,7 @@ What it writes (`nativeConfigFor` in `plugin/src/native-config.ts`):
   `/play/<appId>`.
 - Plugins: `react-native-google-cast` (receiver `807AD5E9`, discovery from launch),
   `expo-notifications`, `expo-apple-authentication`, `expo-splash-screen`.
-- `extra.ogsShell`: `appId`, `gameUrl`, `branding`, `linkDomains` and, when set, `apiBase`/`tvBase`,
+- `extra.ogsShell`: `appId`, `gameUrl`, `branding`, `linkDomains` and, when set, `apiBase`/`tvBase`/`airplay`,
   which the runtime reads.
 
 It never sets the bundle id, Android package, Team ID or owner: those stay in the app's own config.
@@ -101,7 +101,8 @@ TV picker `castPicker`, `castPickerDevice-<id>`, `castPickerNoDevices`, `castPic
 `browserTvOpen`, `browserTv`, `browserTvAddress`, `browserTvCode`, `browserTvPair`,
 `browserTvPairing`, `browserTvError`; sign-in `signInSheet`, `signInApple`, `signInGoogle`,
 `signInNotNow`, `signInError`, `signInProgress`; offline `gameErrorScreen`, `gameErrorTitle`,
-`gameRetryButton`.
+`gameRetryButton`; AirPlay steps `showOnTvSheet`, `airplaySteps`, `audioOnlyNotice`, `waitingForTv`,
+`closeShowOnTv`, and `castPickerDevice-airplay` in the picker.
 
 ### Links
 
@@ -135,8 +136,43 @@ The OGS app is the shell's first consumer (`"@open-game-system/shell": "workspac
   `jest.mock` would then miss the shell's import). `bridge-resolution.test.ts` does the same for
   app-bridge-react-native's `react`, `react-native` and `react-native-webview`. A new native module
   goes into apps/mobile first, with the same specifier.
-- The shell is JS only, so apps/mobile's native fingerprint does not change: shell changes ship
-  over the OTA channel (`mobile-release.yml` and `ci-mobile.yml` watch `packages/shell/**`).
+- The shell's runtime is JS plus one small Expo module, `OgsAirplayDisplay` (`ios/module`,
+  autolinked through `expo-module.config.json` and `ios/OgsShell.podspec`). A change to the JS ships
+  over the OTA channel (`mobile-release.yml` and `ci-mobile.yml` watch `packages/shell/**`); a change
+  under `ios/` changes apps/mobile's native fingerprint, so it ships as a new build.
+
+## AirPlay (Apple TV)
+
+`cast: { receiver: "ogs", airplay: true }` in the shell config (the OGS app always has it on iOS).
+When the user picks Control Center > Screen Mirroring and an Apple TV, iOS gives the app an external
+display; the shell puts a second, full-screen WKWebView on it with the cast's view URL (the OGS TV
+launcher with its launcher token, `chrome=none&app=<appId>` for a game's own app), while the phone
+keeps the game's controller page. The phone renders the TV page: no cloud GPU. Why and how:
+[ADR 2026-10-23-airplay-display](../../docs/adrs/2026-10-23-airplay-display.md); behaviour:
+`docs/acceptance/2026-10-23-airplay-display.feature`.
+
+- **In the picker** "Apple TV / AirPlay" (or the receiver's name once its display is connected) sits
+  next to the Chromecasts and browser TVs, when AVRouteDetector finds an AirPlay receiver on the
+  network or a display is already connected (`src/airplay-cast.ts`, a `CastBackend` like the
+  browser TV's). The cast flow is the Chromecast's; LOAD_VIEW's `viewUrl` goes to the TV window.
+- **Show on TV:** iOS can't start mirroring for an app, and AVRoutePickerView only routes audio, so
+  picking it with no display opens the Screen Mirroring steps (`ShowOnTvSheet`, store
+  `airplay-sheet.ts`) and the cast waits for the display. "Not now" cancels it. Picking the AirPlay
+  *sound* route instead says "That sent sound only".
+- **While casting:** the phone stays awake (`isIdleTimerDisabled`), the app's audio session is
+  mixable `.playback` (never Now Playing on the Apple TV; restored after), neither WebView may AirPlay
+  media, and going to the background shows "Open <app> to keep the TV going" on the TV plus a local
+  notification. Stopping Screen Mirroring ends the cast; Stop casting puts the TV's idle card back.
+  Haptics are the `haptics` store's, as without AirPlay.
+- **Native** (`ios/module/AirplayDisplay`): `OgsAirplayDisplayModule` (`start`, `stop`,
+  `currentDisplay`, `detectRoutes`, `recentLog`, `log`; events `onConnect`, `onDisconnect`,
+  `onAudioOnlyAirPlay`, `onRoutes`, `onLog`), `ExternalDisplayController` (scene or bare-screen
+  host, mode changes, idle card, away notice, keep-awake), `AudioRouteMonitor`, `RouteDetector`,
+  `NativeLog` (a ring, os_log subsystem = bundle id, category `airplay`).
+- **Logs:** every native event is forwarded to the client log as `native.<type>` with the app's
+  `airplay.*` steps (`native-log-forward.ts`; a game's own app: `airplay-shell.ts`, `app: "shell"`).
+  Reading them: [docs/agents/client-log.md](../../docs/agents/client-log.md).
+- **Simulator:** I/O > External Displays is the TV (`scripts/airplay-sim.sh` turns it on).
 
 ## Tests
 
@@ -150,6 +186,12 @@ Runtime (jest-expo, `src/__tests__`):
 
 ```bash
 pnpm --filter @open-game-system/shell test:runtime
+```
+
+Native (XCTest on an iOS simulator: the external display core, keep-awake, the native log):
+
+```bash
+pnpm --filter @open-game-system/shell test:native
 ```
 
 Mutation testing of `src/` (Stryker, in place, with apps/mobile's suites; don't commit during a run):

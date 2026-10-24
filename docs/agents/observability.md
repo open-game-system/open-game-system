@@ -49,6 +49,11 @@ The app and the Cast receiver post batches to `POST /api/v1/client-events`
   `authenticated: false`, rate limited per IP). It logs its own failures; it does not yet capture
   uncaught `error` / `unhandledrejection` events.
 - **TV launcher (`apps/tv`):** no client telemetry yet.
+- **A game's own app (`packages/shell`, `source: shell`):** with `cast.airplay` on, the AirPlay
+  steps and every native event (`packages/shell/src/airplay-shell.ts`).
+- **Stored copy and reading it back:** every line is also kept per app launch (`launchId`) and read
+  with `GET /api/v1/client-events` and the log key: [client-log.md](client-log.md), with the
+  AirPlay and native event names.
 
 ## Event names
 
@@ -65,7 +70,8 @@ The app and the Cast receiver post batches to `POST /api/v1/client-events`
 ### Client event fields
 
 A batch is `{ context, events }` (`services/api/src/routes/client-events.ts`, parsed with Zod; 1–50
-events, 64 KB). `context`: `app` (`mobile` | `receiver`), `build`, `version`, `platform`,
+events, 64 KB). `context`: `app` (`mobile` | `receiver` | `shell`), `appId` (a game's own app), `launchId` (one per
+app launch: the stored copy's bucket), `build`, `version`, `platform`,
 `profileId` (ignored: the token's wins), `sessionId`, `deviceHash`. Each event: `name`, `at`,
 `level`, and optionally `attemptId`, `phoneAttemptId`, `sessionId` (ids, at most 64 characters),
 `durationMs`, `error`, `errorType`, `errorStack`, `data` (flat scalars). An event's `sessionId`

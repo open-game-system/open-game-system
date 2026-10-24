@@ -27,7 +27,13 @@ export const ShellConfigSchema = z.object({
   branding: z.enum(["hidden", "powered-by"]).default("hidden"),
   /** The developer's own link domains; opengame.org/play/<appId> is always claimed as well. */
   linkDomains: z.array(HostSchema).default([]),
-  cast: z.object({ receiver: z.literal("ogs") }).default({ receiver: "ogs" }),
+  /**
+   * `receiver`: the OGS Cast app (Chromecast). `airplay: true` also offers an Apple TV or AirPlay TV
+   * through Screen Mirroring: the phone renders the TV page on the external display (iOS only).
+   */
+  cast: z
+    .object({ receiver: z.literal("ogs"), airplay: z.boolean().optional() })
+    .default({ receiver: "ogs" }),
   /**
    * The app's custom URL scheme, for `<scheme>://play/<rest>` links (tests, and before link domains
    * are verified). Default: the appId. An app that sets Expo's own `scheme` keeps it.

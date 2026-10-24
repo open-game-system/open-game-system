@@ -108,4 +108,5 @@ app.route("/api/v1/stream", stream);
 export default app;
 
 // Durable Object export — Cloudflare requires DO classes exported from the entry point.
+export { ClientLog } from "./client-log-do";
 export { CouchSession } from "./couch-session";

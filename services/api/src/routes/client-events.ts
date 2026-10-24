@@ -1,13 +1,16 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { bucketOf, INDEX_NAME, sameKey } from "../lib/client-log-store";
 import { apiError, invalidBody } from "../lib/http";
 import { scrub } from "../lib/wide-event";
 import { claimsFromHeader, type ProfileEnv } from "../middleware/profile-auth";
 
 /**
- * POST /api/v1/client-events: wide events from the app and the cast receiver. Each event becomes
- * one structured JSON line in Workers Logs (console.log; console.error for level "error"), which
- * is what the SRE agent reads and fingerprints. Nothing is stored.
+ * POST /api/v1/client-events: wide events from the OGS app, a game's own app (the shell) and the
+ * cast receiver. Each event becomes one structured JSON line in Workers Logs (console.log;
+ * console.error for level "error"), which is what the SRE agent reads and fingerprints. The same
+ * lines are also kept per app launch (CLIENT_LOG, src/lib/client-log-store.ts) and read back with
+ * GET /api/v1/client-events and the log key (docs/agents/client-log.md).
  *
  * The app sends its profile token; the receiver has no credentials and may post without one
  * (marked `authenticated: false`, limited per IP). Tokens never reach the log: token= query
@@ -42,8 +45,15 @@ const EventSchema = z.object({
   data: z.record(z.string().max(64), Scalar).optional(),
 });
 
+const Id = z.string().regex(/^[A-Za-z0-9_.:-]{1,80}$/);
+
 const ContextSchema = z.object({
-  app: z.enum(["mobile", "receiver"]),
+  /** "shell": a game's own app (@open-game-system/shell). */
+  app: z.enum(["mobile", "receiver", "shell"]),
+  /** A game's own app: its OGS appId. */
+  appId: z.string().max(64).optional(),
+  /** One id per app launch: the stored copy is kept and read back per launch. */
+  launchId: Id.optional(),
   build: z.string().max(64).optional(),
   version: z.string().max(64).optional(),
   platform: z.string().max(64).optional(),
@@ -113,6 +123,7 @@ clientEvents.post("/", async (c) => {
     return apiError(c, 429, "rate_limited", "Too many client events; try again in a minute");
 
   const receivedAt = Date.now();
+  const stored: string[] = [];
   for (const event of events) {
     const error = event.error === undefined ? undefined : scrub(redact(event.error));
     // sre-agent groups error lines by "errorType: error" (docs/agents/observability.md).
@@ -126,6 +137,8 @@ clientEvents.post("/", async (c) => {
       message: `client ${context.app} ${event.name}${error === undefined ? "" : `: ${error}`}`,
       kind: "client_event",
       source: context.app,
+      appId: context.appId,
+      launchId: context.launchId,
       authenticated: profileId !== undefined,
       build: context.build,
       version: context.version,
@@ -148,8 +161,111 @@ clientEvents.post("/", async (c) => {
     });
     if (event.level === "error") console.error(line);
     else console.log(line);
+    stored.push(line);
   }
+  await keep(c.env.CLIENT_LOG, {
+    bucket: bucketOf({ launchId: context.launchId, profileId, sessionId: context.sessionId }),
+    lines: stored,
+    source: context.app,
+    appId: context.appId ?? null,
+    profileId: profileId ?? null,
+    deviceHash: context.deviceHash ?? null,
+    sessionId: context.sessionId ?? null,
+    build: context.build ?? null,
+    at: receivedAt,
+  });
   return c.json({ accepted: events.length }, 202);
+});
+
+/**
+ * The stored copy: the bucket's lines and the index entry. A store that fails is logged and
+ * otherwise ignored (the lines are already in Workers Logs).
+ */
+async function keep(
+  ns: ProfileEnv["Bindings"]["CLIENT_LOG"],
+  w: {
+    bucket: string;
+    lines: string[];
+    source: string;
+    appId: string | null;
+    profileId: string | null;
+    deviceHash: string | null;
+    sessionId: string | null;
+    build: string | null;
+    at: number;
+  },
+) {
+  if (!ns) return;
+  try {
+    await ns.get(ns.idFromName(w.bucket)).append(w.lines);
+    await ns.get(ns.idFromName(INDEX_NAME)).touch({
+      bucket: w.bucket,
+      source: w.source,
+      appId: w.appId,
+      profileId: w.profileId,
+      deviceHash: w.deviceHash,
+      sessionId: w.sessionId,
+      build: w.build,
+      lastAt: w.at,
+      added: w.lines.length,
+    });
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        message: "client log store failed",
+        kind: "client_log_store",
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
+}
+
+const ReadQuerySchema = z
+  .object({
+    bucket: z
+      .string()
+      .regex(/^(launch|profile|receiver):[A-Za-z0-9_.:-]{1,80}$/)
+      .optional(),
+    launch: Id.optional(),
+    app: z.enum(["mobile", "receiver", "shell"]).optional(),
+    appId: z.string().max(64).optional(),
+    profile: Id.optional(),
+    device: Id.optional(),
+    session: Id.optional(),
+    limit: z.coerce.number().int().min(1).max(500).default(200),
+  })
+  .strict();
+
+/**
+ * GET /api/v1/client-events: the stored client log, for agents debugging a real device
+ * (docs/agents/client-log.md). `x-log-key: <CLIENT_LOG_KEY>` (never a query parameter). With
+ * `launch` (or `bucket`): that launch's last `limit` lines, oldest first. Otherwise: recent
+ * launches, newest first, filtered by `app`, `appId`, `profile`, `device`, `session`.
+ */
+clientEvents.get("/", async (c) => {
+  const expected = c.env.CLIENT_LOG_KEY;
+  const given = c.req.header("x-log-key");
+  if (!expected || given === undefined || !sameKey(given, expected))
+    return apiError(c, 403, "forbidden", "A valid x-log-key header is required");
+  const q = ReadQuerySchema.safeParse(c.req.query());
+  if (!q.success) return apiError(c, 400, "invalid_query", "Unknown or malformed query parameter");
+  const ns = c.env.CLIENT_LOG;
+  if (!ns) return apiError(c, 503, "not_configured", "The client log store is not bound");
+  const { bucket, launch, limit, app: source, appId, profile, device, session } = q.data;
+  const one = bucket ?? (launch ? `launch:${launch}` : undefined);
+  c.header("Cache-Control", "no-store");
+  if (one) {
+    const lines = await ns.get(ns.idFromName(one)).read(limit);
+    return c.json({ bucket: one, events: lines.map((l): unknown => JSON.parse(l)) });
+  }
+  const buckets = await ns.get(ns.idFromName(INDEX_NAME)).recent({
+    ...(source ? { source } : {}),
+    ...(appId ? { appId } : {}),
+    ...(profile ? { profileId: profile } : {}),
+    ...(device ? { deviceHash: device } : {}),
+    ...(session ? { sessionId: session } : {}),
+  });
+  return c.json({ buckets });
 });
 
 const tooLarge = (c: Parameters<typeof apiError>[0]) =>

@@ -1,3 +1,4 @@
+import type { AirplayCastBackend } from "./airplay-cast";
 import type { CastBackend } from "./cast-backend";
 import { castCommands, startCastSync } from "./cast-sync";
 import { combineCastBackends, createScreenCastBackend } from "./screen-cast";
@@ -41,14 +42,22 @@ function memoryStorage(): BrowserTvStorage {
  */
 export function castGameStores(
   backend: CastBackend,
-  opts: { streamServerUrl: string; browserTvStorage?: BrowserTvStorage },
+  opts: {
+    streamServerUrl: string;
+    browserTvStorage?: BrowserTvStorage;
+    /** The Apple TV / AirPlay TV (shell config `cast.airplay`): one more TV in the same list. */
+    airplay?: (ctx: ShellContext) => AirplayCastBackend;
+  },
 ) {
   return (ctx: ShellContext) => {
     const browserTvs = createScreenCastBackend({
       api: createShellScreensApi({ request: ctx.request, getIdentity: ctx.getIdentity }),
       storage: opts.browserTvStorage ?? memoryStorage(),
     });
-    const tvs = combineCastBackends(backend, browserTvs);
+    const airplay = opts.airplay?.(ctx);
+    if (airplay) ctx.onStop(() => airplay.dispose());
+    const phoneTvs = combineCastBackends(backend, browserTvs);
+    const tvs = airplay ? combineCastBackends(phoneTvs, airplay) : phoneTvs;
     const openPicker = () => ctx.castPicker.open();
     const commands = castCommands(openPicker);
     const tvBase = ctx.config.tvBase ?? DEFAULT_TV_BASE;

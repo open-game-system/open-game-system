@@ -14,6 +14,7 @@ import {
 import { DEFAULT_OFFLINE_THEME, OfflineScreen, type OfflineTheme } from "./OfflineScreen";
 import { type OgsShellConfig, readRuntimeConfig } from "./runtime-config";
 import { ShellWebView } from "./ShellWebView";
+import { AirplaySheetHost } from "./ShowOnTvSheet";
 import { SignInSheet } from "./SignInSheet";
 import { createShellRuntime, type ShellRuntime, type ShellRuntimeDeps } from "./shell-runtime";
 import type { AppleAuthModule } from "./sign-in-providers";
@@ -47,7 +48,8 @@ export interface OgsShellProps {
 /**
  * A single-game app: the game's phone page full screen in a bridged WebView, the native offline
  * screen, the native sign-in sheet when the game asks, the native TV picker when the game's cast
- * button opens it (Chromecasts + "Use a browser TV"), links and push taps routed into the page. "Powered by
+ * button opens it (Chromecasts, an Apple TV with `cast.airplay`, "Use a browser TV") and the AirPlay
+ * Screen Mirroring steps, links and push taps routed into the page. "Powered by
  * OGS" (branding: powered-by) shows on the loading and offline screens, never over the game.
  */
 export function OgsShell(props: OgsShellProps) {
@@ -144,6 +146,7 @@ export function OgsShell(props: OgsShellProps) {
         onPair={(code) => void runtime.castPicker.pairBrowserTv(code)}
         onClose={() => runtime.castPicker.close()}
       />
+      <AirplaySheetHost sheet={runtime.airplaySheet} />
     </View>
   );
 }

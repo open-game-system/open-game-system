@@ -9,7 +9,7 @@
 - **Source layout:**
   - `apps/mobile/` — Expo/React Native companion app (managed workflow)
   - `apps/web/` — opengame.org marketing website (Vite + React + Tailwind + Cloudflare Pages)
-  - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream shows for the whole cast; frames each game's TV page
+  - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream, a browser TV and an Apple TV (AirPlay, rendered by the phone) show for the whole cast; frames each game's TV page
   - `apps/docs/` — game-developer docs site (ogs-docs.pages.dev): Markdown in `apps/docs/content/` + the contract from `docs/specification.md` → static HTML, `.md` twins, `llms.txt`
   - `packages/app-bridge-*/` — WebView-to-native two-way communication (6 packages)
   - `packages/cast-kit/` — TV casting SDK for web games (Google Cast via native bridge)
@@ -54,6 +54,7 @@ Start here. Load deeper docs **only when working on the relevant domain.**
 | How to run the e2e suites | [docs/testing/e2e.md](docs/testing/e2e.md) |
 | Shipping the app to testers (TestFlight, Firebase, OTA, forced update) | [docs/testing/beta-distribution.md](docs/testing/beta-distribution.md) |
 | Observability | [docs/agents/observability.md](docs/agents/observability.md) — wide events, client telemetry, sre-agent |
+| Reading a phone's client log (live, stored per launch, on the device) | [docs/agents/client-log.md](docs/agents/client-log.md) |
 
 > **Progressive disclosure:** Do NOT load all docs upfront. Read this file,
 > then load the specific doc relevant to your current task.

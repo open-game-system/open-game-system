@@ -26,7 +26,7 @@ export type NativeConfig = {
     ogsShell: Pick<
       ShellConfig,
       "appId" | "gameUrl" | "branding" | "linkDomains" | "apiBase" | "tvBase"
-    >;
+    > & { airplay?: boolean };
   };
 };
 
@@ -93,6 +93,7 @@ export function nativeConfigFor(config: ShellConfig): NativeConfig {
         linkDomains: config.linkDomains,
         ...(config.apiBase ? { apiBase: config.apiBase } : {}),
         ...(config.tvBase ? { tvBase: config.tvBase } : {}),
+        ...(config.cast.airplay ? { airplay: true } : {}),
       },
     },
   };

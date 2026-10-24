@@ -6,6 +6,7 @@ import * as Notifications from "expo-notifications";
 import { router, Stack } from "expo-router";
 import { useEffect } from "react";
 import { AppErrorBoundary } from "../components/ogs/AppErrorBoundary";
+import { AirplayHost } from "../components/ogs/remote/AirplayHost";
 import { colors } from "../components/ogs/theme";
 import { UpdateRequired } from "../components/ogs/UpdateRequired";
 import {
@@ -95,6 +96,7 @@ export default function RootLayout() {
         <Stack.Screen name="dev-tools" />
         <Stack.Screen name="[...unmatched]" />
       </Stack>
+      <AirplayHost />
     </AppErrorBoundary>
   );
 }
