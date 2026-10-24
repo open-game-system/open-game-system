@@ -96,3 +96,38 @@ final class AppNameTests: XCTestCase {
     XCTAssertEqual(vc?.idleTitleText, "Rocket Crew")
   }
 }
+
+@MainActor
+final class TvModeTests: XCTestCase {
+  func testASmallDisplayGetsItsLargestTvModeUpTo1080p() {
+    let modes = [CGSize(width: 720, height: 480), CGSize(width: 1280, height: 720), CGSize(width: 1920, height: 1080), CGSize(width: 3840, height: 2160)]
+    XCTAssertEqual(ExternalDisplayController.tvMode(current: CGSize(width: 720, height: 480), available: modes), CGSize(width: 1920, height: 1080))
+  }
+
+  func testATvAlreadyInATvModeKeepsIt() {
+    let modes = [CGSize(width: 1920, height: 1080), CGSize(width: 3840, height: 2160)]
+    XCTAssertNil(ExternalDisplayController.tvMode(current: CGSize(width: 3840, height: 2160), available: modes))
+    XCTAssertNil(ExternalDisplayController.tvMode(current: CGSize(width: 1280, height: 720), available: modes))
+  }
+
+  func testNoBetterModeNoChange() {
+    XCTAssertNil(ExternalDisplayController.tvMode(current: CGSize(width: 720, height: 480), available: [CGSize(width: 720, height: 480)]))
+    XCTAssertNil(ExternalDisplayController.tvMode(current: nil, available: [CGSize(width: 1920, height: 1080)]))
+  }
+}
+
+@MainActor
+final class RouteDetectorTests: XCTestCase {
+  /// The first build observed multipleRoutesDetected with Swift KVO, which crashes at once: detect
+  /// must start, report, and stop without that.
+  func testDetectStartsAndStopsWithoutCrashing() {
+    let d = RouteDetector(log: NativeLog(), center: NotificationCenter())
+    var seen: [Bool] = []
+    d.onChange = { seen.append($0) }
+    d.detect(seconds: 1)
+    d.detect(seconds: 1)
+    d.stop()
+    XCTAssertFalse(d.available, "no AirPlay receiver in a test run")
+    XCTAssertEqual(seen, [])
+  }
+}

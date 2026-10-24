@@ -123,7 +123,11 @@ final class ExternalDisplayController: NSObject {
   }
 
   @objc private func displayModeChanged(_ note: Notification) {
-    if let screen = note.object as? UIScreen { log.info("screen.mode", Self.screenInfo(screen)) }
+    if let screen = note.object as? UIScreen {
+      log.info("screen.mode", Self.screenInfo(screen))
+      // A TV-sized mode may only be offered after the display connects (the Simulator's 1080p).
+      if let host, Self.screen(of: host) === screen { pickTvMode(screen) }
+    }
     refresh()
     DispatchQueue.main.async { [weak self] in self?.refresh() }
   }
@@ -181,6 +185,7 @@ final class ExternalDisplayController: NSObject {
       data["mode_h"] = Double(mode.size.height)
     }
     if let preferred = screen.preferredMode { data["preferred_w"] = Double(preferred.size.width) }
+    data["modes"] = screen.availableModes.map { "\(Int($0.size.width))x\(Int($0.size.height))" }.joined(separator: ",")
     data["overscan"] = screen.overscanCompensation.rawValue
     return data
   }
@@ -205,9 +210,40 @@ final class ExternalDisplayController: NSObject {
       fitWindowToHost()
       return
     }
+    // The same TV seen another way (iOS hands a bare UIScreen first, then an external-display scene for
+    // it): move the TV window over without telling JS it went and came back (a cast must not end).
+    if let current = host, let next, Self.screen(of: current) === Self.screen(of: next) {
+      let kept = tvController
+      tearDown(notify: false)
+      attach(to: next, reusing: kept, notify: false)
+      return
+    }
     tearDown()
     if let next { attach(to: next) }
     syncKeepAwake()
+  }
+
+  static func screen(of host: ExternalHost) -> UIScreen {
+    switch host {
+    case .scene(let scene): return scene.screen
+    case .screen(let screen): return screen
+    }
+  }
+
+  /// A TV-sized mode: a display that comes up in a small mode (the Simulator's external display starts
+  /// at 720×480) gets its largest mode up to 1920 wide; a real TV's own mode (already ≥ 1280) is kept.
+  static func tvMode(current: CGSize?, available: [CGSize]) -> CGSize? {
+    guard let current, current.width < 1280 else { return nil }
+    return available.filter { $0.width >= 1280 && $0.width <= 1920 }.max { $0.width * $0.height < $1.width * $1.height }
+  }
+
+  private func pickTvMode(_ screen: UIScreen) {
+    let modes = screen.availableModes
+    guard screen.mirrored == nil,
+          let size = Self.tvMode(current: screen.currentMode?.size, available: modes.map(\.size)),
+          let mode = modes.first(where: { $0.size == size }) else { return }
+    log.info("screen.pick_mode", ["w": Double(size.width), "h": Double(size.height), "modes": modes.count])
+    screen.currentMode = mode
   }
 
   /// Keeps the TV window the size of its display (the WKWebView and idle card autoresize with it).
@@ -238,14 +274,15 @@ final class ExternalDisplayController: NSObject {
     return role.rawValue == "UIWindowSceneSessionRoleExternalDisplay"
   }
 
-  private func attach(to next: ExternalHost) {
+  private func attach(to next: ExternalHost, reusing: TvViewController? = nil, notify: Bool = true) {
+    pickTvMode(Self.screen(of: next))
     var info: [String: Any] = ["kind": { if case .scene = next { return "scene" } else { return "screen" } }(), "w": Double(next.bounds.width), "h": Double(next.bounds.height), "has_view": tvUrl != nil]
     switch next {
     case .scene(let scene): info.merge(Self.screenInfo(scene.screen)) { a, _ in a }
     case .screen(let screen): info.merge(Self.screenInfo(screen)) { a, _ in a }
     }
     log.info("display.attach", info)
-    let controller = TvViewController()
+    let controller = reusing ?? TvViewController()
     controller.appName = appName
     controller.log = log
     let win = makeWindow(next)
@@ -264,6 +301,7 @@ final class ExternalDisplayController: NSObject {
     if let url = tvUrl { controller.load(url) } else { controller.showIdle() }
     controller.setAwayNotice(Self.noticePinned || !isAppActive())
     let size = next.bounds.size
+    guard notify else { return }
     onChange?(true, DisplayInfo(name: Self.displayName(), width: Double(size.width), height: Double(size.height)))
   }
 
@@ -278,9 +316,9 @@ final class ExternalDisplayController: NSObject {
     }
   }
 
-  private func tearDown() {
+  private func tearDown(notify: Bool = true) {
     guard host != nil else { return }
-    log.info("display.detach", [:])
+    log.info("display.detach", ["rehost": !notify])
     geometryObservation?.invalidate()
     geometryObservation = nil
     window?.isHidden = true
@@ -288,7 +326,7 @@ final class ExternalDisplayController: NSObject {
     window = nil
     tvController = nil
     host = nil
-    onChange?(false, nil)
+    if notify { onChange?(false, nil) }
   }
 
   /// The AirPlay receiver's name ("Living Room") when the audio route says so; else generic.

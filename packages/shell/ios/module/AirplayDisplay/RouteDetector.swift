@@ -7,25 +7,27 @@ import AVFoundation
 final class RouteDetector: NSObject {
   var onChange: ((Bool) -> Void)?
   private let detector = AVRouteDetector()
-  private var observation: NSKeyValueObservation?
+  private var observing = false
+  private let center: NotificationCenter
   private var stopWork: DispatchWorkItem?
   private let log: NativeLog
   private(set) var available = false
 
-  init(log: NativeLog = .shared) {
+  init(log: NativeLog = .shared, center: NotificationCenter = .default) {
     self.log = log
+    self.center = center
     super.init()
   }
 
   /// Look for AirPlay receivers for `seconds`, reporting every change.
   func detect(seconds: Double) {
-    if observation == nil {
-      observation = detector.observe(\.multipleRoutesDetected, options: [.initial, .new]) { [weak self] d, _ in
-        let found = d.multipleRoutesDetected
-        DispatchQueue.main.async { self?.update(found) }
-      }
+    // A notification, not KVO: Swift KVO on multipleRoutesDetected crashes (it isn't KVO-compliant).
+    if !observing {
+      observing = true
+      center.addObserver(self, selector: #selector(changed(_:)), name: .AVRouteDetectorMultipleRoutesDetectedDidChange, object: detector)
     }
     detector.isRouteDetectionEnabled = true
+    update(detector.multipleRoutesDetected)
     stopWork?.cancel()
     let work = DispatchWorkItem { [weak self] in self?.detector.isRouteDetectionEnabled = false }
     stopWork = work
@@ -35,8 +37,15 @@ final class RouteDetector: NSObject {
   func stop() {
     stopWork?.cancel()
     detector.isRouteDetectionEnabled = false
-    observation?.invalidate()
-    observation = nil
+    center.removeObserver(self)
+    observing = false
+  }
+
+  @objc private func changed(_ note: Notification) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      self.update(self.detector.multipleRoutesDetected)
+    }
   }
 
   private func update(_ found: Bool) {
