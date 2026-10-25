@@ -50,4 +50,25 @@ describe("create-ogs-game", () => {
     expect(await main(["kc", "--name", "Kite Count"], t.io)).toBe(0);
     expect(await main(["kc", "--name", "Kite Count"], t.io)).toBe(1);
   });
+
+  it("shows the help after a bad flag, counts the files it made, and names . for the current directory", async () => {
+    const t = io();
+    expect(await main(["--bogus"], t.io)).toBe(2);
+    expect(t.err.join("\n")).toContain("pnpm create ogs-game <dir>");
+    const here = io();
+    here.io.cwd = join(here.io.cwd, "kite-count");
+    expect(
+      await main([here.io.cwd, "--name", "Kite Count", "--team-id", "34S957HD77"], here.io),
+    ).toBe(0);
+    expect(here.out[0]).toMatch(/^Made Kite Count \(\d+ files\)/);
+    expect(here.out[1]).toContain("cd .\n");
+    expect(here.out[1]).toMatch(/4\.3\)\.\n$/);
+  });
+
+  it("exits 1 with the reason when the vendored packages are missing", async () => {
+    const t = io();
+    t.io.vendorDir = join(t.io.cwd, "no-vendor");
+    expect(await main(["kc", "--name", "Kite Count"], t.io)).toBe(1);
+    expect(t.err.join("\n")).toContain("pnpm --filter create-ogs-game vendor");
+  });
 });

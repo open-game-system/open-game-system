@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import { parseArgs as nodeParseArgs } from "node:util";
 import { AnswersSchema as AppAnswersSchema } from "create-ogs-app/lib";
 import { z } from "zod";
@@ -19,22 +20,21 @@ export function slugify(name: string): string {
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/^-|-$/g, "")
     .slice(0, 40)
-    .replace(/-+$/g, "");
+    .replace(/-$/, "");
 }
 
 const titleCase = (slug: string) =>
   slug
     .split(/[-_\s]+/)
-    .filter(Boolean)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 
 /** The same rules as create-ogs-app for what both make, plus a name that isn't the template's. */
 export const GameAnswersSchema = z.object({
   dir: z.string().trim().min(1),
-  name: AppAnswersSchema.shape.name.refine((n) => !TEMPLATE_NAMES.has(n.trim().toLowerCase()), {
+  name: AppAnswersSchema.shape.name.refine((n) => !TEMPLATE_NAMES.has(n.toLowerCase()), {
     message:
       "give your game its own name (Apple rejects apps that look like a template, guideline 4.3)",
   }),
@@ -102,7 +102,7 @@ export type AnswersResult = { ok: true; answers: GameAnswers } | { ok: false; er
 
 /** Fills what wasn't given from the name (or the directory), then checks every field. */
 export function answersFrom(args: Args): AnswersResult {
-  const name = args.name ?? (args.dir ? titleCase(args.dir.split("/").pop() ?? "") : undefined);
+  const name = args.name ?? (args.dir ? titleCase(basename(args.dir)) : undefined);
   if (!name)
     return { ok: false, error: 'name your game: create-ogs-game my-game, or --name "Kite Count"' };
   const appId = args.appId ?? slugify(name);

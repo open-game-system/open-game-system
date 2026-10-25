@@ -102,3 +102,50 @@ describe("answersFrom", () => {
     expect(answersFrom({ name: "A".repeat(31), yes: true, help: false }).ok).toBe(false);
   });
 });
+
+describe("edges (mutation testing)", () => {
+  it("trims dashes at both ends and after the 40-character cut", () => {
+    expect(slugify("--Kite--")).toBe("kite");
+    expect(slugify(`${"a".repeat(39)} b`)).toBe("a".repeat(39));
+    expect(slugify("A  B")).toBe("a-b");
+  });
+
+  it("title-cases a directory with dashes, underscores or spaces", () => {
+    const r = answersFrom({ dir: "games/kite__count--two", yes: false, help: false });
+    expect(r.ok && r.answers.name).toBe("Kite Count Two");
+  });
+
+  it("refuses every template name, whatever the case or spaces", () => {
+    for (const name of [" My Game ", "NEW GAME", "test game", "Example Game"]) {
+      expect(answersFrom({ name, yes: false, help: false }).ok, name).toBe(false);
+    }
+  });
+
+  it("refuses a blank directory", () => {
+    const r = answersFrom({ dir: "  ", name: "Kite Count", yes: false, help: false });
+    expect(r).toEqual({ ok: false, error: expect.stringContaining("dir:") });
+  });
+
+  it("says which field is wrong, one per line", () => {
+    const r = answersFrom({
+      name: "Kite Count",
+      appId: "Bad Id",
+      bundleId: "x",
+      yes: false,
+      help: false,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/^appId: .*\nbundleId: /s);
+    expect(answersFrom({ yes: false, help: false })).toEqual({
+      ok: false,
+      error: expect.stringContaining("--name"),
+    });
+  });
+
+  it("leaves out what wasn't given, and says which directories it got", () => {
+    const parsed = parseArgs([]);
+    expect(parsed).toEqual({ ok: true, args: { yes: false, help: false } });
+    if (parsed.ok) expect(Object.keys(parsed.args)).toEqual(["yes", "help"]);
+    expect(parseArgs(["a", "b"])).toEqual({ ok: false, error: "give one directory, not a b" });
+  });
+});

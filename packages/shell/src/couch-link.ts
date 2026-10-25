@@ -33,7 +33,6 @@ export function createCouchLink(opts: {
   say: () => ClientMessage[];
 }) {
   let socket: SocketLike | null = null;
-  let closed = false;
   let attempt = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -50,9 +49,9 @@ export function createCouchLink(opts: {
       sendAll();
     };
     s.onclose = () => {
+      // close() (or a newer socket) already let go of this one: no reconnect.
       if (socket !== s) return;
       socket = null;
-      if (closed) return;
       const delay = Math.min(MAX_DELAY, BASE_DELAY * 2 ** attempt);
       attempt++;
       timer = setTimeout(connect, delay);
@@ -64,8 +63,7 @@ export function createCouchLink(opts: {
     /** What `say()` returns changed: send it now if the socket is open (else on open). */
     announce: sendAll,
     close() {
-      closed = true;
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer ?? undefined);
       socket?.close();
       socket = null;
     },

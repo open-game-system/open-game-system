@@ -35,8 +35,10 @@ if [ "${SKIP_BUILD:-}" != "1" ]; then
   # expo prebuild exits 0 even when `pod install` fails: check for the workspace.
   workspace="$(ls -d ios/*.xcworkspace 2>/dev/null | head -1 || true)"
   [ -n "$workspace" ] || { echo "prebuild made no Xcode workspace: see $out/prebuild.log" >&2; exit 1; }; scheme="$(basename "$workspace" .xcworkspace)"
+  # Signed to run locally (no CODE_SIGNING_ALLOWED=NO): unsigned, the app has no keychain
+  # entitlement, expo-secure-store can't keep the OGS identity, and the shell can't cast.
   xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator \
-    -destination "id=$udid" -derivedDataPath ios/build ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build >"$out/xcodebuild.log" 2>&1
+    -destination "id=$udid" -derivedDataPath ios/build ONLY_ACTIVE_ARCH=YES ARCHS=arm64 build >"$out/xcodebuild.log" 2>&1
   step "xcodebuild (Release)"
 fi
 bundle="$(ls -d ios/build/Build/Products/Release-iphonesimulator/*.app | head -1)"

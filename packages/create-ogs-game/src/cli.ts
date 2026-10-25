@@ -1,5 +1,5 @@
 import { relative, resolve } from "node:path";
-import { generateGame, TargetNotEmptyError } from "./generate";
+import { generateGame } from "./generate";
 import { answersFrom, type GameAnswers, parseArgs } from "./options";
 
 export interface CliIO {
@@ -64,10 +64,7 @@ export async function main(argv: string[], io: CliIO): Promise<number> {
     io.log(nextSteps(a, relative(io.cwd, targetDir) || "."));
     return 0;
   } catch (error) {
-    if (error instanceof TargetNotEmptyError) {
-      io.error(error.message);
-      return 1;
-    }
+    // A taken directory, missing vendored packages, a disk error: say what, write nothing more.
     io.error(error instanceof Error ? error.message : String(error));
     return 1;
   }

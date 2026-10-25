@@ -29,7 +29,6 @@ export class TargetNotEmptyError extends Error {
 /** npm drops dotfiles like .gitignore from a package, so templates keep them without the dot. */
 const RENAMES: Record<string, string> = {
   gitignore: ".gitignore",
-  npmrc: ".npmrc",
   _github: ".github",
 };
 
@@ -122,7 +121,10 @@ const EasSchema = z.object({ build: z.record(z.record(z.unknown())) });
 async function finishApp(appDir: string) {
   // The simulator walk's screenshots and logs.
   const ignore = join(appDir, ".gitignore");
-  await writeFile(ignore, `${(await readFile(ignore, "utf8")).trimEnd()}\n\n# e2e/sim.sh output\ne2e/out/\n`);
+  await writeFile(
+    ignore,
+    `${(await readFile(ignore, "utf8")).trimEnd()}\n\n# e2e/sim.sh output\ne2e/out/\n`,
+  );
   await editJson(join(appDir, "package.json"), (raw) => {
     const pkg = AppPackageSchema.parse(raw);
     return merged(raw, {

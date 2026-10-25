@@ -2,7 +2,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSy
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { appAnswers, generateGame, TargetNotEmptyError } from "../src/generate";
+import {
+  appAnswers,
+  generateGame,
+  TargetNotEmptyError,
+  TEMPLATES_DIR,
+  VENDOR_DIR,
+} from "../src/generate";
 import type { GameAnswers } from "../src/options";
 
 const answers: GameAnswers = {
@@ -160,6 +166,86 @@ describe("generateGame", () => {
       /vendor/,
     );
     expect(existsSync(dir)).toBe(false);
+  });
+});
+
+describe("generateGame edges (mutation testing)", () => {
+  it("lists every file it wrote, sorted, the app's included, its examples not", () => {
+    expect(files).toEqual([...files].sort());
+    expect(new Set(files).size).toBe(files.length);
+    expect(files).toContain("app/app.config.ts");
+    expect(files).toContain("app/app/index.tsx");
+    expect(files).toContain("app/vendor/shell.tgz");
+    expect(files).toContain("app/placeholder-assets.json");
+    expect(files).toContain("vendor/abw.tgz");
+  });
+
+  it("names the Worker's URL as a placeholder in the app's docs", () => {
+    expect(read("app/README.md")).toContain("`<your Worker>/host`");
+    expect(read("app/REVIEW_NOTES.md")).toContain("`<your Worker>` (`../deploys.json`)");
+  });
+
+  it("ends the app's .gitignore with one blank line before the e2e entry", () => {
+    expect(read("app/.gitignore")).toMatch(/[^\n]\n\n# e2e\/sim\.sh output\ne2e\/out\/\n$/);
+  });
+
+  it("hashes the placeholder art with SHA-256", () => {
+    for (const hash of Object.values(JSON.parse(read("app/placeholder-assets.json")))) {
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  it("makes a fresh 64-hex-digit secret by default, and writes into an empty directory", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ogs-empty-"));
+    await generateGame({ targetDir: dir, answers, vendorDir: fakeVendor() });
+    expect(readFileSync(join(dir, ".dev.vars"), "utf8")).toMatch(
+      /^ACTOR_KIT_SECRET=[0-9a-f]{64}\n$/,
+    );
+  });
+
+  it("names the error and the directory when it is taken", async () => {
+    const error = await generateGame({ targetDir: target, answers, vendorDir: fakeVendor() }).catch(
+      (e: unknown) => e,
+    );
+    expect(error).toBeInstanceOf(TargetNotEmptyError);
+    if (error instanceof Error) {
+      expect(error.name).toBe("TargetNotEmptyError");
+      expect(error.message).toBe(`${target} is not empty: pick a new directory`);
+    }
+  });
+
+  it("copies a template without .DS_Store or node_modules, and makes only .sh files executable", async () => {
+    const templates = mkdtempSync(join(tmpdir(), "ogs-templates-"));
+    for (const f of [
+      "game/package.json",
+      "game/run.sh",
+      "game/notes.txt",
+      "game/.DS_Store",
+      "game/node_modules/x/index.js",
+    ]) {
+      mkdirSync(join(templates, f, ".."), { recursive: true });
+      writeFileSync(
+        join(templates, f),
+        f.endsWith("package.json") ? '{"name":"__OGS_APP_ID__"}' : "x",
+      );
+    }
+    mkdirSync(join(templates, "app-overlay"));
+    const dir = join(mkdtempSync(join(tmpdir(), "ogs-game-")), "g");
+    const written = await generateGame({
+      targetDir: dir,
+      answers,
+      templatesDir: templates,
+      vendorDir: fakeVendor(),
+      secret: () => "s",
+    });
+    expect(written).not.toContain(".DS_Store");
+    expect(written.some((f) => f.includes("node_modules"))).toBe(false);
+    expect(statSync(join(dir, "run.sh")).mode & 0o111).not.toBe(0);
+    expect(statSync(join(dir, "notes.txt")).mode & 0o111).toBe(0);
+  });
+
+  it("finds its vendor folder next to src/", () => {
+    expect(VENDOR_DIR.replace(/vendor\/$/, "templates/")).toBe(TEMPLATES_DIR);
   });
 });
 

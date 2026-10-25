@@ -154,11 +154,24 @@ describe("single-game cast: the page's TV view goes to the couch session", () =>
     }
   });
 
+  it("forwards a local http page (wrangler dev) but not text that merely contains a URL", async () => {
+    const { store, sockets } = setup();
+    store.dispatch({ type: "SHOW_CAST_PICKER" });
+    await until(() => sockets.length === 1);
+    sockets[0]?.open();
+    store.dispatch({ type: "SET_VIEW_URL", url: "see https://kite.example/tv/ABCD" });
+    expect(sockets[0]?.sent).toEqual([]);
+    store.dispatch({ type: "SET_VIEW_URL", url: "http://192.168.1.5:8787/tv/ABCD?t=x" });
+    expect(sockets[0]?.sent).toEqual(startAndView("http://192.168.1.5:8787/tv/ABCD?t=x"));
+  });
+
   it("without a couch socket factory nothing is forwarded (the old single-cast behaviour)", async () => {
     const { store, sockets } = setup({ withCouch: false });
     store.dispatch({ type: "SET_VIEW_URL", url: TV_PAGE });
     store.dispatch({ type: "SHOW_CAST_PICKER" });
     await new Promise((r) => setTimeout(r, 20));
     expect(sockets).toHaveLength(0);
+    expect(store.getSnapshot().viewUrl).not.toBeNull();
+    expect(console.warn).not.toHaveBeenCalled();
   });
 });
