@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { GameToLauncherSchema, LauncherToGameSchema, OgsBridgeEventSchema } from "./frame";
+import {
+  GameToLauncherSchema,
+  LauncherToGameSchema,
+  OgsBridgeEventSchema,
+  RENDER_TIERS,
+  RenderTierSchema,
+} from "./frame";
 
 const report = {
   instanceId: "rc-1",
@@ -24,6 +30,24 @@ describe("launcher to game frame messages", () => {
   it.each(["instanceId", "mode", "roster", "token"])("ogs:start without %s is rejected", (key) => {
     const rest = Object.fromEntries(Object.entries(start).filter(([k]) => k !== key));
     expect(LauncherToGameSchema.safeParse(rest).success).toBe(false);
+  });
+
+  it.each(["full", "lite", "minimal"])("ogs:start may say the TV's render tier (%s)", (tier) => {
+    expect(LauncherToGameSchema.parse({ ...start, tier })).toEqual({ ...start, tier });
+  });
+
+  it("ogs:start without a tier is still accepted (older launchers, TVs that didn't say)", () => {
+    expect(LauncherToGameSchema.parse(start)).toEqual(start);
+  });
+
+  it("ogs:start with an unknown tier is rejected", () => {
+    expect(LauncherToGameSchema.safeParse({ ...start, tier: "ultra" }).success).toBe(false);
+  });
+
+  it("the render tiers run from the strongest TV to the weakest", () => {
+    expect(RENDER_TIERS).toEqual(["full", "lite", "minimal"]);
+    expect(RenderTierSchema.safeParse("lite").success).toBe(true);
+    expect(RenderTierSchema.safeParse("").success).toBe(false);
   });
 
   it("ogs:start with an unknown mode is rejected", () => {

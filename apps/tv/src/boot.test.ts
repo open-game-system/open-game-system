@@ -26,6 +26,11 @@ describe("boot (fake mode)", () => {
     boot({ mode: "fake", hold: true }, "");
     expect(window.__launcherBootId).toBe(bootId);
   });
+
+  it("carries the TV's render tier from the URL, and none when the URL has none", () => {
+    expect(boot({ mode: "fake", hold: false }, "?fake=1&tier=minimal").tier).toBe("minimal");
+    expect(boot({ mode: "fake", hold: false }, "?fake=1")).not.toHaveProperty("tier");
+  });
 });
 
 describe("loadWithRetry", () => {

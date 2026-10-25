@@ -1,4 +1,4 @@
-import type { CurrentGame } from "@open-game-system/ogs-protocol";
+import type { CurrentGame, RenderTier } from "@open-game-system/ogs-protocol";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
   EMPTY_FRAMES,
@@ -21,13 +21,15 @@ const originOf = (url: string) => new URL(url).origin;
  * The framed game pages: follows the session's current game, posts ogs:start / suspend / resume,
  * forwards resume points from the frames, and gives up calmly when a frame never loads. ogs:start
  * carries the session's game token for that game and the couch (`grantFor`), and is sent again
- * when a frame says ogs:ready.
+ * when a frame says ogs:ready, with the TV's render tier when it has one.
  */
 export function useFrames(
   client: SessionClient,
   current: CurrentGame | null,
   timeoutMs: number,
   grantFor: (appId: string) => Promise<StartGrant | null>,
+  /** What the TV can draw, said in every ogs:start (absent: the TV didn't say). */
+  tier?: RenderTier,
 ) {
   const [frames, setFrames] = useState<Frames>(EMPTY_FRAMES);
   const framesRef = useRef<Frames>(EMPTY_FRAMES);
@@ -57,7 +59,7 @@ export function useFrames(
     void grantFor(slot.appId).then((grant) => {
       const now = currentRef.current;
       if (now?.instanceId === slot.instanceId)
-        post({ instanceId: slot.instanceId, msg: startMessage(now, grant) });
+        post({ instanceId: slot.instanceId, msg: startMessage(now, grant, tier) });
     });
   };
 

@@ -10,7 +10,11 @@ const profile = {
 };
 
 describe("profile login (single-game apps: guest or signed in)", () => {
-  it.each(["guest", "apple", "google"])("a ready profile can say how it is signed in: %s", (login) => {
+  it.each([
+    "guest",
+    "apple",
+    "google",
+  ])("a ready profile can say how it is signed in: %s", (login) => {
     const s = { status: "ready", profile: { ...profile, login } };
     expect(ProfileBridgeStateSchema.parse(s)).toEqual(s);
   });

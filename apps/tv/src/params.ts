@@ -1,4 +1,4 @@
-import { ClaimsSchema } from "@open-game-system/ogs-protocol";
+import { ClaimsSchema, type RenderTier, RenderTierSchema } from "@open-game-system/ogs-protocol";
 import { z } from "zod";
 import { VIEW_TIMEOUT_MS } from "./launcher/starting";
 
@@ -45,6 +45,16 @@ export function frameTimeoutMs(search: string): number {
 export function viewTimeoutMs(search: string): number {
   return msKnob(search, "viewTimeout", VIEW_TIMEOUT_MS);
 }
+/**
+ * `tier=full|lite|minimal`: what the TV can draw, as the device rendering this launcher measured it
+ * (the Cast receiver, src/receiver). Passed to every framed game in ogs:start; absent when the TV
+ * didn't say.
+ */
+export function renderTier(search: string): RenderTier | undefined {
+  const r = RenderTierSchema.safeParse(new URLSearchParams(search).get("tier"));
+  return r.success ? r.data : undefined;
+}
+
 export type ParamsResult = { ok: true; params: LauncherParams } | { ok: false; error: string };
 
 export function parseParams(search: string): ParamsResult {
@@ -55,7 +65,9 @@ export function parseParams(search: string): ParamsResult {
     const hold = q.get("hold") === "1";
     // `world=fresh`: a couch before anyone has played anything (design and tests).
     const params: LauncherParams =
-      q.get("world") === "fresh" ? { mode: "fake", hold, fresh: true, ...chrome } : { mode: "fake", hold, ...chrome };
+      q.get("world") === "fresh"
+        ? { mode: "fake", hold, fresh: true, ...chrome }
+        : { mode: "fake", hold, ...chrome };
     return { ok: true, params };
   }
   const r = LiveSchema.safeParse({

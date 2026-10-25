@@ -5,6 +5,7 @@ import {
   type GameToLauncher,
   GameToLauncherSchema,
   type LauncherToGame,
+  type RenderTier,
 } from "@open-game-system/ogs-protocol";
 
 /** A framed game page. The launcher keeps the active one and the last one it paused. */
@@ -133,9 +134,14 @@ export interface StartGrant {
  * Sent to the frame on load (and again when it says ogs:ready). The launcher's own token
  * authenticates the couch socket and never reaches a game's origin: the game gets a game-scoped
  * token from POST /sessions/:sid/game-token. `null` = no grant (OGS couldn't sign one): the game
- * starts with no token and nobody named; no second argument keeps the bare start.
+ * starts with no token and nobody named; no second argument keeps the bare start. `tier`: what the
+ * TV can draw (params.renderTier), left out when the TV didn't say.
  */
-export function startMessage(current: CurrentGame, grant?: StartGrant | null): LauncherToGame {
+export function startMessage(
+  current: CurrentGame,
+  grant?: StartGrant | null,
+  tier?: RenderTier,
+): LauncherToGame {
   const start: LauncherToGame = {
     type: "ogs:start",
     instanceId: current.instanceId,
@@ -143,6 +149,7 @@ export function startMessage(current: CurrentGame, grant?: StartGrant | null): L
     roster: current.roster,
     token: grant?.token ?? "",
     ...(current.room ? { room: current.room } : {}),
+    ...(tier ? { tier } : {}),
   };
   return grant === undefined ? start : { ...start, players: grant?.players ?? [] };
 }
