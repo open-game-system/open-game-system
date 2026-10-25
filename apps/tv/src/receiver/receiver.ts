@@ -70,11 +70,19 @@ export function createReceiver(deps: {
   let ended = false;
   let detecting: Promise<Detected> | null = null;
 
+  /** The tier is measured once, the first time it is needed. */
+  const measure = () => {
+    if (!detecting) detecting = deps.detect();
+    return detecting;
+  };
+
   const ask = () => host.broadcast({ type: "REQUEST_VIEW", accepts: ACCEPTS });
 
   const endCast = (why: string) => {
     if (ended) return;
     ended = true;
+    if (fpsTimer) clearInterval(fpsTimer);
+    fpsTimer = null;
     log.event("cast.ended", { data: { why }, now: true });
     deps.status("This TV session has ended");
     host.stop();
@@ -104,7 +112,7 @@ export function createReceiver(deps: {
     viewUrl = msg.viewUrl;
     if (askTimer) clearInterval(askTimer);
     askTimer = null;
-    const d = await (detecting ??= deps.detect());
+    const d = await measure();
     if (viewUrl !== msg.viewUrl) return; // a newer view arrived while the tier was measured
     const v = receiverView(msg.viewUrl, deps.origin, d.choice.tier);
     if (!v) return;
@@ -191,8 +199,7 @@ export function createReceiver(deps: {
       ask();
       askTimer = setInterval(ask, ASK_MS);
       setTimeout(() => endCast("the cast reached 3 hours"), MAX_CAST_MS);
-      detecting ??= deps.detect();
-      void detecting.then((d) => {
+      void measure().then((d) => {
         detected = d;
         const s = d.signals;
         log.event("tier", {

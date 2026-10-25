@@ -86,10 +86,9 @@ async function castDevice(
         },
         getSenders: () => [{}],
         start: () =>
-          setTimeout(
-            () => (listeners.senderconnected ?? []).forEach((h) => h({ senderId: "phone" })),
-            50,
-          ),
+          setTimeout(() => {
+            for (const h of listeners.senderconnected ?? []) h({ senderId: "phone" });
+          }, 50),
         stop: () => window.__out?.push({ stopped: true }),
         canDisplayType: () => false,
       };
