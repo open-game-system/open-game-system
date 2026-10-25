@@ -1,0 +1,7 @@
+# The question: the phone shows the four colors (e2e/sim.sh screenshots the TV after this flow).
+appId: __OGS_BUNDLE_ID__
+---
+- extendedWaitUntil:
+    visible: "Which color had the most?.*"
+    timeout: 15000
+- takeScreenshot: e2e/out/07-phone-pick

@@ -51,14 +51,12 @@ step "external display on"
 step "on the TV (Maestro)"
 sleep 3
 xcrun simctl io "$udid" screenshot --display=external "$out/04-tv-lobby.png" >/dev/null 2>&1
-"$maestro" --device "$udid" test e2e/maestro/start.yaml >"$out/maestro-start.log" 2>&1 &
-maestro_pid=$!
-sleep 4
+"$maestro" --device "$udid" test e2e/maestro/start.yaml >"$out/maestro-start.log" 2>&1
 xcrun simctl io "$udid" screenshot --display=external "$out/06-tv-kites.png" >/dev/null 2>&1
-wait $maestro_pid
-step "round started (Maestro)"
-sleep 1
+step "round started, kites (Maestro)"
+"$maestro" --device "$udid" test e2e/maestro/pick.yaml >"$out/maestro-pick.log" 2>&1
 xcrun simctl io "$udid" screenshot --display=external "$out/08-tv-question.png" >/dev/null 2>&1
+step "question (Maestro)"
 echo "The phone walk passed. LOOK at the TV screenshots (04, 06, 08) before calling the TV done:"
 echo "the native idle card (\"Pick a game on your phone…\") means the TV page never loaded."
 echo "Screenshots and timings in $out"

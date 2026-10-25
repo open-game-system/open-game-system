@@ -1,0 +1,22 @@
+create-ogs-game                       0s (total 0s)
+pnpm install + test                  12s (total 12s)
+deploy:preview                       10s (total 22s)
+smoke vs preview                      9s (total 31s)
+app pnpm install                      8s (total 39s)
+  sim: 
+  sim: > kite-count-app@1.0.0 e2e:ios /Users/jonathanmumm/src/kite-count/app
+  sim: > e2e/sim.sh
+  sim: 
+  sim: simulator booted                0s (total 0s)
+  sim: expo prebuild                  21s (total 21s)
+  sim: xcodebuild (Release)          106s (total 127s)
+  sim: installed                       1s (total 128s)
+  sim: external display on             3s (total 131s)
+  sim: on the TV (Maestro)            27s (total 158s)
+  sim: round started, kites (Maestro)   16s (total 174s)
+  sim: question (Maestro)             11s (total 185s)
+  sim: The phone walk passed. LOOK at the TV screenshots (04, 06, 08) before calling the TV done:
+  sim: the native idle card ("Pick a game on your phone…") means the TV page never loaded.
+  sim: Screenshots and timings in /Users/jonathanmumm/src/kite-count/app/e2e/out
+pnpm e2e:ios (to TV screenshots)    186s (total 225s)
+exit=0
