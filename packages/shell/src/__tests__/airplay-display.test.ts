@@ -22,6 +22,9 @@ function fakeNative() {
     start: jest.fn(async (_url: string) => {}),
     stop: jest.fn(async () => {}),
     setAppName: jest.fn(async (_name: string) => {}),
+    setIdleCard: jest.fn(async (_line: string, _background: string) => {}),
+    setLogContext: jest.fn(async (_context: Record<string, string>) => {}),
+    syncPhonePages: jest.fn(async () => {}),
     currentDisplay: jest.fn(async () => ({ name: "Kitchen", width: 1, height: 2 })),
     detectRoutes: jest.fn(async (_seconds: number) => true),
     recentLog: jest.fn(async (_after: number): Promise<NativeLogEvent[]> => []),
@@ -50,6 +53,9 @@ describe("airplayDisplayOf: the module's display half", () => {
     await expect(d.start("https://x")).resolves.toBeUndefined();
     await expect(d.stop()).resolves.toBeUndefined();
     await expect(d.setAppName("OGS")).resolves.toBeUndefined();
+    await expect(d.setIdleCard({ line: "x" })).resolves.toBeUndefined();
+    await expect(d.setLogContext({ device: "a" })).resolves.toBeUndefined();
+    await expect(d.syncPhonePages()).resolves.toBeUndefined();
     for (const sub of [
       d.onConnect(() => {}),
       d.onDisconnect(() => {}),
@@ -69,6 +75,20 @@ describe("airplayDisplayOf: the module's display half", () => {
     expect(raw.stop).toHaveBeenCalled();
     await d.setAppName("OGS");
     expect(raw.setAppName).toHaveBeenCalledWith("OGS");
+    await d.setIdleCard({
+      line: "Open a table on your phone to show it here.",
+      background: "#1f3d34",
+    });
+    expect(raw.setIdleCard).toHaveBeenLastCalledWith(
+      "Open a table on your phone to show it here.",
+      "#1f3d34",
+    );
+    await d.setIdleCard({});
+    expect(raw.setIdleCard).toHaveBeenLastCalledWith("", "");
+    await d.setLogContext({ device: "a-1", session: "app-2" });
+    expect(raw.setLogContext).toHaveBeenCalledWith({ device: "a-1", session: "app-2" });
+    await d.syncPhonePages();
+    expect(raw.syncPhonePages).toHaveBeenCalledTimes(1);
     await expect(d.currentDisplay()).resolves.toEqual({ name: "Kitchen", width: 1, height: 2 });
     await expect(d.detectRoutes(30)).resolves.toBe(true);
     expect(raw.detectRoutes).toHaveBeenCalledWith(30);

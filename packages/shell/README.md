@@ -165,7 +165,8 @@ keeps the game's controller page. The phone renders the TV page: no cloud GPU. W
   notification. Stopping Screen Mirroring ends the cast; Stop casting puts the TV's idle card back.
   Haptics are the `haptics` store's, as without AirPlay.
 - **Native** (`ios/module/AirplayDisplay`): `OgsAirplayDisplayModule` (`start`, `stop`,
-  `currentDisplay`, `detectRoutes`, `recentLog`, `log`; events `onConnect`, `onDisconnect`,
+  `setAppName`, `setIdleCard`, `setLogContext`, `syncPhonePages`, `currentDisplay`, `detectRoutes`,
+  `recentLog`, `log`; events `onConnect`, `onDisconnect`,
   `onAudioOnlyAirPlay`, `onRoutes`, `onLog`), `ExternalDisplayController` (scene or bare-screen
   host, mode changes, idle card, away notice, keep-awake), `AudioRouteMonitor`, `RouteDetector`,
   `NativeLog` (a ring, os_log subsystem = bundle id, category `airplay`).
@@ -173,6 +174,14 @@ keeps the game's controller page. The phone renders the TV page: no cloud GPU. W
   `airplay.*` steps (`native-log-forward.ts`; a game's own app: `airplay-shell.ts`, `app: "shell"`).
   Reading them: [docs/agents/client-log.md](../../docs/agents/client-log.md).
 - **Simulator:** I/O > External Displays is the TV (`scripts/airplay-sim.sh` turns it on).
+- **The pages:** the phone page gets `window.__OGS_TV__` and an `ogs:tv` event `{ connected }` when
+  the TV window comes and goes (`syncPhonePages()` sends it again), so it can go quiet while the TV
+  plays the sound; `setLogContext({ device, … })` hands both pages `window.__OGS_LOG__` (the TV page
+  before its scripts run). `setIdleCard({ line, background })` makes the idle card the app's.
+- **Your own TV page:** a game's own app that isn't on the OGS couch can drive the TV window itself
+  with `airplayDisplay` from `@open-game-system/shell/app` (`start(tvUrl)`, `onConnect`, …) and its
+  own sheet ([ADR 2026-10-25](../../docs/adrs/2026-10-25-airplay-display-for-a-games-own-tv-page.md);
+  Crak & Bam does this).
 
 ## Tests
 
