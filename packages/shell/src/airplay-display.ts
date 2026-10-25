@@ -25,6 +25,17 @@ export interface NativeLogEvent {
   data: NativeLogData;
 }
 
+/** The TV's idle card (before anything is cast): the line under the app's name, and its colour. */
+export interface IdleCard {
+  /** Default "Pick a game on your phone to show it here." */
+  line?: string;
+  /** "#rrggbb"; default the OGS colour. */
+  background?: string;
+}
+
+/** The app's log ids, handed to both pages (`window.__OGS_LOG__`), flat strings only. */
+export type LogContext = Record<string, string>;
+
 /** The module's events and their payloads. */
 export type AirplayEvents = {
   onConnect: DisplayInfo;
@@ -39,6 +50,9 @@ export interface AirplayDisplayNative {
   start(tvUrl: string): Promise<void>;
   stop(): Promise<void>;
   setAppName(name: string): Promise<void>;
+  setIdleCard(line: string, background: string): Promise<void>;
+  setLogContext(context: LogContext): Promise<void>;
+  syncPhonePages(): Promise<void>;
   currentDisplay(): Promise<DisplayInfo | null>;
   detectRoutes(seconds: number): Promise<boolean>;
   recentLog(after: number): Promise<NativeLogEvent[]>;
@@ -58,6 +72,19 @@ export interface AirplayDisplay {
   stop(): Promise<void>;
   /** The app's name on the TV's idle card and "Open <name> to keep the TV going". */
   setAppName(name: string): Promise<void>;
+  /** The TV's idle card: the app's own line and colour. */
+  setIdleCard(card: IdleCard): Promise<void>;
+  /**
+   * The app's log ids: the TV page gets them as `window.__OGS_LOG__` before its scripts run, the
+   * phone page with each `ogs:tv` event, so their log lines carry the app's device.
+   */
+  setLogContext(context: LogContext): Promise<void>;
+  /**
+   * Tells the phone page again whether the TV window is on (`window.__OGS_TV__` and an `ogs:tv`
+   * event with `{ connected }`; the module also sends it on every connect and disconnect). Call it
+   * when the page says it is ready: a page that loaded after the display came missed the event.
+   */
+  syncPhonePages(): Promise<void>;
   currentDisplay(): Promise<DisplayInfo | null>;
   /** Look for AirPlay receivers for a while; resolves with what is known now. */
   detectRoutes(seconds: number): Promise<boolean>;
@@ -83,6 +110,9 @@ export const noAirplayDisplay: AirplayDisplay = {
   start: async () => {},
   stop: async () => {},
   setAppName: async () => {},
+  setIdleCard: async () => {},
+  setLogContext: async () => {},
+  syncPhonePages: async () => {},
   currentDisplay: async () => null,
   detectRoutes: async () => false,
   onConnect: () => NOOP_SUB,
@@ -106,6 +136,9 @@ export function airplayDisplayOf(native: AirplayDisplayNative | null): AirplayDi
     start: (tvUrl) => native.start(tvUrl),
     stop: () => native.stop(),
     setAppName: (name) => native.setAppName(name),
+    setIdleCard: (card) => native.setIdleCard(card.line ?? "", card.background ?? ""),
+    setLogContext: (context) => native.setLogContext(context),
+    syncPhonePages: () => native.syncPhonePages(),
     currentDisplay: () => native.currentDisplay(),
     detectRoutes: (seconds) => native.detectRoutes(seconds),
     onConnect: (listener) => native.addListener("onConnect", listener),

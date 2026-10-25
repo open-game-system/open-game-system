@@ -80,3 +80,26 @@ Feature: Show a game on an Apple TV through Screen Mirroring, rendered by the ph
     When an agent asks GET /api/v1/client-events?launch=<launchId> with the log key
     Then it gets that launch's last events, oldest first, redacted like Workers Logs
     And without the key it gets 403
+
+  # Added 2026-10-25 (ADR 2026-10-25-airplay-display-for-a-games-own-tv-page): what a game's own app
+  # that drives the TV window itself (Crak & Bam) needs from the module.
+
+  Scenario: The phone page hears when the TV window comes and goes
+    Given the game's phone page is open in the shell's WebView
+    When the external display connects
+    Then the page has window.__OGS_TV__ = true and gets an "ogs:tv" event with { connected: true }
+    When the display goes
+    Then it gets "ogs:tv" with { connected: false }
+    And syncPhonePages() sends the current state again, for a page that loaded after the display came
+
+  Scenario: Both pages carry the app's log ids
+    Given the app called setLogContext({ device, session })
+    Then the TV page has window.__OGS_LOG__ = { device, session } before its own scripts run
+    And the phone page gets the same with each "ogs:tv"
+    And without a context neither page gets window.__OGS_LOG__
+
+  Scenario: The idle card is the app's
+    Given the app called setIdleCard({ line, background: "#rrggbb" })
+    When a display connects with nothing on it
+    Then the TV shows the app's name, that line, on that colour
+    And a colour that is not "#rrggbb" keeps the OGS colour

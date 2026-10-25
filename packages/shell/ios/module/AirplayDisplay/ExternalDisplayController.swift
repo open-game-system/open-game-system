@@ -55,6 +55,15 @@ final class ExternalDisplayController: NSObject {
   var appName: String = appDisplayName() {
     didSet { tvController?.appName = appName }
   }
+  /// Handed to the TV page as `window.__OGS_LOG__` before its scripts run, so its log lines carry the
+  /// app's ids (a game's own app sets its device and launch ids).
+  var logContext: [String: String] = [:] {
+    didSet { tvController?.logContext = logContext }
+  }
+  /// The TV's idle card: the app's line and colour (default: the OGS card).
+  var idleCard = IdleCard() {
+    didSet { tvController?.idleCard = idleCard }
+  }
 
   init(center: NotificationCenter = .default) {
     self.center = center
@@ -284,6 +293,8 @@ final class ExternalDisplayController: NSObject {
     log.info("display.attach", info)
     let controller = reusing ?? TvViewController()
     controller.appName = appName
+    controller.logContext = logContext
+    controller.idleCard = idleCard
     controller.log = log
     let win = makeWindow(next)
     win.frame = next.bounds
@@ -352,14 +363,21 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
   private let idle = UIView()
   private let notice = UILabel()
   private let idleTitle = UILabel()
+  private let idleLine = UILabel()
   var appName: String = appDisplayName() {
     didSet { applyName() }
+  }
+  var logContext: [String: String] = [:] {
+    didSet { installLogContext() }
+  }
+  var idleCard = IdleCard() {
+    didSet { applyIdleCard() }
   }
   private(set) var loadedUrl: URL?
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    view.backgroundColor = UIColor(red: 0.07, green: 0.06, blue: 0.13, alpha: 1)
+    view.backgroundColor = IdleCard.defaultBackground
 
     let config = WKWebViewConfiguration()
     config.allowsInlineMediaPlayback = true
@@ -377,9 +395,11 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
     webView.navigationDelegate = self
     webView.accessibilityIdentifier = "airplayTvWebView"
     view.addSubview(webView)
+    installLogContext()
 
     buildIdleCard()
     buildNotice()
+    applyIdleCard()
     if let url = loadedUrl { webView.load(URLRequest(url: url)) }
     applyIdle(loadedUrl == nil)
   }
@@ -416,6 +436,22 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
   var isShowingNotice: Bool { notice.alpha > 0.5 }
   var noticeText: String? { notice.text }
   var idleTitleText: String? { idleTitle.text }
+  var idleLineText: String? { idleLine.text }
+
+  private func applyIdleCard() {
+    guard isViewLoaded else { return }
+    idleLine.text = idleCard.line
+    view.backgroundColor = idleCard.background.flatMap(IdleCard.color) ?? IdleCard.defaultBackground
+  }
+
+  /// window.__OGS_LOG__ = { ... } before the TV page's scripts run (none without a context).
+  private func installLogContext() {
+    guard isViewLoaded else { return }
+    let ucc = webView.configuration.userContentController
+    ucc.removeAllUserScripts()
+    guard let json = PhonePages.json(logContext) else { return }
+    ucc.addUserScript(WKUserScript(source: "window.__OGS_LOG__ = \(json);", injectionTime: .atDocumentStart, forMainFrameOnly: true))
+  }
 
   private func applyName() {
     idleTitle.text = appName
@@ -434,8 +470,8 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
     let title = idleTitle
     title.font = UIFont(name: "Georgia-Bold", size: 72) ?? .boldSystemFont(ofSize: 72)
     title.textColor = UIColor(red: 0.98, green: 0.95, blue: 0.89, alpha: 1)
-    let line = UILabel()
-    line.text = "Pick a game on your phone to show it here."
+    let line = idleLine
+    line.text = idleCard.line
     line.font = UIFont(name: "Georgia", size: 32) ?? .systemFont(ofSize: 32)
     line.textColor = UIColor(red: 0.98, green: 0.95, blue: 0.89, alpha: 0.8)
     let stack = UIStackView(arrangedSubviews: [title, line])
@@ -516,5 +552,21 @@ final class TvViewController: UIViewController, WKNavigationDelegate {
       guard let self, self.loadedUrl == url else { return }
       self.webView.load(URLRequest(url: url))
     }
+  }
+}
+
+/// The TV's idle card, set by the app (`setIdleCard`): its line under the app's name and its colour.
+struct IdleCard: Equatable {
+  static let defaultLine = "Pick a game on your phone to show it here."
+  static let defaultBackground = UIColor(red: 0.07, green: 0.06, blue: 0.13, alpha: 1)
+  var line: String = IdleCard.defaultLine
+  /// "#rrggbb"; nil or not hex: the OGS colour.
+  var background: String?
+
+  /// "#rrggbb" or "rrggbb" as an opaque colour, else nil.
+  static func color(_ hex: String) -> UIColor? {
+    let digits = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+    guard digits.count == 6, digits.allSatisfy(\.isHexDigit), let v = UInt32(digits, radix: 16) else { return nil }
+    return UIColor(red: CGFloat((v >> 16) & 0xff) / 255, green: CGFloat((v >> 8) & 0xff) / 255, blue: CGFloat(v & 0xff) / 255, alpha: 1)
   }
 }

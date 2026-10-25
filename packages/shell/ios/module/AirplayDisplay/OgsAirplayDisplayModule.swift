@@ -32,7 +32,7 @@ public class OgsAirplayDisplayModule: Module {
             self.audio.exitTvMode()
             self.sendEvent("onDisconnect", [:])
           }
-          PhonePages.report(connected: connected, log: NativeLog.shared)
+          PhonePages.notify(connected: connected, logContext: self.controller.logContext, log: NativeLog.shared)
           self.audio.scheduleCheck()
         }
         self.audio.hasExternalDisplay = { [weak self] in self?.controller.isConnected ?? false }
@@ -63,6 +63,23 @@ public class OgsAirplayDisplayModule: Module {
     /// The app's name on the TV's idle card and "Open <name> to keep the TV going".
     AsyncFunction("setAppName") { (name: String) in
       self.controller.appName = name
+    }.runOnQueue(.main)
+
+    /// The TV's idle card: the line under the app's name and its colour ("#rrggbb"; "" keeps the OGS one).
+    AsyncFunction("setIdleCard") { (line: String, background: String) in
+      self.controller.idleCard = IdleCard(line: line.isEmpty ? IdleCard.defaultLine : line, background: background.isEmpty ? nil : background)
+    }.runOnQueue(.main)
+
+    /// The app's log ids (flat strings), handed to the TV page (window.__OGS_LOG__ at document start) and
+    /// to the phone page with each `ogs:tv`, so their log lines carry the app's device.
+    AsyncFunction("setLogContext") { (context: [String: String]) in
+      self.controller.logContext = context
+    }.runOnQueue(.main)
+
+    /// Tells the phone page whether the TV window is on again (call when the page says it is ready:
+    /// a page that loaded after the display connected missed the `ogs:tv` event).
+    AsyncFunction("syncPhonePages") {
+      PhonePages.notify(connected: self.controller.isConnected, logContext: self.controller.logContext, log: NativeLog.shared)
     }.runOnQueue(.main)
 
     /// Back to the idle card on the TV.

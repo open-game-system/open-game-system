@@ -23,3 +23,4 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-10-18 | [Multi-tenant push: OGS sends for each white-label app with that app's own credentials](2026-10-18-multi-tenant-push.md) | Accepted |
 | 2026-10-18 | [The ogs CLI is the developer tool, backed by a public developer API](2026-10-18-ogs-developer-api.md) | Accepted |
 | 2026-10-23 | [An Apple TV is a cast device; the phone renders the TV page on Screen Mirroring's external display](2026-10-23-airplay-display.md) | Accepted |
+| 2026-10-25 | [A game's own app may drive the AirPlay TV window with its own TV page](2026-10-25-airplay-display-for-a-games-own-tv-page.md) | Accepted |
