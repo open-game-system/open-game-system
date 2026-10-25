@@ -15,6 +15,13 @@ describe("what the receiver frames for a LOAD_VIEW", () => {
     });
   });
 
+  it("the launcher at /index.html is the launcher too", () => {
+    expect(
+      receiverView("https://ogs-tv.pages.dev/index.html?api=https://a.b&token=t", RX, "lite")
+        ?.launcher,
+    ).toBe(true);
+  });
+
   it("keeps a white-label cast's chrome=none and app", () => {
     const v = receiverView(`${LAUNCHER}&chrome=none&app=crak-and-bam`, RX, "full");
     expect(new URL(v?.url ?? "").searchParams.get("chrome")).toBe("none");

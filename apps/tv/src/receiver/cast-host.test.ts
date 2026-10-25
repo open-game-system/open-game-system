@@ -126,6 +126,27 @@ describe("the CAF host (a real Cast device)", () => {
     expect(f.ctx.stop).toHaveBeenCalled();
   });
 
+  it("the view namespace is the one the phone opens", () => {
+    expect(VIEW_NAMESPACE).toBe("urn:x-cast:org.opengame.view");
+  });
+
+  it("asks CAF about 4K HEVC at 30 fps, and says nothing when CAF can't answer", () => {
+    const f = fakeCaf({ uhd: true });
+    const host = cafHost(f.caf);
+    host.uhd();
+    expect(f.ctx.canDisplayType).toHaveBeenCalledWith(
+      "video/mp4",
+      "hev1.1.6.L150.B0",
+      3840,
+      2160,
+      30,
+    );
+    f.ctx.canDisplayType.mockImplementation(() => {
+      throw new Error("not ready");
+    });
+    expect(host.uhd()).toBeUndefined();
+  });
+
   it("says whether the device can display 4K (a Chromecast Ultra)", () => {
     expect(cafHost(fakeCaf({ uhd: true }).caf).uhd()).toBe(true);
     expect(cafHost(fakeCaf({ uhd: false }).caf).uhd()).toBe(false);
@@ -151,7 +172,10 @@ describe("the relay host (a desktop browser test: ?signal=test)", () => {
 });
 
 describe("the parent host (framed by the OGS Cast receiver page, which owns CAF)", () => {
-  function framed(uhd: string | null = null) {
+  function framed(
+    uhd: string | null = null,
+    ancestors: string[] | null = ["https://opengame.org"],
+  ) {
     const parent = {
       posted: [] as { m: unknown; origin: string }[],
       postMessage(m: unknown, origin: string) {
@@ -162,11 +186,11 @@ describe("the parent host (framed by the OGS Cast receiver page, which owns CAF)
     const win = {
       parent,
       location: {
-        ancestorOrigins: ["https://opengame.org"],
+        ...(ancestors ? { ancestorOrigins: ancestors } : {}),
         search: uhd ? `?host=parent&uhd=${uhd}` : "?host=parent",
       },
-      addEventListener: (_t: "message", h: typeof listener) => {
-        listener = h;
+      addEventListener: (t: "message", h: typeof listener) => {
+        if (t === "message") listener = h;
       },
     };
     const host = parentHost(win);
@@ -211,6 +235,29 @@ describe("the parent host (framed by the OGS Cast receiver page, which owns CAF)
     );
     f.deliver({ type: "GET_STATE" });
     expect(got).toEqual([]);
+  });
+
+  it("ignores relayed messages that aren't 'in' with a sender id", () => {
+    const f = framed();
+    const got: unknown[] = [];
+    f.host.onMessage((d) => got.push(d));
+    f.host.start();
+    f.deliver({ ogsRx: "out", senderId: "x", data: { type: "GET_STATE" } });
+    f.deliver({ ogsRx: "in", senderId: 7, data: { type: "GET_STATE" } });
+    expect(got).toEqual([]);
+  });
+
+  it("without ancestorOrigins (not Chrome) it posts to any origin and takes its parent's messages", () => {
+    const f = framed(null, null);
+    const got: unknown[] = [];
+    f.host.onMessage((d) => got.push(d));
+    f.host.start();
+    expect(f.parent.posted[0]?.origin).toBe("*");
+    f.deliver(
+      { ogsRx: "in", senderId: "p", data: { type: "GET_STATE" } },
+      "https://anything.example",
+    );
+    expect(got).toEqual([{ type: "GET_STATE" }]);
   });
 
   it("broadcasts and stops through the parent (the parent closes the Cast app)", () => {

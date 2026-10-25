@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { createFrameMeter, FrameStats } from "./frame-stats";
 import type { RxLog } from "./rx-log";
 import type { TierChoice, TierSignals } from "./tier";
-import { receiverView } from "./view-url";
+import { type ReceiverView, receiverView } from "./view-url";
 
 /** The Cast messaging this receiver needs (CAF on a Chromecast; a test relay in a desktop browser). */
 export interface CastHost {
@@ -47,6 +47,37 @@ function apiOrigin(url: unknown): string | null {
   if (!r.success) return null;
   const u = new URL(r.data);
   return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null;
+}
+
+/** What GET_STATE says about the TV (nulls until it is measured). */
+function detectedState(d: Detected | null) {
+  if (!d)
+    return { tier: null, reasons: [], deviceClass: null, gpu: null, probe: null, userAgent: null };
+  return {
+    tier: d.choice.tier,
+    reasons: d.choice.reasons,
+    deviceClass: d.choice.deviceClass,
+    gpu: d.signals.webgl?.renderer ?? null,
+    probe: d.signals.frame,
+    userAgent: d.signals.userAgent,
+  };
+}
+
+/** receiver.tier's data: the choice and the signals behind it (scalars only, for the client log). */
+function tierData(d: Detected) {
+  const { webgl, frame } = d.signals;
+  return {
+    tier: d.choice.tier,
+    reasons: d.choice.reasons.join(","),
+    deviceClass: d.choice.deviceClass,
+    gpu: webgl ? webgl.renderer.slice(0, 200) : null,
+    maxTexture: webgl ? webgl.maxTextureSize : null,
+    ...(frame
+      ? { probeP50Ms: frame.p50Ms, probeP90Ms: frame.p90Ms, probeFrames: frame.frames }
+      : { probeP50Ms: null, probeP90Ms: null, probeFrames: null }),
+    memoryGb: d.signals.deviceMemoryGb ?? null,
+    heapLimitMb: d.signals.heapLimitMb ?? null,
+  };
 }
 
 /**
@@ -105,23 +136,48 @@ export function createReceiver(deps: {
     log.event("fps", { data: { tier: detected?.choice.tier ?? null, ...s } });
   };
 
-  const show = async (msg: z.infer<typeof LoadView>) => {
+  /** Is this LOAD_VIEW a new, valid view? Decided at once, before the tier is known. */
+  const accept = (msg: z.infer<typeof LoadView>) => {
     log.join({ phoneAttemptId: msg.attemptId, sessionId: msg.sessionId });
     if (!receiverView(msg.viewUrl, deps.origin, "full")) {
       log.event("load_view.invalid", { level: "warn" });
-      return;
+      return false;
     }
-    // The phone repeats its view (on connect and on each REQUEST_VIEW): decided now, before the
-    // tier is known, so a repeat sent during the probe never loads twice.
+    // The phone repeats its view (on connect and on each REQUEST_VIEW): a repeat sent during the
+    // probe must never load twice.
     if (msg.viewUrl === viewUrl) {
       log.event("load_view.ignored", {
         data: { why: "duplicate", view: new URL(msg.viewUrl).host },
       });
-      return;
+      return false;
     }
     viewUrl = msg.viewUrl;
     if (askTimer) clearInterval(askTimer);
     askTimer = null;
+    return true;
+  };
+
+  const loaded = (v: ReceiverView, tier: string, t0: number) => {
+    deps.status(null);
+    log.event("view.loaded", {
+      durationMs: Date.now() - t0,
+      data: { view: v.host, tier, sinceLaunchMs: Date.now() - deps.launchedAt },
+    });
+    fpsTimer ??= setInterval(logFps, FPS_EVERY_MS);
+  };
+
+  const notLoaded = (v: ReceiverView) => {
+    deps.status("The TV page didn't load. Try casting again.");
+    log.event("view.timeout", {
+      level: "error",
+      error: "the view didn't load",
+      data: { view: v.host },
+      now: true,
+    });
+  };
+
+  const show = async (msg: z.infer<typeof LoadView>) => {
+    if (!accept(msg)) return;
     const d = await measure();
     if (viewUrl !== msg.viewUrl) return; // a newer view arrived while the tier was measured
     const v = receiverView(msg.viewUrl, deps.origin, d.choice.tier);
@@ -131,29 +187,15 @@ export function createReceiver(deps: {
     log.event("load_view.received", {
       data: { view: v.host, launcher: v.launcher, tier: d.choice.tier },
     });
-    view = { host: v.host, loaded: false };
-    const mine = view;
+    const mine = { host: v.host, loaded: false };
+    view = mine;
     const t0 = Date.now();
     deps.meter.drain();
     const result = await deps.frame.load(v.url);
     if (view !== mine) return;
-    if (result === "loaded") {
-      mine.loaded = true;
-      deps.status(null);
-      log.event("view.loaded", {
-        durationMs: Date.now() - t0,
-        data: { view: v.host, tier: d.choice.tier, sinceLaunchMs: Date.now() - deps.launchedAt },
-      });
-      fpsTimer ??= setInterval(logFps, FPS_EVERY_MS);
-    } else {
-      deps.status("The TV page didn't load. Try casting again.");
-      log.event("view.timeout", {
-        level: "error",
-        error: "the view didn't load",
-        data: { view: v.host },
-        now: true,
-      });
-    }
+    mine.loaded = result === "loaded";
+    if (mine.loaded) loaded(v, d.choice.tier, t0);
+    else notLoaded(v);
   };
 
   const state = () => ({
@@ -161,13 +203,8 @@ export function createReceiver(deps: {
     started: viewUrl !== null,
     view: view?.host ?? null,
     loaded: view?.loaded ?? false,
-    tier: detected?.choice.tier ?? null,
-    reasons: detected?.choice.reasons ?? [],
-    deviceClass: detected?.choice.deviceClass ?? null,
-    gpu: detected?.signals.webgl?.renderer ?? null,
-    probe: detected?.signals.frame ?? null,
+    ...detectedState(detected),
     fps: lastFps,
-    userAgent: detected?.signals.userAgent ?? null,
   });
 
   const onMessage = (data: unknown, reply: (m: object) => void) => {
@@ -212,22 +249,7 @@ export function createReceiver(deps: {
       setTimeout(() => endCast("the cast reached 3 hours"), MAX_CAST_MS);
       void measure().then((d) => {
         detected = d;
-        const s = d.signals;
-        log.event("tier", {
-          durationMs: d.probeMs,
-          data: {
-            tier: d.choice.tier,
-            reasons: d.choice.reasons.join(","),
-            deviceClass: d.choice.deviceClass,
-            gpu: s.webgl?.renderer.slice(0, 200) ?? null,
-            maxTexture: s.webgl?.maxTextureSize ?? null,
-            probeP50Ms: s.frame?.p50Ms ?? null,
-            probeP90Ms: s.frame?.p90Ms ?? null,
-            probeFrames: s.frame?.frames ?? null,
-            memoryGb: s.deviceMemoryGb ?? null,
-            heapLimitMb: s.heapLimitMb ?? null,
-          },
-        });
+        log.event("tier", { durationMs: d.probeMs, data: tierData(d) });
         if (!viewUrl) deps.status("Waiting for the phone…");
       });
     },

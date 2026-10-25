@@ -33,6 +33,19 @@ const joinId = (v: unknown) =>
   typeof v === "string" && v.length > 0 && v.length <= 64 ? v : undefined;
 const message = (e: unknown) => String(e instanceof Error ? e.message : e).slice(0, 1000);
 
+function eventOf(name: string, f: RxFields, run: string): RxEvent {
+  const e: RxEvent = {
+    name: `receiver.${name}`,
+    at: Date.now(),
+    level: f.level ?? (f.error !== undefined ? "error" : "info"),
+    attemptId: run,
+  };
+  if (f.error !== undefined) e.error = message(f.error);
+  if (f.durationMs !== undefined) e.durationMs = Math.max(0, Math.round(f.durationMs));
+  if (f.data) e.data = f.data;
+  return e;
+}
+
 /**
  * The receiver's client log: `receiver.<name>` wide events to POST /api/v1/client-events on the
  * launcher's API (the client-log pipeline, docs/agents/client-log.md), with no credentials (the API
@@ -79,16 +92,7 @@ export function createRxLog(opts: {
 
   return {
     event(name: string, f: RxFields = {}) {
-      const e: RxEvent = {
-        name: `receiver.${name}`,
-        at: Date.now(),
-        level: f.level ?? (f.error !== undefined ? "error" : "info"),
-        attemptId: opts.run,
-      };
-      if (f.error !== undefined) e.error = message(f.error);
-      if (f.durationMs !== undefined) e.durationMs = Math.max(0, Math.round(f.durationMs));
-      if (f.data) e.data = f.data;
-      events.push(e);
+      events.push(eventOf(name, f, opts.run));
       if (events.length > KEEP) events = events.slice(-KEEP);
       if (f.now && api) flush();
       else schedule();

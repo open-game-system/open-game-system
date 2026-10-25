@@ -21,6 +21,10 @@ describe("frame stats from rAF intervals", () => {
     expect(s.p90Ms).toBe(60);
   });
 
+  it("a frame of exactly 50 ms is not long", () => {
+    expect(frameStats([50, 50.1]).longFrames).toBe(1);
+  });
+
   it("fps is frames over the time they took, not 1000 / median", () => {
     // 30 frames of 33.3 ms: one second, 30 fps.
     expect(frameStats(Array(30).fill(33.33)).fps).toBe(30);

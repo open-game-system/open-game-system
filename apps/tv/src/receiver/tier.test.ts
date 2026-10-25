@@ -34,6 +34,17 @@ describe("device class from the user agent", () => {
   });
 });
 
+describe("device class edge cases (older firmware, other platforms)", () => {
+  it.each([
+    ["Mozilla/5.0 (Linux; Android 10; BRAVIA 4K) CrKey/1.43.0", "google-tv"],
+    ["Mozilla/5.0 (X11; Linux aarch64) CrKey/1.56.500000 DeviceType/AndroidTV", "google-tv"],
+    ["Mozilla/5.0 (Fuchsia) CrKey/1.56.500000", "smart-display"],
+    ["Mozilla/5.0 (X11; Linux armv7l) CrKey/1.56.500000 DeviceType/SmartDisplay", "smart-display"],
+  ] as const)("%s → %s", (ua, cls) => {
+    expect(deviceClassOf(ua)).toBe(cls);
+  });
+});
+
 describe("render tier", () => {
   it("a strong browser with a fast frame probe is full", () => {
     expect(chooseTier(STRONG)).toEqual({ tier: "full", reasons: [], deviceClass: "browser" });
@@ -95,7 +106,10 @@ describe("render tier", () => {
   });
 
   it("a Nest Hub (smart display) is lite", () => {
-    expect(chooseTier({ ...STRONG, userAgent: UA.nestHub }).tier).toBe("lite");
+    expect(chooseTier({ ...STRONG, userAgent: UA.nestHub })).toMatchObject({
+      tier: "lite",
+      reasons: ["device:smart-display"],
+    });
   });
 
   describe("frame-time probe (a fixed 720p WebGL workload)", () => {
@@ -116,6 +130,18 @@ describe("render tier", () => {
       expect(
         chooseTier({ ...STRONG, frame: { p50Ms: 30, p90Ms: 31, frames: 90 } }).reasons,
       ).toEqual(["frame:30ms"]);
+    });
+
+    it("20 probe frames are enough to count; a p90 of exactly 34 ms is still full", () => {
+      expect(chooseTier({ ...STRONG, frame: { p50Ms: 50, p90Ms: 60, frames: 20 } }).tier).toBe(
+        "minimal",
+      );
+      expect(chooseTier({ ...STRONG, frame: { p50Ms: 50, p90Ms: 60, frames: 19 } }).tier).toBe(
+        "full",
+      );
+      expect(chooseTier({ ...STRONG, frame: { p50Ms: 16.7, p90Ms: 34, frames: 90 } }).tier).toBe(
+        "full",
+      );
     });
 
     it("a probe that couldn't run (too few frames) doesn't cap the tier", () => {
@@ -139,6 +165,15 @@ describe("render tier", () => {
         ...(deviceMemoryGb === undefined ? {} : { deviceMemoryGb }),
       });
       expect(r.tier).toBe(tier);
+    });
+
+    it("says the memory that capped it", () => {
+      expect(chooseTier({ ...STRONG, deviceMemoryGb: 0.5 }).reasons).toEqual(["memory:0.5gb"]);
+      expect(chooseTier({ ...STRONG, deviceMemoryGb: 1 }).reasons).toEqual(["memory:1gb"]);
+    });
+
+    it("a heap limit of exactly 512 MB is enough", () => {
+      expect(chooseTier({ ...STRONG, heapLimitMb: 512 }).tier).toBe("full");
     });
 
     it("a JS heap limit under 512 MB caps at lite", () => {
@@ -165,6 +200,19 @@ describe("render tier", () => {
       reasons: ["device:google-tv", "frame:50ms"],
       deviceClass: "google-tv",
     });
+  });
+
+  it("a later, milder cap never lifts an earlier, harsher one", () => {
+    expect(chooseTier({ ...STRONG, webgl: null, deviceMemoryGb: 1 })).toMatchObject({
+      tier: "minimal",
+      reasons: ["no-webgl", "memory:1gb"],
+    });
+  });
+
+  it("a 4096 px texture limit is enough", () => {
+    expect(
+      chooseTier({ ...STRONG, webgl: { renderer: "Mali-G31", maxTextureSize: 4096 } }).tier,
+    ).toBe("full");
   });
 
   it("an override (?tier= on the receiver URL, for testing) wins over every signal", () => {

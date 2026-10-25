@@ -42,14 +42,19 @@ function fakeHost() {
 }
 
 function setup(
-  opts: { detect?: Promise<Detected>; loadMs?: number; result?: "loaded" | "timeout" } = {},
+  opts: {
+    detect?: Promise<Detected>;
+    loadMs?: number | ((url: string) => number);
+    result?: "loaded" | "timeout";
+  } = {},
 ) {
   const h = fakeHost();
   const loads: string[] = [];
   const frame: ViewFrame = {
     load: vi.fn(async (url: string) => {
       loads.push(url);
-      await new Promise((r) => setTimeout(r, opts.loadMs ?? 500));
+      const ms = typeof opts.loadMs === "function" ? opts.loadMs(url) : (opts.loadMs ?? 500);
+      await new Promise((r) => setTimeout(r, ms));
       return opts.result ?? "loaded";
     }),
   };
@@ -70,7 +75,7 @@ function setup(
     detect: () => opts.detect ?? Promise.resolve(DETECTED),
     origin: RX,
     meter,
-    launchedAt: 0,
+    launchedAt: 1000,
   });
   rx.start();
   const named = (n: string) => events.filter((e) => e.name === n);
@@ -147,7 +152,7 @@ describe("the local Cast receiver", () => {
     await vi.advanceTimersByTimeAsync(1200);
     expect(r.named("view.loaded")[0]?.f).toEqual({
       durationMs: 1200,
-      data: { view: "ogs-tv.pages.dev", tier: "lite", sinceLaunchMs: 11_200 },
+      data: { view: "ogs-tv.pages.dev", tier: "lite", sinceLaunchMs: 10_200 },
     });
     expect(r.statuses.at(-1)).toBeNull();
   });
@@ -328,5 +333,175 @@ describe("the local Cast receiver", () => {
     await vi.advanceTimersByTimeAsync(3 * 60 * 60_000);
     expect(r.host.stop).toHaveBeenCalledTimes(1);
     expect(r.named("cast.ended")[0]?.f.data).toEqual({ why: "the cast reached 3 hours" });
+  });
+
+  describe("details the logs and the phone rely on", () => {
+    it("GET_STATE before anything is known says so, field by field", () => {
+      let resolve: (d: Detected) => void = () => {};
+      const r = setup({ detect: new Promise((res) => (resolve = res)) });
+      r.send({ type: "GET_STATE" });
+      expect(r.replies[0]).toEqual({
+        type: "STATE",
+        started: false,
+        view: null,
+        loaded: false,
+        tier: null,
+        reasons: [],
+        deviceClass: null,
+        gpu: null,
+        probe: null,
+        fps: null,
+        userAgent: null,
+      });
+      resolve(DETECTED);
+    });
+
+    it("GET_STATE after detection carries the device's signals", async () => {
+      const r = setup();
+      await vi.advanceTimersByTimeAsync(0);
+      r.send({ type: "GET_STATE" });
+      expect(r.replies[0]).toMatchObject({
+        started: false,
+        deviceClass: "google-tv",
+        gpu: "Mali-G31",
+        probe: { p50Ms: 16.7, p90Ms: 18.2, frames: 80 },
+        userAgent: DETECTED.signals.userAgent,
+      });
+    });
+
+    it("logs a device with no WebGL and no probe as nulls, and a long GPU name cut at 200", async () => {
+      const r = setup({
+        detect: Promise.resolve({
+          ...DETECTED,
+          signals: { userAgent: "x", webgl: null, frame: null },
+        }),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(r.named("tier")[0]?.f.data).toMatchObject({
+        gpu: null,
+        maxTexture: null,
+        probeP50Ms: null,
+        probeP90Ms: null,
+        probeFrames: null,
+        memoryGb: null,
+        heapLimitMb: null,
+      });
+      const long = setup({
+        detect: Promise.resolve({
+          ...DETECTED,
+          signals: {
+            ...DETECTED.signals,
+            webgl: { renderer: "g".repeat(300), maxTextureSize: 8192 },
+            heapLimitMb: 900,
+          },
+        }),
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(long.named("tier")[0]?.f.data?.gpu).toBe("g".repeat(200));
+      expect(long.named("tier")[0]?.f.data?.heapLimitMb).toBe(900);
+    });
+
+    it("says it is waiting for the phone once the tier is known, unless a view already came", async () => {
+      const r = setup();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(r.statuses).toEqual(["Getting the TV ready", "Waiting for the phone…"]);
+      let resolve: (d: Detected) => void = () => {};
+      const q = setup({ detect: new Promise((res) => (resolve = res)) });
+      q.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER });
+      resolve(DETECTED);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(q.statuses).not.toContain("Waiting for the phone…");
+    });
+
+    it("stops asking for the view as soon as one arrives, even while the tier is measured", async () => {
+      let resolve: (d: Detected) => void = () => {};
+      const r = setup({ detect: new Promise((res) => (resolve = res)) });
+      r.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER });
+      const asked = r.broadcasts.length;
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(r.broadcasts.length).toBe(asked);
+      r.senders("connected", 2);
+      expect(r.broadcasts.length).toBe(asked);
+      resolve(DETECTED);
+    });
+
+    it("an invalid view is a warning; an ignored message says what it was", async () => {
+      const r = setup();
+      r.send({ type: "LOAD_VIEW", viewUrl: "ftp://x/" });
+      r.send({ type: "HELLO" });
+      r.send(42);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(r.named("load_view.invalid")[0]?.f).toEqual({ level: "warn" });
+      expect(r.named("message.ignored").map((e) => e.f)).toEqual([
+        { level: "warn", data: { type: "HELLO" } },
+        { level: "warn", data: { type: "number" } },
+      ]);
+    });
+
+    it("an apiUrl that isn't http(s) falls back to the launcher's api=", async () => {
+      const r = setup();
+      r.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER, apiUrl: "ftp://api.example" });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(r.log.setApi).toHaveBeenCalledWith("https://api.example");
+      expect(r.log.setApi).toHaveBeenCalledTimes(1);
+    });
+
+    it("a page that isn't the launcher and names no API leaves the log's API alone", async () => {
+      const r = setup();
+      r.send({ type: "LOAD_VIEW", viewUrl: "https://game.example/tv" });
+      await vi.advanceTimersByTimeAsync(600);
+      expect(r.log.setApi).not.toHaveBeenCalled();
+      expect(r.loads).toEqual(["https://game.example/tv"]);
+    });
+
+    it("a view replaced while it loads: only the newer one reports loaded", async () => {
+      const r = setup({ loadMs: (url) => (url.includes("first") ? 2000 : 100) });
+      r.send({ type: "LOAD_VIEW", viewUrl: `${LAUNCHER}first` });
+      await vi.advanceTimersByTimeAsync(10);
+      r.send({ type: "LOAD_VIEW", viewUrl: `${LAUNCHER}second` });
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(r.named("view.loaded")).toHaveLength(1);
+      r.send({ type: "GET_STATE" });
+      expect(r.replies[0]).toMatchObject({ loaded: true });
+    });
+
+    it("a minute with no frames logs no fps; two views keep one fps timer", async () => {
+      const r = setup();
+      r.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER });
+      await vi.advanceTimersByTimeAsync(600);
+      r.send({ type: "LOAD_VIEW", viewUrl: `${LAUNCHER}2` });
+      await vi.advanceTimersByTimeAsync(600);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(r.named("fps")).toHaveLength(0);
+      for (let i = 0; i <= 10; i++) r.meter.tick(i * 16.7);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(r.named("fps")).toHaveLength(1);
+    });
+
+    it("finalFps logs what was measured, with no tier before detection", () => {
+      let resolve: (d: Detected) => void = () => {};
+      const r = setup({ detect: new Promise((res) => (resolve = res)) });
+      for (let i = 0; i <= 5; i++) r.meter.tick(i * 16.7);
+      r.rx.finalFps();
+      expect(r.named("fps")[0]?.f.data).toMatchObject({ tier: null, frames: 5 });
+      resolve(DETECTED);
+    });
+
+    it("the cast ends once, says so on the TV, and logs no more frame rates", async () => {
+      const r = setup();
+      r.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER });
+      await vi.advanceTimersByTimeAsync(600);
+      r.senders("disconnected", 0);
+      await vi.advanceTimersByTimeAsync(20 * 60_000);
+      expect(r.statuses.at(-1)).toBe("This TV session has ended");
+      for (let i = 0; i <= 10; i++) r.meter.tick(i * 16.7);
+      await vi.advanceTimersByTimeAsync(3 * 60 * 60_000);
+      expect(r.host.stop).toHaveBeenCalledTimes(1);
+      expect(r.named("cast.ended")).toHaveLength(1);
+      const fpsAfterEnd = r.events
+        .slice(r.events.findIndex((e) => e.name === "cast.ended"))
+        .filter((e) => e.name === "fps");
+      expect(fpsAfterEnd).toHaveLength(0);
+    });
   });
 });

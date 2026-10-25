@@ -36,9 +36,15 @@ async function run(throttle: number, tier: string) {
   const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 720 } });
   // tsx (esbuild keepNames) wraps functions in page callbacks with __name(): define it first.
   await ctx.addInitScript("globalThis.__name = (fn) => fn;");
-  await ctx.addInitScript(() => Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => 2 }));
-  await ctx.route("https://www.gstatic.com/cast/**", (r) => r.fulfill({ contentType: "text/javascript", body: "" }));
-  await ctx.route("https://opengame-api.jonathanrmumm.workers.dev/**", (r) => r.fulfill({ status: 202, body: "{}" }));
+  await ctx.addInitScript(() =>
+    Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => 2 }),
+  );
+  await ctx.route("https://www.gstatic.com/cast/**", (r) =>
+    r.fulfill({ contentType: "text/javascript", body: "" }),
+  );
+  await ctx.route("https://opengame-api.jonathanrmumm.workers.dev/**", (r) =>
+    r.fulfill({ status: 202, body: "{}" }),
+  );
   await ctx.route(`${GAME}/**`, (r) => r.fulfill({ contentType: "text/html", body: GAME_PAGE }));
   await ctx.addInitScript(() => {
     const w = window as unknown as { __out: unknown[]; __ogsSignalOut: (d: unknown) => void };
@@ -50,11 +56,18 @@ async function run(throttle: number, tier: string) {
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: throttle });
   const t0 = Date.now();
   await page.goto(`${BASE}/receiver.html?signal=test${tier === "auto" ? "" : `&tier=${tier}`}`);
-  await page.waitForFunction(() => typeof (window as unknown as { __ogsSignalIn?: unknown }).__ogsSignalIn === "function");
-  await page.evaluate(() =>
-    (window as unknown as { __ogsSignalIn: (d: unknown) => void }).__ogsSignalIn({ type: "LOAD_VIEW", viewUrl: "https://ogs-tv.pages.dev/?fake=1" }),
+  await page.waitForFunction(
+    () => typeof (window as unknown as { __ogsSignalIn?: unknown }).__ogsSignalIn === "function",
   );
-  await page.waitForFunction(() => document.getElementById("view")?.dataset.loaded === "1", null, { timeout: 30_000 });
+  await page.evaluate(() =>
+    (window as unknown as { __ogsSignalIn: (d: unknown) => void }).__ogsSignalIn({
+      type: "LOAD_VIEW",
+      viewUrl: "https://ogs-tv.pages.dev/?fake=1",
+    }),
+  );
+  await page.waitForFunction(() => document.getElementById("view")?.dataset.loaded === "1", null, {
+    timeout: 30_000,
+  });
   const loadMs = Date.now() - t0;
   const launcher = page.frame({ url: /\/\?fake=1/ });
   await launcher?.waitForFunction(() => !!(window as unknown as { __ogsFake?: unknown }).__ogsFake);
@@ -64,7 +77,10 @@ async function run(throttle: number, tier: string) {
     { type: "select", deviceId: "jonathan-phone" },
     { type: "game.view", appId: "rocket-crew", url: `${GAME}/tv?room=KITE` },
   ])
-    await launcher?.evaluate((msg) => (window as unknown as { __ogsFake: { send(m: unknown): void } }).__ogsFake.send(msg), m);
+    await launcher?.evaluate(
+      (msg) => (window as unknown as { __ogsFake: { send(m: unknown): void } }).__ogsFake.send(msg),
+      m,
+    );
   await page.waitForTimeout(3000);
   const fps = await page.evaluate(
     () =>
@@ -78,16 +94,25 @@ async function run(throttle: number, tier: string) {
           if (t - start < 10_000) requestAnimationFrame(step);
           else {
             const s = [...d].sort((a, b) => a - b);
-            resolve({ fps: Math.round((d.length * 10000) / d.reduce((a, b) => a + b, 0)) / 10, p90: Math.round(s[Math.ceil(s.length * 0.9) - 1] * 10) / 10 });
+            resolve({
+              fps: Math.round((d.length * 10000) / d.reduce((a, b) => a + b, 0)) / 10,
+              p90: Math.round(s[Math.ceil(s.length * 0.9) - 1] * 10) / 10,
+            });
           }
         };
         requestAnimationFrame(step);
       }),
   );
-  await page.evaluate(() => (window as unknown as { __ogsSignalIn: (d: unknown) => void }).__ogsSignalIn({ type: "GET_STATE" }));
+  await page.evaluate(() =>
+    (window as unknown as { __ogsSignalIn: (d: unknown) => void }).__ogsSignalIn({
+      type: "GET_STATE",
+    }),
+  );
   await page.waitForTimeout(200);
   const state = await page.evaluate(() =>
-    ((window as unknown as { __out: { type?: string }[] }).__out ?? []).find((m) => m.type === "STATE"),
+    ((window as unknown as { __out: { type?: string }[] }).__out ?? []).find(
+      (m) => m.type === "STATE",
+    ),
   );
   await browser.close();
   return { throttle, tierAsked: tier, state, loadMs, ...fps };
@@ -96,8 +121,19 @@ async function run(throttle: number, tier: string) {
 for (const throttle of [1, 4, 6])
   for (const tier of ["auto", "full", "lite", "minimal"]) {
     const r = await run(throttle, tier);
-    const s = r.state as { tier?: string; reasons?: string[]; probe?: { p50Ms: number; p90Ms: number } } | undefined;
+    const s = r.state as
+      | { tier?: string; reasons?: string[]; probe?: { p50Ms: number; p90Ms: number } }
+      | undefined;
     console.log(
-      JSON.stringify({ cpu: `${throttle}x`, asked: tier, tier: s?.tier, reasons: s?.reasons, probe: s?.probe, loadMs: r.loadMs, fps: r.fps, p90Ms: r.p90 }),
+      JSON.stringify({
+        cpu: `${throttle}x`,
+        asked: tier,
+        tier: s?.tier,
+        reasons: s?.reasons,
+        probe: s?.probe,
+        loadMs: r.loadMs,
+        fps: r.fps,
+        p90Ms: r.p90,
+      }),
     );
   }

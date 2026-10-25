@@ -124,6 +124,35 @@ describe("receiver client log", () => {
     expect(() => log.event("launched", { now: true })).not.toThrow();
   });
 
+  it("the production API is opengame-api's workers.dev", () => {
+    expect(DEFAULT_API).toBe("https://opengame-api.jonathanrmumm.workers.dev");
+  });
+
+  it("an API with trailing slashes is used without them", () => {
+    const { log, sent } = setup();
+    log.setApi("https://api.example//");
+    log.event("launched", { now: true });
+    expect(sent[0]?.url).toBe("https://api.example/api/v1/client-events");
+  });
+
+  it("keeps join ids of 1 to 64 characters, drops empty ones", () => {
+    const { log, sent } = setup();
+    log.join({ phoneAttemptId: "x".repeat(64), sessionId: "" });
+    log.setApi("https://api.example");
+    log.event("launched", { now: true });
+    expect(sent[0]?.body.events[0]?.phoneAttemptId).toBe("x".repeat(64));
+    expect(sent[0]?.body.events[0]).not.toHaveProperty("sessionId");
+  });
+
+  it("cuts an error message at 1000 characters, and logs a non-Error as text", () => {
+    const { log, sent } = setup();
+    log.setApi("https://api.example");
+    log.event("error", { error: new Error("e".repeat(1500)), now: true });
+    log.event("error", { error: "plain", now: true });
+    expect(sent[0]?.body.events[0]?.error).toBe("e".repeat(1000));
+    expect(sent[1]?.body.events[0]?.error).toBe("plain");
+  });
+
   it("an empty flush posts nothing", () => {
     const { log, post } = setup();
     log.setApi("https://api.example");

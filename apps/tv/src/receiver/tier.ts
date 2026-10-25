@@ -59,38 +59,53 @@ const MIN_PROBE_FRAMES = 20;
 
 const rank = (t: RenderTier) => RENDER_TIERS.indexOf(t);
 
+type Cap = [RenderTier, string];
+
+function glCaps(webgl: TierSignals["webgl"]): Cap[] {
+  if (!webgl) return [["minimal", "no-webgl"]];
+  const caps: Cap[] = [];
+  if (SOFTWARE_GL.test(webgl.renderer)) caps.push(["minimal", "software-gl"]);
+  if (webgl.maxTextureSize < 4096) caps.push(["lite", `max-texture:${webgl.maxTextureSize}`]);
+  return caps;
+}
+
+function deviceCaps(cls: DeviceClass, s: TierSignals): Cap[] {
+  if (cls === "google-tv")
+    return (s.deviceMemoryGb ?? 0) >= 4 ? [] : [["lite", "device:google-tv"]];
+  if (cls === "chromecast")
+    return [s.cast?.uhd ? ["lite", "device:chromecast-ultra"] : ["minimal", "device:chromecast"]];
+  if (cls === "smart-display") return [["lite", "device:smart-display"]];
+  return [];
+}
+
+function probeCaps(f: TierSignals["frame"]): Cap[] {
+  if (!f || f.frames < MIN_PROBE_FRAMES) return [];
+  const ms = `frame:${Math.round(f.p50Ms)}ms`;
+  if (f.p50Ms > LITE_P50_MS) return [["minimal", ms]];
+  if (f.p50Ms > FULL_P50_MS || f.p90Ms > FULL_P90_MS) return [["lite", ms]];
+  return [];
+}
+
+function memoryCaps(s: TierSignals): Cap[] {
+  const caps: Cap[] = [];
+  const mem = s.deviceMemoryGb;
+  if (mem !== undefined && mem <= 1)
+    caps.push([mem <= 0.5 ? "minimal" : "lite", `memory:${mem}gb`]);
+  if (s.heapLimitMb !== undefined && s.heapLimitMb < 512)
+    caps.push(["lite", `heap:${Math.round(s.heapLimitMb)}mb`]);
+  return caps;
+}
+
 /** The TV's render tier: the weakest cap any signal puts on it, with each cap's reason. */
 export function chooseTier(s: TierSignals): TierChoice {
   const deviceClass = deviceClassOf(s.userAgent);
   if (s.override) return { tier: s.override, reasons: ["override"], deviceClass };
-  const caps: [RenderTier, string][] = [];
-  const cap = (tier: RenderTier, reason: string) => caps.push([tier, reason]);
-
-  if (!s.webgl) cap("minimal", "no-webgl");
-  else {
-    if (SOFTWARE_GL.test(s.webgl.renderer)) cap("minimal", "software-gl");
-    if (s.webgl.maxTextureSize < 4096) cap("lite", `max-texture:${s.webgl.maxTextureSize}`);
-  }
-
-  if (deviceClass === "google-tv" && !(s.deviceMemoryGb !== undefined && s.deviceMemoryGb >= 4))
-    cap("lite", "device:google-tv");
-  if (deviceClass === "chromecast")
-    s.cast?.uhd ? cap("lite", "device:chromecast-ultra") : cap("minimal", "device:chromecast");
-  if (deviceClass === "smart-display") cap("lite", "device:smart-display");
-
-  const f = s.frame;
-  if (f && f.frames >= MIN_PROBE_FRAMES) {
-    const ms = `frame:${Math.round(f.p50Ms)}ms`;
-    if (f.p50Ms > LITE_P50_MS) cap("minimal", ms);
-    else if (f.p50Ms > FULL_P50_MS || f.p90Ms > FULL_P90_MS) cap("lite", ms);
-  }
-
-  const mem = s.deviceMemoryGb;
-  if (mem !== undefined && mem <= 0.5) cap("minimal", `memory:${mem}gb`);
-  else if (mem !== undefined && mem <= 1) cap("lite", `memory:${mem}gb`);
-  if (s.heapLimitMb !== undefined && s.heapLimitMb < 512)
-    cap("lite", `heap:${Math.round(s.heapLimitMb)}mb`);
-
+  const caps = [
+    ...glCaps(s.webgl),
+    ...deviceCaps(deviceClass, s),
+    ...probeCaps(s.frame),
+    ...memoryCaps(s),
+  ];
   const tier = caps.reduce<RenderTier>((t, [c]) => (rank(c) > rank(t) ? c : t), "full");
   return { tier, reasons: caps.map(([, r]) => r), deviceClass };
 }

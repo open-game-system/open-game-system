@@ -82,6 +82,32 @@ async function frameProbe(
   return { p50Ms: s.p50Ms, p90Ms: s.p90Ms, frames: s.frames };
 }
 
+/**
+ * The tier signals from what the browser gave: navigator.deviceMemory and
+ * performance.memory.jsHeapSizeLimit (bytes) are unknowns (not every browser has them).
+ */
+export function signalsFrom(raw: {
+  userAgent: string;
+  webgl: TierSignals["webgl"];
+  frame: TierSignals["frame"];
+  deviceMemory: unknown;
+  heapLimit: unknown;
+  uhd?: boolean;
+  override?: RenderTier;
+}): TierSignals {
+  const memory = Num.safeParse(raw.deviceMemory);
+  const heap = Num.safeParse(raw.heapLimit);
+  return {
+    userAgent: raw.userAgent,
+    webgl: raw.webgl,
+    frame: raw.frame,
+    ...(memory.success ? { deviceMemoryGb: memory.data } : {}),
+    ...(heap.success ? { heapLimitMb: Math.round(heap.data / 2 ** 20) } : {}),
+    ...(raw.uhd !== undefined ? { cast: { uhd: raw.uhd } } : {}),
+    ...(raw.override ? { override: raw.override } : {}),
+  };
+}
+
 /** Gathers the tier signals in this browser and chooses the tier (tier.ts). */
 export async function measureTv(opts: {
   uhd?: boolean;
@@ -104,18 +130,13 @@ export async function measureTv(opts: {
     }
   }
   gl?.getExtension("WEBGL_lose_context")?.loseContext();
-  const memory = Num.safeParse(Reflect.get(navigator, "deviceMemory"));
-  const heap = Num.safeParse(
-    Reflect.get(Reflect.get(performance, "memory") ?? {}, "jsHeapSizeLimit"),
-  );
-  const signals: TierSignals = {
+  const signals = signalsFrom({
     userAgent: navigator.userAgent,
     webgl,
     frame,
-    ...(memory.success ? { deviceMemoryGb: memory.data } : {}),
-    ...(heap.success ? { heapLimitMb: Math.round(heap.data / 2 ** 20) } : {}),
-    ...(opts.uhd !== undefined ? { cast: { uhd: opts.uhd } } : {}),
-    ...(opts.override ? { override: opts.override } : {}),
-  };
+    deviceMemory: Reflect.get(navigator, "deviceMemory"),
+    heapLimit: Reflect.get(Reflect.get(performance, "memory") ?? {}, "jsHeapSizeLimit"),
+    ...opts,
+  });
   return { choice: chooseTier(signals), signals, probeMs: performance.now() - t0 };
 }

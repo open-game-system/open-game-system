@@ -20,6 +20,13 @@ function parse(url: string): URL | null {
   }
 }
 
+/** The OGS launcher: at the site's root, with api and token (live) or fake=1 (its fake couch). */
+function isLauncherUrl(u: URL): boolean {
+  const q = u.searchParams;
+  const atRoot = u.pathname === "/" || u.pathname === "/index.html";
+  return atRoot && ((q.has("api") && q.has("token")) || q.get("fake") === "1");
+}
+
 /**
  * The page the receiver frames for a sender's LOAD_VIEW. An OGS launcher URL (`/?api=…&token=…`, as
  * the phone sends for every cast, ADR 2026-10-23) is served from the receiver's own site: the
@@ -34,10 +41,8 @@ export function receiverView(
 ): ReceiverView | null {
   const u = parse(viewUrl);
   if (!u) return null;
+  if (!isLauncherUrl(u)) return { url: viewUrl, launcher: false, host: u.host, api: null };
   const q = u.searchParams;
-  const atRoot = u.pathname === "/" || u.pathname === "/index.html";
-  const isLauncher = atRoot && ((q.has("api") && q.has("token")) || q.get("fake") === "1");
-  if (!isLauncher) return { url: viewUrl, launcher: false, host: u.host, api: null };
   const next = new URLSearchParams(q);
   next.set("tier", tier);
   const api = parse(q.get("api") ?? "");
