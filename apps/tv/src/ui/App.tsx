@@ -19,6 +19,7 @@ import { themeFor } from "../launcher/theme";
 import type { Connection, SessionClient } from "../session/client";
 import { type LauncherData, liveSession } from "../session/data";
 import { Assembling } from "./Assembling";
+import { Chromeless } from "./Chromeless";
 import { GamePage } from "./GamePage";
 import { Home } from "./Home";
 import { Player } from "./Player";
@@ -28,13 +29,20 @@ import { useFrames } from "./useFrames";
 import { useNow } from "./useNow";
 import { useTheme } from "./useTheme";
 import { useViewTimeout } from "./useViewTimeout";
-import { Chromeless } from "./Chromeless";
 
 export function App({ boot }: { boot: Boot }) {
   return (
     <Stage>
       {/* chrome=none shows nothing of OGS, not even while it loads. */}
-      <Suspense fallback={boot.chrome ? <div style={{ position: "fixed", inset: 0, background: "#000" }} /> : <Assembling />}>
+      <Suspense
+        fallback={
+          boot.chrome ? (
+            <div style={{ position: "fixed", inset: 0, background: "#000" }} />
+          ) : (
+            <Assembling />
+          )
+        }
+      >
         <Launcher boot={boot} />
       </Suspense>
     </Stage>
@@ -53,6 +61,7 @@ function Launcher({ boot }: { boot: Boot }) {
         manifest={data.games.find((g) => g.appId === boot.chrome?.appId) ?? null}
         frameTimeoutMs={boot.frameTimeoutMs}
         grants={boot.grants}
+        tier={boot.tier}
       />
     );
   if (!snap.state) return <Connecting data={data} />;
@@ -65,6 +74,7 @@ function Launcher({ boot }: { boot: Boot }) {
       frameTimeoutMs={boot.frameTimeoutMs}
       viewTimeoutMs={boot.viewTimeoutMs}
       grants={boot.grants}
+      tier={boot.tier}
     />
   );
 }
@@ -93,6 +103,7 @@ function Living(props: {
   frameTimeoutMs: number;
   viewTimeoutMs: number;
   grants: Boot["grants"];
+  tier?: Boot["tier"];
 }) {
   const { client, data } = props;
   const { state, connection } = props;
@@ -196,7 +207,7 @@ function Living(props: {
     return () => window.removeEventListener("keydown", h);
   }, []);
 
-  const frames = useFrames(client, state.current, props.frameTimeoutMs, props.grants);
+  const frames = useFrames(client, state.current, props.frameTimeoutMs, props.grants, props.tier);
   const viewOverdue = useViewTimeout(
     waitingForView(state.screen, state.current),
     props.viewTimeoutMs,

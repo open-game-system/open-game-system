@@ -71,7 +71,7 @@ a game that answers nothing still runs.
 
 | Direction | Message | Payload | When |
 |---|---|---|---|
-| launcher → game | `ogs:start` | `instanceId`, `mode` (`continue` \| `new`), `roster`, `token`, `players?`, `room?` (§7) | On the frame's load, and again whenever the game says `ogs:ready` |
+| launcher → game | `ogs:start` | `instanceId`, `mode` (`continue` \| `new`), `roster`, `token`, `players?`, `room?` (§7), `tier?` (render tiers, below) | On the frame's load, and again whenever the game says `ogs:ready` |
 | game → launcher | `ogs:ready` | none | The page started listening (possibly after load); the launcher re-sends `ogs:start` for the current sitting |
 | launcher → game | `ogs:suspend` | none | Home, or a swap to another game: the frame is **parked**, still loaded |
 | launcher → game | `ogs:resume` | none | Continue of the parked sitting: the same frame comes back, no reload |
@@ -90,11 +90,30 @@ a game that answers nothing still runs.
   oldest parked one.
 - If a started game sends no TV page within 20 s (`VIEW_TIMEOUT_MS`), the TV says it didn't open.
 
+### Render tiers: what the TV can draw
+
+The device that renders the launcher measures what it can draw and the launcher passes it to every
+game in `ogs:start` as `tier` (`RenderTierSchema`: `full` | `lite` | `minimal`). Today the Chromecast
+receiver says it (`apps/tv/src/receiver/tier.ts`: device class from the user agent, WebGL renderer
+and max texture size, a 1.5 s 720p WebGL frame-time probe, `navigator.deviceMemory`, the JS heap
+limit; the weakest signal wins). A TV that didn't say (a browser TV, an Apple TV through the phone,
+an older launcher) sends no `tier`: draw for `full`. With profile-kit: `useOgsSession()?.tier`.
+
+| Tier | Typical TV | What the TV page should do | Frame-rate target |
+|---|---|---|---|
+| `full` (or absent) | A laptop or desktop browser TV, an Apple TV through a recent iPhone, a Google TV Streamer | Full quality: 3D at the page's size (1080p), post-processing (bloom, depth of field), real-time shadows, the full particle budget | 60 fps |
+| `lite` | Chromecast with Google TV (4K and HD), Chromecast Ultra, Nest Hub | Keep 3D but cheap: render at 1280×720 (or `devicePixelRatio` ≤ 1) and let CSS scale it; no post-processing passes; baked or blob shadows; at most a quarter of the particles; textures ≤ 1024 px; a fixed light count; prewarm every shader in the lobby; no video decode while the scene runs | 30 fps steady (cap it; a steady 30 beats a jittery 45) |
+| `minimal` | Chromecast 1st–3rd gen, any device with no WebGL or software GL | No WebGL: 2D canvas or DOM/CSS with pre-rendered art (the art kit's `heroClean`, sprite sheets), CSS transforms and opacity only for motion, no filters or `backdrop-filter`, ≤ 150 MB of images and audio decoded at once | 30 fps |
+
+Rules for every tier: the game must still be fully playable (same rules, same screens, same sound);
+only the drawing changes. Read the tier once at start (it doesn't change during a cast). Never ask the
+player to pick a quality.
+
 With profile-kit (§4) a game doesn't post these by hand:
 
 | Need | profile-kit |
 |---|---|
-| Who's on the couch, the session's game token | `useOgsSession()` (react) or `getOgsSessionSource()`: `undefined` while waiting, `null` when not framed by OGS (300 ms), else `{ players, token, instanceId, mode }`. Says `ogs:ready` itself |
+| Who's on the couch, the session's game token | `useOgsSession()` (react) or `getOgsSessionSource()`: `undefined` while waiting, `null` when not framed by OGS (300 ms), else `{ players, token, instanceId, mode, tier? }`. Says `ogs:ready` itself |
 | Go silent when parked | `onOgsPause((paused) => …)`: `true` on `ogs:suspend`, `false` on `ogs:resume`; never fires in a plain browser |
 | The sitting's label | `reportOgsSitting({ instanceId, appId, status, title })`: `ogs:instance` to the launcher on the TV, the app bridge in the WebView, nothing in a plain browser |
 | Rooms (§7) | `reportOgsRoom(room)` (TV page: `ogs:room`); `useOgsSession()` gives `room` when this couch joins another's; `ogsRoomFromUrl(location.href)` on the phone page (a second device of this couch, or another couch); `verifyOgsToken` returns `couch: { sid, label }` |

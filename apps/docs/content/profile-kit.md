@@ -164,12 +164,14 @@ interface OgsSession {
   instanceId: string;
   mode: "continue" | "new";
   room?: string;
+  tier?: RenderTier;
 }
 ```
 
 What the TV page knows from `ogs:start`: who is on the couch, a game token for the session (`""`
 when OGS could not sign one), the sitting and whether it continues, and the room to join
-(`multiCouch` games).
+(`multiCouch` games), and what the TV can draw (`tier`: `full`, `lite` or `minimal`; absent when
+the TV didn't say: draw for `full`; see [Messages: render tiers](messages.md#render-tiers)).
 
 #### `SessionSnapshot`
 
@@ -186,6 +188,14 @@ type GamePlayer = { id: string; handle: string; name: string; avatar: string }
 ```
 
 Someone on the couch. See [Messages and manifest](messages.md#gameplayer).
+
+#### `RenderTier`
+
+```ts
+type RenderTier = "full" | "lite" | "minimal"
+```
+
+What the TV can draw, strongest first. See [Messages: render tiers](messages.md#render-tiers).
 
 #### `InstanceReportInput`
 
@@ -540,7 +550,7 @@ function useOgsSession(source?: Source<SessionSnapshot>): SessionSnapshot
 ```
 
 On the TV page: `undefined` while waiting for the launcher, `null` when not on an OGS TV, or
-`{ players, token, instanceId, mode, room? }`. `source` defaults to `getOgsSessionSource()`.
+`{ players, token, instanceId, mode, room?, tier? }`. `source` defaults to `getOgsSessionSource()`.
 
 ### Re-exported types
 

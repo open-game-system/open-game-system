@@ -50,6 +50,30 @@ A good Apple TV cast, in order: `airplay.start` → `airplay.sheet_open` → `na
 `native.tv_webview.finish`. A sound-only pick shows `native.audio.route` with `airplay: true,
 external_display: false`, then `native.audio.airplay_audio_only` and `airplay.audio_only`.
 
+### Chromecast (local render) events
+
+Two pages log as `receiver` on a Chromecast: the registered Cast receiver page
+(`apps/web/public/receiver.html`: `receiver.launched`, `load_view.*`, `view.local`, `sender`,
+`cast.ended`) and the OGS TV receiver it frames, which renders the launcher
+(`apps/tv/src/receiver`, version `receiver-local-*`, `platform` = the device class). Both carry the
+phone's `phoneAttemptId` and the couch `sessionId`; each has its own `attemptId`.
+
+| Event | What it says |
+|---|---|
+| `receiver.tier` | The tier chosen: `tier`, `reasons` (comma list: `device:google-tv`, `frame:30ms`, `memory:1gb`, `no-webgl`, `software-gl`, `max-texture:2048`, `heap:400mb`, `override`), `deviceClass`, `gpu`, `maxTexture`, `probeP50Ms` / `probeP90Ms` / `probeFrames`, `memoryGb`, `heapLimitMb`; `durationMs` = the probe |
+| `receiver.load_view.received` / `.ignored` / `.invalid` | The view (`view` host, `launcher`, `tier`); a repeat (`why: duplicate`); not an http(s) URL |
+| `receiver.view.loaded` | The launcher frame loaded: `durationMs` since LOAD_VIEW, `sinceLaunchMs` since the page started |
+| `receiver.view.timeout` (error) | The launcher didn't load in 30 s |
+| `receiver.fps` | Each minute while a view is up, and when the page goes: `fps`, `frames`, `p50Ms`, `p90Ms`, `worstMs`, `longFrames` (> 50 ms), `tier` (the receiver page's rAF; the launcher and game draw in the same renderer) |
+| `receiver.error` (error) | An uncaught error or rejection (`where`: `receiver`, `receiver.promise`, `launcher`) |
+| `receiver.sender` / `receiver.cast.ended` | Senders coming and going (`state`, `count`); why the cast ended (`why`) |
+| `receiver.keepawake` / `receiver.visibility` | Wake lock or keep-awake clip (`method`, `ok`, `step`); the page hidden, shown or gone |
+| `receiver.message.ignored` (warn) | A message that isn't the protocol (`type`) |
+
+A good Chromecast cast: `receiver.launched` → `receiver.load_view.received` → `receiver.view.local`
+(the Cast page) → `receiver.launched` (`receiver-local-*`) → `receiver.tier` →
+`receiver.load_view.received` → `receiver.view.loaded` → `receiver.fps` every minute.
+
 ## Read it live (Workers Logs)
 
 ```bash

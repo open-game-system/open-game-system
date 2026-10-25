@@ -1,7 +1,7 @@
-import type { ClientMessage, SessionState } from "@open-game-system/ogs-protocol";
+import type { ClientMessage, RenderTier, SessionState } from "@open-game-system/ogs-protocol";
 import type { StartGrant } from "./launcher/frames";
 import { createGameGrants } from "./launcher/game-grants";
-import { frameTimeoutMs, type LauncherParams, viewTimeoutMs, wsUrl } from "./params";
+import { frameTimeoutMs, type LauncherParams, renderTier, viewTimeoutMs, wsUrl } from "./params";
 import type { SessionClient } from "./session/client";
 import { fetchLauncherData, type LauncherData, libraryGames } from "./session/data";
 import { createFakeClient } from "./session/fake-client";
@@ -36,6 +36,8 @@ export interface Boot {
   viewTimeoutMs: number;
   /** The session's game token for a framed game (and who's on the couch), for its ogs:start. */
   grants: (appId: string) => Promise<StartGrant | null>;
+  /** What this TV can draw (tier= from the Cast receiver), for every game's ogs:start. */
+  tier?: RenderTier;
   /** chrome=none: a white-label app's cast of this game (only then). */
   chrome?: { appId: string };
 }
@@ -57,6 +59,8 @@ export function boot(params: LauncherParams, search: string): Boot {
   window.__launcherBootId ??= crypto.randomUUID();
   const timeout = frameTimeoutMs(search);
   const viewTimeout = viewTimeoutMs(search);
+  const tier = renderTier(search);
+  const tv = tier ? { tier } : {};
   if (params.mode === "fake") {
     const fake = createFakeClient({ hold: params.hold, fresh: params.fresh === true });
     window.__ogsFake = {
@@ -77,6 +81,7 @@ export function boot(params: LauncherParams, search: string): Boot {
       frameTimeoutMs: timeout,
       viewTimeoutMs: viewTimeout,
       grants: async () => null,
+      ...tv,
       ...(params.chrome ? { chrome: params.chrome } : {}),
     };
   }
@@ -89,6 +94,7 @@ export function boot(params: LauncherParams, search: string): Boot {
     frameTimeoutMs: timeout,
     viewTimeoutMs: viewTimeout,
     grants: createGameGrants(params),
+    ...tv,
     ...(params.chrome ? { chrome: params.chrome } : {}),
   };
 }

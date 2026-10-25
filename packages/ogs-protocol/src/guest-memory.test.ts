@@ -20,7 +20,10 @@ describe("a guest remembered on this browser", () => {
     const store = memory();
     rememberGuest(store, { name: "  Grandma ", sticker: "owl" });
     expect(rememberedGuest(store)).toEqual({ name: "Grandma", sticker: "owl" });
-    expect(JSON.parse(store.items.get(GUEST_KEY) ?? "")).toEqual({ name: "Grandma", sticker: "owl" });
+    expect(JSON.parse(store.items.get(GUEST_KEY) ?? "")).toEqual({
+      name: "Grandma",
+      sticker: "owl",
+    });
   });
 
   it("is nobody on a browser that never joined", () => {

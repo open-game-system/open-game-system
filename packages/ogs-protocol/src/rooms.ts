@@ -37,9 +37,8 @@ export function readPlayLink(url: string): { appId: string; room: string } | nul
  */
 export function readGameLink(url: string): { appId: string; inv?: string } | null {
   if (readPlayLink(url)) return null;
-  const m = /^(?:[a-z]+:\/\/[^/?#]+\/|[a-z]+:\/\/)play\/([a-z0-9-]+)\/?(?:\?([^#]*))?(?:#.*)?$/.exec(
-    url,
-  );
+  const m =
+    /^(?:[a-z]+:\/\/[^/?#]+\/|[a-z]+:\/\/)play\/([a-z0-9-]+)\/?(?:\?([^#]*))?(?:#.*)?$/.exec(url);
   if (!m?.[1]) return null;
   // An invite another family link names its invite (family-invite.ts).
   // Stryker disable next-line StringLiteral: equivalent, a query with no inv= reads as "" either way

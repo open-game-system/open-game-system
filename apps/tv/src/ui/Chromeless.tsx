@@ -1,4 +1,4 @@
-import type { Manifest, SessionState } from "@open-game-system/ogs-protocol";
+import type { Manifest, RenderTier, SessionState } from "@open-game-system/ogs-protocol";
 import { chromelessView } from "../launcher/chromeless";
 import type { StartGrant } from "../launcher/frames";
 import type { SessionClient } from "../session/client";
@@ -16,14 +16,20 @@ export function Chromeless(props: {
   manifest: Manifest | null;
   frameTimeoutMs: number;
   grants: (appId: string) => Promise<StartGrant | null>;
+  tier?: RenderTier;
 }) {
   const current = props.state?.current ?? null;
   const ours = current?.appId === props.appId ? current : null;
-  const frames = useFrames(props.client, ours, props.frameTimeoutMs, props.grants);
+  const frames = useFrames(props.client, ours, props.frameTimeoutMs, props.grants, props.tier);
   const view = chromelessView(props.appId, current, props.manifest);
   const slot = frames.frames.active;
   return (
-    <div className="chromeless" data-testid="chromeless" data-view={view.kind} style={{ position: "fixed", inset: 0, background: "#000" }}>
+    <div
+      className="chromeless"
+      data-testid="chromeless"
+      data-view={view.kind}
+      style={{ position: "fixed", inset: 0, background: "#000" }}
+    >
       {view.kind === "frames" && slot && (
         <iframe
           key={slot.instanceId}

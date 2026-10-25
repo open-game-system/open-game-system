@@ -163,6 +163,23 @@ describe("ogs:start carries the session's game token and the couch (slice 3)", (
     });
   });
 
+  it("says the TV's render tier when the TV gave one", () => {
+    expect(startMessage(cur(), { token: "game.jwt", players }, "lite")).toEqual({
+      type: "ogs:start",
+      instanceId: "rc-1",
+      mode: "new",
+      roster: [],
+      token: "game.jwt",
+      players,
+      tier: "lite",
+    });
+    expect(startMessage(cur(), null, "minimal")).toMatchObject({ tier: "minimal", players: [] });
+  });
+
+  it("leaves the tier out when the TV didn't give one (games treat that as full)", () => {
+    expect(startMessage(cur(), null, undefined)).not.toHaveProperty("tier");
+  });
+
   it("without a grant (no token from OGS) the game still starts, with nobody named", () => {
     expect(startMessage(cur(), null)).toEqual({
       type: "ogs:start",

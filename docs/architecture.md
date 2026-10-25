@@ -359,9 +359,21 @@ App settings: `GET /me/push-grants`, `DELETE /me/push-grants/:appId`, `POST /me/
 
 Every TV renders the launcher on a device in the room: an Apple TV through the phone's AirPlay
 external display, a browser TV in its own tab, a laptop's tab streamed peer to peer to the
-Chromecast receiver, and (being built) the Chromecast receiver itself. There is no cloud renderer:
-no GPU, no SFU, no `/api/v1/stream` routes. ADR
-[2026-10-25-local-rendering-only](adrs/2026-10-25-local-rendering-only.md).
+Chromecast receiver, and the Chromecast itself. There is no cloud renderer: no GPU, no SFU, no
+`/api/v1/stream` routes. ADR [2026-10-25-local-rendering-only](adrs/2026-10-25-local-rendering-only.md).
+
+A Chromecast ([ADR 2026-10-25-cast-local-render](adrs/2026-10-25-cast-local-render.md)):
+
+```
+phone ── LOAD_VIEW {viewUrl: launcher URL, apiUrl} ──► apps/web/public/receiver.html (CAF, laptop path)
+                                                          │ frames, relays the view namespace (ogsRx)
+                                                          ▼
+                                   ogs-tv: receiver.html?host=parent  (apps/tv/src/receiver)
+                                     measures the render tier (full | lite | minimal)
+                                                          │ frames <own origin>/?api&token&tier=
+                                                          ▼
+                                   the launcher ── ogs:start {…, tier} ──► the game's TV page
+```
 
 ### Client logs (wide events)
 
@@ -374,7 +386,8 @@ apps/mobile                                   services/api                     W
         │ flush every 5 s / on background,            │ no token, source "receiver"
         │ kept in AsyncStorage for the next launch    │
         └──────────── Bearer profile token ───────────┤
-apps/web/public/receiver.html (receiver.* events) ────┘ to the API named in LOAD_VIEW (apiUrl)
+apps/web/public/receiver.html (receiver.* events) ────┤ to the API named in LOAD_VIEW (apiUrl)
+apps/tv/src/receiver (receiver.tier/fps/... events) ──┘ (the same, else the launcher's api=)
 ```
 
 `services/client-log.ts` is the app's logger (redaction, hashed ids, offline buffer);

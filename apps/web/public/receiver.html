@@ -71,6 +71,17 @@
     }
 
     /* A laptop's canvas cast: the game's HUD page, transparent, over the 16:9 picture (letterboxed like the video). */
+    /* A phone's cast: the OGS TV receiver (apps/tv/receiver.html) renders the launcher on this device. */
+    #local-view {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+      z-index: 20;
+    }
+
     #hud {
       position: fixed;
       inset: 0;
@@ -118,7 +129,10 @@
      * Sender messages (urn:x-cast:org.opengame.view):
      *   LOAD_VIEW {viewUrl, apiUrl}          — a phone's TV page; apiUrl is the OGS API this page logs to.
      *     (+ attemptId, sessionId: the phone's cast attempt and couch session, logged as phoneAttemptId / sessionId)
-     *     Rendering the page on this device is not built yet: the TV says so.
+     *     Rendered on this device (ADR 2026-10-25-cast-local-render): this page frames the OGS TV
+     *     receiver (TV_RECEIVER, apps/tv/receiver.html?host=parent), which measures the TV's render
+     *     tier and frames the launcher; the view namespace is relayed to it (and GET_STATE, while it
+     *     shows), and what it sends goes to the senders.
      *   PEER_OFFER {sdp, iceServers, hudUrl?} — a laptop streams its picture straight to this TV over
      *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR, also
      *                                          later if the link fails or no picture arrives in time).
@@ -159,7 +173,7 @@
      * Joining the phone's lines: each LOAD_VIEW names the phone's cast attempt and the couch session;
      * every event after it carries them (phoneAttemptId, sessionId). attemptId is this run's own id.
      */
-    const RX_VERSION = 'receiver-2026-10-25';
+    const RX_VERSION = 'receiver-2026-10-25-local';
     const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
     const rxRun = `rx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
@@ -365,6 +379,7 @@
       clearPeerTimer();
       isConnected = false;
       video.srcObject = null;
+      removeLocal();
       setStatus('This TV session has ended', false);
       if (castContext) castContext.stop();
     }
@@ -628,27 +643,86 @@
       try { castContext.sendCustomMessage(VIEW_NAMESPACE, senderId, state); } catch (e) { console.warn('[Receiver] STATE send failed', e); }
     }
 
+    /**
+     * The OGS TV receiver that renders a phone's view on this device. `?tvReceiver=` on this page's URL
+     * (set where the Cast app is registered, never by a sender) points at another deploy, e.g. a preview.
+     */
+    const TV_RECEIVER = (() => {
+      const asked = new URLSearchParams(window.location.search).get('tvReceiver');
+      try { if (asked && new URL(asked).protocol === 'https:') return asked; } catch (e) { /* default */ }
+      return 'https://ogs-tv.pages.dev/receiver';
+    })();
+    const TV_ORIGIN = new URL(TV_RECEIVER).origin;
+    let localFrame = null;
+    let localReady = false;
+    let localQueue = [];
+    /** Sends a sender's message to the TV receiver (queued until it says ready). */
+    function toLocal(data, senderId) {
+      const msg = { ogsRx: 'in', senderId: senderId || 'phone', data };
+      if (localReady && localFrame && localFrame.contentWindow) localFrame.contentWindow.postMessage(msg, TV_ORIGIN);
+      else localQueue.push(msg);
+    }
+    function removeLocal() {
+      if (!localFrame) return;
+      localFrame.remove();
+      localFrame = null;
+      localReady = false;
+      localQueue = [];
+    }
+    /** 4K: CAF's answer, for the TV receiver's tier (a Chromecast Ultra). */
+    function uhdParam() {
+      try {
+        if (!castContext || typeof castContext.canDisplayType !== 'function') return '';
+        return castContext.canDisplayType('video/mp4', 'hev1.1.6.L150.B0', 3840, 2160, 30) ? '&uhd=1' : '&uhd=0';
+      } catch (e) { return ''; }
+    }
+    window.addEventListener('message', (e) => {
+      if (!localFrame || e.source !== localFrame.contentWindow || e.origin !== TV_ORIGIN) return;
+      const m = e.data;
+      if (!m || typeof m !== 'object') return;
+      if (m.ogsRx === 'ready') {
+        localReady = true;
+        const queued = localQueue;
+        localQueue = [];
+        for (const q of queued) localFrame.contentWindow.postMessage(q, TV_ORIGIN);
+      } else if (m.ogsRx === 'out' && m.data && typeof m.data === 'object') {
+        try { if (castContext) castContext.sendCustomMessage(VIEW_NAMESPACE, m.to || undefined, m.data); } catch (err) { /* no senders */ }
+        if (typeof window.__ogsSignalOut === 'function') window.__ogsSignalOut(m.data);
+      } else if (m.ogsRx === 'stop') {
+        endCast('the TV receiver ended the cast');
+      }
+    });
+
     let started = false;
     let currentViewUrl = null;
     /**
-     * A phone's TV page (LOAD_VIEW). No cloud renderer (ADR 2026-10-25), and rendering it on this
-     * device is not built yet: the TV says so instead of a black screen. Taking it still stops the
-     * REQUEST_VIEW handshake and ends a laptop's picture, as any new view does.
+     * A phone's TV page (LOAD_VIEW), rendered on this device: the OGS TV receiver is framed over
+     * everything and gets the LOAD_VIEW (it measures the tier and frames the launcher with it). Taking
+     * it stops the REQUEST_VIEW handshake and ends a laptop's picture, as any new view does.
      */
-    function showView(viewUrl) {
+    function showView(data, senderId) {
       if (started) {
         cleanup();
         isConnected = false;
         video.srcObject = null;
       }
       started = true;
-      currentViewUrl = viewUrl;
-      rxLog('view.unsupported', { level: 'warn', data: { view: hostOf(viewUrl) }, now: true });
-      setStatus("This TV can't show games from the OGS app yet", false);
+      currentViewUrl = data.viewUrl;
+      if (!localFrame) {
+        localFrame = document.createElement('iframe');
+        localFrame.id = 'local-view';
+        localFrame.title = 'OGS TV';
+        localFrame.setAttribute('allow', 'autoplay; fullscreen; screen-wake-lock');
+        localFrame.src = `${TV_RECEIVER}?host=parent${uhdParam()}`;
+        document.body.appendChild(localFrame);
+        rxLog('view.local', { data: { view: hostOf(data.viewUrl), tv: hostOf(TV_RECEIVER) }, now: true });
+      }
+      hideOverlay();
+      toLocal(data, senderId);
     }
 
     /**
-     * What this receiver can show: a phone's page (LOAD_VIEW, not rendered yet), a laptop's tab
+     * What this receiver can show: a phone's page (LOAD_VIEW, rendered here by the OGS TV receiver), a laptop's tab
      * (PEER_OFFER), or a laptop's 3D canvas with the game's HUD page drawn here on top (PEER_OFFER with hudUrl).
      */
     const ACCEPTS = ['view', 'peer', 'peer-canvas'];
@@ -656,7 +730,7 @@
     let senderSpoke = false;
 
     /** One message from a sender on the view namespace; `reply` answers that sender only. */
-    function onViewMessage(data, reply) {
+    function onViewMessage(data, reply, senderId) {
       if (!data) return;
       senderSpoke = true;
       if (data.type === 'LOAD_VIEW' && data.viewUrl) {
@@ -674,8 +748,9 @@
         clearPeerTimer();
         peerReply = null;
         removeHud();
-        showView(data.viewUrl);
+        showView(data, senderId);
       } else if (data.type === 'PEER_OFFER' && typeof data.sdp === 'string') {
+        removeLocal();
         startPeer(data, reply);
       } else if (data.type === 'HUD_MESSAGE' && currentViewUrl === 'laptop') {
         lastHudData = data.data;
@@ -698,7 +773,11 @@
       // Desktop testing of a laptop cast without a Chromecast: a test harness relays messages through
       // window.__ogsSignalIn (to this page) and window.__ogsSignalOut (from it), standing in for Cast.
       const out = (payload) => { if (typeof window.__ogsSignalOut === 'function') window.__ogsSignalOut(payload); };
-      window.__ogsSignalIn = (data) => onViewMessage(typeof data === 'string' ? JSON.parse(data) : data, out);
+      window.__ogsSignalIn = (data) => {
+        const msg = typeof data === 'string' ? JSON.parse(data) : data;
+        if (msg && msg.type === 'GET_STATE' && localFrame) return toLocal(msg, 'phone');
+        onViewMessage(msg, out, 'phone');
+      };
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : out({ type: 'REQUEST_VIEW', accepts: ACCEPTS })), 500);
       setStatus('Waiting for the game...');
     } else if (!hasCast) {
@@ -717,12 +796,14 @@
           // Diagnostics for a sender: is the picture actually decoding video/audio on this device?
           // (A probe is a sender too.)
           senderSpoke = true;
-          reportState(event.senderId);
+          // A phone's view is up: the TV receiver that renders it answers (tier, frame rate, what loaded).
+          if (localFrame) toLocal(data, event.senderId);
+          else reportState(event.senderId);
           return;
         }
         onViewMessage(data, (payload) => {
           try { context.sendCustomMessage(VIEW_NAMESPACE, event.senderId, payload); } catch (e) { console.warn('[Receiver] reply failed', e); }
-        });
+        }, event.senderId);
       });
       const options = new cast.framework.CastReceiverOptions();
       options.disableIdleTimeout = true; // we play a laptop's WebRTC picture, not Cast media

@@ -62,6 +62,27 @@ const HUD_PAGE = `<!doctype html><html><body style="background:transparent;color
 
 const BLANK = "<!doctype html><html><body></body></html>";
 
+/** The OGS TV receiver the Cast receiver frames for a phone's view (apps/tv/receiver.html). */
+export const TV_RECEIVER = "https://ogs-tv.pages.dev/receiver";
+/**
+ * Stand-in for it: says ready to its parent, keeps every relayed message (window.__got), answers
+ * GET_STATE for the sender that asked, and stops the cast when the test calls window.__stop().
+ */
+const TV_RECEIVER_STUB = `<!doctype html><html><body style="margin:0;background:#123;color:#fff">
+<div id="local">local TV receiver</div>
+<script>
+  window.__got = [];
+  const parentOrigin = location.ancestorOrigins[0];
+  addEventListener('message', (e) => {
+    if (e.source !== parent || !e.data || e.data.ogsRx !== 'in') return;
+    window.__got.push(e.data);
+    if (e.data.data && e.data.data.type === 'GET_STATE')
+      parent.postMessage({ ogsRx: 'out', to: e.data.senderId, data: { type: 'STATE', local: true, tier: 'lite' } }, parentOrigin);
+  });
+  window.__stop = () => parent.postMessage({ ogsRx: 'stop' }, parentOrigin);
+  parent.postMessage({ ogsRx: 'ready' }, parentOrigin);
+</script></body></html>`;
+
 /**
  * How the fake Screen Wake Lock API behaves: grants each request, rejects each (NotAllowedError,
  * as a device that won't keep its screen on), or is missing from navigator.
@@ -220,6 +241,13 @@ export interface Receiver {
   disconnect: (senderId?: string) => Promise<void>;
   stops: () => Promise<number>;
   status: () => Promise<{ text: string; overlay: boolean; spinner: boolean }>;
+  /** The framed OGS TV receiver: its URL (null: none), and the messages relayed to it. */
+  local: () => Promise<{
+    src: string | null;
+    got: { senderId: string; data: { type: string; [k: string]: unknown } }[];
+  }>;
+  /** The TV receiver asks to end the cast. */
+  localStop: () => Promise<void>;
   /** Resolves with the size of the next frame the <video> presents (requestVideoFrameCallback). */
   nextFrame: () => Promise<{ width: number; height: number }>;
 }
@@ -261,6 +289,8 @@ export async function openReceiver(
         headers: { "content-type": "text/html" },
         body: readFileSync(RECEIVER_FILE, "utf8"),
       });
+    if (url.startsWith(`${TV_RECEIVER}?`))
+      return route.fulfill({ headers: { "content-type": "text/html" }, body: TV_RECEIVER_STUB });
     if (url === `${ORIGIN}/blank`)
       return route.fulfill({ headers: { "content-type": "text/html" }, body: BLANK });
     if (url === HUD_URL)
@@ -302,6 +332,19 @@ export async function openReceiver(
     connect: (senderId) => page.evaluate((s) => window.__cast.connect(s), senderId),
     disconnect: (senderId) => page.evaluate((s) => window.__cast.disconnect(s), senderId),
     stops: () => page.evaluate(() => window.__cast.stops),
+    local: async () => {
+      const src = await page.evaluate(
+        () => document.getElementById("local-view")?.getAttribute("src") ?? null,
+      );
+      const frame = page.frames().find((f) => f.url().startsWith(TV_RECEIVER));
+      const got =
+        frame && src ? await frame.evaluate(() => (window as unknown as { __got: [] }).__got) : [];
+      return { src, got };
+    },
+    localStop: async () => {
+      const frame = page.frames().find((f) => f.url().startsWith(TV_RECEIVER));
+      await frame?.evaluate(() => (window as unknown as { __stop: () => void }).__stop());
+    },
     status: () =>
       page.evaluate(() => ({
         text: document.getElementById("status-text")?.textContent ?? "",

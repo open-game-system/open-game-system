@@ -1,7 +1,11 @@
-import { type GamePlayer, LauncherToGameSchema } from "@open-game-system/ogs-protocol";
+import {
+  type GamePlayer,
+  LauncherToGameSchema,
+  type RenderTier,
+} from "@open-game-system/ogs-protocol";
 import type { Source } from "./profile";
 
-export type { GamePlayer };
+export type { GamePlayer, RenderTier };
 
 /** What a game's TV page knows from the OGS launcher's ogs:start. */
 export interface OgsSession {
@@ -14,6 +18,11 @@ export interface OgsSession {
   mode: "continue" | "new";
   /** The room to join (another couch made it; multiCouch games). Absent: make your own. */
   room?: string;
+  /**
+   * What the TV can draw (the Cast receiver measures it): `full` 3D with effects, `lite` 3D at 720p
+   * without post-processing, `minimal` 2D only. Absent: the TV didn't say; draw for `full`.
+   */
+  tier?: RenderTier;
 }
 
 /** undefined = waiting for the launcher · null = not on an OGS TV · the session. */
@@ -60,8 +69,15 @@ export function createSessionSource(opts: {
     if (ev.source !== parent) return;
     const parsed = LauncherToGameSchema.safeParse(ev.data);
     if (!parsed.success || parsed.data.type !== "ogs:start") return;
-    const { players, token, instanceId, mode, room } = parsed.data;
-    set({ players: players ?? [], token, instanceId, mode, ...(room ? { room } : {}) });
+    const { players, token, instanceId, mode, room, tier } = parsed.data;
+    set({
+      players: players ?? [],
+      token,
+      instanceId,
+      mode,
+      ...(room ? { room } : {}),
+      ...(tier ? { tier } : {}),
+    });
   });
   parent.postMessage({ type: "ogs:ready" }, "*");
   setTimeout(() => {

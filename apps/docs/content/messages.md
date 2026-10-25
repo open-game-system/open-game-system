@@ -89,6 +89,19 @@ launcher                                   your TV page (iframe)
    |--- ogs:resume --------------------------------------------> |  Continue: sound back, no reload
 ```
 
+## Render tiers
+
+`ogs:start` carries `tier` when the TV measured what it can draw (the Chromecast receiver does;
+other TVs send none: draw for `full`). profile-kit gives it as `useOgsSession()?.tier`.
+
+| `tier` | Typical TV | Draw | Target |
+|---|---|---|---|
+| `full` (or absent) | Browser TV, Apple TV via iPhone, Google TV Streamer | 3D at 1080p, post-processing, shadows, every particle | 60 fps |
+| `lite` | Chromecast with Google TV, Chromecast Ultra, Nest Hub | 3D at 1280×720, no post-processing, baked shadows, ¼ of the particles, textures ≤ 1024 px, shaders prewarmed | steady 30 fps |
+| `minimal` | Chromecast 1st–3rd gen, no WebGL or software GL | 2D only: canvas or DOM/CSS with pre-rendered art, transforms and opacity for motion | 30 fps |
+
+Same game at every tier: same rules, screens and sound; only the drawing changes. Read it once at start.
+
 ## Manifest
 
 A game is config, not code: one `Manifest` (`ManifestSchema` in

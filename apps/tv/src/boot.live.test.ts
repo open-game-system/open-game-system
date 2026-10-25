@@ -161,3 +161,11 @@ describe("boot, live mode", () => {
     expect(warn.mock.calls[0]?.[1]).toBeInstanceOf(Error);
   });
 });
+
+describe("boot (live) with the Cast receiver's render tier", () => {
+  it("carries tier= from the launcher URL for the framed games", () => {
+    vi.stubGlobal("fetch", api().fetch);
+    expect(boot(LIVE, "?api=https://api.example&token=tok&tier=lite").tier).toBe("lite");
+    expect(boot(LIVE, "?api=https://api.example&token=tok")).not.toHaveProperty("tier");
+  });
+});
