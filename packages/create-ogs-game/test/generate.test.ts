@@ -111,7 +111,11 @@ describe("generateGame", () => {
     expect(json("app/package.json")).toMatchObject({
       name: "kite-count-app",
       dependencies: { "@open-game-system/shell": "file:vendor/shell.tgz", zod: "^3.25.76" },
-      scripts: { "e2e:ios": "e2e/sim.sh", presubmit: "node scripts/presubmit.mjs" },
+      scripts: {
+        "e2e:ios": "e2e/sim.sh",
+        "e2e:record": "e2e/record.sh",
+        presubmit: "node scripts/presubmit.mjs",
+      },
       pnpm: { overrides: { "@open-game-system/ogs-protocol": "file:./vendor/proto.tgz" } },
     });
   });
@@ -138,6 +142,7 @@ describe("generateGame", () => {
   it("ships the simulator walk executable, and the placeholder art's hashes for the pre-submit check", () => {
     expect(statSync(join(target, "app/e2e/sim.sh")).mode & 0o111).not.toBe(0);
     expect(statSync(join(target, "app/e2e/external-display.sh")).mode & 0o111).not.toBe(0);
+    expect(statSync(join(target, "app/e2e/record.sh")).mode & 0o111).not.toBe(0);
     const hashes = JSON.parse(read("app/placeholder-assets.json"));
     expect(Object.keys(hashes).sort()).toEqual([
       "assets/adaptive-icon.png",

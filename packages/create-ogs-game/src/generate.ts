@@ -128,7 +128,12 @@ async function finishApp(appDir: string) {
   await editJson(join(appDir, "package.json"), (raw) => {
     const pkg = AppPackageSchema.parse(raw);
     return merged(raw, {
-      scripts: { ...pkg.scripts, "e2e:ios": "e2e/sim.sh", presubmit: "node scripts/presubmit.mjs" },
+      scripts: {
+        ...pkg.scripts,
+        "e2e:ios": "e2e/sim.sh",
+        "e2e:record": "e2e/record.sh",
+        presubmit: "node scripts/presubmit.mjs",
+      },
       dependencies: { ...pkg.dependencies, zod: "^3.25.76" },
     });
   });

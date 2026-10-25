@@ -4,3 +4,4 @@ node_modules/
 public/js/
 *.log
 .DS_Store
+recordings/

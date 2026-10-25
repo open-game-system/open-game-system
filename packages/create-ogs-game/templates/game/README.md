@@ -46,6 +46,8 @@ a Mac with Xcode, CocoaPods and [Maestro](https://maestro.mobile.dev) for the si
    Screenshots of the phone and the TV land in `app/e2e/out/`, with each step's time in
    `timings.txt`. The external display is a Simulator menu, clicked through System Events: give
    your terminal Accessibility access (System Settings → Privacy & Security → Accessibility).
+   Then `pnpm e2e:record` films the phone and the TV side by side (framed, labelled, a title card
+   with the run's timings) into `recordings/<time>/`, plus one short clip per milestone.
 6. **On your real TV**: `pnpm ios --device` (needs your Team ID in `app/app.config.ts`), open the
    app, Control Center → Screen Mirroring → your Apple TV, then **Show on TV** in the lobby.
 

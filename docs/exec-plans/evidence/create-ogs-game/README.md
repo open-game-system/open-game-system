@@ -20,3 +20,5 @@ adds ~40 s of boot and a few minutes of xcodebuild; the first, cold run's xcodeb
 
 Before the shell fix in this PR, the same walk ended with the shell's native idle card on the TV
 (the declared TV page never reached the launcher) in a 720×480 corner of the display.
+
+Video: `kite-count-run.mp4` (phone and TV side by side, from `pnpm e2e:record`: join, Show on TV, the TV lobby, kites, question, reveal, round two).
