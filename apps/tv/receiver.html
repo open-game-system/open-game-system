@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OGS · Cast receiver</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #0b0d12; overflow: hidden; }
+      #view { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #0b0d12; }
+      #status {
+        position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 2.4vh; background: #0b0d12; color: #f4efe6; font: 600 3.4vh/1.3 system-ui, sans-serif;
+        transition: opacity 0.4s;
+      }
+      #status[data-hidden="1"] { opacity: 0; pointer-events: none; }
+      #status .mark { font-weight: 800; letter-spacing: 0.3em; font-size: 2.2vh; color: #b9b2a6; }
+      #status .ring {
+        width: 5vh; height: 5vh; border-radius: 50%; border: 0.5vh solid rgba(244, 239, 230, 0.2);
+        border-top-color: #f4efe6; animation: spin 1.1s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <!-- CAF before the module (modules run after classic scripts). Only a Cast device starts it. -->
+    <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+  </head>
+  <body>
+    <iframe id="view" title="OGS TV" allow="autoplay; fullscreen; screen-wake-lock" data-loaded="0"></iframe>
+    <div id="status" data-testid="rx-status" data-hidden="0">
+      <div class="mark">OGS</div>
+      <div class="ring"></div>
+      <div id="status-text">Getting the TV ready</div>
+    </div>
+    <script type="module" src="/src/receiver/main.ts"></script>
+  </body>
+</html>
