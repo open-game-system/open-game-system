@@ -157,6 +157,12 @@ export function createReceiver(deps: {
     return true;
   };
 
+  /** The phone's API (apiUrl), else the launcher's api=, gets this receiver's log. */
+  const logTo = (apiUrl: unknown, v: ReceiverView) => {
+    const api = apiOrigin(apiUrl) ?? v.api;
+    if (api) log.setApi(api);
+  };
+
   const loaded = (v: ReceiverView, tier: string, t0: number) => {
     deps.status(null);
     log.event("view.loaded", {
@@ -182,8 +188,7 @@ export function createReceiver(deps: {
     if (viewUrl !== msg.viewUrl) return; // a newer view arrived while the tier was measured
     const v = receiverView(msg.viewUrl, deps.origin, d.choice.tier);
     if (!v) return;
-    const api = apiOrigin(msg.apiUrl) ?? v.api;
-    if (api) log.setApi(api);
+    logTo(msg.apiUrl, v);
     log.event("load_view.received", {
       data: { view: v.host, launcher: v.launcher, tier: d.choice.tier },
     });

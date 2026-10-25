@@ -69,14 +69,16 @@ function glCaps(webgl: TierSignals["webgl"]): Cap[] {
   return caps;
 }
 
-function deviceCaps(cls: DeviceClass, s: TierSignals): Cap[] {
-  if (cls === "google-tv")
-    return (s.deviceMemoryGb ?? 0) >= 4 ? [] : [["lite", "device:google-tv"]];
-  if (cls === "chromecast")
-    return [s.cast?.uhd ? ["lite", "device:chromecast-ultra"] : ["minimal", "device:chromecast"]];
-  if (cls === "smart-display") return [["lite", "device:smart-display"]];
-  return [];
-}
+/** The caps a device class puts on the tier, whatever its probe says. */
+const DEVICE_CAPS: Record<DeviceClass, (s: TierSignals) => Cap[]> = {
+  // A Google TV Streamer (4 GB) is not held back; a Chromecast with Google TV (1.5–2 GB) is.
+  "google-tv": (s) => ((s.deviceMemoryGb ?? 0) >= 4 ? [] : [["lite", "device:google-tv"]]),
+  chromecast: (s) => [
+    s.cast?.uhd ? ["lite", "device:chromecast-ultra"] : ["minimal", "device:chromecast"],
+  ],
+  "smart-display": () => [["lite", "device:smart-display"]],
+  browser: () => [],
+};
 
 function probeCaps(f: TierSignals["frame"]): Cap[] {
   if (!f || f.frames < MIN_PROBE_FRAMES) return [];
@@ -102,7 +104,7 @@ export function chooseTier(s: TierSignals): TierChoice {
   if (s.override) return { tier: s.override, reasons: ["override"], deviceClass };
   const caps = [
     ...glCaps(s.webgl),
-    ...deviceCaps(deviceClass, s),
+    ...DEVICE_CAPS[deviceClass](s),
     ...probeCaps(s.frame),
     ...memoryCaps(s),
   ];
