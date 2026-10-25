@@ -9,6 +9,8 @@ export const DOCS_ROOT = resolve(here, "..");
 export const REPO_ROOT = resolve(DOCS_ROOT, "../..");
 export const CONTENT_DIR = resolve(DOCS_ROOT, "content");
 export const DIST_DIR = resolve(DOCS_ROOT, "dist");
+/** SVG diagrams, served at `/diagrams/<file>.svg` (each carries its own light and dark palette). */
+export const DIAGRAMS_DIR = resolve(DOCS_ROOT, "diagrams");
 /** The contract page is rendered from this file (single source of truth). */
 export const SPEC_FILE = resolve(REPO_ROOT, "docs/specification.md");
 

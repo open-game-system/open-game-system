@@ -70,7 +70,7 @@ a:hover { text-decoration-thickness: 2px; }
   overflow-y: auto;
   padding: 28px 16px 28px 24px;
 }
-.side ol { list-style: none; margin: 0; padding: 0; counter-reset: page; }
+.side ol { list-style: none; margin: 0; padding: 0; }
 .side li { counter-increment: page; }
 .side li a {
   display: flex;
@@ -140,4 +140,24 @@ td code { white-space: nowrap; }
   .agents { margin: 12px 0 14px; }
   main { padding: 20px 16px 64px; }
   .anchor { display: none; }
+}
+
+/* Diagrams: SVGs with their own light and dark palettes; a tall version replaces each on phones. */
+article img { display: block; max-width: 100%; height: auto; }
+article p:has(> picture.diagram), article p:has(> img) { margin: 22px 0 10px; }
+picture.diagram img { width: 100%; }
+
+.links { display: inline-flex; gap: 8px; }
+.jump { display: none; }
+.side .group { margin: 18px 10px 6px; font: 700 11px/1.4 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+.side .group:first-child { margin-top: 0; }
+.side { counter-reset: page; }
+
+@media (max-width: 860px) {
+  .jump { display: inline-block; }
+  .layout { display: flex; flex-direction: column; }
+  .side { order: 2; border-bottom: 0; border-top: 1px solid var(--line); padding: 20px 16px 40px; scroll-margin-top: 56px; }
+  .side .group { margin: 16px 0 8px; }
+  .side .group:first-child { margin-top: 0; }
+  .agents { margin: 18px 0 0; }
 }

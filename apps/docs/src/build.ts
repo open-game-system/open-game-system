@@ -1,8 +1,8 @@
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderHtml, rewriteLinks } from "./markdown";
 import { PAGES, type PageDef } from "./pages";
-import { DIST_DIR, DOCS_ROOT, SITE_URL } from "./paths";
+import { DIAGRAMS_DIR, DIST_DIR, DOCS_ROOT, SITE_URL } from "./paths";
 import { fillSchemaBlocks } from "./schemas";
 import { notFoundHtml, pageHtml } from "./template";
 
@@ -90,5 +90,6 @@ export function buildSite(outDir: string = DIST_DIR): BuiltPage[] {
   writeFileSync(resolve(outDir, "404.html"), notFoundHtml());
   writeFileSync(resolve(outDir, "_headers"), HEADERS);
   copyFileSync(resolve(DOCS_ROOT, "src/style.css"), resolve(outDir, "style.css"));
+  cpSync(DIAGRAMS_DIR, resolve(outDir, "diagrams"), { recursive: true });
   return built;
 }

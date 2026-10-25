@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 638" width="400" height="638" role="img" aria-labelledby="title desc">
+<title id="title">The launcher protocol: ogs:start, ogs:ready, ogs:room, ogs:resume-point, ogs:suspend and ogs:resume</title>
+<desc id="desc">The postMessage sequence between the launcher and your TV page.</desc>
+<style>
+svg{--bg:#f6f4ef;--paper:#fffdf9;--ink:#1b1a1f;--ink2:#5b5864;--line:#d9d4c8;--accent:#c2410c;--soft:#fdebe1;--cool:#e6eef0;--coolink:#1f5560}
+@media (prefers-color-scheme: dark){svg{--bg:#131217;--paper:#1a1920;--ink:#ece9e2;--ink2:#a9a5b2;--line:#3a3743;--accent:#fb923c;--soft:#33221a;--cool:#17282c;--coolink:#8fd0dc}}
+text{font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.canvas{fill:var(--paper);stroke:var(--line);stroke-width:1}
+.box{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.hot{fill:var(--soft);stroke:var(--accent);stroke-width:1.75}
+.cool{fill:var(--cool);stroke:var(--coolink);stroke-width:1.5}
+.h{font-size:15px;font-weight:700;fill:var(--ink)}
+.h2{font-size:12px;font-weight:700;fill:var(--ink2);letter-spacing:.08em;text-transform:uppercase}
+.t{font-size:13px;fill:var(--ink2)}
+.tk{font-size:13px;fill:var(--ink)}
+.m{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;fill:var(--ink)}
+.ma{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;fill:var(--accent);font-weight:600}
+.lbl{font-size:12px;font-weight:600;fill:var(--accent);paint-order:stroke;stroke:var(--paper);stroke-width:6px;stroke-linejoin:round}
+.ln{stroke:var(--ink2);stroke-width:1.6;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.8;fill:none}
+.dash{stroke-dasharray:5 5}
+.life{stroke:var(--line);stroke-width:2;stroke-dasharray:2 6;fill:none}
+.ah{fill:var(--ink2)}
+.aha{fill:var(--accent)}
+</style>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+<marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="aha" d="M0 0L10 5L0 10z"/></marker>
+</defs>
+<rect class="canvas" x="0.5" y="0.5" width="399" height="637" rx="16"/>
+<rect class="box" x="14" y="20" width="112" height="40" rx="10"/><text class="h" x="70" y="45" text-anchor="middle" style="font-size:13px">Launcher</text>
+<path class="life" d="M70 60 V622"/>
+<rect class="hot" x="274" y="20" width="112" height="40" rx="10"/><text class="h" x="330" y="45" text-anchor="middle" style="font-size:13px">Your TV page</text>
+<path class="life" d="M330 60 V622"/>
+<text class="t" x="200" y="104" text-anchor="middle" font-style="italic">A phone picks your game</text>
+<path class="ln dash" d="M74 134 H326" marker-end="url(#a)"/>
+<text class="tk" x="200" y="126" text-anchor="middle">loads your TV page</text>
+<path class="lna" d="M74 174 H326" marker-end="url(#b)"/>
+<text class="ma" x="200" y="166" text-anchor="middle">ogs:start</text>
+<text class="t" x="200" y="192" text-anchor="middle">who’s playing, a game token</text>
+<path class="lna" d="M326 226 H74" marker-end="url(#b)"/>
+<text class="ma" x="200" y="218" text-anchor="middle">ogs:ready</text>
+<text class="t" x="200" y="244" text-anchor="middle">listening late</text>
+<path class="lna" d="M74 278 H326" marker-end="url(#b)"/>
+<text class="ma" x="200" y="270" text-anchor="middle">ogs:start</text>
+<text class="t" x="200" y="296" text-anchor="middle">sent again for the current sitting</text>
+<path class="lna" d="M326 330 H74" marker-end="url(#b)"/>
+<text class="ma" x="200" y="322" text-anchor="middle">ogs:room</text>
+<text class="t" x="200" y="348" text-anchor="middle">room games: the other phones follow</text>
+<path class="lna" d="M326 382 H74" marker-end="url(#b)"/>
+<text class="ma" x="200" y="374" text-anchor="middle">ogs:resume-point</text>
+<text class="t" x="200" y="400" text-anchor="middle">label, e.g. “Mission 6”</text>
+<text class="t" x="200" y="434" text-anchor="middle" font-style="italic">Phones show the label in Playing</text>
+<text class="t" x="200" y="464" text-anchor="middle" font-style="italic">A phone presses Home</text>
+<path class="lna" d="M74 494 H326" marker-end="url(#b)"/>
+<text class="ma" x="200" y="486" text-anchor="middle">ogs:suspend</text>
+<text class="t" x="200" y="512" text-anchor="middle">parked, still loaded: go silent</text>
+<text class="t" x="200" y="546" text-anchor="middle" font-style="italic">A phone presses Continue</text>
+<path class="lna" d="M74 576 H326" marker-end="url(#b)"/>
+<text class="ma" x="200" y="568" text-anchor="middle">ogs:resume</text>
+<text class="t" x="200" y="594" text-anchor="middle">same frame back, no reload</text>
+</svg>

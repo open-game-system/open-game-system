@@ -15,13 +15,13 @@ profiles with native sign-in, push links, haptics and an offline screen.
 | | How |
 |---|---|
 | **Your game, live from the web** | The app opens your phone page (`gameUrl`). Deploy the web game and every installed app has it, with no store release. |
-| **Play on TV** | A Chromecast, or any TV with a browser (paired by a code). A cast button **you** draw with `cast-kit-react`; the app runs the native picker and session. The TV shows your manifest's `tvUrl` full screen with no OGS launcher around it, and your TV page still gets `ogs:start` with the couch. |
+| **Play on TV** | A Chromecast, an Apple TV through Screen Mirroring (`cast.airplay`, iOS), or any TV with a browser (paired by a code). A cast button **you** draw with `cast-kit-react`; the app runs the native picker and session. The TV shows your manifest's `tvUrl` full screen with no OGS launcher around it, and your TV page still gets `ogs:start` with the couch. |
 | **Who is playing** | `useOgsProfile()` (profile-kit), as in the OGS app. Players start as a guest with a real OGS profile; **Sign in with Apple** (Google on Android) is a native sheet in the app, never in your page. One OGS account works in every OGS-powered app. |
 | **Push links** | Your server sends with your game's API key, as on [Notifications](notifications.md). OGS delivers to your app with **your** APNs key and FCM service account. A tap opens the page you name. |
 | **Links** | `https://<your domain>/…` (with the link files below), `https://opengame.org/play/<appId>/…` and your app's own scheme, `<appId>://<path>`, open the app at that page of your game. |
 | **Branding** | OGS is invisible by default (`branding: "hidden"`), or shows a small "Powered by OGS" mark (`"powered-by"`). |
 
-What it is not (v1): no in-app purchases or ads, no AirPlay or screen mirroring, one game per app.
+What it is not (v1): no in-app purchases or ads, one game per app. Every option: [Shell config reference](shell-config.md).
 
 ## 1. Create the app
 

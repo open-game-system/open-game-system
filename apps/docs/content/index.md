@@ -1,17 +1,23 @@
 # Build a game for OGS
 
-OGS (Open Game System) puts web games on the living-room TV. A grown-up casts **once** from the OGS
-app; after that the TV shows one page for as long as the cast lasts, the **TV launcher**, and every game plays inside
-it. Phones and iPads join the couch and play each game's phone page. Your game stays an ordinary web
-game: it gets a few `postMessage`s and a small library, and it keeps working in a plain browser.
+OGS (Open Game System) puts web games on the living-room TV. **Phones are the controllers, your game
+is on the TV**, and everything is drawn on devices people already own: the host's iPhone for an
+Apple TV, the Chromecast itself, or the TV's own browser. There is no cloud rendering, so a game
+costs nothing per hour played.
+
+A grown-up casts **once** from the OGS app. After that the TV shows one page for as long as the cast
+lasts, the **TV launcher**, and every game plays inside it. Phones and iPads join the couch and play
+each game's phone page. Your game stays an ordinary web game: it gets a few `postMessage`s and a
+small library, and it keeps working in a plain browser.
 
 > **Building with a coding agent?** Point it at [the Quickstart](quickstart.md) or at
 > `https://ogs-docs.pages.dev/llms.txt`. Every page here is also plain Markdown: add `.md` to its URL.
 
 ## How it works
 
-1. **Cast once.** The host opens the OGS app and casts to the TV (Chromecast, or any browser on the
-   TV). The TV shows the launcher and a 6-character **TV code**.
+1. **Cast once.** The host opens the OGS app and casts to the TV: an Apple TV (Screen Mirroring; the
+   iPhone draws the TV), a Chromecast (it draws the TV itself), or any browser on the TV. The TV
+   shows the launcher and a 6-character **TV code**. [Architecture](architecture.md) shows each path.
 2. **Phones join the couch.** Everyone else joins with the TV code. Each person has an OGS profile:
    a name and an avatar.
 3. **The launcher frames your game.** When someone picks your game, the launcher loads your **TV page**
@@ -57,7 +63,12 @@ The short version of [the rules](rules.md):
 
 ## Where to go next
 
+- [Real TV in an afternoon](real-tv.md): from nothing to your game on a TV.
+- [Architecture](architecture.md): what runs where, and who draws the TV.
 - [Quickstart for agents](quickstart.md): the step-by-step checklist.
 - [The game contract](contract.md): the single source of truth.
 - [profile-kit reference](profile-kit.md) and [Messages and manifest](messages.md): exact APIs.
-- [Testing your game](testing.md), [Art kit and catalogue](art-and-catalogue.md).
+- [TV performance budget](tv-performance.md), [Testing your game](testing.md),
+  [Client logs and debugging](debugging.md), [Art kit and catalogue](art-and-catalogue.md).
+- [Ship your own app](ship-your-own-app.md) and the [shell config reference](shell-config.md).
+- [FAQ](faq.md), starting with "Why not cloud streaming?"
