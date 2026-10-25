@@ -95,7 +95,9 @@ export function reportOgsRoom(room: string): "launcher" | "none" {
  * which sends with it), `{ status: "denied" }`, or null outside the OGS app (in a PWA use
  * notification-kit-web's subscribeOgsPush). Pass a handle you already hold to join it.
  */
-export function requestOgsNotifications(join?: { handle?: string }): Promise<PushConsentResult | null> {
+export function requestOgsNotifications(join?: {
+  handle?: string;
+}): Promise<PushConsentResult | null> {
   if (typeof window === "undefined") return Promise.resolve(null);
   return sharedNotifications().request(join);
 }

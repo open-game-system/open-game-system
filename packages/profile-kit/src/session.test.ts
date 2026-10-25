@@ -81,6 +81,24 @@ describe("the couch session on a game's TV page", () => {
     expect(source.getSnapshot()?.players).toEqual([]);
   });
 
+  it.each([
+    "full",
+    "lite",
+    "minimal",
+  ] as const)("carries the TV's render tier (%s) when the launcher says it", (tier) => {
+    const f = framed();
+    const source = createSessionSource({ win: f.win });
+    f.fromParent({ ...start, tier });
+    expect(source.getSnapshot()?.tier).toBe(tier);
+  });
+
+  it("has no tier when the TV didn't say (treat it as full)", () => {
+    const f = framed();
+    const source = createSessionSource({ win: f.win });
+    f.fromParent(start);
+    expect(source.getSnapshot()).not.toHaveProperty("tier");
+  });
+
   it("is null after 300 ms without a start (framed by something else)", () => {
     const f = framed();
     const source = createSessionSource({ win: f.win });
