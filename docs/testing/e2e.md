@@ -1,7 +1,7 @@
 # How to run the e2e suites
 
 Every end-to-end suite in the repo, its command and what it needs. Deterministic unless noted
-(no model is configured for tester-army `e2e`; no test may start a real GPU stream).
+(no model is configured for tester-army `e2e`; there is no cloud renderer, ADR 2026-10-25).
 
 ## tester-army `e2e` (`e2e/`, standalone install)
 
@@ -11,20 +11,19 @@ Run: `cd e2e && pnpm exec e2e run tests/<file>.e2e.ts --target <launcher|ios> --
 
 | Flow | Test file | Target | Needs |
 |------|-----------|--------|-------|
-| 1. Receiver, phone path: REQUEST_VIEW until a view, LOAD_VIEW → start-stream/subscribe/answer on the sender's stream server, real frames; URL params override; no default view (it waits for a sender, never streams on its own); failed or unreachable start shows the error and stops the heartbeat | `tests/receiver-view.e2e.ts` | `launcher` | nothing running (all faked in the page) |
+| 1. Receiver, phone path: REQUEST_VIEW until a view; LOAD_VIEW shows the not-yet state (no renderer is called, also for an older app's LOAD_VIEW) and replaces a laptop's picture; no default view (it waits for a sender) | `tests/receiver-view.e2e.ts` | `launcher` | nothing running (all faked in the page) |
 | 2. Receiver, laptop path: PEER_OFFER → PEER_ANSWER over Cast, loopback WebRTC frames, HUD iframe for `peer-canvas` (HUD_READY, HUD_MESSAGE), 20 s no-picture timeout → PEER_ERROR, bad offer, PEER_STOP | `tests/receiver-laptop.e2e.ts` | `launcher` | nothing running |
-| 3. Receiver stops: heartbeat each minute; renderer idle stop (20 min without `__ogsActivityAt` activity, the renderer's own `isIdle`) via 410; no phone for 20 min; 3-hour cap; activity / a phone returning resets | `tests/receiver-stops.e2e.ts` | `launcher` | nothing running |
-| 6. Stream full pipe: the real renderer (`services/api/container/src/server.ts`, local Chrome + capture extension, no GPU) renders a local animated page and publishes its tab over WebRTC to the receiver; the decoded frame count grows and pixels change; the renderer's idle stop (`__ogsActivityAt` → `/ping` via the API's real heartbeat route → 410) ends the cast and closes Chrome; a warm renderer serves the next cast after a stop, 8 relaunches in a row | `tests/stream-pipe.e2e.ts` | `launcher` | the container's deps installed (below); nothing else running. Opt-in `OGS_E2E_SFU=1`: Cloudflare Realtime + TURN instead of the loopback |
-| Receiver logs: LOAD_VIEW received (once per distinct view; a repeat is `load_view.ignored` why duplicate), stream started/failed, heartbeat 410, cast ended, `receiver.launched` once, `receiver.sender` connected/disconnected with the count, `streaming` on visibility/keep-awake; after a LOAD_VIEW every event carries its `phoneAttemptId` and `sessionId` → `POST /api/v1/client-events` on its stream server's API, no token, hosts only | `tests/receiver-events.e2e.ts` | `launcher` | nothing running |
-| Receiver keeps the TV awake: a screen wake lock once a stream plays (phone or laptop), taken again when dropped or on visible; the keep-awake clip when the API is missing or refuses; both let go on cast end, PEER_STOP, a failed start; `receiver.keepawake` / `receiver.visibility` events. `navigator.wakeLock` and `document.visibilityState` are faked (`openReceiver(browser, { wakeLock: "grant" \| "reject" \| "missing" })`, handle `window.__wakeLock`) | `tests/receiver-awake.e2e.ts` | `launcher` | nothing running |
+| 3. Receiver stops: no phone for 20 min; 3-hour cap; a phone returning resets | `tests/receiver-stops.e2e.ts` | `launcher` | nothing running |
+| Receiver logs: LOAD_VIEW received (once per distinct view; a repeat is `load_view.ignored` why duplicate), `view.unsupported`, cast ended, `receiver.launched` once, `receiver.sender` connected/disconnected with the count, `streaming` on visibility/keep-awake; after a LOAD_VIEW every event carries its `phoneAttemptId` and `sessionId` → `POST /api/v1/client-events` on the API LOAD_VIEW names (`apiUrl`, else production), no token, hosts only | `tests/receiver-events.e2e.ts` | `launcher` | nothing running |
+| Receiver keeps the TV awake: a screen wake lock once a laptop's picture plays (a phone's view plays nothing yet), taken again when dropped or on visible; the keep-awake clip when the API is missing or refuses; both let go on cast end, PEER_STOP, a phone's view replacing the picture; `receiver.keepawake` / `receiver.visibility` events. `navigator.wakeLock` and `document.visibilityState` are faked (`openReceiver(browser, { wakeLock: "grant" \| "reject" \| "missing" })`, handle `window.__wakeLock`) | `tests/receiver-awake.e2e.ts` | `launcher` | nothing running |
 | TV launcher, live session | `tests/launcher.e2e.ts`, `friends.e2e.ts`, `games-know-you.e2e.ts` | `launcher` | API (`OGS_API`, 8788), launcher (`OGS_LAUNCHER`, 5180), fixture game (`FIXTURE_GAME`, 5190) |
 | API over HTTP | `tests/api.e2e.ts` | `launcher` | API (8788) |
 | iOS app | `tests/app.e2e.ts`, `friends-app.e2e.ts` | `ios` | Release simulator build with `EXPO_PUBLIC_FAKE_CAST=1`, `EXPO_PUBLIC_OGS_API=http://localhost:8788`; `E2E_IOS_DEVICE` / `E2E_IOS_SESSION` |
 
 The receiver suites (flows 1–3) open `apps/web/public/receiver.html` at a routed origin
 (`https://receiver.ogs.test`) with a stub of the CAF receiver SDK (`window.__cast` drives senders),
-a mock stream server answered from Node whose SFU is a real `RTCPeerConnection` in a second page,
-and a laptop page; every other request is aborted and must stay empty (`rx.blocked`). See
+the API's client-events route recorded on any host, and a laptop page (a real `RTCPeerConnection`);
+every other request, including any to a renderer, is aborted and must stay empty (`rx.blocked`). See
 `tests/receiver-kit.ts`.
 
 ## Other suites
@@ -54,54 +53,11 @@ and a laptop page; every other request is aborted and must stay empty (`rx.block
 | Couch flow across devices | `cd e2e && node couch-flow.mjs` | API (8788), launcher (5180), fake Chromecast (5181), fixture game (5190) |
 | Several households, one room (multiCouch): three couches, three recorded launchers, Night Flight; the Mumm phone in the simulator under Detox taps Invite; a Smith card moves every TV; Home/Continue on one TV; synced 2×2 video | `cd e2e && node multi-couch.mjs` (`MUMM_PHONE=scripted` without the simulator) | below |
 | Every couch phone follows the TV (Rocket Crew, real room): Dad's scripted phone starts it, Mom's phone (iOS app, Detox) joins with the TV code, waits while the TV hasn't named the room, follows into `/join/<R>` (Rocket Crew's room then has Captain Dad + Fixer Mom by OGS id), steps out without parking the TV, follows Home + Continue back into the same seat, Home returns it to the remote; Juneau's iPad (scripted tablet couch client + fake WebView page, no roster) follows into the same room as the Lookout, its page's `game.view` leaves the TV page, Home/Continue/Home move it too; synced phone+TV video | `cd e2e && node phones-follow.mjs` | below |
-| 4. API stream routes against a mock renderer, Realtime and TURN (start, publisher answer forwarding, subscribe/answer, heartbeat 410/502, ice-servers fallback, readiness, error contract) | `cd services/api && pnpm exec vitest run test/stream-sfu.test.ts test/stream-routes.test.ts test/stream-ready.test.ts test/stream-ready-check.test.ts` (part of `pnpm test`) | nothing (fetch stubbed) |
-| 5. Post-deploy stream readiness | `pnpm --filter @open-game-system/api stream:ready <apiBase>` (below) | network, `gcloud` (optional) |
 | API integration (workerd) | `pnpm --filter @open-game-system/api test:integration` | emulators started by its global setup |
-| Stream server container | `cd services/api/container && pnpm test` (`tsx --test`) | its deps (see Stream full pipe) |
-
-## Stream full pipe (`e2e/tests/stream-pipe.e2e.ts`)
-
-The real renderer on this machine, no Cloud Run, no GPU (SwiftShader), no Cloudflare by default:
-
-```bash
-# once: the renderer's deps at the image's pinned versions (it builds from package-lock.json;
-# pnpm import writes an untracked pnpm-lock.yaml: don't commit it), and its Chrome for Testing
-cd services/api/container && pnpm import --ignore-workspace && pnpm install --ignore-workspace --frozen-lockfile
-pnpm exec puppeteer browsers install chrome
-# run (each test ~10-30 s; hard limit 120 s per test)
-cd e2e && pnpm exec e2e run tests/stream-pipe.e2e.ts --target launcher --reporter list,markdown
-```
-
-- Each test spawns `tsx src/server.ts` on a free port (`STREAM_IDLE_MS=4000`), a local view page
-  (a canvas that cycles colour with a moving square, keeping `window.__ogsActivityAt` fresh until the
-  test says nobody plays) and the receiver with `tests/receiver-kit.ts`'s stubbed Cast SDK.
-- The SFU is a loopback stand-in (`renderer-kit.ts` `loopbackStreamServer`): the renderer's
-  `/publisher/prepare` offer is the receiver's subscribe offer and the receiver's answer goes to
-  `/publisher/answer`; host candidates only. The heartbeat runs the API's own route
-  (`services/api/src/routes/stream.ts`, in process) against the renderer's `/ping`.
-- `OGS_E2E_SFU=1` adds the Cloudflare leg: every stream call runs the API's routes with
-  `CLOUDFLARE_REALTIME_APP_ID`, `CLOUDFLARE_REALTIME_APP_SECRET`, `CLOUDFLARE_TURN_API_TOKEN` and
-  `CLOUDFLARE_TURN_KEY_ID` from the environment (never printed); missing ones skip the test by name.
-  Billable (Realtime + TURN minutes), bounded by the 120 s limit.
-- Cleanup: in `finally` the renderer gets SIGTERM (its shutdown closes Chrome), then SIGKILL for its
-  process group and any Chrome loading this checkout's extension; a 120 s watchdog does the same if
-  the test hangs. Each test then asserts no such process is left. Check by hand:
-  `ps -axo pid,command | grep services/api/container`.
-- The renderer starts Chrome with `--remote-debugging-port=9222` (as on Cloud Run); a local Chrome
-  already listening on 127.0.0.1:9222 did not get in the way.
-
-## Post-deploy stream readiness (no render)
-
-`pnpm --filter @open-game-system/api stream:ready <apiBase> [--probe-renderer]`: the stream route
-answers with TURN servers, `GET /api/v1/stream/ready` reports a renderer, Realtime and TURN
-configured (booleans), and Cloud Run's control plane (`gcloud run services describe stream-gpu`)
-says the renderer is Ready. Starts no stream and no instance. `--probe-renderer` also calls the
-renderer's `/health` (no Chrome launch, but on a scaled-to-zero GPU service it cold-starts a billed
-L4 instance). Hard limit 20 s; prints results only, never values.
 
 ## Several households, one room (`e2e/multi-couch.mjs`)
 
-Everything local (no Cloud Run, no GPU, no SFU), on ports of its own so the shared 8788/5180/5181 stay
+Everything local, on ports of its own so the shared 8788/5180/5181 stay
 untouched:
 
 ```bash

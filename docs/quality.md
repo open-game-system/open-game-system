@@ -15,14 +15,9 @@ Grade each package/domain. Update after major changes.
 | notification-kit-react | B | 2/2 pass | — | Previously skipped test now passing. Bridge singleton reset fixed the issue. |
 | notification-kit-server | B | 5 pass | 82.35% | Send, bulk, error handling covered. Stryker configured. |
 | create-ogs-app | A- | 140 unit + 16 integration + 3 bin/tarball | 96.2% (see "Shell hardening") | CRAP max 7. Generated app verified once with `expo config --type introspect` against the real shell plugin. Stryker configured (skips the bin test). |
-| stream-kit-types | A | passing | — | Pure types + basic validation |
-| stream-kit-web | B | passing | — | Client + RenderStream tested |
-| stream-kit-react | B | passing | — | Hooks and components tested |
-| stream-kit-server | C | passing | — | Experimental, private. Router tests exist. |
-| stream-kit-testing | C | passing | — | Mock client tested, missing publishConfig |
 | cast-kit-core | C | has tests | configured | Stryker configured. Sparse test coverage. |
 | cast-kit-react | C | has tests | configured | Stryker configured. Sparse test coverage. |
-| apps/web | C | 22 e2e (receiver) | — | Marketing site: build only. `public/receiver.html` (the Cast receiver) has 22 deterministic e2e tests (`e2e/tests/receiver-*.e2e.ts`: LOAD_VIEW, PEER_OFFER + HUD, stops) and 3 full-pipe tests against the real local renderer (`e2e/tests/stream-pipe.e2e.ts`: moving frames, idle 410, Chrome relaunch; the Realtime leg opt-in); see docs/testing/e2e.md. |
+| apps/web | C | 32 e2e (receiver) | — | Marketing site: build only. `public/receiver.html` (the Cast receiver) has 32 deterministic e2e tests (`e2e/tests/receiver-*.e2e.ts`) (LOAD_VIEW not-yet state, PEER_OFFER + HUD, stops, keep-awake, logs); see docs/testing/e2e.md. The cloud renderer and its full-pipe tests were removed 2026-10-25. |
 | shell | A- | 77 Vitest (config plugin) + 378 jest-expo; the moved runtime modules are also tested by apps/mobile's suites through the shims | every module 98–100% (see "Shell hardening") | `pnpm --filter @open-game-system/shell test:mutate` mutates `packages/shell/src` in place and runs apps/mobile's jest suites + `src/__tests__` (see "Shell runtime mutation" below). The fixture app `examples/shell-single-game` checks the plugin's native config through `expo config --type introspect`. |
 | apps/mobile | B | passing (Jest) + Detox | configured | Services tested, Stryker configured. Detox: 16 files in `apps/mobile/e2e` (incl. the `multi-couch.mjs` / `phones-follow.mjs` driver files), all passing on one local stack 2026-10-07 (docs/testing/e2e.md, "The whole Detox suite"). |
 

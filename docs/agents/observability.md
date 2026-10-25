@@ -12,7 +12,7 @@ the /wide-events-logging and /client-telemetry skills; this page records what th
 
 Not Workers (no Workers Logs): `apps/tv` (Pages project `ogs-tv`) and `apps/web` (Pages project
 `opengame-org`, which serves the Cast receiver `public/receiver.html`) are static Pages sites with no
-Functions. The GPU stream server runs on Cloud Run (`stream-gpu`), outside Cloudflare. The shared
+Functions. There is no cloud renderer (ADR 2026-10-25). The shared
 `sre-notify` Worker lives in the skills repo.
 
 ## Server wide events
@@ -59,7 +59,7 @@ The app and the Cast receiver post batches to `POST /api/v1/client-events`
 
 | Event | Source | Level | Fields | Meaning |
 |-------|--------|-------|--------|---------|
-| `http.request` | server | info / error | `request_id` (cf-ray), `method`, `route` (pattern, never the path), `status`, `duration_ms`, `profile_id`, `device_kind`; stream routes add `trace_id`, `stream_steps` | One per HTTP request |
+| `http.request` | server | info / error | `request_id` (cf-ray), `method`, `route` (pattern, never the path), `status`, `duration_ms`, `profile_id`, `device_kind` | One per HTTP request |
 | `couch.action` | server (CouchSession DO) | info / error | `action` (message type, or `rejected` + `rejected: <code>`), `session_id`, `host_profile_id`, `device_id`, `device_kind`, `profile_id`, `sent`, `duration_ms` | One per couch session frame (hello, bye, focus, select, remote…) |
 | `funnel.invite_sent` · `funnel.link_opened` · `funnel.testflight_tap` · `funnel.first_session` | server | info | `invite_id` (all four), `app_id`; `profile_id` (the inviter on invite_sent, the new host on first_session), `session_id` (first_session) | Invite another family (docs/acceptance/2026-10-18-invite-another-family.feature): filter `invite_id = <id>` for one invite's way in; counts also on `GET /api/v1/family-invites/:id` |
 | `kind: "client_event"` (`name: cast.*`, `receiver.*`) | client | log / error | `name`, `level`, `attemptId`, `phoneAttemptId` (receiver only), `durationMs`, `error`, `errorType`, `data`, `source` (mobile/receiver), `profileId` (from the token), `build`, `version`, `platform`, `sessionId` (the couch session: the batch's, or the event's own), `deviceHash` | Cast lifecycle steps (docs/acceptance/2026-10-05-cast-logging.feature) |
@@ -94,7 +94,7 @@ filter `kind = client_event`, then:
    `user-message`) carries the attempt that failed.
 3. **TV**: `phoneAttemptId = <id>` (or `sessionId = <couch session>`, which the phone's lines carry
    too): `receiver.load_view.received` once per distinct view, `receiver.load_view.ignored`
-   (`why: duplicate`) for repeats, `receiver.stream.*`, `receiver.keepawake` /
+   (`why: duplicate`) for repeats, `receiver.view.unsupported`, `receiver.keepawake` /
    `receiver.visibility` (`streaming`). The receiver's own run id is its `attemptId`; from it,
    `receiver.launched` (`version`) and `receiver.sender` (`state`, `count`) show the lines before
    any LOAD_VIEW.
@@ -111,7 +111,7 @@ Older app builds send no ids in LOAD_VIEW: join those by `sessionId` or time.
 - `errorFields` mapping: **none needed.** Server lines carry `error.type` / `error.message`.
   Client-event lines carry `error` as a string (the message) and `errorType` (the client's, else the
   event name for older builds and the receiver), both built-in sre-agent paths, so a client line is
-  grouped as `TypeError: x is undefined` or `receiver.stream.failed: ICE failed`.
+  grouped as `TypeError: x is undefined` or `receiver.view.unsupported`.
 - Notification: at autonomy 1+ sre-agent emails Jon through the shared `sre-notify` Worker.
 - Needs (owner): repo secret `SRE_CLOUDFLARE_API_TOKEN` (Account → Workers Observability: Edit) and
   repo variable `CLOUDFLARE_ACCOUNT_ID`. Kill switch: `gh variable set SRE_AGENT_ENABLED --body false`.

@@ -1,7 +1,7 @@
 # Streaming renders only on Cloud Run; the Cloudflare container is removed
 
 **Date:** 2026-10-06
-**Status:** Accepted (owner-approved cleanup)
+**Status:** Superseded by [2026-10-25-local-rendering-only.md](2026-10-25-local-rendering-only.md)
 **Supersedes:** the rendering and API parts of [Cast-kit must use app-bridge for state sync](2026-03-14-cast-kit-uses-app-bridge.md)
 (stream-kit on a Cloudflare Container per cast, `/cast/sessions*`). Its app-bridge decision stands.
 

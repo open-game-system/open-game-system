@@ -1,10 +1,11 @@
 # TV Casting
 
-> **Status (2026-10-06):** the v1 cast-session API below (`/api/v1/cast/*`, one Cloudflare
-> Container per cast) is removed. Today the phone casts the OGS TV launcher, the API's
-> `/api/v1/stream/*` routes drive the Cloud Run GPU renderer (`stream-gpu`) and the Realtime SFU,
-> and the receiver plays the SFU's video. See `docs/architecture.md` and
-> `docs/adrs/2026-10-06-streaming-cloud-run-only.md`. The rest of this spec is kept as history.
+> **Status (2026-10-25):** TVs render locally only; there is no cloud renderer (no stream-kit,
+> no `/api/v1/stream/*`, no GPU). An Apple TV shows the launcher from the phone's AirPlay external
+> display, a browser TV runs it in a tab, a laptop streams its own tab to the Chromecast receiver,
+> and the Chromecast receiver rendering the launcher itself is being built. See
+> `docs/adrs/2026-10-25-local-rendering-only.md`. The rest of this spec (server-rendered video via
+> stream-kit) is kept as history and no longer describes the product.
 
 ## Overview
 

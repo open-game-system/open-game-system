@@ -18,8 +18,8 @@ swaps games without recasting. Phones and iPads play the game's **phone page** i
 WebView. People join the couch with the **TV code** (a 6-character code per couch session), not a game's
 room code. A game never casts, never shows a cast button, and still works in a plain browser.
 
-Product spec: [OGS app v3](product-specs/ogs-app-v3.html). TV platforms (direct launcher vs WebRTC
-stream): [ADR 2026-10-04 TV platforms](adrs/2026-10-04-tv-platforms.md).
+Product spec: [OGS app v3](product-specs/ogs-app-v3.html). TVs render the launcher locally
+(no cloud renderer): [ADR 2026-10-25 local rendering only](adrs/2026-10-25-local-rendering-only.md).
 
 ## 1. Manifest and catalogue
 
