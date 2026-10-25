@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { CastHost } from "./receiver";
 
 /** The phone and the receiver talk on this namespace (packages/shell/src/cast-view.ts). */
@@ -120,5 +121,56 @@ export function relayHost(win: {
     },
     stop: () => {},
     uhd: () => undefined,
+  };
+}
+
+const Relayed = z.discriminatedUnion("ogsRx", [
+  z.object({ ogsRx: z.literal("in"), senderId: z.string(), data: z.unknown() }),
+]);
+
+/** The window slice parentHost needs (a framed receiver page). */
+export interface FramedWindow {
+  parent: { postMessage(message: unknown, targetOrigin: string): void };
+  location: { ancestorOrigins?: ArrayLike<string>; search: string };
+  addEventListener(
+    type: "message",
+    handler: (e: { data: unknown; origin: string; source: unknown }) => void,
+  ): void;
+}
+
+/**
+ * Framed by the OGS Cast receiver page (apps/web/public/receiver.html, the URL registered for the
+ * Cast app), which owns CAF and the laptop path: it relays the view namespace to this page as
+ * `{ogsRx: "in", senderId, data}`, sends what this page posts back (`{ogsRx: "out", to, data}`) to
+ * the senders, and closes the Cast app on `{ogsRx: "stop"}`. `uhd=1|0` in this page's URL is CAF's
+ * 4K answer. Only messages from the parent window, at the parent's origin, count.
+ */
+export function parentHost(win: FramedWindow): ReceiverHost {
+  const origin = win.location.ancestorOrigins?.[0] ?? "*";
+  const uhd = new URLSearchParams(win.location.search).get("uhd");
+  let onMessage: ((data: unknown, reply: (m: object) => void) => void) | null = null;
+  let onSenders: ((s: "connected" | "disconnected", n: number) => void) | null = null;
+  const post = (m: object) => win.parent.postMessage(m, origin);
+  return {
+    onMessage: (h) => {
+      onMessage = h;
+    },
+    onSenders: (h) => {
+      onSenders = h;
+    },
+    broadcast: (data) => post({ ogsRx: "out", to: null, data }),
+    start() {
+      win.addEventListener("message", (e) => {
+        if (e.source !== win.parent || (origin !== "*" && e.origin !== origin)) return;
+        const r = Relayed.safeParse(e.data);
+        if (!r.success) return;
+        const { senderId } = r.data;
+        onMessage?.(parseData(r.data.data), (data) => post({ ogsRx: "out", to: senderId, data }));
+      });
+      post({ ogsRx: "ready" });
+      onSenders?.("connected", 1);
+    },
+    stop: () => post({ ogsRx: "stop" }),
+    uhd: () => (uhd === "1" ? true : uhd === "0" ? false : undefined),
   };
 }

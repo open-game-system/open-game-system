@@ -1,7 +1,7 @@
 // The TV receiver's wide events (acceptance: docs/acceptance/2026-10-05-cast-logging.feature): it
 // has no credentials, so it posts its key steps without a token to POST /api/v1/client-events on
 // the OGS API the phone names in LOAD_VIEW (apiUrl; the API writes them to Workers Logs): LOAD_VIEW
-// received, the view it can't show yet, the cast ending. Never the view URL (its launcher token).
+// received, the view handed to the OGS TV receiver that renders it (view.local), the cast ending. Never the view URL (its launcher token).
 import { test } from "@e2e-dev/web";
 import { describe, expect } from "e2e";
 import { z } from "zod";
@@ -50,13 +50,13 @@ describe("TV receiver logs (wide events, no credentials)", {
   tags: ["receiver"],
   requires: ["browser"],
 }, () => {
-  test("LOAD_VIEW received and the view it can't show go to the phone's API, without a token", async ({
+  test("LOAD_VIEW received and the view handed to the TV receiver go to the phone's API, without a token", async ({
     browser,
   }) => {
     const rx = await openReceiver(browser);
     await rx.connect("phone");
     await rx.deliver({ type: "LOAD_VIEW", viewUrl: VIEW, apiUrl: API }, "phone");
-    await until(() => named(rx, "receiver.view.unsupported").length > 0, "view.unsupported logged");
+    await until(() => named(rx, "receiver.view.local").length > 0, "view.local logged");
     // The events before LOAD_VIEW went to the production API; from LOAD_VIEW on, to the phone's.
     const posts = rx.events.slice(rx.events.findIndex((p) => p.url === API_EVENTS));
     expect(posts.length).toBeGreaterThan(0);
@@ -67,9 +67,9 @@ describe("TV receiver logs (wide events, no credentials)", {
       level: "info",
       data: { view: "launcher.ogs.test", api: "api.ogs.test" },
     });
-    expect(named(rx, "receiver.view.unsupported")[0]).toMatchObject({
-      level: "warn",
-      data: { view: "launcher.ogs.test" },
+    expect(named(rx, "receiver.view.local")[0]).toMatchObject({
+      level: "info",
+      data: { view: "launcher.ogs.test", tv: "ogs-tv.pages.dev" },
     });
     // One receiver run reads as one story: every event carries its run id.
     const runs = new Set(logged(rx).map((e) => e.attemptId));
@@ -85,7 +85,7 @@ describe("TV receiver logs (wide events, no credentials)", {
       viewUrl: VIEW,
       streamServerUrl: "https://stream.ogs.test/api/v1/stream",
     });
-    await until(() => named(rx, "receiver.view.unsupported").length > 0, "view.unsupported logged");
+    await until(() => named(rx, "receiver.view.local").length > 0, "view.local logged");
     expect(rx.events.every((p) => p.url === `${DEFAULT_API}/api/v1/client-events`)).toBe(true);
     expect(named(rx, "receiver.load_view.received")[0].data).toMatchObject({
       api: new URL(DEFAULT_API).host,
@@ -122,7 +122,7 @@ describe("TV receiver logs (wide events, no credentials)", {
       },
       "phone",
     );
-    await until(() => named(rx, "receiver.view.unsupported").length > 0, "view.unsupported logged");
+    await until(() => named(rx, "receiver.view.local").length > 0, "view.local logged");
     await rx.page.evaluate(() => window.__wakeLock.setVisibility("hidden"));
     await until(() => named(rx, "receiver.visibility").length > 0, "visibility logged");
     const after = logged(rx).filter(
@@ -131,7 +131,7 @@ describe("TV receiver logs (wide events, no credentials)", {
     expect(after.map((e) => e.name)).toEqual(
       expect.arrayContaining([
         "receiver.load_view.received",
-        "receiver.view.unsupported",
+        "receiver.view.local",
         "receiver.visibility",
       ]),
     );
@@ -158,7 +158,7 @@ describe("TV receiver logs (wide events, no credentials)", {
       data: { why: "duplicate", view: "launcher.ogs.test" },
     });
     // Nothing restarted: the view was taken once.
-    expect(named(rx, "receiver.view.unsupported")).toHaveLength(1);
+    expect(named(rx, "receiver.view.local")).toHaveLength(1);
   });
 
   test("a new view is received again (a new couch session's launcher)", async ({ browser }) => {

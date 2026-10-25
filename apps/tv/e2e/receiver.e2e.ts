@@ -292,3 +292,111 @@ describe("opened outside a Cast device and with no relay", () => {
     await ctx.close();
   });
 });
+
+describe("the whole chain on the registered Cast receiver page (apps/web/public/receiver.html)", () => {
+  it("the Cast receiver page frames this TV receiver, which frames the launcher; the game gets the tier", async () => {
+    const { readFileSync } = await import("node:fs");
+    const RECEIVER_PAGE = readFileSync(
+      new URL("../../web/public/receiver.html", import.meta.url),
+      "utf8",
+    );
+    const ctx = await browser.newContext({
+      userAgent: GOOGLE_TV_UA,
+      viewport: { width: 1280, height: 720 },
+    });
+    await ctx.addInitScript(() =>
+      Object.defineProperty(Navigator.prototype, "deviceMemory", { get: () => 2 }),
+    );
+    await ctx.route(`${PROD_API}/**`, (r) => r.fulfill({ status: 202, body: "{}" }));
+    await ctx.route("https://api.ogs.test/**", (r) => r.fulfill({ status: 202, body: "{}" }));
+    await ctx.route("https://www.gstatic.com/cast/**", (r) =>
+      r.fulfill({ contentType: "text/javascript", body: "" }),
+    );
+    await ctx.route("https://rocket-crew.jonathanrmumm.workers.dev/**", (r) =>
+      r.fulfill({ contentType: "text/html", body: GAME_PAGE }),
+    );
+    // opengame.org serves the registered receiver page; ogs-tv.pages.dev is this Vite server.
+    await ctx.route("https://opengame.org/receiver.html*", (r) =>
+      r.fulfill({ contentType: "text/html", body: RECEIVER_PAGE }),
+    );
+    await ctx.route("https://ogs-tv.pages.dev/**", async (r) => {
+      const u = new URL(r.request().url());
+      const res = await ctx.request.fetch(`${BASE}${u.pathname}${u.search}`);
+      await r.fulfill({ response: res });
+    });
+    // CAF on the parent page: one phone, replies recorded in window.__out.
+    await ctx.addInitScript(() => {
+      if (location.host !== "opengame.org") return;
+      const listeners: Record<string, ((e: { senderId: string }) => void)[]> = {};
+      let custom: ((e: { data: unknown; senderId: string }) => void) | null = null;
+      window.__out = [];
+      const c = {
+        addCustomMessageListener: (_ns: string, h: typeof custom) => {
+          custom = h;
+        },
+        sendCustomMessage: (_ns: string, to: string | undefined, data: unknown) =>
+          window.__out?.push({ to, data }),
+        addEventListener: (t: string, h: (e: { senderId: string }) => void) => {
+          listeners[t] = [...(listeners[t] ?? []), h];
+        },
+        getSenders: () => [{}],
+        start: () => {},
+        stop: () => window.__out?.push({ stopped: true }),
+        canDisplayType: () => false,
+      };
+      Object.assign(window, {
+        cast: {
+          framework: {
+            CastReceiverContext: { getInstance: () => c },
+            CastReceiverOptions: class {},
+            system: {
+              EventType: {
+                SENDER_CONNECTED: "senderconnected",
+                SENDER_DISCONNECTED: "senderdisconnected",
+              },
+              MessageType: { JSON: "JSON" },
+            },
+          },
+        },
+        __phoneSend: (data: unknown) => custom?.({ data, senderId: "phone" }),
+      });
+    });
+    const page = await ctx.newPage();
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+    await page.goto("https://opengame.org/receiver.html");
+    // PR #55's LOAD_VIEW: the launcher URL and the phone's API.
+    await phoneSends(
+      page,
+      {
+        type: "LOAD_VIEW",
+        viewUrl: "https://ogs-tv.pages.dev/?fake=1",
+        apiUrl: "https://api.ogs.test",
+        attemptId: "c1",
+        sessionId: "s1",
+      },
+      true,
+    );
+    await expect
+      .poll(() => page.locator("#local-view").getAttribute("src"), { timeout: 10_000 })
+      .toBe("https://ogs-tv.pages.dev/receiver.html?host=parent&uhd=0");
+    await expect
+      .poll(() => !!page.frame({ url: /ogs-tv\.pages\.dev\/\?fake=1/ }), { timeout: 20_000 })
+      .toBe(true);
+    const launcherUrl = page.frame({ url: /ogs-tv\.pages\.dev\/\?fake=1/ })?.url();
+    expect(launcherUrl).toBe(`https://ogs-tv.pages.dev/?fake=1&tier=${EXPECTED_TIER}`);
+    await startRocketCrew(page);
+    await expect
+      .poll(() => gotStart(page), { timeout: 15_000 })
+      .toMatchObject({ type: "ogs:start", tier: EXPECTED_TIER });
+    // The phone's GET_STATE is answered by the TV receiver, through the parent's CAF.
+    await phoneSends(page, { type: "GET_STATE" }, true);
+    await expect
+      .poll(async () => (await out(page)).find((m) => m.data?.type === "STATE")?.data, {
+        timeout: 5000,
+      })
+      .toMatchObject({ tier: EXPECTED_TIER, loaded: true, deviceClass: "google-tv" });
+    expect((await out(page)).find((m) => m.data?.type === "STATE")?.to).toBe("phone");
+    await ctx.close();
+  }, 60_000);
+});

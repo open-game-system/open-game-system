@@ -34,10 +34,20 @@ const MAX_CAST_MS = 3 * 60 * 60_000;
 const LoadView = z.object({
   type: z.literal("LOAD_VIEW"),
   viewUrl: z.string().min(1),
+  /** The OGS API the phone uses (PR #55): where this receiver's log goes. */
+  apiUrl: z.unknown().optional(),
   attemptId: z.unknown().optional(),
   sessionId: z.unknown().optional(),
 });
 const Typed = z.object({ type: z.string() });
+
+/** An http(s) URL's origin, else null. */
+function apiOrigin(url: unknown): string | null {
+  const r = z.string().url().safeParse(url);
+  if (!r.success) return null;
+  const u = new URL(r.data);
+  return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null;
+}
 
 /**
  * The OGS Cast receiver, rendering locally (ADR 2026-10-25-cast-local-render): it measures the TV
@@ -116,7 +126,8 @@ export function createReceiver(deps: {
     if (viewUrl !== msg.viewUrl) return; // a newer view arrived while the tier was measured
     const v = receiverView(msg.viewUrl, deps.origin, d.choice.tier);
     if (!v) return;
-    if (v.api) log.setApi(v.api);
+    const api = apiOrigin(msg.apiUrl) ?? v.api;
+    if (api) log.setApi(api);
     log.event("load_view.received", {
       data: { view: v.host, launcher: v.launcher, tier: d.choice.tier },
     });

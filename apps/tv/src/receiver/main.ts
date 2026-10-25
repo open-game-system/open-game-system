@@ -1,5 +1,5 @@
 import { RenderTierSchema } from "@open-game-system/ogs-protocol";
-import { type CafNamespace, cafHost, type ReceiverHost, relayHost } from "./cast-host";
+import { type CafNamespace, cafHost, parentHost, type ReceiverHost, relayHost } from "./cast-host";
 import { createFrameMeter } from "./frame-stats";
 import { keepAwake } from "./keep-awake";
 import { measureTv } from "./probe";
@@ -31,12 +31,16 @@ const status = (text: string | null) => {
   if (text !== null) statusText.textContent = text;
 };
 
-const host: ReceiverHost | null =
-  q.get("signal") === "test"
-    ? relayHost(window)
-    : window.cast?.framework
-      ? cafHost(window.cast)
-      : null;
+/**
+ * Who speaks Cast for this page: the OGS Cast receiver page framing it (host=parent: it owns CAF),
+ * CAF itself (this page registered as the Cast app's URL), or a test relay (signal=test).
+ */
+function pickHost(): ReceiverHost | null {
+  if (q.get("signal") === "test") return relayHost(window);
+  if (q.get("host") === "parent" && window.parent !== window) return parentHost(window);
+  return window.cast?.framework ? cafHost(window.cast) : null;
+}
+const host = pickHost();
 
 if (!host || !(iframe instanceof HTMLIFrameElement)) {
   status("Cast to this TV from the OGS app");

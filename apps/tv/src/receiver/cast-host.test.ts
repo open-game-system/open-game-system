@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { type CafNamespace, cafHost, relayHost, VIEW_NAMESPACE } from "./cast-host";
+import { type CafNamespace, cafHost, parentHost, relayHost, VIEW_NAMESPACE } from "./cast-host";
 
 /** A stand-in for CAF's cast.framework: records what the host does with it. */
 function fakeCaf(opts: { uhd?: boolean } = {}) {
@@ -147,5 +147,86 @@ describe("the relay host (a desktop browser test: ?signal=test)", () => {
     host.broadcast({ type: "REQUEST_VIEW" });
     expect(out).toEqual([{ echo: { type: "GET_STATE" } }, { type: "REQUEST_VIEW" }]);
     expect(host.uhd()).toBeUndefined();
+  });
+});
+
+describe("the parent host (framed by the OGS Cast receiver page, which owns CAF)", () => {
+  function framed(uhd: string | null = null) {
+    const parent = {
+      posted: [] as { m: unknown; origin: string }[],
+      postMessage(m: unknown, origin: string) {
+        this.posted.push({ m, origin });
+      },
+    };
+    let listener: ((e: { data: unknown; origin: string; source: unknown }) => void) | null = null;
+    const win = {
+      parent,
+      location: {
+        ancestorOrigins: ["https://opengame.org"],
+        search: uhd ? `?host=parent&uhd=${uhd}` : "?host=parent",
+      },
+      addEventListener: (_t: "message", h: typeof listener) => {
+        listener = h;
+      },
+    };
+    const host = parentHost(win);
+    return {
+      host,
+      parent,
+      deliver: (data: unknown, origin = "https://opengame.org", source: unknown = parent) =>
+        listener?.({ data, origin, source }),
+    };
+  }
+
+  it("says ready to its parent on start, with one sender (the parent's phones)", () => {
+    const f = framed();
+    const senders: [string, number][] = [];
+    f.host.onSenders((s, n) => senders.push([s, n]));
+    f.host.start();
+    expect(f.parent.posted).toEqual([{ m: { ogsRx: "ready" }, origin: "https://opengame.org" }]);
+    expect(senders).toEqual([["connected", 1]]);
+  });
+
+  it("takes sender messages the parent relays, and replies to that sender through the parent", () => {
+    const f = framed();
+    f.host.onMessage((data, reply) => reply({ type: "STATE", got: data }));
+    f.host.start();
+    f.deliver({ ogsRx: "in", senderId: "phone-1", data: { type: "GET_STATE" } });
+    expect(f.parent.posted.at(-1)).toEqual({
+      m: { ogsRx: "out", to: "phone-1", data: { type: "STATE", got: { type: "GET_STATE" } } },
+      origin: "https://opengame.org",
+    });
+  });
+
+  it("ignores messages from anything but its parent, or in another shape", () => {
+    const f = framed();
+    const got: unknown[] = [];
+    f.host.onMessage((d) => got.push(d));
+    f.host.start();
+    f.deliver({ ogsRx: "in", senderId: "x", data: { type: "GET_STATE" } }, "https://evil.example");
+    f.deliver(
+      { ogsRx: "in", senderId: "x", data: { type: "GET_STATE" } },
+      "https://opengame.org",
+      {},
+    );
+    f.deliver({ type: "GET_STATE" });
+    expect(got).toEqual([]);
+  });
+
+  it("broadcasts and stops through the parent (the parent closes the Cast app)", () => {
+    const f = framed();
+    f.host.start();
+    f.host.broadcast({ type: "REQUEST_VIEW" });
+    f.host.stop();
+    expect(f.parent.posted.slice(1).map((p) => p.m)).toEqual([
+      { ogsRx: "out", to: null, data: { type: "REQUEST_VIEW" } },
+      { ogsRx: "stop" },
+    ]);
+  });
+
+  it("knows 4K from the parent's uhd= (CAF's canDisplayType is the parent's)", () => {
+    expect(framed("1").host.uhd()).toBe(true);
+    expect(framed("0").host.uhd()).toBe(false);
+    expect(framed().host.uhd()).toBeUndefined();
   });
 });

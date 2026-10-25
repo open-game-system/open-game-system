@@ -66,7 +66,7 @@ describe("TV receiver keeps the TV awake while it plays", {
   tags: ["receiver"],
   requires: ["browser"],
 }, () => {
-  test("takes a screen wake lock once a picture plays, not before (a phone's page plays none yet)", async ({
+  test("takes a screen wake lock once a picture plays, not before (a phone's page keeps the TV awake itself, in the TV receiver)", async ({
     browser,
   }) => {
     const rx = await openReceiver(browser);

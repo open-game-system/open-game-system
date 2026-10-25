@@ -152,6 +152,21 @@ describe("the local Cast receiver", () => {
     expect(r.statuses.at(-1)).toBeNull();
   });
 
+  it("logs to the API the phone names (apiUrl, PR #55's LOAD_VIEW) before the launcher's api=", async () => {
+    const r = setup();
+    r.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER, apiUrl: "http://192.168.1.4:8787/" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(r.log.setApi).toHaveBeenCalledWith("http://192.168.1.4:8787");
+    expect(r.log.setApi).not.toHaveBeenCalledWith("https://api.example");
+  });
+
+  it("an apiUrl that isn't an http(s) URL is ignored for the launcher's api=", async () => {
+    const r = setup();
+    r.send({ type: "LOAD_VIEW", viewUrl: LAUNCHER, apiUrl: "javascript:x" });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(r.log.setApi).toHaveBeenCalledWith("https://api.example");
+  });
+
   it("waits for tier detection before it frames anything", async () => {
     let resolve: (d: Detected) => void = () => {};
     const r = setup({ detect: new Promise((res) => (resolve = res)) });
