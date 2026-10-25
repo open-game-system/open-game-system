@@ -1,6 +1,6 @@
-// The TV stays awake while a stream plays (acceptance: docs/acceptance/2026-10-04-cast-receiver-e2e.feature,
+// The TV stays awake while a picture plays (acceptance: docs/acceptance/2026-10-04-cast-receiver-e2e.feature,
 // "Keep the TV awake"). Owner, 2026-10-10: Google TV's screensaver took over a few minutes into a
-// game. The stream is WebRTC in a plain <video>, which doesn't count as media playing, so the
+// game. A laptop's picture is WebRTC in a plain <video>, which doesn't count as media playing, so the
 // receiver holds a Screen Wake Lock while it plays (re-taken when the system drops it or the page
 // shows again), falls back to a tiny looping muted clip when there is no wake lock, lets both go
 // when the cast stops, and logs every step (receiver.keepawake, receiver.visibility).
@@ -8,7 +8,7 @@ import { test } from "@e2e-dev/web";
 import { describe, expect } from "e2e";
 import type { Page } from "playwright";
 import { z } from "zod";
-import { MIN, openReceiver, type Receiver, STREAM, until } from "./receiver-kit";
+import { API, laptopPlaying, MIN, openReceiver, type Receiver, until } from "./receiver-kit";
 
 const VIEW = "https://game.ogs.test/tv?room=ABCD";
 
@@ -56,23 +56,24 @@ const clip = (page: Page) =>
     };
   });
 
-async function playPhoneView(rx: Receiver) {
-  await rx.connect("phone");
-  await rx.deliver({ type: "LOAD_VIEW", viewUrl: VIEW, streamServerUrl: STREAM }, "phone");
-  await rx.nextFrame();
+/** A laptop's picture plays, with the laptop connected as a Cast sender. */
+async function playLaptop(rx: Receiver) {
+  await rx.connect("laptop");
+  await laptopPlaying(rx);
 }
 
 describe("TV receiver keeps the TV awake while it plays", {
   tags: ["receiver"],
   requires: ["browser"],
 }, () => {
-  test("takes a screen wake lock once the phone's stream plays, not before", async ({
+  test("takes a screen wake lock once a picture plays, not before (a phone's page plays none yet)", async ({
     browser,
   }) => {
     const rx = await openReceiver(browser);
+    await rx.deliver({ type: "LOAD_VIEW", viewUrl: VIEW, apiUrl: API }, "phone");
     await new Promise((r) => setTimeout(r, 300));
     expect((await wake(rx.page)).requests).toEqual([]);
-    await playPhoneView(rx);
+    await playLaptop(rx);
     await until(async () => (await wake(rx.page)).held === 1, "a wake lock held");
     expect((await wake(rx.page)).requests).toEqual(["screen"]);
     // A wake lock is enough: no keep-awake clip.
@@ -86,7 +87,7 @@ describe("TV receiver keeps the TV awake while it plays", {
     browser,
   }) => {
     const rx = await openReceiver(browser);
-    await playPhoneView(rx);
+    await playLaptop(rx);
     await until(async () => (await wake(rx.page)).held === 1, "a wake lock held");
     await rx.page.evaluate(() => window.__wakeLock.lose());
     await until(async () => (await wake(rx.page)).requests.length === 2, "a second request");
@@ -111,7 +112,7 @@ describe("TV receiver keeps the TV awake while it plays", {
     browser,
   }) => {
     const rx = await openReceiver(browser, { wakeLock: "missing" });
-    await playPhoneView(rx);
+    await playLaptop(rx);
     await until(async () => (await clip(rx.page))?.paused === false, "the clip playing");
     expect(await clip(rx.page)).toMatchObject({ muted: true, loop: true, playsInline: true });
     const t0 = (await clip(rx.page))?.time ?? 0;
@@ -127,7 +128,7 @@ describe("TV receiver keeps the TV awake while it plays", {
 
   test("a refused wake lock falls back to the clip too, and says why", async ({ browser }) => {
     const rx = await openReceiver(browser, { wakeLock: "reject" });
-    await playPhoneView(rx);
+    await playLaptop(rx);
     await until(async () => (await clip(rx.page))?.paused === false, "the clip playing");
     expect((await wake(rx.page)).requests).toEqual(["screen"]);
     const refused = await loggedEvent(rx, "receiver.keepawake", {
@@ -142,12 +143,13 @@ describe("TV receiver keeps the TV awake while it plays", {
   for (const wakeLock of ["grant", "reject"] as const) {
     test(`the cast ending lets go of everything (wake lock: ${wakeLock})`, async ({ browser }) => {
       const rx = await openReceiver(browser, { clock: true, wakeLock });
-      await playPhoneView(rx);
+      await playLaptop(rx);
       if (wakeLock === "grant")
         await until(async () => (await wake(rx.page)).held === 1, "a wake lock held");
       else await until(async () => (await clip(rx.page))?.paused === false, "the clip playing");
-      rx.stream.heartbeat = () => ({ status: 410, json: { ok: false, expired: true } });
-      await rx.page.clock.fastForward(MIN);
+      // No phone or laptop for 20 minutes ends the cast.
+      await rx.disconnect("laptop");
+      for (let i = 0; i < 21; i++) await rx.page.clock.fastForward(MIN);
       await until(async () => (await rx.stops()) > 0, "the cast to stop");
       await until(async () => (await wake(rx.page)).held === 0, "the wake lock released");
       if (wakeLock === "grant") expect((await wake(rx.page)).releasedByPage).toBe(1);
@@ -160,21 +162,14 @@ describe("TV receiver keeps the TV awake while it plays", {
     });
   }
 
-  test("a new page whose start fails lets go too, and nothing is taken again", async ({
+  test("a phone's page replacing the picture lets go too, and nothing is taken again", async ({
     browser,
   }) => {
     const rx = await openReceiver(browser);
-    await playPhoneView(rx);
+    await playLaptop(rx);
     await until(async () => (await wake(rx.page)).held === 1, "a wake lock held");
-    rx.stream.start = () => ({
-      status: 503,
-      json: { error: { code: "renderer_unavailable", message: "no GPU", status: 503 } },
-    });
-    await rx.deliver({ type: "LOAD_VIEW", viewUrl: `${VIEW}&game=2`, streamServerUrl: STREAM });
-    await until(
-      async () => (await rx.status()).text === "Unable to connect to game stream",
-      "the error",
-    );
+    await rx.deliver({ type: "LOAD_VIEW", viewUrl: VIEW, apiUrl: API }, "phone");
+    await until(async () => (await wake(rx.page)).held === 0, "the wake lock released");
     expect(await wake(rx.page)).toEqual({ requests: ["screen"], held: 0, releasedByPage: 1 });
     // Shown again with nothing playing: no lock.
     await rx.page.evaluate(() => window.__wakeLock.setVisibility("hidden"));

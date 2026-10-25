@@ -31,7 +31,11 @@ const config = {
   name: `opengame-api-pr-${prNumber}`,
   main,
   compatibility_date: compatDate,
-  compatibility_flags: ["nodejs_compat", "nodejs_compat_populate_process_env", "global_fetch_strictly_public"],
+  compatibility_flags: [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env",
+    "global_fetch_strictly_public",
+  ],
   account_id: accountId,
   d1_databases: [
     {
@@ -40,8 +44,8 @@ const config = {
       database_id: dbId,
     },
   ],
-  // No Cloudflare container (streaming renders only on Cloud Run); v3 deletes the old class from
-  // previews that still have it.
+  // No cloud renderer (ADR 2026-10-25); v3 deletes the old StreamContainer class from previews
+  // that still have it.
   durable_objects: {
     bindings: [
       {

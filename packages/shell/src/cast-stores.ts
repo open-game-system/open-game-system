@@ -43,11 +43,10 @@ function memoryStorage(): BrowserTvStorage {
 export function castGameStores(
   backend: CastBackend,
   opts: {
-    streamServerUrl: string;
     browserTvStorage?: BrowserTvStorage;
     /** The Apple TV / AirPlay TV (shell config `cast.airplay`): one more TV in the same list. */
     airplay?: (ctx: ShellContext) => AirplayCastBackend;
-  },
+  } = {},
 ) {
   return (ctx: ShellContext) => {
     const browserTvs = createScreenCastBackend({
@@ -81,7 +80,7 @@ export function castGameStores(
     });
     ctx.onStop(detach);
     tvs.startDiscovery();
-    startCastSync(cast, tvs.sessionManager, commands, opts.streamServerUrl);
+    startCastSync(cast, tvs.sessionManager, commands, ctx.config.apiBase);
     return { cast };
   };
 }

@@ -158,37 +158,11 @@ describe("http.request wide event", () => {
 
   it("a 5xx with no recorded error still says what failed, without ids in the message", async () => {
     const s = spies();
-    // /stream/ready answers 503 when nothing is configured.
-    const res = await request("/api/v1/stream/ready", {}, {});
+    // The JWKS route answers 503 without a game signing key.
+    const res = await request("/.well-known/jwks.json", {}, {});
     expect(res.status).toBe(503);
     const line = ErrorLine.parse(s.error.mock.calls[0][0]);
-    expect(line.error).toEqual({ type: "HttpError", message: "503 GET /api/v1/stream/ready" });
-  });
-
-  it("a stream route's trace id and steps ride on the request's line (not a line per step)", async () => {
-    const s = spies();
-    const res = await request(
-      "/api/v1/stream/subscribe",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-stream-trace-id": "tr-9" },
-        body: JSON.stringify({ publisherSessionId: "pub-1" }),
-      },
-      {},
-    );
-    expect(res.status).toBe(500);
-    expect(s.log).not.toHaveBeenCalled();
-    expect(s.error).toHaveBeenCalledTimes(1);
-    const line = ErrorLine.passthrough().parse(s.error.mock.calls[0][0]);
-    expect(line).toMatchObject({
-      route: "/api/v1/stream/subscribe",
-      trace_id: "tr-9",
-      stream_steps: [{ step: "subscribe_error" }],
-      error: {
-        type: "NotConfigured",
-        message: "CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_SECRET must be configured",
-      },
-    });
+    expect(line.error).toEqual({ type: "HttpError", message: "503 GET /.well-known/jwks.json" });
   });
 
   it("4xx answers are the client's problem: info, not error", async () => {

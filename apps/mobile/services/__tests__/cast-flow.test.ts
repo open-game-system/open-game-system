@@ -26,7 +26,7 @@ function setup() {
   });
   const castStore = createCastStore();
   const commands = castCommands();
-  startCastSync(castStore, backend.sessionManager, commands, "https://stream.test");
+  startCastSync(castStore, backend.sessionManager, commands, "https://api.test");
   const config = readConfig({});
   const api = { launcherToken: jest.fn(async () => "launch-1") };
   const sent: ClientMessage[] = [];

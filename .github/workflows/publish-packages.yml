@@ -32,10 +32,6 @@ jobs:
           - notification-kit-core
           - notification-kit-react
           - notification-kit-server
-          - stream-kit-types
-          - stream-kit-web
-          - stream-kit-react
-          - stream-kit-testing
           - cli
     steps:
       - uses: actions/checkout@v4
@@ -156,10 +152,6 @@ jobs:
           - notification-kit-core
           - notification-kit-react
           - notification-kit-server
-          - stream-kit-types
-          - stream-kit-web
-          - stream-kit-react
-          - stream-kit-testing
           - cli
     steps:
       - uses: actions/checkout@v4

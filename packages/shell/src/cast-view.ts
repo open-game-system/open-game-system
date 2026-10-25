@@ -2,28 +2,12 @@ import { z } from "zod";
 import { type CastTrace, noTrace } from "./cast-trace";
 
 /**
- * Tells the OGS cast receiver which page to stream to the TV.
+ * Tells the OGS cast receiver which page to show on the TV.
  *
- * The receiver (apps/web/public/receiver.html) listens on this namespace; when it gets LOAD_VIEW it
- * asks the stream server to render `viewUrl` and plays the result.
+ * The receiver (apps/web/public/receiver.html) listens on this namespace for LOAD_VIEW: `viewUrl`
+ * is the page, `apiUrl` the OGS API its logs go to. TVs render locally (ADR 2026-10-25).
  */
 export const CAST_VIEW_NAMESPACE = "urn:x-cast:org.opengame.view";
-
-/** The production OGS API's stream route (the receiver's default when a sender names none). */
-export const OGS_STREAM_SERVER_URL = "https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream";
-
-/**
- * The stream server the app names in LOAD_VIEW: EXPO_PUBLIC_OGS_STREAM when set, else the stream
- * route of the API the app was built against (EXPO_PUBLIC_OGS_API), so a production build casts
- * through the production API.
- */
-export function streamServerUrl(
-  env: { EXPO_PUBLIC_OGS_STREAM?: string | undefined },
-  apiBase: string,
-): string {
-  const url = env.EXPO_PUBLIC_OGS_STREAM || `${apiBase}/api/v1/stream`;
-  return url.replace(/\/+$/, "");
-}
 
 type ChannelMessage = Record<string, unknown> | string;
 
@@ -59,7 +43,7 @@ function isViewRequest(message: ChannelMessage): boolean {
 export async function connectViewChannel(
   session: ViewChannelSession,
   getViewUrl: () => string | null,
-  streamServerUrl: string,
+  apiUrl: string,
   trace: CastTrace = noTrace,
   context: () => { sessionId?: string } = () => ({}),
 ): Promise<{ send(reason?: string): Promise<void> } | null> {
@@ -74,7 +58,7 @@ export async function connectViewChannel(
       // The view's host only: its query carries the launcher token.
       const data = { host: hostOf(viewUrl), reason };
       const t0 = trace.now();
-      await channel.sendMessage(loadView(viewUrl, streamServerUrl, trace, context)).then(
+      await channel.sendMessage(loadView(viewUrl, apiUrl, trace, context)).then(
         () => trace.event("load_view.sent", { durationMs: trace.now() - t0, data }),
         (err: unknown) => {
           trace.event("load_view.failed", { error: err, durationMs: trace.now() - t0, data });
@@ -102,11 +86,11 @@ export async function connectViewChannel(
  */
 function loadView(
   viewUrl: string,
-  streamServerUrl: string,
+  apiUrl: string,
   trace: CastTrace,
   context: () => { sessionId?: string },
 ): Record<string, string> {
-  const msg: Record<string, string> = { type: "LOAD_VIEW", viewUrl, streamServerUrl };
+  const msg: Record<string, string> = { type: "LOAD_VIEW", viewUrl, apiUrl };
   const attemptId = trace.current();
   const { sessionId } = context();
   if (attemptId) msg.attemptId = attemptId;

@@ -26,7 +26,6 @@ import push from "./routes/push";
 import pushSettings from "./routes/push-settings";
 import screens from "./routes/screens";
 import sessions from "./routes/sessions";
-import stream from "./routes/stream";
 import wellKnown from "./routes/well-known";
 import type { Env } from "./types";
 
@@ -101,9 +100,6 @@ app.route("/api/v1/app-release", appRelease);
 
 // The developer tool (ogs init): where the docs and the kits are (public)
 app.route("/api/v1/dev", dev);
-
-// Stream routes (no API key required - called by web games directly)
-app.route("/api/v1/stream", stream);
 
 export default app;
 

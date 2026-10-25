@@ -31,7 +31,7 @@ describe("castGameStores and the picker", () => {
       showCastDialog: () => {},
     };
     const { ctx } = fakeContext(async () => new Response(null, { status: 204 }));
-    castGameStores(backend, { streamServerUrl: "https://stream.test" })(ctx);
+    castGameStores(backend)(ctx);
     expect(ctx.castPicker.getSnapshot().devices).toEqual([TV]);
   });
 });
