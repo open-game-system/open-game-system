@@ -94,10 +94,17 @@ filter `kind = client_event`, then:
    `user-message`) carries the attempt that failed.
 3. **TV**: `phoneAttemptId = <id>` (or `sessionId = <couch session>`, which the phone's lines carry
    too): `receiver.load_view.received` once per distinct view, `receiver.load_view.ignored`
-   (`why: duplicate`) for repeats, `receiver.view.unsupported`, `receiver.keepawake` /
-   `receiver.visibility` (`streaming`). The receiver's own run id is its `attemptId`; from it,
-   `receiver.launched` (`version`) and `receiver.sender` (`state`, `count`) show the lines before
-   any LOAD_VIEW.
+   (`why: duplicate`) for repeats, `receiver.view.local` (the phone's view handed to the TV
+   receiver), `receiver.keepawake` / `receiver.visibility` (`streaming`). The receiver's own run id
+   is its `attemptId`; from it, `receiver.launched` (`version`) and `receiver.sender` (`state`,
+   `count`) show the lines before any LOAD_VIEW.
+4. **TV receiver (local render)**: the same `phoneAttemptId` / `sessionId`, a second `attemptId`
+   (its own run, `platform`: `google-tv` | `chromecast` | `smart-display` | `browser`, version
+   `receiver-local-*`): `receiver.tier` (`tier`, `reasons`, `gpu`, `probeP50Ms`, `memoryGb`,
+   `durationMs` = the probe), `receiver.view.loaded` (`durationMs` from LOAD_VIEW, `sinceLaunchMs`),
+   `receiver.fps` each minute (`fps`, `p50Ms`, `p90Ms`, `worstMs`, `longFrames`, `tier`),
+   `receiver.view.timeout`, `receiver.error` (`where`: `receiver` | `receiver.promise` | `launcher`),
+   `receiver.cast.ended` (`why`). See docs/agents/client-log.md.
 
 Older app builds send no ids in LOAD_VIEW: join those by `sessionId` or time.
 
@@ -111,7 +118,7 @@ Older app builds send no ids in LOAD_VIEW: join those by `sessionId` or time.
 - `errorFields` mapping: **none needed.** Server lines carry `error.type` / `error.message`.
   Client-event lines carry `error` as a string (the message) and `errorType` (the client's, else the
   event name for older builds and the receiver), both built-in sre-agent paths, so a client line is
-  grouped as `TypeError: x is undefined` or `receiver.view.unsupported`.
+  grouped as `TypeError: x is undefined` or `receiver.view.timeout`.
 - Notification: at autonomy 1+ sre-agent emails Jon through the shared `sre-notify` Worker.
 - Needs (owner): repo secret `SRE_CLOUDFLARE_API_TOKEN` (Account → Workers Observability: Edit) and
   repo variable `CLOUDFLARE_ACCOUNT_ID`. Kill switch: `gh variable set SRE_AGENT_ENABLED --body false`.

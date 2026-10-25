@@ -1,8 +1,9 @@
 # The TV receiver (apps/web/public/receiver.html), proven by e2e/tests/receiver-*.e2e.ts.
 # Supersedes nothing; complements 2026-03-14-cast-receiver.feature with the current
 # LOAD_VIEW / PEER_OFFER protocol and the stops that end a cast left on in an empty room.
-# 2026-10-25: no cloud renderer (ADR 2026-10-25-local-rendering-only). Rendering a phone's page on
-# the Chromecast itself is being built separately; until then LOAD_VIEW shows the not-yet state.
+# 2026-10-25: no cloud renderer (ADR 2026-10-25-local-rendering-only). A phone's page is rendered on
+# the Chromecast itself, by the OGS TV receiver this page frames (ADR 2026-10-25-cast-local-render,
+# 2026-10-25-cast-local-render.feature); it replaced the not-yet state of PR #55.
 
 Feature: Cast receiver
 
@@ -16,17 +17,22 @@ Feature: Cast receiver
     And a sender that connects is asked at once
     And once LOAD_VIEW arrives it stops asking
 
-  Scenario: A phone's view is not rendered yet, and no renderer is asked
+  Scenario: A phone's view is rendered on the TV, and no renderer is asked
     When a phone sends LOAD_VIEW with a viewUrl and an apiUrl
-    Then the TV shows "This TV can't show games from the OGS app yet" without a spinner
-    And tells the sender that status
+    Then the page frames the OGS TV receiver "https://ogs-tv.pages.dev/receiver.html?host=parent" full screen
+    And relays that LOAD_VIEW to it, as sent, with the sender's id
+    And a repeat of the same view is not relayed again, a new view goes to the same frame
+    And while it shows, GET_STATE is answered by the TV receiver to the sender that asked
+    And the TV receiver asking to stop ends the cast and takes its frame down
     And the page makes no request to any renderer or stream server
     And an older app's LOAD_VIEW (streamServerUrl, no apiUrl) is treated the same way
 
-  Scenario: A phone's view replaces a laptop's picture
+  Scenario: A phone's view replaces a laptop's picture, and a laptop's offer replaces a phone's view
     Given a laptop's picture is playing
     When a phone sends LOAD_VIEW
-    Then the picture goes and the TV shows the not-yet state
+    Then the picture goes and the TV receiver is framed
+    When a laptop then sends PEER_OFFER
+    Then the TV receiver's frame goes
 
   # Owner, 2026-10-05: the old default view (Trivia Jam) opened on a real TV when the phone was slow.
   Scenario: No default view: the TV only shows what a sender asks for

@@ -40,7 +40,7 @@ Feature: Cast logs from the phone and the TV
     And when the app goes to the background it flushes, and keeps what it could not send for the next launch
 
   Scenario: The TV receiver logs without credentials
-    When the receiver gets LOAD_VIEW, can't show the view yet (receiver.view.unsupported), or ends the cast
+    When the receiver gets LOAD_VIEW, hands it to the TV receiver that renders it (receiver.view.local), or ends the cast
     Or it takes, loses or lets go of what keeps the TV awake (receiver.keepawake), or the page hides, shows or goes (receiver.visibility)
     Then it POSTs those events without a token to the API LOAD_VIEW names (apiUrl, else production; /api/v1/client-events)
     And the API logs them as source "receiver", authenticated false

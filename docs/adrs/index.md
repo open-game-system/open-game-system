@@ -24,3 +24,4 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-10-18 | [The ogs CLI is the developer tool, backed by a public developer API](2026-10-18-ogs-developer-api.md) | Accepted |
 | 2026-10-23 | [An Apple TV is a cast device; the phone renders the TV page on Screen Mirroring's external display](2026-10-23-airplay-display.md) | Accepted |
 | 2026-10-25 | [TVs render locally only; the cloud GPU renderer is removed](2026-10-25-local-rendering-only.md) | Accepted (supersedes 2026-10-06 streaming, Stream mode of 2026-10-04 TV platforms) |
+| 2026-10-25 | [A Chromecast renders the launcher itself, at a render tier it measures](2026-10-25-cast-local-render.md) | Accepted (draft PR) |
