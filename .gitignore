@@ -37,3 +37,6 @@ test-results/
 **/reports/mutation/
 **/reports/stryker-incremental.json
 .stryker-tmp-*/
+
+# Gameplay / receiver videos (large): kept out of git
+recordings/
