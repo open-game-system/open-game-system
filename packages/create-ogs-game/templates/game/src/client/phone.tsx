@@ -129,7 +129,9 @@ function Lobby({ view, host, boot }: { view: PublicView; host: boolean; boot: Bo
   return (
     <section className="lobby">
       <h1>{GAME.name}</h1>
-      {view.phase === "over" && <p className="lead">{view.winners.join(" & ")} wins!</p>}
+      {view.phase === "over" && (
+        <p className="lead">{view.winners.length > 0 ? `${view.winners.join(" & ")} wins!` : "Nobody got one. Again?"}</p>
+      )}
       <ul className="players">
         {view.players.map((p) => (
           <li key={p.seat}>

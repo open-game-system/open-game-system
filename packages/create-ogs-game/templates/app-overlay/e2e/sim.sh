@@ -36,7 +36,7 @@ if [ "${SKIP_BUILD:-}" != "1" ]; then
   workspace="$(ls -d ios/*.xcworkspace 2>/dev/null | head -1 || true)"
   [ -n "$workspace" ] || { echo "prebuild made no Xcode workspace: see $out/prebuild.log" >&2; exit 1; }; scheme="$(basename "$workspace" .xcworkspace)"
   xcodebuild -workspace "$workspace" -scheme "$scheme" -configuration Release -sdk iphonesimulator \
-    -destination "id=$udid" -derivedDataPath ios/build CODE_SIGNING_ALLOWED=NO build >"$out/xcodebuild.log" 2>&1
+    -destination "id=$udid" -derivedDataPath ios/build ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build >"$out/xcodebuild.log" 2>&1
   step "xcodebuild (Release)"
 fi
 bundle="$(ls -d ios/build/Build/Products/Release-iphonesimulator/*.app | head -1)"
@@ -57,4 +57,6 @@ wait $maestro_pid
 step "round started (Maestro)"
 sleep 1
 xcrun simctl io "$udid" screenshot --display=external "$out/08-tv-question.png" >/dev/null 2>&1
-echo "Passed. Screenshots and timings in $out"
+echo "The phone walk passed. LOOK at the TV screenshots (04, 06, 08) before calling the TV done:"
+echo "the native idle card (\"Pick a game on your phone…\") means the TV page never loaded."
+echo "Screenshots and timings in $out"

@@ -67,7 +67,7 @@ function TvApp({ boot }: { boot: Boot }) {
 
 function titleOf(view: PublicView): string {
   if (view.phase === "lobby") return "In the lobby";
-  if (view.phase === "over") return `Won by ${view.winners.join(" & ")}`;
+  if (view.phase === "over") return view.winners.length > 0 ? `Won by ${view.winners.join(" & ")}` : "Game over";
   return `Round ${view.round + 1} of ${view.rounds}`;
 }
 

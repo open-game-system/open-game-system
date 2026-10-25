@@ -70,9 +70,9 @@ export function scorePick(round: Round, pick: Color | null): number {
   return pick === round.answer ? 1 : 0;
 }
 
-/** The names on the top score (ties share the win). */
+/** The names on the top score (ties share the win); nobody wins with no points. */
 export function winners(players: { name: string; score: number }[]): string[] {
-  if (players.length === 0) return [];
-  const top = Math.max(...players.map((p) => p.score));
+  const top = Math.max(0, ...players.map((p) => p.score));
+  if (top === 0) return [];
   return players.filter((p) => p.score === top).map((p) => p.name);
 }

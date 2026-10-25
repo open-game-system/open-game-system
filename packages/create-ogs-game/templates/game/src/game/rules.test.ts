@@ -65,7 +65,8 @@ describe("winners", () => {
     ];
     expect(winners(players)).toEqual(["Bo", "Cy"]);
   });
-  it("is nobody without players", () => {
+  it("is nobody without players, or when nobody scored", () => {
     expect(winners([])).toEqual([]);
+    expect(winners([{ name: "Ana", score: 0 }])).toEqual([]);
   });
 });

@@ -57,6 +57,14 @@ a Mac with Xcode, CocoaPods and [Maestro](https://maestro.mobile.dev) for the si
 | **Chromecast / Google TV** | The OGS Cast receiver loads the OGS TV launcher, which frames your TV page | The Chromecast itself (being built: OGS `feat/cast-local-render`) | Check before you rely on it; there is no cloud rendering |
 | **Browser TV** | Any browser (a laptop on the TV, a smart TV browser) opens `ogs-tv.pages.dev` and shows a code; the picker's "Use a browser TV" pairs it | That browser | Works |
 
+**Known gap (2026-10-25):** in a game's own app the TV shows the launcher with `chrome=none`, which
+frames the game's **catalogue** `tvUrl` (or the couch session's current game). The shell does not
+yet pass on the TV page the phone declares (`useCastViewUrl`), so a room game's TV (`/tv/CODE`)
+does not appear on the AirPlay display until (a) the shell forwards the declared view to the couch
+session (`game.start` + `game.view`, as the OGS app does) and (b) the game is in the OGS catalogue.
+Until then the simulator walk shows the native idle card on the TV; open the TV page from the
+phone's lobby link in a browser TV to play.
+
 In every tier your TV page runs inside the OGS TV launcher (`chrome=none`: no OGS chrome in your
 own app), which sends `ogs:start` with who is on the couch and `ogs:suspend` / `ogs:resume` when it
 parks the game. The page goes silent when parked (`src/client/audio.ts`, `onOgsPause`).

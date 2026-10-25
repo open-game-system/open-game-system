@@ -1,0 +1,7 @@
+simulator booted               41s (total 41s)
+expo prebuild                  80s (total 121s)
+xcodebuild (Release)          181s (total 302s)
+installed                       4s (total 306s)
+external display on             4s (total 310s)
+on the TV (Maestro)            32s (total 342s)
+round started (Maestro)        21s (total 363s)

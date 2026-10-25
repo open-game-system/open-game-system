@@ -120,6 +120,9 @@ const EasSchema = z.object({ build: z.record(z.record(z.unknown())) });
  * which deploy each EAS profile opens (APP_ENV: app.config.ts reads ../deploys.json).
  */
 async function finishApp(appDir: string) {
+  // The simulator walk's screenshots and logs.
+  const ignore = join(appDir, ".gitignore");
+  await writeFile(ignore, `${(await readFile(ignore, "utf8")).trimEnd()}\n\n# e2e/sim.sh output\ne2e/out/\n`);
   await editJson(join(appDir, "package.json"), (raw) => {
     const pkg = AppPackageSchema.parse(raw);
     return merged(raw, {

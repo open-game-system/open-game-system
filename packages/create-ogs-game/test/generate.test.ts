@@ -125,6 +125,10 @@ describe("generateGame", () => {
       expect(read(doc)).not.toContain("undeployed.invalid");
   });
 
+  it("ignores the simulator walk's output", () => {
+    expect(read("app/.gitignore")).toContain("e2e/out/");
+  });
+
   it("ships the simulator walk executable, and the placeholder art's hashes for the pre-submit check", () => {
     expect(statSync(join(target, "app/e2e/sim.sh")).mode & 0o111).not.toBe(0);
     expect(statSync(join(target, "app/e2e/external-display.sh")).mode & 0o111).not.toBe(0);
