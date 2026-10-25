@@ -84,6 +84,16 @@ final class ExternalDisplayControllerTests: XCTestCase {
     c.stopObserving()
   }
 
+  /// The Simulator's external display (and a real receiver) hands the app a 720×480 scene; when the
+  /// controller picks 1080p, the screen's bounds follow at once but the scene's coordinate space can
+  /// stay 720×480: the TV window must take the screen's size (Kite Count proof, 2026-10-25).
+  func testAnExternalDisplaySceneFillsItsScreenAfterAModeChange() {
+    let scene = CGRect(x: 0, y: 0, width: 720, height: 480)
+    let screen = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+    XCTAssertEqual(ExternalHost.sceneBounds(scene: scene, screen: screen), screen)
+    XCTAssertEqual(ExternalHost.sceneBounds(scene: scene, screen: .zero), scene, "no screen size yet: the scene's")
+  }
+
   func testRefreshResyncsTheTvWindowWithTheSameDisplay() {
     let tv = FakeScreen(bounds: CGRect(x: 0, y: 0, width: 720, height: 480))
     let c = ExternalDisplayController(center: NotificationCenter())

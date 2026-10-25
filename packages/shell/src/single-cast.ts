@@ -8,6 +8,7 @@ import {
   type NativeCastEvents,
   type NativeCastState,
 } from "./cast-store";
+import { couchSocketUrl, createCouchLink, type SocketLike } from "./couch-link";
 import type { ShellIdentity } from "./shell-identity";
 
 /**
@@ -15,8 +16,11 @@ import type { ShellIdentity } from "./shell-identity";
  * `chrome=none&app=<appId>`, so the TV shows the game's manifest `tvUrl` full screen. Before the
  * game's cast button opens the picker or starts a session, the shell gets a launcher token
  * (POST /api/v1/sessions, as the OGS app's TV tab does) and sets the view. The game's own
- * SET_VIEW_URL is not used: the launcher shows the manifest's `tvUrl`. Casting is always available:
- * the shell's picker offers a browser TV when no Chromecast is found.
+ * SET_VIEW_URL never replaces the launcher: with `openCouch`, it goes to the couch session as
+ * game.start + game.view (as the OGS app's game-cast-route does), so the launcher frames that page
+ * (a room game's /tv/CODE) and the game needs no catalogue `tvUrl`; without it, the launcher shows
+ * the manifest's `tvUrl`. Casting is always available: the shell's picker offers a browser TV when
+ * no Chromecast is found.
  */
 const SessionCreatedSchema = z.object({ sessionId: z.string().min(1), token: z.string().min(1) });
 
@@ -32,7 +36,14 @@ export interface SingleGameCastOptions {
   tvName?: string;
   /** The shell's own TV picker (Chromecasts + browser TV); default: Google Cast's dialog. */
   showPicker?: () => void;
+  /**
+   * Opens a WebSocket (React Native's global): the page's declared TV view then goes to the couch
+   * session. Left out, the page's view is not forwarded.
+   */
+  openCouch?: (url: string) => SocketLike;
 }
+
+const isAbsoluteUrl = (url: string) => /^https?:\/\/[^/]/.test(url);
 
 export function createSingleGameCastStore(
   opts: SingleGameCastOptions,
@@ -43,6 +54,26 @@ export function createSingleGameCastStore(
     ...(opts.showPicker ? { showPicker: opts.showPicker } : {}),
   });
   let preparing: Promise<void> | null = null;
+  /** The TV page the game's phone page declared last (cast-kit useCastViewUrl). */
+  let declared: string | null = null;
+  let couch: ReturnType<typeof createCouchLink> | null = null;
+  const say = () =>
+    declared === null
+      ? []
+      : [
+          { type: "game.start" as const, appId: opts.appId, mode: "new" as const },
+          { type: "game.view" as const, appId: opts.appId, url: declared },
+        ];
+
+  function linkCouch(deviceToken: string, sessionId: string) {
+    if (!opts.openCouch) return;
+    couch?.close();
+    couch = createCouchLink({
+      url: couchSocketUrl(opts.apiBase, deviceToken, sessionId),
+      createSocket: opts.openCouch,
+      say,
+    });
+  }
 
   async function makeView(): Promise<void> {
     const identity = opts.getIdentity();
@@ -56,6 +87,7 @@ export function createSingleGameCastStore(
       opts.apiBase,
     )}&token=${encodeURIComponent(created.token)}`;
     inner.dispatch({ type: "SET_VIEW_URL", url: castLauncherUrl(launcher, opts.appId) });
+    linkCouch(identity.deviceToken, created.sessionId);
   }
 
   /** The launcher view, once (a failed attempt is tried again on the next cast). */
@@ -75,7 +107,12 @@ export function createSingleGameCastStore(
     reset: () => inner.reset(),
     on: (type, listener) => inner.on(type, listener),
     dispatch(event) {
-      if (event.type === "SET_VIEW_URL") return;
+      if (event.type === "SET_VIEW_URL") {
+        if (!isAbsoluteUrl(event.url)) return;
+        declared = event.url;
+        couch?.announce();
+        return;
+      }
       // The shell's picker opens at once; the launcher is ready before a TV is picked (START_CASTING waits).
       if (event.type === "SHOW_CAST_PICKER" && opts.showPicker) {
         void prepare();

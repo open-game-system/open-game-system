@@ -1,6 +1,7 @@
 import type { AirplayCastBackend } from "./airplay-cast";
 import type { CastBackend } from "./cast-backend";
 import { castCommands, startCastSync } from "./cast-sync";
+import type { SocketLike } from "./couch-link";
 import { combineCastBackends, createScreenCastBackend } from "./screen-cast";
 import { createShellScreensApi } from "./screens-api";
 import type { ShellContext } from "./shell-runtime";
@@ -47,6 +48,8 @@ export function castGameStores(
     browserTvStorage?: BrowserTvStorage;
     /** The Apple TV / AirPlay TV (shell config `cast.airplay`): one more TV in the same list. */
     airplay?: (ctx: ShellContext) => AirplayCastBackend;
+    /** A WebSocket opener: the page's declared TV page then goes to the couch session (single-cast.ts). */
+    openCouch?: (url: string) => SocketLike;
   },
 ) {
   return (ctx: ShellContext) => {
@@ -69,6 +72,7 @@ export function castGameStores(
       getIdentity: ctx.getIdentity,
       commands,
       showPicker: openPicker,
+      ...(opts.openCouch ? { openCouch: opts.openCouch } : {}),
     });
     tvs.subscribeDevices((devices) => cast.dispatch({ type: "DEVICES_UPDATED", devices }));
     const detach = ctx.castPicker.attach({
