@@ -1,0 +1,66 @@
+/* One stylesheet for both pages. The TV is laid out for 1920×1080 and scales with the viewport. */
+:root {
+  --brand: __OGS_BRAND_COLOR__;
+  --ink: #fdfbf6;
+  --muted: rgba(253, 251, 246, 0.72);
+  --panel: rgba(10, 18, 40, 0.35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  background: linear-gradient(180deg, #2b5fa8 0%, #6fa8dc 62%, #f3d9a4 100%);
+}
+button { font: inherit; }
+
+/* ---------- TV ---------- */
+.tv-body { overflow: hidden; }
+.tv { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto; font-size: 2.2vh; }
+.tv-top { display: flex; justify-content: space-between; align-items: baseline; padding: 3vh 5vw 0; }
+.tv-top h1 { margin: 0; font-size: 5vh; letter-spacing: 0.02em; }
+.round { margin: 0; font-size: 3vh; color: var(--muted); }
+.tv-center { grid-row: 2; display: grid; place-content: center; text-align: center; gap: 2vh; }
+.lead { font-size: 5vh; margin: 0; font-weight: 700; }
+.hint { font-size: 2.8vh; color: var(--muted); margin: 0; }
+.join { font-size: 3vh; margin: 0; }
+.clock { font-size: 18vh; margin: 0; font-weight: 800; }
+.kites { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bars { display: flex; gap: 4vw; align-items: flex-end; height: 50vh; }
+.bar { width: 10vw; height: 100%; display: grid; grid-template-rows: 1fr auto auto; justify-items: center; opacity: 0.55; }
+.bar.win { opacity: 1; transform: scale(1.06); }
+.bar .fill { align-self: end; width: 100%; border-radius: 1.2vh 1.2vh 0 0; transition: height 600ms cubic-bezier(.2,.9,.3,1.2); }
+.bar .count { font-size: 5vh; font-weight: 800; }
+.bar .label { font-size: 2.8vh; }
+/* Scores sit along the bottom edge, inside the TV's safe area, never over the sky. */
+.scores { grid-row: 3; align-items: center; display: flex; gap: 1.5vw; justify-content: center; padding: 0 5vw 4vh; flex-wrap: wrap; }
+.chip { background: var(--panel); padding: 1vh 1.6vw; border-radius: 99px; font-size: 2.6vh; }
+.chip.answered { outline: 0.35vh solid var(--ink); }
+.chip.right { background: #2f9e44; }
+
+/* ---------- Phone ---------- */
+.phone-body { min-height: 100dvh; }
+.phone {
+  min-height: 100dvh; display: grid; align-content: center; gap: 20px;
+  padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  text-align: center; font-size: 18px;
+}
+.phone h1 { margin: 0; font-size: 34px; }
+.phone .lead { font-size: 22px; }
+.phone .hint { font-size: 15px; }
+.big-note { font-size: 30px; font-weight: 800; margin: 0; }
+.name-form, .lobby, .pick, .result { display: grid; gap: 16px; }
+.name-form input { font: inherit; font-size: 22px; padding: 14px; border-radius: 14px; border: 0; text-align: center; background: #fdfbf6; color: #13203b; }
+.primary, .secondary { min-height: 60px; border-radius: 18px; border: 0; font-size: 22px; font-weight: 700; }
+.primary { background: var(--brand); color: var(--ink); }
+.secondary { background: rgba(255,255,255,0.18); color: var(--ink); }
+.players { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.players li { background: var(--panel); border-radius: 99px; padding: 8px 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+/* Explicit sizes, not aspect-ratio: iPadOS 15 Safari stretches aspect-ratio boxes. */
+.swatch { height: 120px; border-radius: 22px; border: 0; color: #13203b; font-size: 22px; font-weight: 800; }
+.swatch.chosen { outline: 6px solid var(--ink); }
+.swatch:disabled:not(.chosen) { opacity: 0.35; }
+.left { display: inline-block; min-width: 2ch; font-weight: 800; }
+.cast { display: grid; gap: 8px; }

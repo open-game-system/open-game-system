@@ -1,0 +1,12 @@
+# The host starts the game (run after show-on-tv.yaml): the phone says to watch the TV.
+appId: __OGS_BUNDLE_ID__
+---
+- tapOn: "Start"
+- extendedWaitUntil:
+    visible: "Watch the TV!"
+    timeout: 15000
+- takeScreenshot: e2e/out/05-phone-watch
+- extendedWaitUntil:
+    visible: "Which color had the most?.*"
+    timeout: 15000
+- takeScreenshot: e2e/out/07-phone-pick

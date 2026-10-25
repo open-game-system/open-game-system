@@ -7,6 +7,13 @@
   "bin": {
     "create-ogs-app": "dist/bin.mjs"
   },
+  "exports": {
+    "./lib": {
+      "types": "./src/lib.ts",
+      "default": "./dist/lib.mjs"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist",
     "template"

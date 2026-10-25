@@ -1,0 +1,25 @@
+{
+  // One Worker serves the TV page, the phone page, the rooms (one Durable Object each) and /events.
+  // `pnpm run deploy:preview` deploys the `preview` env (its own Worker and rooms); `pnpm run deploy`
+  // the production one. Both write their URL to deploys.json, which the app reads (app/app.config.ts).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "__OGS_APP_ID__",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "build": { "command": "pnpm build:client", "watch_dir": "src" },
+  "assets": { "directory": "public", "binding": "ASSETS", "run_worker_first": true },
+  "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "Room" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  // The keys that sign OGS game tokens (a player's OGS profile names their seat).
+  "vars": { "OGS_JWKS_URL": "https://opengame-api.jonathanrmumm.workers.dev/.well-known/jwks.json" },
+  "observability": { "enabled": true },
+  "env": {
+    "preview": {
+      "name": "__OGS_APP_ID__-preview",
+      "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "Room" }] },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+      "vars": { "OGS_JWKS_URL": "https://opengame-api.jonathanrmumm.workers.dev/.well-known/jwks.json" },
+      "observability": { "enabled": true }
+    }
+  }
+}

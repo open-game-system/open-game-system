@@ -1,0 +1,29 @@
+# The whole loop on one phone, with the Simulator's external display on (it stands in for an Apple
+# TV with Screen Mirroring): name → lobby → Show on TV → Apple TV / AirPlay → Start. e2e/sim.sh
+# screenshots the TV (the external display) after it.
+appId: __OGS_BUNDLE_ID__
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Your name"
+    timeout: 60000
+- tapOn: "Your name"
+- inputText: "Ana"
+- tapOn: "Join"
+- extendedWaitUntil:
+    visible: "Show on TV"
+    timeout: 20000
+- takeScreenshot: e2e/out/01-phone-lobby
+- tapOn: "Show on TV"
+- extendedWaitUntil:
+    visible:
+      id: "castPickerDevice-airplay"
+    timeout: 20000
+- takeScreenshot: e2e/out/02-tv-picker
+- tapOn:
+    id: "castPickerDevice-airplay"
+- extendedWaitUntil:
+    visible: "On .* · Stop"
+    timeout: 30000
+- takeScreenshot: e2e/out/03-phone-on-tv
