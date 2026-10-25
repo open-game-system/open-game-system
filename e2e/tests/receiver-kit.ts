@@ -63,7 +63,7 @@ const HUD_PAGE = `<!doctype html><html><body style="background:transparent;color
 const BLANK = "<!doctype html><html><body></body></html>";
 
 /** The OGS TV receiver the Cast receiver frames for a phone's view (apps/tv/receiver.html). */
-export const TV_RECEIVER = "https://ogs-tv.pages.dev/receiver.html";
+export const TV_RECEIVER = "https://ogs-tv.pages.dev/receiver";
 /**
  * Stand-in for it: says ready to its parent, keeps every relayed message (window.__got), answers
  * GET_STATE for the sender that asked, and stops the cast when the test calls window.__stop().

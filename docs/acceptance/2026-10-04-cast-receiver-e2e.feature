@@ -19,7 +19,7 @@ Feature: Cast receiver
 
   Scenario: A phone's view is rendered on the TV, and no renderer is asked
     When a phone sends LOAD_VIEW with a viewUrl and an apiUrl
-    Then the page frames the OGS TV receiver "https://ogs-tv.pages.dev/receiver.html?host=parent" full screen
+    Then the page frames the OGS TV receiver "https://ogs-tv.pages.dev/receiver?host=parent" full screen
     And relays that LOAD_VIEW to it, as sent, with the sender's id
     And a repeat of the same view is not relayed again, a new view goes to the same frame
     And while it shows, GET_STATE is answered by the TV receiver to the sender that asked

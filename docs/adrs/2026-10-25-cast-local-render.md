@@ -41,7 +41,7 @@ Emulated in Chrome only; not yet run on a real Chromecast (docs/testing/chromeca
   draw for `full`. What a game does at each tier: docs/specification.md "Render tiers".
 - **Where it runs:** the registered receiver page keeps CAF and the laptop path; for a phone's
   LOAD_VIEW (PR #55's `{viewUrl, apiUrl}` shape) it frames the TV receiver full screen
-  (`https://ogs-tv.pages.dev/receiver.html?host=parent&uhd=0|1`; `?tvReceiver=` on its own URL
+  (`https://ogs-tv.pages.dev/receiver?host=parent&uhd=0|1`; `?tvReceiver=` on its own URL
   points at another deploy) and relays the view namespace both ways (`{ogsRx: "in" | "out" |
   "ready" | "stop"}`, `parentHost` in `cast-host.ts`). So shipping needs **no Developer Console
   change**: deploying apps/web and apps/tv switches the published app to local rendering. The TV

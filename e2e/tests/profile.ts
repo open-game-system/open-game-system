@@ -12,7 +12,10 @@ export const tvPage = (game: string, label: string) =>
 
 const Json = z.record(z.unknown());
 
-export async function api(path: string, init: { method?: string; body?: unknown; token?: string } = {}) {
+export async function api(
+  path: string,
+  init: { method?: string; body?: unknown; token?: string } = {},
+) {
   const res = await fetch(`${API}${path}`, {
     method: init.method ?? (init.body === undefined ? "GET" : "POST"),
     headers: {
@@ -24,18 +27,34 @@ export async function api(path: string, init: { method?: string; body?: unknown;
   return { status: res.status, json: Json.parse(await res.json()) };
 }
 
-export const ProfileSchema = z.object({ id: z.string(), handle: z.string(), name: z.string(), sticker: z.string() });
-export const ErrorSchema = z.object({ error: z.object({ code: z.string(), message: z.string(), status: z.number() }) });
+export const ProfileSchema = z.object({
+  id: z.string(),
+  handle: z.string(),
+  name: z.string(),
+  sticker: z.string(),
+});
+export const ErrorSchema = z.object({
+  error: z.object({ code: z.string(), message: z.string(), status: z.number() }),
+});
 export type Profile = z.infer<typeof ProfileSchema> & { token: string };
 
 let seq = 0;
 const tag = () => `${Date.now().toString(36)}${++seq}`;
 
 /** Makes a profile on a new device. */
-export async function profile(name: string, sticker: string, kind: "phone" | "tablet" = "phone"): Promise<Profile> {
+export async function profile(
+  name: string,
+  sticker: string,
+  kind: "phone" | "tablet" = "phone",
+): Promise<Profile> {
   const handle = `${name.toLowerCase()}.${tag()}`.slice(0, 24);
   const res = await api("/api/v1/profiles", {
-    body: { name, handle, sticker, device: { deviceId: `e2e-${kind}-${tag()}`, kind, name: `${name}'s ${kind}` } },
+    body: {
+      name,
+      handle,
+      sticker,
+      device: { deviceId: `e2e-${kind}-${tag()}`, kind, name: `${name}'s ${kind}` },
+    },
   });
   if (res.status !== 201) throw new Error(`profile: ${JSON.stringify(res)}`);
   const made = z.object({ profile: ProfileSchema, token: z.string() }).parse(res.json);
@@ -56,7 +75,9 @@ export interface Cast {
 export async function cast(host: Profile, tvName = "Living room TV"): Promise<Cast> {
   const res = await api("/api/v1/sessions", { body: { tvName }, token: host.token });
   if (res.status !== 201) throw new Error(`cast: ${JSON.stringify(res)}`);
-  const s = z.object({ sessionId: z.string(), code: z.string(), token: z.string() }).parse(res.json);
+  const s = z
+    .object({ sessionId: z.string(), code: z.string(), token: z.string() })
+    .parse(res.json);
   return {
     host,
     sessionId: s.sessionId,
@@ -96,7 +117,9 @@ export interface Couch {
 /** A couch socket: a phone/tablet names the session; a launcher token carries its own. */
 export async function couch(token: string, sessionId?: string): Promise<Couch> {
   const session = sessionId ? `&session=${encodeURIComponent(sessionId)}` : "";
-  const ws = new WebSocket(`${API.replace(/^http/, "ws")}/api/v1/couch/ws?token=${encodeURIComponent(token)}${session}`);
+  const ws = new WebSocket(
+    `${API.replace(/^http/, "ws")}/api/v1/couch/ws?token=${encodeURIComponent(token)}${session}`,
+  );
   const msgs: Frame[] = [];
   let state: CouchState | null = null;
   ws.on("message", (raw) => {

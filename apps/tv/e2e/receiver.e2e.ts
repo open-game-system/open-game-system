@@ -379,7 +379,7 @@ describe("the whole chain on the registered Cast receiver page (apps/web/public/
     );
     await expect
       .poll(() => page.locator("#local-view").getAttribute("src"), { timeout: 10_000 })
-      .toBe("https://ogs-tv.pages.dev/receiver.html?host=parent&uhd=0");
+      .toBe("https://ogs-tv.pages.dev/receiver?host=parent&uhd=0");
     await expect
       .poll(() => !!page.frame({ url: /ogs-tv\.pages\.dev\/\?fake=1/ }), { timeout: 20_000 })
       .toBe(true);

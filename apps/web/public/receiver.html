@@ -650,7 +650,7 @@
     const TV_RECEIVER = (() => {
       const asked = new URLSearchParams(window.location.search).get('tvReceiver');
       try { if (asked && new URL(asked).protocol === 'https:') return asked; } catch (e) { /* default */ }
-      return 'https://ogs-tv.pages.dev/receiver.html';
+      return 'https://ogs-tv.pages.dev/receiver';
     })();
     const TV_ORIGIN = new URL(TV_RECEIVER).origin;
     let localFrame = null;

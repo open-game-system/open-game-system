@@ -16,10 +16,14 @@ async function livingRoom() {
   return { tv, phone, pad, launcherPath: tv.launcherPath };
 }
 
-const focused = '[data-focused]';
+const focused = "[data-focused]";
 
 describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"] }, () => {
-  test("cast: the launcher joins the host's session, once, titled with the TV and host", async ({ app, screen, browser }) => {
+  test("cast: the launcher joins the host's session, once, titled with the TV and host", async ({
+    app,
+    screen,
+    browser,
+  }) => {
     const { phone, pad, launcherPath, tv } = await livingRoom();
     await app.open(launcherPath);
     await expect(screen.getByTestId("home")).toBeVisible();
@@ -44,7 +48,10 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
     const before = await browser.locator(focused).getAttribute("data-item");
     expect(before).toBe(first);
     phone.send({ type: "focus.move", dir: "right" });
-    const after = await phone.until(() => (phone.state()?.focus !== first ? phone.state()?.focus : null), "focus moved");
+    const after = await phone.until(
+      () => (phone.state()?.focus !== first ? phone.state()?.focus : null),
+      "focus moved",
+    );
     await expect(browser.locator(focused)).toHaveAttribute("data-item", after);
     await app.screenshot("focus-moved");
     phone.close();
@@ -64,7 +71,11 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
     phone.close();
   });
 
-  test("a game launched from the phone is framed; swipe back parks it with its resume point; a swap never recasts", async ({ app, screen, browser }) => {
+  test("a game launched from the phone is framed; swipe back parks it with its resume point; a swap never recasts", async ({
+    app,
+    screen,
+    browser,
+  }) => {
     const { phone, launcherPath } = await livingRoom();
     await app.open(launcherPath);
     await expect(screen.getByTestId("home")).toBeVisible();
@@ -72,26 +83,41 @@ describe("TV launcher, live session", { tags: ["launcher"], requires: ["browser"
 
     phone.send({ type: "game.start", appId: "rocket-crew", mode: "continue" });
     await expect(screen.getByTestId("starting")).toBeVisible();
-    phone.send({ type: "game.view", appId: "rocket-crew", url: tvPage("Rocket Crew", "Mission 6") });
+    phone.send({
+      type: "game.view",
+      appId: "rocket-crew",
+      url: tvPage("Rocket Crew", "Mission 6"),
+    });
     await expect(screen.getByTestId("game-frame")).toBeVisible();
-    await expect(browser.frameLocator('[data-testid="game-frame"]').getByText("Rocket Crew · Mission 6")).toBeVisible();
-    await phone.until(() => phone.state()?.current?.label === "Mission 6", "resume point from the framed game");
+    await expect(
+      browser.frameLocator('[data-testid="game-frame"]').getByText("Rocket Crew · Mission 6"),
+    ).toBeVisible();
+    await phone.until(
+      () => phone.state()?.current?.label === "Mission 6",
+      "resume point from the framed game",
+    );
     await app.screenshot("rocket-crew-framed");
 
     phone.send({ type: "home" });
     await expect(screen.getByTestId("home")).toBeVisible();
     // The paused sitting is a card on the activity row, with its resume point.
-    await expect(browser.locator('[data-row="activity"] [data-card="sitting"][data-app="rocket-crew"]')).toContainText("Mission 6");
+    await expect(
+      browser.locator('[data-row="activity"] [data-card="sitting"][data-app="rocket-crew"]'),
+    ).toContainText("Mission 6");
     await expect(screen.getByTestId("player")).toHaveAttribute("data-phase", "hidden");
     await app.screenshot("home-with-paused-box");
 
     phone.send({ type: "game.start", appId: "bake-shop", mode: "continue" });
     phone.send({ type: "game.view", appId: "bake-shop", url: tvPage("Bake Shop", "Day 4") });
-    await expect(browser.frameLocator('[data-testid="game-frame"]').getByText("Bake Shop · Day 4")).toBeVisible();
+    await expect(
+      browser.frameLocator('[data-testid="game-frame"]').getByText("Bake Shop · Day 4"),
+    ).toBeVisible();
     expect(phone.state()?.casts).toBe(1);
 
     phone.send({ type: "game.start", appId: "rocket-crew", mode: "continue" });
-    await expect(browser.frameLocator('[data-testid="game-frame"]').getByText("Rocket Crew · Mission 6")).toBeVisible();
+    await expect(
+      browser.frameLocator('[data-testid="game-frame"]').getByText("Rocket Crew · Mission 6"),
+    ).toBeVisible();
     expect(phone.state()?.casts).toBe(1);
     await app.screenshot("rocket-crew-continued");
     phone.close();
