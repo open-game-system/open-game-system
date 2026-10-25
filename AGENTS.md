@@ -16,6 +16,7 @@
   - `packages/profile-kit/` — Games know who you are: OGS profile + couch players for games, `verifyOgsToken` for game servers
   - `packages/shell/` — `@open-game-system/shell`: ship a game as its own app (Expo config plugin + RN modules extracted from apps/mobile, which consumes them through one-line shims)
   - `packages/create-ogs-app/` — `pnpm create ogs-app`: a game's own iOS/Android app (Expo template using `@open-game-system/shell`, README, REVIEW_NOTES.md, game-side examples)
+  - `packages/create-ogs-game/` — `pnpm create ogs-game`: a new phone-and-TV game (Worker + one Durable Object per room with actor-kit, TV and phone pages, CI) plus its own app (create-ogs-app + AirPlay, simulator walk, pre-submit check)
   - `packages/notification-kit-*/` — Push notification SDK (core, react, server)
   - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
   - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
