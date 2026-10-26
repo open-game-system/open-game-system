@@ -43,3 +43,5 @@ recordings/
 spikes/phone-p2p-cast/ios/build/
 spikes/phone-p2p-cast/ios/P2PSpike.xcodeproj/
 spikes/phone-p2p-cast/ios/P2PSpike/Info.plist
+spikes/phone-p2p-cast/ios/build-dev/
+spikes/phone-p2p-cast/ios/spm/

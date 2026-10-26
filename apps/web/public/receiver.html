@@ -24,6 +24,19 @@
       justify-content: center;
     }
 
+    /* The smooth presenter's canvas sits exactly over the <video> (which keeps playing the sound). */
+    #smooth-video {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      display: none;
+      z-index: 2;
+    }
+    body.smooth #smooth-video { display: block; }
+    body.smooth video { opacity: 0; }
+
     video {
       width: 100%;
       height: 100%;
@@ -100,6 +113,7 @@
 <body>
   <div id="video-container">
     <video id="stream-video" autoplay playsinline muted></video>
+    <canvas id="smooth-video" width="1280" height="720"></canvas>
   </div>
 
   <div id="status-overlay">
@@ -347,6 +361,71 @@
       overlay.classList.add('hidden');
     }
     // Video on screen is the truth: whenever it starts playing, nothing may cover it.
+    /**
+     * Smooth presenter (peer streams): Chrome shows a WebRTC <video> frame as soon as it decodes, so
+     * decode-time jitter (σ ≈ 6–8 ms on a 30 fps stream) makes it skip ~5 % of frames (presented
+     * intervals of 67 ms). Instead, frames are read from the track (MediaStreamTrackProcessor) and
+     * drawn on a playout clock: frame time + the smallest delay seen + PRESENT_DELAY_MS, newest due
+     * frame per display refresh. Measured cadence goes to window.__present (intervals, presented,
+     * skipped) and to receiver.peer.stats. ?present=video turns it off.
+     */
+    const PRESENT_DELAY_MS = Number(new URLSearchParams(location.search).get('presentDelay') || 40);
+    let presenter = null;
+    function startPresenter(stream) {
+      stopPresenter();
+      const track = stream.getVideoTracks()[0];
+      if (!track || typeof MediaStreamTrackProcessor === 'undefined' || new URLSearchParams(location.search).get('present') === 'video') return;
+      const canvas = document.getElementById('smooth-video');
+      const ctx2d = canvas.getContext('2d', { alpha: false, desynchronized: true });
+      const reader = new MediaStreamTrackProcessor({ track }).readable.getReader();
+      const queue = [];
+      const stats = window.__present = { intervals: [], presented: 0, skipped: 0, late: 0, lastDrawn: null };
+      let offset = Infinity; // min(arrival - frame time): network + decode floor
+      let running = true;
+      presenter = { stop: () => { running = false; reader.cancel().catch(() => {}); for (const f of queue) f.close(); queue.length = 0; } };
+      document.body.classList.add('smooth');
+      (async () => {
+        while (running) {
+          const { value: frame, done } = await reader.read();
+          if (done || !frame) break;
+          const now = performance.now();
+          const t = frame.timestamp / 1000;
+          offset = Math.min(offset, now - t);
+          queue.push(frame);
+          if (queue.length > 8) { queue.shift().close(); stats.skipped++; }
+        }
+      })();
+      const draw = () => {
+        if (!running) return;
+        const now = performance.now();
+        // Newest frame that is due; older due frames are skipped (counted).
+        let due = -1;
+        for (let i = 0; i < queue.length; i++) if (queue[i].timestamp / 1000 + offset + PRESENT_DELAY_MS <= now) due = i;
+        if (due >= 0) {
+          for (let i = 0; i < due; i++) { queue[i].close(); stats.skipped++; }
+          const f = queue[due];
+          queue.splice(0, due + 1);
+          if (canvas.width !== f.displayWidth) { canvas.width = f.displayWidth; canvas.height = f.displayHeight; }
+          ctx2d.drawImage(f, 0, 0, canvas.width, canvas.height);
+          f.close();
+          if (stats.lastDrawn !== null) stats.intervals.push(now - stats.lastDrawn);
+          if (stats.intervals.length > 20000) stats.intervals.splice(0, 10000);
+          stats.lastDrawn = now;
+          stats.presented++;
+          if (window.__onPresent) window.__onPresent(canvas, now);
+        }
+        // Re-anchor slowly upward so one early outlier doesn't make every frame look late forever.
+        offset += 0.002;
+        requestAnimationFrame(draw);
+      };
+      requestAnimationFrame(draw);
+    }
+    function stopPresenter() {
+      if (presenter) presenter.stop();
+      presenter = null;
+      document.body.classList.remove('smooth');
+    }
+
     video.addEventListener('playing', () => {
       isConnected = true;
       clearPeerTimer();
@@ -370,6 +449,7 @@
     }
 
     function cleanup() {
+      stopPresenter();
       stopStallWatch();
       stopKeepAwake();
       if (pc) {
@@ -393,6 +473,7 @@
       // Only set srcObject once — multiple tracks arrive rapidly
       if (!video.srcObject) {
         video.srcObject = event.streams[0] || new MediaStream([event.track]);
+        if (video.srcObject.getVideoTracks().length) startPresenter(video.srcObject);
         // Starts muted (autoplay rules), then unmutes: the game's sound rides in this stream.
         // Cast devices allow unmuted playback; if a browser refuses, stay muted rather than stop.
         video.play()
@@ -401,6 +482,9 @@
       } else if (event.track.kind === 'audio' && video.srcObject instanceof MediaStream) {
         // Add audio track to existing stream
         video.srcObject.addTrack(event.track);
+      } else if (event.track.kind === 'video' && video.srcObject instanceof MediaStream) {
+        if (!video.srcObject.getVideoTracks().includes(event.track)) video.srcObject.addTrack(event.track);
+        if (!presenter) startPresenter(video.srcObject);
       }
     }
 
@@ -542,6 +626,16 @@
             freezes: (v.freezeCount || 0) - statsFrom.freezes,
             lost: v.packetsLost ?? null,
             decoder: v.decoderImplementation || null,
+            // What the TV actually showed (the smooth presenter), over the last window.
+            ...(() => {
+              const p = window.__present;
+              if (!p) return { presenter: 'video' };
+              const a = p.intervals.splice(0).sort((x, y) => x - y);
+              const at = (q) => (a.length ? Math.round(a[Math.min(a.length - 1, Math.floor(q * a.length))] * 10) / 10 : null);
+              const out = { presenter: 'smooth', shownFps: Math.round((a.length / dt) * 10) / 10, intervalP50Ms: at(0.5), intervalP95Ms: at(0.95), skipped: p.skipped };
+              p.skipped = 0;
+              return out;
+            })(),
           } });
           statsFrom = { at: now, frames: v.framesDecoded, bytes: v.bytesReceived, freezes: v.freezeCount || 0, jbDelay: v.jitterBufferDelay || 0, jbCount: v.jitterBufferEmittedCount || 0 };
         }

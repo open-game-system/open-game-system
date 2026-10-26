@@ -3,11 +3,17 @@ options:
   bundleIdPrefix: org.opengame.spike
   deploymentTarget:
     iOS: "17.0"
+packages:
+  WebRTC:
+    url: https://github.com/stasel/WebRTC.git
+    exactVersion: 153.0.0
 targets:
   P2PSpike:
     type: application
     platform: iOS
     sources: [P2PSpike]
+    dependencies:
+      - package: WebRTC
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.opengame.spike.p2p
@@ -17,6 +23,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         SWIFT_VERSION: 5.0
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 34S957HD77
     info:
       path: P2PSpike/Info.plist
       properties:

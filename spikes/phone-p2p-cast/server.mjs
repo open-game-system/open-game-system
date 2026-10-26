@@ -35,6 +35,11 @@ const send = (res, type, body) => {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   if (url.pathname === "/sender.html") return send(res, "text/html; charset=utf-8", readFileSync(here("./sender.html")));
+  // Local test files (e.g. a steady 30 fps reference clip): SPIKE_STATIC=<dir>, /static/<name>.
+  if (url.pathname.startsWith("/static/") && process.env.SPIKE_STATIC) {
+    const name = url.pathname.slice(8).replace(/[^\w.-]/g, "");
+    return send(res, name.endsWith(".webm") ? "video/webm" : "text/html; charset=utf-8", readFileSync(`${process.env.SPIKE_STATIC}/${name}`));
+  }
   if (url.pathname === "/capture.js") return send(res, "text/javascript", readFileSync(here("./capture.js")));
   if (url.pathname === "/receiver.html") return send(res, "text/html; charset=utf-8", readFileSync(RECEIVER));
   if (url.pathname.startsWith("/keepawake.")) {
@@ -105,6 +110,8 @@ wss.on("connection", (ws, req) => {
   console.log(`[signal] ${role} connected`);
   ws.on("message", (raw) => {
     const msg = JSON.parse(String(raw));
+    // Clock sync for glass-to-glass: answered here, never relayed.
+    if (msg.type === "TIME_PING") return ws.send(JSON.stringify({ type: "TIME_PONG", t0: msg.t0, server: Date.now() }));
     if (msg.type !== "LOG" && msg.type !== "REQUEST_VIEW") console.log(`[signal] ${role} → ${msg.type} (to ${peers[role === "tv" ? "phone" : "tv"].size})`);
     for (const peer of peers[role === "tv" ? "phone" : "tv"]) peer.send(String(raw));
   });
