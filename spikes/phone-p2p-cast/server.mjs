@@ -14,7 +14,7 @@
  *
  *   KITE_ORIGIN=http://127.0.0.1:8787 PORT=8797 node spikes/phone-p2p-cast/server.mjs
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import WebSocket from "ws";
@@ -44,6 +44,13 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === "/receiver.html") return send(res, "text/html; charset=utf-8", readFileSync(RECEIVER));
   if (url.pathname.startsWith("/keepawake.")) {
     return send(res, url.pathname.endsWith("mp4") ? "video/mp4" : "video/webm", readFileSync(new URL(`../../apps/web/public${url.pathname}`, import.meta.url)));
+  }
+  // The phone's own screen (its controller), for the proof video: one JPEG per POST, named by time.
+  if (url.pathname === "/phone-frame" && req.method === "POST" && process.env.SPIKE_FRAMES) {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    writeFileSync(`${process.env.SPIKE_FRAMES}/${Number(url.searchParams.get("t")) || Date.now()}.jpg`, Buffer.concat(chunks));
+    return send(res, "application/json", "{}");
   }
   if (url.pathname === "/metrics" && req.method === "POST") {
     let body = "";

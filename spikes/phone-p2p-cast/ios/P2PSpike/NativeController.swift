@@ -71,6 +71,7 @@ final class NativeController: UIViewController, WKNavigationDelegate, WKScriptMe
     if let cURL = args.string(forKey: "controller").flatMap(URL.init(string:)) { controller.load(URLRequest(url: cURL)) }
     capture.start()
     metrics.start()
+    if args.bool(forKey: "phoneCapture") { startPhoneCapture() }
     // The TV page's audio contexts, as the page sees them (logged every 10 s).
     Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
       self?.tv.evaluateJavaScript("JSON.stringify({taps: window.__ogsAudioTap ? [...window.__ogsAudioTap.keys()].map(c => c.state + '@' + c.sampleRate) : null})") { r, _ in
@@ -78,6 +79,27 @@ final class NativeController: UIViewController, WKNavigationDelegate, WKScriptMe
       }
     }
     NSLog("[spike] native: tv=%@ controller=%@", args.string(forKey: "tv") ?? "-", args.string(forKey: "controller") ?? "-")
+  }
+
+  /// Proof videos only: what this phone's screen shows (the controller), 10 times a second, as small
+  /// JPEGs to the spike server, timed on the TV clock. (A real iPhone has no command-line screen capture.)
+  func startPhoneCapture() {
+    let cfg = WKSnapshotConfiguration()
+    cfg.snapshotWidth = 300
+    var busy = false
+    Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+      guard let self, !busy else { return }
+      busy = true
+      let t = Int(self.signaling.nowMs())
+      self.controller.takeSnapshot(with: cfg) { image, _ in
+        busy = false
+        guard let jpeg = image?.jpegData(compressionQuality: 0.6), let url = URL(string: "\(self.server)/phone-frame?t=\(t)") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.httpBody = jpeg
+        URLSession.shared.dataTask(with: req).resume()
+      }
+    }
   }
 
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

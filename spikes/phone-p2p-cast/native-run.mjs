@@ -51,7 +51,7 @@ await host.getByTestId("nameField").fill("Mom");
 await host.getByTestId("joinButton").click();
 
 // The iPhone (or Simulator): the spike app, its controller joining as the second player.
-const appArgs = ["-mode", "native", "-tv", tvUrl, "-controller", `${KITE}/join/${code}`, "-name", "Jon", "-server", SERVER, "-stamp", STAMP, "-codec", arg("codec", "H264")];
+const appArgs = ["-mode", "native", "-tv", tvUrl, "-controller", `${KITE}/join/${code}`, "-name", "Jon", "-server", SERVER, "-stamp", STAMP, "-codec", arg("codec", "H264"), "-phoneCapture", arg("phoneCapture", "0")];
 await new Promise((r) => setTimeout(r, 2500));
 if (DEVICE) {
   sh("xcrun", ["devicectl", "device", "process", "launch", "--device", DEVICE, "--terminate-existing", "org.opengame.spike.p2p", "--", ...appArgs]);

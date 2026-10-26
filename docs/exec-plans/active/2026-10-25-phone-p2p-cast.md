@@ -131,3 +131,87 @@ Glass-to-glass latency can't be computed on the receiver alone; the spike decode
    - A device check: phone → Chromecast, using `game-rig cast bridge` to carry PEER_OFFER and PEER_ANSWER.
    - A recorded video with audio.
 5. **Real Chromecast.** Verify mDNS candidate resolution, the H.264 decoder (`decoderImplementation`), the jitter buffer and 30-minute stability.
+
+## Round 2 (2026-10-26): native path, "a smooth 30 fps on the TV"
+
+Jon found the b2 video choppy and expected the phone to show its controller while the TV page
+renders hidden. Round 2 builds the native path in the spike app (`spikes/phone-p2p-cast/ios`).
+
+### The pipeline
+
+The phone shows its controller: the game's phone page, full screen. The TV page renders in a hidden
+1280×720 WKWebView behind it.
+
+1. A CADisplayLink fixed at 30 Hz triggers capture, and each frame is timestamped at the display link's vsync.
+2. `takeSnapshot` returns 1280 px (`snapshotWidth` = 1280 / screen scale).
+3. Core Image (Metal), off the main thread, renders into an IOSurface-backed BGRA `CVPixelBuffer` from a pool.
+4. The frame goes into a libwebrtc video track through `RTCVideoCapturer`. The library is **stasel/WebRTC 153.0.0** (exact pin), with H.264 first via `setCodecPreferences` and the VideoToolbox hardware encoder.
+5. Back-pressure: at most one snapshot and one render in flight. A busy stage drops the frame instead of queueing it.
+6. Sender settings: `maintainFramerate`, 2–7 Mbit/s, max 30 fps. libwebrtc answers the receiver's PLI with keyframes.
+7. Audio uses a PCM bridge: an injected tap on `AudioContext.destination` feeds a ScriptProcessor, which sends 16-bit mono PCM to native.
+   - `PCMAudioDevice` (libwebrtc's `RTCAudioDevice`) delivers it in 10 ms frames from its own thread.
+   - The TV page's audio is muted on the phone.
+   - The TV page's `navigator.audioSession.type` is forced to `ambient`. Otherwise the controller page's "playback" session interrupts the TV page's AudioContext (it showed state `interrupted`).
+8. Signaling and ICE work as before.
+   - Native libwebrtc offers the phone's real LAN IP as host candidates, with no mDNS names, so a Chromecast doesn't need to resolve `.local`.
+   - A clock sync over the signaling socket (best of 20 round trips) lets frames carry a TV-clock timestamp bar, for glass-to-glass.
+
+### What made it choppy, found with a reference
+
+- **A steady local 30 fps VP9 file** played in the same Chrome: presented intervals p95 34 ms. So the measurement is sound, headed or headless.
+- **A steady 30 fps clip sent over WebRTC** from Chrome to the receiver page: p95 50 ms.
+- **The phone stream into a `<video>`:**
+  - p95 67 ms at every jitter-buffer target (0, 50, 100, 200 ms), on Chromium and on Chrome stable.
+  - Decoder inter-frame delay was mean 33.8 ms, σ 7–8.5 ms. Chrome shows each WebRTC frame as soon as it decodes, so that jitter makes it skip ~5–15 % of decoded frames (presented 28/s while decoding 30/s).
+  - The sender was not the cause: 29.6–29.8 frames encoded per second, 0–0.4 dropped per second.
+- **The fix is in the receiver.** It now has a *smooth presenter*. Frames are read from the track (`MediaStreamTrackProcessor`) and drawn to a canvas on a playout clock: frame time + the smallest delay seen + 40 ms (`?presentDelay=`). Each display refresh draws the newest due frame.
+  - The `<video>` keeps playing, invisibly, for the sound. `?present=video` turns the presenter off.
+  - `receiver.peer.stats` now also logs `shownFps`, `intervalP50Ms`, `intervalP95Ms` and `skipped`.
+
+### Before and after, measured at the TV (Chrome receiver page, getStats + every presented frame)
+
+| Run | Received fps p50 | Frame interval p95 | Freezes | Glass-to-glass p50 | Notes |
+|---|---|---|---|---|---|
+| Round 1, b2 (JPEG detour), Simulator, test page | 21 | 67 ms | 1 / 30 s | 519 ms | Choppy |
+| Native, Simulator, Kite Count, `<video>` | 30 | 67 ms | 0 | 96–105 ms | Presenter skips ~5 % |
+| **Native + smooth presenter, Simulator, Kite Count, 5 min, 5 games** | **30** (p5 28) | **41.7 ms** (p99 66.6) | **0** | **104 ms** (p90 113, p99 254) | All 4 targets met; σ of decode 8.5 ms |
+
+Phone side in that 5-minute Simulator run:
+
+- Capture: 29.6 fps captured, 0.2 dropped per second; snapshot 1.2 ms, render 24 ms (Simulator Metal).
+- Encode: VideoToolbox, 3.4 ms per frame, 1.75 Mbit/s, no quality limit.
+- CPU: app 39 % of a core (WebContent ~10 %). Thermal stayed nominal. Battery is not available in the Simulator.
+- Audio: 0 underruns; the TV's audio level was 0.46.
+
+**Real iPhone: not yet measured.** The app is built (Release, team 34S957HD77) and installed on Jon's iPhone 16 Pro. Two launches failed:
+
+1. 13:12: the phone was locked.
+2. 13:20: "may need to be unlocked", then "unavailable". The earlier launch probably also hit iOS's local-network prompt, because the app never reached the Mac.
+
+Jon was asked to:
+
+1. unlock the phone;
+2. tap Allow on the local-network prompt;
+3. keep it on charge and on Wi-Fi.
+
+Ready to run: `node native-run.mjs --device 8EE95E69-FAB4-5CC0-BE1D-355B7B806E73 --seconds 300 --out <dir>` (5 min at the 4 targets, plus thermal and battery). Then `proof-video.mjs --device … --frames <SPIKE_FRAMES dir>` for the video with the controller inset, which the app posts at 10 frames per second.
+
+### Proof video
+
+`recordings/p2p-native-kite-simulator.mp4` (Simulator).
+
+- Left: the phone's screen, showing only its controller (Watch the TV / the four colors).
+- Right: the TV, recorded from the received stream itself (MediaRecorder in the receiver page). Sound checked: −37 dB mean.
+
+### Left to ship it in the shell
+
+1. Real-iPhone numbers, then a 30-minute battery and thermal run.
+2. Move the pipeline into `packages/shell` as a "phone TV" cast backend next to `airplay-cast.ts`. Swift goes into the shell's pod (`ios/module`), with the WebRTC xcframework pinned in the podspec.
+   - Keep the launcher URL and token flow (LOAD_VIEW's `viewUrl` loaded in the hidden WebView).
+   - Signaling over the CastSession channel (`cast-view.ts`) for a Chromecast, or the screens API for a browser TV.
+   - Keep-awake and the "keep the app open" notice from AirPlay (iOS stops drawing a backgrounded app).
+   - Client-log events for each step.
+3. Receiver: make the peer path the phone path, with the smooth presenter on by default.
+   - Check `MediaStreamTrackProcessor` and canvas cost on a real Chromecast with Google TV (CrKey 1.56 is Chrome 114; the API exists from Chrome 94).
+   - Fall back to `<video>` where it's missing.
+4. Android: the same design with `WebView` + libwebrtc. Out of scope for this spike.
