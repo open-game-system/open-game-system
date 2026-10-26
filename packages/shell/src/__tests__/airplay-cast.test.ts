@@ -126,7 +126,7 @@ describe("casting to the AirPlay TV", () => {
     await channel?.sendMessage({
       type: "LOAD_VIEW",
       viewUrl: LAUNCHER,
-      streamServerUrl: "https://s",
+      apiUrl: "https://s",
     });
     // As a string too (some senders stringify).
     await channel?.sendMessage(JSON.stringify({ type: "LOAD_VIEW", viewUrl: `${LAUNCHER}2` }));

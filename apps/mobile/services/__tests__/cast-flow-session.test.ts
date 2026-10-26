@@ -56,7 +56,7 @@ function setup(opts: { endedAfterMs?: number; sm?: Partial<SessionManagerLike> }
     ...opts.sm,
   };
   const castStore = createCastStore();
-  startCastSync(castStore, sessionManager, castCommands(), "https://stream.test");
+  startCastSync(castStore, sessionManager, castCommands(), "https://api.test");
   const events: Logged[] = [];
   const log: ClientLog = {
     event: (name, fields = {}) => void events.push({ name, ...fields }),

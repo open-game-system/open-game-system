@@ -1,5 +1,5 @@
 import type { CastTrace } from "../cast-trace";
-import { connectViewChannel, streamServerUrl } from "../cast-view";
+import { connectViewChannel } from "../cast-view";
 import type { EventFields } from "../client-log";
 
 // What the view channel logs (Workers Logs joins TV and phone by these): the reason a LOAD_VIEW was
@@ -29,12 +29,6 @@ const eventsNamed = (events: { name: string; fields?: EventFields }[], name: str
   events.filter((e) => e.name === name).map((e) => e.fields);
 
 describe("cast view channel: what it logs", () => {
-  it("drops every trailing slash from the stream server URL", () => {
-    expect(streamServerUrl({ EXPO_PUBLIC_OGS_STREAM: "https://stream.example//" }, "")).toBe(
-      "https://stream.example",
-    );
-  });
-
   it("logs a skipped LOAD_VIEW with its reason when there is no view yet", async () => {
     const { trace, events } = recordingTrace();
     const channel = await connectViewChannel(channelSession(), () => null, "https://s", trace);

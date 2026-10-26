@@ -76,7 +76,6 @@ function setup(mode: "one" | "none") {
       haptics: { impact: async () => {}, notify: async () => {} },
       signInProviders: [],
       gameStores: castGameStores(backend, {
-        streamServerUrl: "https://stream.test",
         browserTvStorage: memory(),
       }),
     },

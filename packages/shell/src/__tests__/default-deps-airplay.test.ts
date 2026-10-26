@@ -4,7 +4,6 @@ import { fakeContext } from "../__fixtures__/fake-context";
 import { airplayDisplay, airplayNativeLog } from "../airplay-native";
 import { shellAirplay } from "../airplay-shell";
 import { castGameStores } from "../cast-stores";
-import { streamServerUrl } from "../cast-view";
 import { defaultShellDeps } from "../default-deps";
 
 const mockDevice: { deviceType: number; deviceName: string | null; modelName: string | null } = {
@@ -82,7 +81,6 @@ describe("defaultShellDeps: airplay", () => {
     const { ctx } = fakeContext(async () => new Response(null));
     defaultShellDeps({ ...config, airplay: true }).gameStores?.(ctx);
     expect(castGameStores).toHaveBeenCalledWith("backend", {
-      streamServerUrl: streamServerUrl({}, config.apiBase),
       browserTvStorage: AsyncStorage,
       airplay: "airplay-factory",
     });
@@ -96,7 +94,6 @@ describe("defaultShellDeps: airplay", () => {
     const { ctx } = fakeContext(async () => new Response(null));
     defaultShellDeps({ ...config, airplay: true }).gameStores?.(ctx);
     expect(castGameStores).toHaveBeenCalledWith("backend", {
-      streamServerUrl: streamServerUrl({}, config.apiBase),
       browserTvStorage: AsyncStorage,
     });
     expect(shellAirplay).not.toHaveBeenCalled();

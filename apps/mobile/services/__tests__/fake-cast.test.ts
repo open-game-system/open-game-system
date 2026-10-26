@@ -112,7 +112,7 @@ describe("fake cast for the simulator (EXPO_PUBLIC_FAKE_CAST)", () => {
     const { backend, posts } = setup();
     const store = createCastStore();
     const commands = castCommands();
-    startCastSync(store, backend.sessionManager, commands, "https://stream.test");
+    startCastSync(store, backend.sessionManager, commands, "https://api.test");
     store.dispatch({ type: "SET_VIEW_URL", url: "http://localhost:5180/?api=a&token=t" });
     await backend.sessionManager.startSession(FAKE_TV.id);
     await flush();

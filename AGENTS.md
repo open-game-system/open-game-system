@@ -3,13 +3,13 @@
 ## Project
 
 - **Name:** open-game-system
-- **Description:** Platform enabling web games to leverage native mobile capabilities (push notifications, cloud rendering/streaming) through the OGS companion app.
+- **Description:** Platform enabling web games to leverage native mobile capabilities (push notifications, TV casting) through the OGS companion app. The host phone renders every TV (AirPlay, or a P2P WebRTC stream to Chromecast and "Another screen"); there is no cloud renderer ([ADR](docs/adrs/2026-10-25-local-rendering-only.md)).
 - **Tech stack:** TypeScript, pnpm workspaces, Turbo, Vitest, Jest, Hono, Cloudflare Workers, Expo/React Native, tsup
 - **Package manager:** pnpm 9.15+
 - **Source layout:**
   - `apps/mobile/` — Expo/React Native companion app (managed workflow)
   - `apps/web/` — opengame.org marketing website (Vite + React + Tailwind + Cloudflare Pages)
-  - `apps/tv/` — OGS TV launcher (Vite + React): the page the Chromecast stream, a browser TV and an Apple TV (AirPlay, rendered by the phone) show for the whole cast; frames each game's TV page
+  - `apps/tv/` — OGS TV launcher (Vite + React): the page a Chromecast, a browser TV and an Apple TV (AirPlay, rendered by the phone) show for the whole cast; frames each game's TV page
   - `apps/docs/` — game-developer docs site (ogs-docs.pages.dev): Markdown in `apps/docs/content/` + the contract from `docs/specification.md` → static HTML, `.md` twins, `llms.txt`
   - `packages/app-bridge-*/` — WebView-to-native two-way communication (6 packages)
   - `packages/cast-kit/` — TV casting SDK for web games (Google Cast via native bridge)
@@ -17,11 +17,10 @@
   - `packages/shell/` — `@open-game-system/shell`: ship a game as its own app (Expo config plugin + RN modules extracted from apps/mobile, which consumes them through one-line shims)
   - `packages/create-ogs-app/` — `pnpm create ogs-app`: a game's own iOS/Android app (Expo template using `@open-game-system/shell`, README, REVIEW_NOTES.md, game-side examples)
   - `packages/notification-kit-*/` — Push notification SDK (core, react, server)
-  - `packages/stream-kit-*/` — Cloud rendering + WebRTC streaming (5 packages)
   - `packages/ogs-protocol/` — OGS app v3 contract: manifest, identity claims, instances, couch-session reducer, launcher↔game messages
   - `packages/cli/` — `ogs` CLI: a game's white-label app (login with the game's API key, apps register, push credentials, doctor)
   - `services/api/` — Hono API on Cloudflare Workers (auth, push dispatch, households, catalogue, instances, CouchSession DO)
-  - `examples/` — Demo/reference apps (3 apps: expo-bridge-demo, web-game-demo, stream-react-demo)
+  - `examples/` — Demo/reference apps (expo-bridge-demo, web-game-demo, shell-single-game, test-static-game)
   - `e2e/` — cross-surface e2e (tester.army `e2e`, fake Chromecast, couch flow); standalone install
 
 ## Feedback Commands
@@ -137,5 +136,4 @@ Documented for context, not yet implemented:
 - Migrate `services/api` from D1 (SQLite) to Neon (Postgres) for PR preview branch deploys
 - Create `packages/types` to deduplicate notification types across packages
 - Set up changesets for package publishing
-- Build stream control-plane endpoints in `services/api`
 - Wire real APNs/FCM providers

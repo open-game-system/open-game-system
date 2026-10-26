@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Open Game System (OGS) is a platform that lets web games use native mobile capabilities -- push notifications, streaming/casting, and native UI -- without leaving the browser paradigm. Game developers build standard web games, then integrate lightweight SDKs that communicate through the OGS host app via a WebView bridge.
+The Open Game System (OGS) is a platform that lets web games use native mobile capabilities -- push notifications, TV casting, and native UI -- without leaving the browser paradigm. Game developers build standard web games, then integrate lightweight SDKs that communicate through the OGS host app via a WebView bridge.
 
 ## System Map
 
@@ -34,11 +34,7 @@ The Open Game System (OGS) is a platform that lets web games use native mobile c
  │  │-server         │ │    │  (Cloudflare Worker + D1)   │
  │  └────────────────┘ │    │                             │
  │                     │    │  POST /games/:id/notifications ► Expo (app)
- │  ┌────────────────┐ │    │                             │──► Web Push (PWA)
- │  │stream-kit      │ │    │                             │
- │  │-web            │─────►│  /stream/* ─────────────────┼──► Cloud Run stream-gpu
- │  └────────────────┘ │    └────────────────────────────┘      (headless Chrome,
- │                     │                                         WebRTC → Realtime SFU)
+ │                     │    └────────────────────────────┘
  └─────────────────────┘
 ```
 
@@ -58,11 +54,6 @@ The Open Game System (OGS) is a platform that lets web games use native mobile c
 | Notification Kit Core | `packages/notification-kit-core/` | OGS detection, device ID from bridge | app-bridge-web |
 | Notification Kit React | `packages/notification-kit-react/` | React hooks for notification state | notification-kit-core, app-bridge-react |
 | Notification Kit Server | `packages/notification-kit-server/` | Server client for sending notifications | notification-kit-core |
-| Stream Kit Types | `packages/stream-kit-types/` | Streaming type definitions | (none) |
-| Stream Kit Web | `packages/stream-kit-web/` | Browser streaming client + WebRTC | stream-kit-types, PeerJS |
-| Stream Kit React | `packages/stream-kit-react/` | React hooks/components for streaming | stream-kit-web, stream-kit-types |
-| Stream Kit Server | `packages/stream-kit-server/` | Server-side rendering abstractions | stream-kit-types, Puppeteer |
-| Stream Kit Testing | `packages/stream-kit-testing/` | Mock stream client for tests | stream-kit-types |
 | Cast Kit Core | `packages/cast-kit-core/` | Cast store types, Zod schemas, app-bridge helpers | app-bridge-web |
 | Cast Kit React | `packages/cast-kit-react/` | Headless React hooks for cast state/dispatch | cast-kit-core, app-bridge-react |
 
@@ -80,12 +71,6 @@ notification-kit-core  (depends on app-bridge-web)
   ├── notification-kit-react  (also depends on app-bridge-react)
   └── notification-kit-server
 
-stream-kit-types  (leaf -- no OGS deps)
-  ├── stream-kit-web
-  │     ├── stream-kit-react
-  │     └── stream-kit-testing
-  └── stream-kit-server
-
 cast-kit-core  (depends on app-bridge-web)
   └── cast-kit-react  (also depends on app-bridge-react)
 
@@ -97,12 +82,10 @@ apps/mobile   (depends on shell, app-bridge-native, -react-native, -types, -test
 Build order (Turbo manages automatically):
 
 ```
-Layer 0: app-bridge-types, stream-kit-types
+Layer 0: app-bridge-types
 Layer 1: app-bridge-web, app-bridge-native, app-bridge-testing
-Layer 2: app-bridge-react, app-bridge-react-native, notification-kit-core,
-         stream-kit-web, stream-kit-testing
-Layer 3: notification-kit-react, notification-kit-server,
-         stream-kit-react, stream-kit-server
+Layer 2: app-bridge-react, app-bridge-react-native, notification-kit-core
+Layer 3: notification-kit-react, notification-kit-server
 ```
 
 ## Auth Model
@@ -181,9 +164,6 @@ route → 403 `profile_token_required`.
 | POST | `/api/v1/sessions/:sid/game-token` | its launcher, host or a member | `{ appId }` → `{ token, players, expiresAt }` for the framed TV page (`sid`, players = host + joined, `couch: { sid, label: host's name }`); 403 `not_a_member`, 404 `session_not_found` / `game_not_found`, 503 `game_tokens_unavailable` |
 | GET | `/.well-known/jwks.json` | none | OGS's public game-token key `{ keys: [{ kty: "EC", crv: "P-256", x, y, kid, alg: "ES256", use: "sig" }] }` (cache 5 min) |
 | GET (WS) | `/api/v1/couch/ws?token=&session=` | token in query | launcher: its own session; phone/tablet: host or member of `session`. 400 `missing_session`, 403 `not_a_member`, 404 `session_not_found` |
-| GET | `/api/v1/stream/ready` | none | Post-deploy readiness, booleans only, nothing started: `{ ready, renderer: { url }, realtime, turn }`; 200 ready / 503 not (needs the renderer, `STREAM_SERVER_URL` (Cloud Run), plus Realtime and TURN secrets). `pnpm --filter @open-game-system/api stream:ready <apiBase>` reads it |
-| POST | `/api/v1/stream/start-stream` · `/subscribe` · PUT `/subscribe/:id/answer` · POST `/heartbeat` · GET `/ice-servers` | none (the TV) | The receiver's stream flow (`routes/stream.ts`). Errors carry the contract plus `traceId` (and `details`, the stream server's words): 400 `invalid_body`, 403 `forbidden` (debug-state), 500 `stream_not_configured` / `stream_start_failed` / `publisher_prepare_failed` / `publisher_answer_failed` / `subscribe_failed` / `subscribe_answer_failed`; heartbeat answers `{ ok }` (502 when the server is down, 410 `{ expired }` when it ended the stream) |
-| GET | `/api/v1/stream/health` · `/debug-state` (x-debug-token when `DEBUG_STATE_TOKEN` is set) · `/publisher/state` · POST `/publisher/prepare` · `/publisher/answer` | none | Passthroughs to the stream server's bare path (`STREAM_SERVER_URL`), its status and body unchanged; `/health` cold-starts a scaled-to-zero GPU instance. Every stream route that needs the renderer answers 500 `stream_not_configured` without `STREAM_SERVER_URL` |
 | POST | `/api/v1/client-events` | the app: phone/tablet/launcher token (signature only, no DB); the cast receiver: none | Client wide events (`routes/client-events.ts`): `{ context: { app: mobile\|receiver\|shell, appId?, launchId?, build?, version?, platform?, profileId?, sessionId?, deviceHash? }, events: [{ name, at, level: debug\|info\|warn\|error, attemptId?, durationMs?, error?, errorType?, errorStack?, data?: { k: scalar } }] }` (1–50 events, 64 KB) → 202 `{ accepted }`. Each event is one JSON `console.log` line (`console.error` for level error) in Workers Logs with `message` (`client <app> <name>[: error]`, the SRE agent's fingerprint), `kind: "client_event"`, `source`, `authenticated`, the token's `profileId` (never the body's), `receivedAt`; error events add `errorType` (the client's, else the event name) and `errorStack`, and emails are scrubbed from error text. `token=` values and JWTs redacted, secret-named data keys dropped. 400 `invalid_body`, 413 `payload_too_large`, 401 `missing_auth` (the app without a token) / `invalid_token`, 429 `rate_limited` (`CLIENT_EVENTS_LIMITER`, a Workers rate-limit binding: 120/min per profile, the receiver per IP) |
 | GET | `/api/v1/client-events` | `x-log-key: <CLIENT_LOG_KEY>` (a secret; unset: always 403) | The stored client log (docs/agents/client-log.md): the same lines, kept per launch in the `ClientLog` DO (`CLIENT_LOG`; bucket `launch:<launchId>`, else `profile:<id>` / `receiver:<session>`; last 500 per bucket, 200 buckets in the index, 7-day TTL). `?launch=` or `?bucket=` (+ `limit` 1–500, default 200) → `{ bucket, events }` oldest first; otherwise `{ buckets }` newest first, filtered by `app`, `appId`, `profile`, `device`, `session`. 403 `forbidden`, 400 `invalid_query` (unknown or malformed parameter, e.g. a `key` in the query), 503 `not_configured` |
 | GET | `/api/v1/app-release/:platform` | none | The latest beta build CI shipped for `ios`\|`android` (`routes/app-release.ts`, ADR 2026-10-07 beta distribution) → `{ platform, build, fingerprint, updateUrl, updatedAt }`; the app shows "Update OGS" when its native build number is lower. 404 `not_found` (none recorded), 400 `invalid_platform` |
@@ -294,7 +274,7 @@ All API errors use this shape (no exceptions):
 { "error": { "code": "snake_case_code", "message": "Human readable", "status": 400 } }
 ```
 
-Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `wrong_game`, `unknown_game`, `game_not_found`, `session_not_found`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `stream_not_configured`, `stream_start_failed`, `publisher_prepare_failed`, `publisher_answer_failed`, `subscribe_failed`, `subscribe_answer_failed`, `forbidden`, `internal_error` (500: an unhandled error, logged once by the request's wide event, see [agents/observability.md](agents/observability.md))
+Codes: `invalid_body`, `missing_fields`, `invalid_platform`, `missing_auth`, `invalid_auth`, `invalid_api_key`, `wrong_game`, `unknown_game`, `game_not_found`, `session_not_found`, `invalid_token`, `profile_not_found`, `profile_token_required`, `handle_taken`, `unknown_app`, `upgrade_required`, `missing_session`, `session_not_found`, `not_a_member`, `not_a_friend`, `not_multi_couch`, `invalid_id_token`, `invalid_code`, `login_in_use`, `login_not_found`, `email_unavailable`, `email_failed`, `forbidden`, `internal_error` (500: an unhandled error, logged once by the request's wide event, see [agents/observability.md](agents/observability.md))
 
 ## Database Schema (D1/SQLite)
 
@@ -375,26 +355,15 @@ Game server
 App settings: `GET /me/push-grants`, `DELETE /me/push-grants/:appId`, `POST /me/push-active/:appId`
 (the game opened in the app; its surfaces become the most recent).
 
-### Cast stream (Cloud Run renderer, Realtime SFU)
+### TV rendering (the host phone)
 
-The only renderer is the Cloud Run GPU service `stream-gpu` (image built from
-`services/api/container`), named by the API secret `STREAM_SERVER_URL`. ADR
-[2026-10-06-streaming-cloud-run-only](adrs/2026-10-06-streaming-cloud-run-only.md).
-
-```
-TV receiver (Chromecast)        services/api /api/v1/stream     Cloud Run stream-gpu      Realtime SFU
-    │  POST /start-stream { url }     │                             │                        │
-    │────────────────────────────────►│  POST /publisher/prepare    │                        │
-    │                                 │────────────────────────────►│ headless Chrome loads  │
-    │                                 │◄──── offer + tracks ────────│ the launcher url       │
-    │                                 │  createSession(offer) ─────────────────────────────►│
-    │                                 │  POST /publisher/answer ───►│◄══ WebRTC (TURN) ═════►│
-    │                                 │  addTracks → re-answer ────►│                        │
-    │◄── { publisherSessionId } ──────│                             │                        │
-    │  POST /subscribe, PUT answer ──►│  subscriber session ──────────────────────────────►│
-    │◄═══════════════════════════════ video ════════════════════════════════════════════════│
-    │  POST /heartbeat (~1/min) ─────►│  GET /ping ────────────────►│ (410: stream ended)    │
-```
+The host phone renders every TV. An Apple TV shows the phone's AirPlay external display; a
+Chromecast and "Another screen" (the browser TV) get the phone's off-screen render as a
+peer-to-peer WebRTC stream over the LAN (being specced on `spike/phone-p2p-cast`; until then a
+phone's LOAD_VIEW shows a not-yet state on the Chromecast). A laptop already streams its own tab to
+the Chromecast receiver the same way. There is no cloud renderer: no GPU, no SFU, no
+`/api/v1/stream` routes. ADR
+[2026-10-25-local-rendering-only](adrs/2026-10-25-local-rendering-only.md).
 
 ### Client logs (wide events)
 
@@ -407,7 +376,7 @@ apps/mobile                                   services/api                     W
         │ flush every 5 s / on background,            │ no token, source "receiver"
         │ kept in AsyncStorage for the next launch    │
         └──────────── Bearer profile token ───────────┤
-apps/web/public/receiver.html (receiver.* events) ────┘ to its stream server's API
+apps/web/public/receiver.html (receiver.* events) ────┘ to the API named in LOAD_VIEW (apiUrl)
 ```
 
 `services/client-log.ts` is the app's logger (redaction, hashed ids, offline buffer);

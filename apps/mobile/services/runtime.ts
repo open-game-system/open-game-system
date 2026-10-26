@@ -30,7 +30,6 @@ import { createCastStore } from "./cast-store";
 import { announceSwitch, createCastSwitch } from "./cast-switch";
 import { castCommands, startCastSync } from "./cast-sync";
 import { createCastTrace } from "./cast-trace";
-import { streamServerUrl } from "./cast-view";
 import {
   type ClientLogContext,
   clientEventsSender,
@@ -194,14 +193,9 @@ export const castBackend: CastBackend = combineCastBackends(
 
 const commands = castCommands(() => castBackend.showCastDialog(), castTrace);
 export const castStore = createCastStore(commands);
-/** Metro inlines EXPO_PUBLIC_* only for literal reads. */
-const streamServer = streamServerUrl(
-  { EXPO_PUBLIC_OGS_STREAM: process.env.EXPO_PUBLIC_OGS_STREAM },
-  config.apiBase,
-);
 // LOAD_VIEW names the couch session, so the TV's log lines join the phone's (appState is defined
 // below; this runs only once a session connects).
-startCastSync(castStore, castBackend.sessionManager, commands, streamServer, castTrace, () => ({
+startCastSync(castStore, castBackend.sessionManager, commands, config.apiBase, castTrace, () => ({
   sessionId: appState.getSnapshot().session?.sessionId,
 }));
 castBackend.subscribeDevices((devices) => castStore.dispatch({ type: "DEVICES_UPDATED", devices }));

@@ -1,7 +1,7 @@
 # TV platforms: web launcher where the device can run it, WebRTC cloud stream where it can't; no phone rendering, no HLS
 
 **Date:** 2026-10-04
-**Status:** Accepted (owner)
+**Status:** Accepted (owner); its Stream and Direct modes are superseded by [2026-10-25-local-rendering-only.md](2026-10-25-local-rendering-only.md)
 **Builds on:** [Cast-kit must use app-bridge for state sync](2026-03-14-cast-kit-uses-app-bridge.md) (stream-kit renders game views in the cloud and streams them over WebRTC)
 
 ## Context

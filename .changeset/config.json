@@ -6,7 +6,6 @@
   "linked": [
     ["@open-game-system/app-bridge-*"],
     ["@open-game-system/notification-kit-*"],
-    ["@open-game-system/stream-kit-*"],
     ["@open-game-system/cast-kit-*"]
   ],
   "access": "public",

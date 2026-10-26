@@ -16,11 +16,6 @@
 | `packages/notification-kit-react` | `@open-game-system/notification-kit-react` | React hooks for receiving notifications in-game | `notification-kit-core` |
 | `packages/notification-kit-server` | `@open-game-system/notification-kit-server` | `createOgsNotifier`: a game server sends pushes to push handles (spec §9) | `ogs-protocol` (bundled) |
 | `packages/notification-kit-web` | `@open-game-system/notification-kit-web` | `subscribeOgsPush` for a game's PWA and OGS's `sw.js` (spec §9) | `ogs-protocol` (bundled) |
-| `packages/stream-kit-types` | `@open-game-system/stream-kit-types` | Core type definitions for streaming protocol | None |
-| `packages/stream-kit-web` | `@open-game-system/stream-kit-web` | Client-side WebRTC/PeerJS streaming | `stream-kit-types` |
-| `packages/stream-kit-react` | `@open-game-system/stream-kit-react` | React hooks for stream lifecycle | `stream-kit-types`, `stream-kit-web` |
-| `packages/stream-kit-server` | `@open-game-system/stream-kit-server` | Headless browser renderer (Puppeteer + PeerJS) | `stream-kit-types` |
-| `packages/stream-kit-testing` | `@open-game-system/stream-kit-testing` | Test utilities for stream-kit | `stream-kit-types`, `stream-kit-web` |
 | `packages/cast-kit-core` | `@open-game-system/cast-kit-core` | Cast store types, Zod schemas, app-bridge helpers | `app-bridge-web` |
 | `packages/cast-kit-react` | `@open-game-system/cast-kit-react` | React hooks for cast state and dispatch | `app-bridge-react`, `cast-kit-core` |
 | `packages/ogs-protocol` | `@open-game-system/ogs-protocol` | The OGS app v3 contract: game manifest, identity claims, instances + `playingView`, couch-session reducer, launcher↔game frame messages (zod) | None |
@@ -40,7 +35,7 @@
 |------|----------|---------|----------------------|
 | `apps/mobile` | `@open-game-system/mobile` | Host app (Expo/React Native), WebView + bridge | `app-bridge-native`, `app-bridge-react-native`, `app-bridge-types`, `app-bridge-testing`, `ogs-protocol`, `shell` |
 | `apps/web` | `@open-game-system/web` | opengame.org marketing website (Vite + React + Tailwind) | None |
-| `apps/tv` | `@open-game-system/tv` | OGS TV launcher: the one page the Chromecast stream shows for the whole cast; frames each game's TV page (Vite + React, Vitest + Playwright) | `ogs-protocol` |
+| `apps/tv` | `@open-game-system/tv` | OGS TV launcher: the one page every TV shows for the whole cast; frames each game's TV page (Vite + React, Vitest + Playwright) | `ogs-protocol` |
 | `apps/docs` | `@open-game-system/docs` | Docs site for game developers and their coding agents (ogs-docs.pages.dev): `content/*.md` + `docs/specification.md` rendered to static HTML with `.md` twins, `llms.txt`, `llms-full.txt`; protocol tables generated from the zod schemas; tests fail when profile-kit's exports drift from the reference | `ogs-protocol` |
 | `packages/cli` | `@open-game-system/cli` (bin `ogs`) | Sets up a game's white-label app: `ogs login` (the game's API key), `apps register`, `push credentials`, `doctor` (ADR 2026-10-18-multi-tenant-push) | none (talks to services/api over HTTP) |
 
@@ -51,7 +46,6 @@
 | `examples/expo-bridge-demo` | `@open-game-system/app-bridge-example-expo` | Expo demo of app-bridge | `app-bridge-native`, `app-bridge-react-native`, `app-bridge-types` |
 | `examples/web-game-demo` | `@open-game-system/app-bridge-example-react` | React web game using app-bridge | `app-bridge-web`, `app-bridge-react`, `app-bridge-types` |
 | `examples/shell-single-game` | `@open-game-system/example-shell-single-game` | Fixture: one game as its own Expo app on the shell's config plugin (appId `example-game`). Its Vitest test runs `expo config --type introspect` (no prebuild) and checks links, Chromecast discovery, Sign in with Apple, `extra.ogsShell` and the untouched bundle id; CI: `ci-mobile.yml` | `shell` |
-| `examples/stream-react-demo` | `stream-kit-basic-react-demo` | React demo of stream-kit client | `stream-kit-react`, `stream-kit-types`, `stream-kit-web` |
 
 ## Internal Dependency Resolution
 
@@ -73,21 +67,19 @@ Turbo manages the build graph via `dependsOn: ["^build"]` in `turbo.json`. The e
 
 ```
 Layer 0 (no internal deps):
-  app-bridge-types, stream-kit-types, notification-kit-core, opengame-api
+  app-bridge-types, notification-kit-core, opengame-api
 
 Layer 1:
   app-bridge-web, app-bridge-native, app-bridge-testing
-  stream-kit-web, stream-kit-server
   notification-kit-react, notification-kit-server, notification-kit-web
 
 Layer 2:
   app-bridge-react, app-bridge-react-native
-  stream-kit-react, stream-kit-testing
   cast-kit-core, profile-kit, shell
 
 Layer 3:
   cast-kit-react
-  opengame-app, expo-bridge-demo, web-game-demo, stream-react-demo
+  opengame-app, expo-bridge-demo, web-game-demo
 ```
 
 Turbo parallelizes within each layer automatically.

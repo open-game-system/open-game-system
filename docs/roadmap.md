@@ -29,7 +29,7 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 
 - **Several households, next:** deploy (API, launcher, opengame.org `/play`, Night Flight); a household setting for the couch label (now the host's name); real pushes need devices registered with Expo; join a room mid-game (Night Flight seats only in the lobby); Trivia Jam as the second multiCouch game.
 
-- **One API for streaming (done 2026-10-06):** `opengame-api` streams through Cloud Run `stream-gpu` (repo variable `STREAM_SERVER_URL`, applied by the API deploy workflow; TURN from the org secrets). `pnpm --filter @open-game-system/api stream:ready <api>` checks it without starting a GPU. App builds no longer need `EXPO_PUBLIC_OGS_STREAM`; the PR-5 preview and its `codeflare-containers-pr-5` app can be retired.
+- **Local rendering only (2026-10-25):** the cloud GPU renderer, stream-kit and `/api/v1/stream` are removed ([ADR](adrs/2026-10-25-local-rendering-only.md)). The host phone renders every TV: AirPlay unchanged; Chromecast and "Another screen" get a peer-to-peer WebRTC stream from the phone over the LAN (specced on `spike/phone-p2p-cast`). Until then phones can't show games on a Chromecast.
 
 - **Mid-game invites (planned):** the game's `ogs:invite` message and a phone's Invite button show a small QR card in the manifest's `inviteCorner`, never over the focal area. Contract: `specification.md` §8. Rationale: AirConsole's in-game join, without games drawing codes.
 - **Transfer link (planned):** "Play on TV with OGS" on a game's own site -> `opengame.org/play/<appId>?room=<room>`. Rationale: Rocketcrab's transfer link; it reuses the friend-invite link from multi-couch. Several households in one room is already specified: `exec-plans/active/2026-10-05-multi-couch-handoff.md`.
@@ -41,8 +41,7 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 - **Developer setting:** test your own game (the catalogue is app config until then).
 - **Amazon Fire TV app** (direct: thin WebView app; Matter Casting or TV code).
 - **Samsung / LG TV web apps** (direct).
-- **Apple TV app** (stream): native tvOS launcher shell + WebRTC player; Siri Remote → session moves.
-- **Cloud rendering cost model:** stream only while someone is on the couch; idle shutdown; hourly cost per household before turning it on.
+- **Apple TV app**: native tvOS launcher shell rendering the launcher on the device; Siri Remote → session moves. (Today: AirPlay from the phone.)
 - **Launcher polish:** per-game focal anchors so focused cards never cover a game's subject; crisp focus crossfades; Hearthisle art kit if it joins the catalogue.
 
 ## Not planned

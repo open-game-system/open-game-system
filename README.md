@@ -2,7 +2,7 @@
 
 Add push notifications and TV casting to your web game in minutes. No native code required.
 
-The Open Game System (OGS) lets web game developers tap into native mobile capabilities through the OGS companion app. Your players install the app, open your game in it, and you get access to push notifications, Google Cast, and cloud rendering — all through lightweight JavaScript SDKs.
+The Open Game System (OGS) lets web game developers tap into native mobile capabilities through the OGS companion app. Your players install the app, open your game in it, and you get access to push notifications and TV casting (Google Cast, AirPlay) — all through lightweight JavaScript SDKs.
 
 ## What You Can Do
 
@@ -111,17 +111,6 @@ function GameUI() {
 }
 ```
 
-### Cloud Streaming (coming soon)
-
-Render your game in the cloud and stream it to any screen via WebRTC.
-
-```tsx
-import { createStreamClient } from "@open-game-system/stream-kit-web";
-
-const stream = createStreamClient({ brokerUrl: "https://api.opengame.org/stream" });
-const session = await stream.requestStream({ url: "https://my-game.com", quality: "1080p" });
-```
-
 ## Packages
 
 Install only what you need:
@@ -131,8 +120,6 @@ Install only what you need:
 | `@open-game-system/notification-kit-react` | React hooks for push notifications | `pnpm add @open-game-system/notification-kit-react` |
 | `@open-game-system/notification-kit-server` | Server-side notification client | `pnpm add @open-game-system/notification-kit-server` |
 | `@open-game-system/cast-kit` | TV casting (Google Cast) | `pnpm add @open-game-system/cast-kit` |
-| `@open-game-system/stream-kit-react` | React streaming components | `pnpm add @open-game-system/stream-kit-react` |
-| `@open-game-system/stream-kit-web` | Streaming client (no React) | `pnpm add @open-game-system/stream-kit-web` |
 
 Lower-level packages (you probably don't need these directly):
 
@@ -143,7 +130,6 @@ Lower-level packages (you probably don't need these directly):
 | `@open-game-system/app-bridge-react` | React bindings for the bridge |
 | `@open-game-system/cast-kit/mock` | Mock cast client for testing |
 | `@open-game-system/app-bridge-testing` | Mock bridge for testing |
-| `@open-game-system/stream-kit-testing` | Mock stream client for testing |
 
 ## How It Works
 
@@ -151,13 +137,12 @@ Lower-level packages (you probably don't need these directly):
 Your Web Game (in OGS app WebView)
     │
     ├── notification-kit-react → detects OGS, reads device ID
-    ├── cast-kit/react → cast button, device picker, controller mode
-    └── stream-kit-react → cloud-rendered video stream
+    └── cast-kit/react → cast button, device picker, controller mode
            │
            ▼
     OGS Companion App (native)
     │   Hosts your game in a WebView
-    │   Handles push tokens, Google Cast, WebRTC
+    │   Handles push tokens, Google Cast, AirPlay
     │
     ▼
 Your Game Server

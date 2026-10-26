@@ -40,9 +40,9 @@ Feature: Cast logs from the phone and the TV
     And when the app goes to the background it flushes, and keeps what it could not send for the next launch
 
   Scenario: The TV receiver logs without credentials
-    When the receiver gets LOAD_VIEW, starts or fails to start the stream, gets a heartbeat 410, or ends the cast
+    When the receiver gets LOAD_VIEW, can't show the view yet (receiver.view.unsupported), or ends the cast
     Or it takes, loses or lets go of what keeps the TV awake (receiver.keepawake), or the page hides, shows or goes (receiver.visibility)
-    Then it POSTs those events without a token to its stream server's API (/api/v1/client-events)
+    Then it POSTs those events without a token to the API LOAD_VIEW names (apiUrl, else production; /api/v1/client-events)
     And the API logs them as source "receiver", authenticated false
     And they carry one run id per receiver and only hosts, never the view URL
 
@@ -59,5 +59,5 @@ Feature: Cast logs from the phone and the TV
     And every receiver event after it carries them as phoneAttemptId and sessionId
     And the receiver logs receiver.launched (its version) once, receiver.sender (connected or
       disconnected, with the count), LOAD_VIEW received once per distinct view and
-      receiver.load_view.ignored (why: duplicate) for a repeat, and whether a stream is playing on
+      receiver.load_view.ignored (why: duplicate) for a repeat, and whether a picture is playing on
       its keep-awake and visibility events

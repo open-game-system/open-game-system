@@ -37,8 +37,8 @@ describe("TV receiver, a laptop's cast (PEER_OFFER)", {
     expect(frame).toEqual({ width: 640, height: 360 });
     await until(async () => !(await rx.status()).overlay, "the overlay to clear");
     await expect(browser.locator("#hud")).toBeAttached({ attached: false });
-    // A laptop's stream needs no cloud: nothing went to a stream server, and the asking stopped.
-    expect(rx.stream.calls).toEqual([]);
+    // A laptop's stream needs no cloud: no request left the page (rx.blocked below), and the
+    // asking stopped.
     const asked = (await rx.ofType("REQUEST_VIEW")).length;
     await new Promise((r) => setTimeout(r, 1700));
     expect((await rx.ofType("REQUEST_VIEW")).length).toBe(asked);

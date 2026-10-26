@@ -67,7 +67,6 @@ function makeRuntime() {
     signInProviders: [],
     gameStores: castGameStores(
       createFakeCastBackend({ mode: "none", loadUrl: "https://fake.test/load", fetch: net.fetch }),
-      { streamServerUrl: "https://stream.test" },
     ),
   });
   return { runtime, calls: net.calls };

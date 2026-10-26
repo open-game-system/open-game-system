@@ -3,7 +3,9 @@
 ## Status
 
 Accepted (owner direction: roadmap "Web + browser TVs (direct mode)", 2026-10-04; built on the
-first-time funnel branch).
+first-time funnel branch). Its rendering part (the screen runs the launcher) is superseded by
+[2026-10-25-local-rendering-only.md](2026-10-25-local-rendering-only.md): the screen plays the
+host phone's P2P stream. Pairing through the API stands.
 
 ## Context
 

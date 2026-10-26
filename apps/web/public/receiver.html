@@ -104,30 +104,21 @@
 
   <div id="status-overlay">
     <div class="spinner" id="spinner"></div>
-    <div class="status-text" id="status-text">Connecting to game stream...</div>
+    <div class="status-text" id="status-text">Waiting for the game...</div>
   </div>
 
-  <!-- Google Cast receiver SDK: lets the sender app tell us which game page to stream. -->
+  <!-- Google Cast receiver SDK: lets the sender app tell us which game page to show. -->
   <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
   <script>
     /**
      * OGS Cast Receiver
      *
-     * Minimal receiver page for Chromecast/AirPlay.
-     * Uses Cloudflare Realtime SFU via the OGS API for WebRTC streaming.
-     * No PeerJS — all signaling goes through the backend.
-     *
-     * Launch params (URL query string):
-     *   streamServerUrl — Base URL of the OGS API or stream server
-     *   viewUrl         — URL to render on the stream server
-     *   publisherSessionId — SFU publisher session ID (if already started)
-     *
-     * Legacy params:
-     *   streamUrl       — Alias for streamServerUrl
+     * Receiver page for Chromecast. There is no cloud renderer (ADR 2026-10-25: the host phone renders).
      *
      * Sender messages (urn:x-cast:org.opengame.view):
-     *   LOAD_VIEW {viewUrl, streamServerUrl} — the cloud renders viewUrl on a GPU and streams it (phones).
+     *   LOAD_VIEW {viewUrl, apiUrl}          — a phone's TV page; apiUrl is the OGS API this page logs to.
      *     (+ attemptId, sessionId: the phone's cast attempt and couch session, logged as phoneAttemptId / sessionId)
+     *     The phone's P2P stream of that page is not built yet (spike/phone-p2p-cast): the TV says so.
      *   PEER_OFFER {sdp, iceServers, hudUrl?} — a laptop streams its picture straight to this TV over
      *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR, also
      *                                          later if the link fails or no picture arrives in time).
@@ -140,12 +131,9 @@
      *   GET_STATE                            — diagnostics (includes the HUD iframe's state).
      * To senders: REQUEST_VIEW {accepts: ['view', 'peer', 'peer-canvas']} until an offer or view arrives.
      * A failure never stops this app (that sends the TV back to its home screen): it shows what went
-     * wrong and tells the sender, which may retry or switch to the cloud view.
+     * wrong and tells the sender, which may retry.
      * ?signal=test replaces Cast messaging with window.__ogsSignalIn/__ogsSignalOut (desktop tests).
      */
-
-    // Starting a stream (cloud browser launch + page load + SFU) takes ~45–90s; only give up well after that.
-    const CONNECTION_TIMEOUT_MS = 120000;
 
     // DOM elements
     const video = document.getElementById('stream-video');
@@ -155,38 +143,23 @@
 
     // State
     let pc = null;
-    let connectionTimer = null;
     let isConnected = false;
 
     const VIEW_NAMESPACE = 'urn:x-cast:org.opengame.view';
-    const DEFAULT_STREAM_SERVER = 'https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream';
-    const PLAYOUT_BUFFER_MS = 200;
     const PEER_PLAYOUT_BUFFER_MS = 60;
     const NO_SENDER_STOP_MS = 20 * 60 * 1000;
     const MAX_CAST_MS = 3 * 60 * 60 * 1000;
     let receiverSupports = null;
 
-    /** URL params (for direct testing) override everything; otherwise the sender's LOAD_VIEW decides. */
-    let launch = null;
-    function getLaunchParams() {
-      if (launch) return launch;
-      const params = new URLSearchParams(window.location.search);
-      return {
-        streamServerUrl: params.get('streamServerUrl') || params.get('streamUrl') || DEFAULT_STREAM_SERVER,
-        viewUrl: params.get('viewUrl') || '',
-        publisherSessionId: params.get('publisherSessionId') || '',
-      };
-    }
-
     /**
-     * Wide events: this receiver's key steps go to POST /api/v1/client-events on its stream
-     * server's API (Workers Logs), with no credentials (it has none; the API marks them
+     * Wide events: this receiver's key steps go to POST /api/v1/client-events on the OGS API the
+     * phone names in LOAD_VIEW (apiUrl, else production; Workers Logs), with no credentials (it has none; the API marks them
      * unauthenticated). Batched every few seconds, at once when the cast ends or fails. Never the
      * view URL (its query carries the launcher token): only hosts.
      * Joining the phone's lines: each LOAD_VIEW names the phone's cast attempt and the couch session;
      * every event after it carries them (phoneAttemptId, sessionId). attemptId is this run's own id.
      */
-    const RX_VERSION = 'receiver-2026-10-10b';
+    const RX_VERSION = 'receiver-2026-10-25';
     const DEFAULT_API = 'https://opengame-api.jonathanrmumm.workers.dev';
     const rxRun = `rx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const rxPlatform = /CrKey/.test(navigator.userAgent) ? 'chromecast' : 'browser';
@@ -200,9 +173,10 @@
     function hostOf(url) {
       try { return new URL(url).host; } catch (e) { return 'unknown'; }
     }
-    /** The OGS API behind a stream server URL (<api>/api/v1/stream), else the production API. */
-    function apiOf(streamServerUrl) {
-      const m = String(streamServerUrl || '').match(/^(https?:\/\/[^/]+)\/api\/v1\/stream\/?$/);
+    /** The OGS API from the last LOAD_VIEW (an http(s) origin), else the production API. */
+    let rxApi = DEFAULT_API;
+    function apiOf(apiUrl) {
+      const m = String(apiUrl || '').match(/^(https?:\/\/[^/]+)\/?$/);
       return m ? m[1] : DEFAULT_API;
     }
     function rxLog(name, fields = {}) {
@@ -220,7 +194,7 @@
     function rxFlush() {
       clearTimeout(rxFlushTimer);
       rxFlushTimer = null;
-      const api = apiOf(getLaunchParams().streamServerUrl);
+      const api = rxApi;
       while (rxEvents.length) {
         const events = rxEvents.splice(0, 50);
         fetch(`${api}/api/v1/client-events`, {
@@ -233,7 +207,7 @@
     rxLog('launched', { data: { version: RX_VERSION, platform: rxPlatform } });
 
     /**
-     * Keep the TV awake while a stream plays (owner, 2026-10-10: Google TV's screensaver came on a
+     * Keep the TV awake while a picture plays (owner, 2026-10-10: Google TV's screensaver came on a
      * few minutes into a game, and the cast died under it). The picture is a WebRTC MediaStream in a
      * plain <video>, which the device doesn't count as media playing, and `disableIdleTimeout` only
      * stops Cast from closing this app. So, while a stream plays:
@@ -318,7 +292,7 @@
         (e) => { awakeClipOn = false; logAwake('video', false, 'start', `${e && e.name}: ${e && e.message}`); },
       );
     }
-    /** The stream stopped (ended, failed or replaced): let the TV sleep again. */
+    /** The picture stopped (ended, failed or replaced): let the TV sleep again. */
     function stopKeepAwake() {
       if (!awakeWanted) return;
       awakeWanted = false;
@@ -381,54 +355,8 @@
       keepAwake();
     });
 
-    function startConnectionTimeout() {
-      connectionTimer = setTimeout(() => {
-        if (!isConnected) {
-          setStatus('Connection timed out', false);
-          cleanup();
-        }
-      }, CONNECTION_TIMEOUT_MS);
-    }
-
-    function clearConnectionTimeout() {
-      if (connectionTimer) {
-        clearTimeout(connectionTimer);
-        connectionTimer = null;
-      }
-    }
-
-    // Heartbeat: keeps the stream server up for as long as this TV is casting. The video goes to
-    // the SFU, not through the server, so without pings it looks idle mid-game; when the cast ends
-    // the pings stop and the (GPU) server can scale to zero about 15 minutes later.
-    const HEARTBEAT_MS = 60000;
-    let heartbeatTimer = null;
-    function startHeartbeat(baseUrl, streamSessionId) {
-      stopHeartbeat();
-      heartbeatTimer = setInterval(() => {
-        fetch(`${baseUrl}/heartbeat`, { method: 'POST', headers: { 'x-stream-session-id': streamSessionId } })
-          .then((res) => {
-            // 410: the server ended a stream that ran past its maximum lifetime or saw no player
-            // activity. Stop pinging (so the GPU can scale to zero) and close the receiver on the TV.
-            if (res.status === 410) {
-              rxLog('heartbeat.ended', { level: 'warn', data: { status: 410 } });
-              endCast('the stream server ended the stream');
-            }
-          })
-          .catch((e) => {
-            console.warn('[Receiver] heartbeat failed', e);
-            rxLog('heartbeat.failed', { level: 'warn', error: e?.message || e });
-          });
-      }, HEARTBEAT_MS);
-    }
-    function stopHeartbeat() {
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      heartbeatTimer = null;
-    }
-
     /**
-     * Ends this cast: the stream stops and the heartbeat with it (the stream server's signal to scale
-     * to zero), the TV says so, then the Cast app closes. The heartbeat stops here, not by the page
-     * closing, so a stop that leaves the page open never keeps a GPU up.
+     * Ends this cast: the picture stops, the TV says so, then the Cast app closes.
      */
     function endCast(why) {
       console.log('[Receiver] Ending the cast:', why);
@@ -442,9 +370,7 @@
     }
 
     function cleanup() {
-      clearConnectionTimeout();
       stopStallWatch();
-      stopHeartbeat();
       stopKeepAwake();
       if (pc) {
         pc.close();
@@ -452,23 +378,17 @@
       }
     }
 
-    /** Plays incoming tracks (from the SFU or straight from a laptop) in the <video>. */
+    /** Plays a laptop's incoming tracks in the <video>. */
     function attachTrack(event) {
       console.log('[Receiver] Received remote track:', event.track.kind);
       // Playout buffer so a packet retransmitted after Wi-Fi loss arrives in time (see ?buffer=).
-      // A laptop on the same Wi-Fi retransmits in a few ms, so its stream needs far less buffer.
-      const defaultMs = currentViewUrl === 'laptop' ? PEER_PLAYOUT_BUFFER_MS : PLAYOUT_BUFFER_MS;
-      const bufferMs = Number(new URLSearchParams(location.search).get('buffer') ?? defaultMs);
+      // A laptop on the same Wi-Fi retransmits in a few ms, so it needs little.
+      const bufferMs = Number(new URLSearchParams(location.search).get('buffer') ?? PEER_PLAYOUT_BUFFER_MS);
       if ('jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = bufferMs;
       else if ('playoutDelayHint' in event.receiver) event.receiver.playoutDelayHint = bufferMs / 1000;
       receiverSupports = { jitterBufferTarget: 'jitterBufferTarget' in event.receiver, playoutDelayHint: 'playoutDelayHint' in event.receiver };
       // A laptop's tracks arrive with its offer, before any picture can: keep "Connecting to the laptop"
       // up until the video actually plays (the 'playing' handler), never a black screen meanwhile.
-      const fromLaptop = currentViewUrl === 'laptop';
-      if (!fromLaptop) {
-        clearConnectionTimeout();
-        isConnected = true;
-      }
 
       // Only set srcObject once — multiple tracks arrive rapidly
       if (!video.srcObject) {
@@ -482,7 +402,6 @@
         // Add audio track to existing stream
         video.srcObject.addTrack(event.track);
       }
-      if (!fromLaptop) hideOverlay();
     }
 
     function newPeerConnection(iceServers) {
@@ -495,16 +414,8 @@
         if (conn.connectionState === 'connected') {
           isConnected = true;
           hideOverlay();
-        } else if (currentViewUrl === 'laptop') {
+        } else {
           onPeerConnectionState(conn.connectionState);
-        } else if (conn.connectionState === 'disconnected' || conn.connectionState === 'failed') {
-          isConnected = false;
-          // 'disconnected' can recover on its own; only a failed connection ends the heartbeat.
-          if (conn.connectionState === 'failed') {
-            stopHeartbeat();
-            stopKeepAwake();
-          }
-          setStatus('Cast session ended', false);
         }
       };
       return conn;
@@ -652,7 +563,7 @@
 
     /**
      * Laptop cast: a laptop's Chrome renders the game itself and streams its tab straight to this
-     * TV (WebRTC over the LAN; TURN only as a fallback). No cloud browser, no GPU, no SFU: the offer
+     * TV (WebRTC over the LAN; TURN only as a fallback). The offer
      * and answer travel over the Cast message channel. `reply` sends to the laptop that offered.
      */
     async function startPeer(offer, reply) {
@@ -662,7 +573,6 @@
         video.srcObject = null;
       }
       isConnected = false;
-      launch = null;
       started = true;
       currentViewUrl = 'laptop';
       peerReply = reply;
@@ -686,148 +596,6 @@
       } catch (err) {
         if (conn !== pc) return;
         peerFailed(String(err && err.message || err), 'Unable to connect to the laptop');
-      }
-    }
-
-    async function startReceiving() {
-      const { streamServerUrl, viewUrl, publisherSessionId } = getLaunchParams();
-
-      if (!streamServerUrl) {
-        setStatus('Unable to connect to game stream', false);
-        console.error('[Receiver] No streamServerUrl provided');
-        return;
-      }
-
-      console.log('[Receiver] Stream server:', streamServerUrl);
-      console.log('[Receiver] View URL:', viewUrl);
-      console.log('[Receiver] Publisher session ID:', publisherSessionId);
-
-      setStatus('Connecting to game stream...');
-      startConnectionTimeout();
-      const t0 = Date.now();
-
-      try {
-        const baseUrl = streamServerUrl.replace(/\/$/, '');
-
-        // Step 1: Fetch ICE servers from stream server
-        let iceServers = [{ urls: ['stun:stun.l.google.com:19302'] }];
-        try {
-          const iceEndpoint = `${baseUrl}/ice-servers`;
-          const iceRes = await fetch(iceEndpoint);
-          if (iceRes.ok) {
-            const iceData = await iceRes.json();
-            if (Array.isArray(iceData.iceServers)) {
-              iceServers = iceData.iceServers;
-              console.log('[Receiver] Got ICE servers from stream server:', iceServers);
-            }
-          }
-        } catch (e) {
-          console.log('[Receiver] Could not fetch ICE servers, using defaults');
-        }
-
-        // Step 2: If no publisherSessionId, start the stream first
-        let pubSessionId = publisherSessionId;
-        if (!pubSessionId && viewUrl) {
-          setStatus('Starting stream...');
-          // A session id gives this TV its own stream container (a fresh browser), instead of the
-          // shared singleton that other casts may still be using.
-          const streamSessionId = 'rx-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
-          console.log('[Receiver] Stream session:', streamSessionId);
-          startHeartbeat(baseUrl, streamSessionId);
-          const startRes = await fetch(`${baseUrl}/start-stream`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-stream-session-id': streamSessionId },
-            body: JSON.stringify({ url: viewUrl })
-          });
-
-          if (!startRes.ok) {
-            const errText = await startRes.text().catch(() => 'unknown error');
-            throw new Error(`Start stream failed: ${startRes.status}: ${errText}`);
-          }
-
-          const startData = await startRes.json();
-          console.log('[Receiver] Stream started:', startData);
-
-          if (startData.status !== 'success' || !startData.publisherSessionId) {
-            throw new Error(startData.error || 'Start stream returned no publisherSessionId');
-          }
-
-          pubSessionId = startData.publisherSessionId;
-        }
-
-        if (!pubSessionId) {
-          throw new Error('No publisherSessionId available');
-        }
-
-        console.log('[Receiver] Using publisher session:', pubSessionId);
-        setStatus('Subscribing to stream...');
-
-        // Step 3: Subscribe to get SFU's SDP offer
-        const subRes = await fetch(`${baseUrl}/subscribe`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            publisherSessionId: pubSessionId,
-            trackNames: ['cast-video', 'cast-audio']
-          })
-        });
-
-        if (!subRes.ok) {
-          const errText = await subRes.text().catch(() => 'unknown error');
-          throw new Error(`Subscribe failed: ${subRes.status}: ${errText}`);
-        }
-
-        const subData = await subRes.json();
-        console.log('[Receiver] Subscribed, got SFU offer');
-        const { subscriberSessionId, sessionDescription: sfuOffer } = subData;
-
-        // Step 4: Create RTCPeerConnection and set remote offer
-        pc = newPeerConnection(iceServers);
-
-        // Set the SFU's offer as remote description
-        await pc.setRemoteDescription(new RTCSessionDescription(sfuOffer));
-
-        // Create answer and wait for ICE gathering to complete
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        // Wait for ICE candidates to be gathered (needed for TURN/relay). Timeout after 5s — send what we have
-        await iceGathered(pc, 5000);
-
-        // Use the final local description (includes gathered ICE candidates)
-        const finalAnswer = pc.localDescription;
-
-        // Step 5: Send answer back to backend
-        setStatus('Establishing connection...');
-        const answerRes = await fetch(`${baseUrl}/subscribe/${subscriberSessionId}/answer`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionDescription: {
-              type: finalAnswer.type,
-              sdp: finalAnswer.sdp
-            }
-          })
-        });
-
-        if (!answerRes.ok) {
-          const errText = await answerRes.text().catch(() => 'unknown error');
-          throw new Error(`Answer failed: ${answerRes.status}: ${errText}`);
-        }
-
-        console.log('[Receiver] Answer sent, waiting for media...');
-        rxLog('stream.started', { durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) } });
-        // Only show waiting status if tracks haven't arrived yet
-        if (!isConnected) {
-          setStatus('Waiting for video stream...');
-        }
-
-      } catch (err) {
-        console.error('[Receiver] Failed to start stream:', err);
-        rxLog('stream.failed', { error: err?.message || err, durationMs: Date.now() - t0, data: { stream: hostOf(streamServerUrl) }, now: true });
-        // Nothing is streaming: stop the heartbeat too, or it keeps the (GPU) stream server up.
-        cleanup();
-        setStatus('Unable to connect to game stream', false);
       }
     }
 
@@ -862,22 +630,26 @@
 
     let started = false;
     let currentViewUrl = null;
-    function begin(params) {
-      if (started && params.viewUrl === currentViewUrl) return;
+    /**
+     * A phone's TV page (LOAD_VIEW). No cloud renderer (ADR 2026-10-25), and the phone's P2P stream
+     * of it is not built yet: the TV says so instead of a black screen. Taking it still stops the
+     * REQUEST_VIEW handshake and ends a laptop's picture, as any new view does.
+     */
+    function showView(viewUrl) {
       if (started) {
         cleanup();
         isConnected = false;
         video.srcObject = null;
       }
-      launch = params;
       started = true;
-      currentViewUrl = params.viewUrl;
-      startReceiving();
+      currentViewUrl = viewUrl;
+      rxLog('view.unsupported', { level: 'warn', data: { view: hostOf(viewUrl) }, now: true });
+      setStatus("This TV can't show games from the OGS app yet", false);
     }
 
     /**
-     * What this receiver can show: a page the cloud renders (LOAD_VIEW), a laptop's tab (PEER_OFFER),
-     * or a laptop's 3D canvas with the game's HUD page drawn here on top (PEER_OFFER with hudUrl).
+     * What this receiver can show: a phone's page (LOAD_VIEW, not shown yet), a laptop's tab
+     * (PEER_OFFER), or a laptop's 3D canvas with the game's HUD page drawn here on top (PEER_OFFER with hudUrl).
      */
     const ACCEPTS = ['view', 'peer', 'peer-canvas'];
     /** A sender has spoken to us: it is deciding what to show, so don't fall back to the default view. */
@@ -897,11 +669,12 @@
           rxLog('load_view.ignored', { data: { why: 'duplicate', view } });
           return;
         }
-        rxLog('load_view.received', { data: { view, stream: hostOf(data.streamServerUrl || DEFAULT_STREAM_SERVER) } });
+        rxApi = apiOf(data.apiUrl);
+        rxLog('load_view.received', { data: { view, api: hostOf(rxApi) } });
         clearPeerTimer();
         peerReply = null;
         removeHud();
-        begin({ viewUrl: data.viewUrl, streamServerUrl: data.streamServerUrl || DEFAULT_STREAM_SERVER, publisherSessionId: '' });
+        showView(data.viewUrl);
       } else if (data.type === 'PEER_OFFER' && typeof data.sdp === 'string') {
         startPeer(data, reply);
       } else if (data.type === 'HUD_MESSAGE' && currentViewUrl === 'laptop') {
@@ -928,11 +701,8 @@
       window.__ogsSignalIn = (data) => onViewMessage(typeof data === 'string' ? JSON.parse(data) : data, out);
       const askTimer = setInterval(() => (started ? clearInterval(askTimer) : out({ type: 'REQUEST_VIEW', accepts: ACCEPTS })), 500);
       setStatus('Waiting for the game...');
-    } else if (urlParams.get('viewUrl')) {
-      // Opened directly with a view (testing).
-      begin(getLaunchParams());
     } else if (!hasCast) {
-      // Not on a Cast device and nothing to show: say so rather than stream an empty view.
+      // Not on a Cast device and nothing to show: say so.
       setStatus('Cast to this TV from the OGS app');
     } else {
       const context = cast.framework.CastReceiverContext.getInstance();
@@ -944,8 +714,8 @@
         if (data && data.type === 'PEER_OFFER') console.log('[Receiver] From sender:', data.type);
         else if (data && data.type !== 'HUD_MESSAGE' && data.type !== 'GET_STATE') console.log('[Receiver] From sender:', data);
         if (data && data.type === 'GET_STATE') {
-          // Diagnostics for a sender: is the stream actually decoding video/audio on this device?
-          // (A probe is a sender too: never start the default cloud view under it.)
+          // Diagnostics for a sender: is the picture actually decoding video/audio on this device?
+          // (A probe is a sender too.)
           senderSpoke = true;
           reportState(event.senderId);
           return;
@@ -955,13 +725,13 @@
         });
       });
       const options = new cast.framework.CastReceiverOptions();
-      options.disableIdleTimeout = true; // we play a WebRTC stream, not Cast media
+      options.disableIdleTimeout = true; // we play a laptop's WebRTC picture, not Cast media
       options.customNamespaces = { [VIEW_NAMESPACE]: cast.framework.system.MessageType.JSON };
       // Handshake: the sender's first LOAD_VIEW can arrive before this page is listening (cold start),
       // so ask for the view once ready, when any sender connects, and keep asking until one arrives.
       const requestView = (senderId) => {
         if (started) return;
-        // `accepts` lets a laptop sender stream its own tab instead of asking the cloud to render.
+        // `accepts` lets a laptop sender stream its own tab instead of sending a page.
         try { context.sendCustomMessage(VIEW_NAMESPACE, senderId, { type: 'REQUEST_VIEW', accepts: ACCEPTS }); } catch (e) { /* no senders yet */ }
       };
       context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, (e) => requestView(e.senderId));
@@ -969,8 +739,8 @@
       const logSenders = (state) => rxLog('sender', { data: { state, count: context.getSenders().length } });
       context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, () => logSenders('connected'));
       context.addEventListener(cast.framework.system.EventType.SENDER_DISCONNECTED, () => logSenders('disconnected'));
-      // Never stream to an empty room: the cast keeps a cloud GPU running (and billing) until this
-      // page closes. Stop 20 min after the last phone disconnects, and after 3 hours regardless.
+      // Never play to an empty room: stop 20 min after the last phone disconnects, and after 3 hours
+      // regardless.
       let noSenderTimer = null;
       context.addEventListener(cast.framework.system.EventType.SENDER_CONNECTED, () => {
         clearTimeout(noSenderTimer);
@@ -986,7 +756,7 @@
       context.start(options);
       setStatus('Waiting for the game...');
       // No default page: the TV only shows what a sender asks for (owner, 2026-10-05: a slow phone
-      // made it open an old default, Trivia Jam, on a cloud stream). It keeps asking until one does.
+      // made it open an old default, Trivia Jam). It keeps asking until one does.
     }
   </script>
 </body>

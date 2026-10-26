@@ -2,7 +2,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { fakeContext } from "../__fixtures__/fake-context";
 import { castGameStores } from "../cast-stores";
-import { streamServerUrl } from "../cast-view";
 import { askToNotify } from "../consent-sheet";
 import { defaultShellDeps } from "../default-deps";
 import { ogsGameStores } from "../game-stores";
@@ -161,7 +160,6 @@ describe("defaultShellDeps (a real device's dependencies)", () => {
     const stores = defaultShellDeps(config).gameStores?.(ctx);
     expect(stores).toEqual({ cast: mockCastStore, profile: mockProfileStore });
     expect(castGameStores).toHaveBeenCalledWith("backend", {
-      streamServerUrl: streamServerUrl({}, config.apiBase),
       browserTvStorage: AsyncStorage,
     });
     expect(createGoogleCastBackend).toHaveBeenCalled();

@@ -1,19 +1,18 @@
 // The Cast receiver page (apps/web/public/receiver.html) in a real browser, with everything around
-// it faked: the Google Cast receiver SDK (a stub with a test handle, window.__cast), the stream
-// server (Node answers every route; its "SFU" is a real RTCPeerConnection in a second page, so the
-// receiver plays real frames), a laptop sender (another page, loopback WebRTC) and a HUD page.
-// Every other request is aborted and recorded, so no test reaches a real API, TURN or GPU.
+// it faked: the Google Cast receiver SDK (a stub with a test handle, window.__cast), the OGS API's
+// client-events route (recorded, on any host), a laptop sender (another page, loopback WebRTC, so the
+// receiver plays real frames) and a HUD page. Every other request is aborted and recorded in
+// `blocked`, so no test reaches a real API or TURN, and a request to any renderer shows up there.
 import { readFileSync } from "node:fs";
-import { type Browser, surfaceOf, type WebRoute } from "@e2e-dev/web";
+import { type Browser, surfaceOf } from "@e2e-dev/web";
 import type { Page } from "playwright";
-import { z } from "zod";
 import { webEngine } from "../e2e.config";
 
 export const ORIGIN = "https://receiver.ogs.test";
-export const STREAM = "https://stream.ogs.test/api/v1/stream";
-export const OTHER_STREAM = "https://stream-two.ogs.test/api/v1/stream";
-/** The receiver's own default stream server (production): answered here by the mock, never reached. */
-export const DEFAULT_STREAM = "https://opengame-api.jonathanrmumm.workers.dev/api/v1/stream";
+/** The OGS API a phone names in LOAD_VIEW (apiUrl). */
+export const API = "https://api.ogs.test";
+/** The receiver's own default API (production): its client-events route is answered here, never reached. */
+export const DEFAULT_API = "https://opengame-api.jonathanrmumm.workers.dev";
 export const HUD_URL = "https://hud.ogs.test/hud.html";
 const CAST_SDK = "https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js";
 const RECEIVER_FILE = new URL("../../apps/web/public/receiver.html", import.meta.url);
@@ -130,18 +129,6 @@ export interface Sent {
   payload: { type: string; [key: string]: unknown };
 }
 
-/** One request to a (mock) stream server. */
-export interface StreamCall {
-  base: string;
-  path: string;
-  method: string;
-  session: string | undefined;
-  body: unknown;
-}
-
-export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
-export type Reply = { status: number; json: Json };
-
 declare global {
   interface Window {
     __cast: {
@@ -173,7 +160,7 @@ declare global {
 }
 
 /**
- * A page that publishes a moving canvas over WebRTC: the stream server's SFU or a laptop sender.
+ * A page that publishes a moving canvas over WebRTC: a laptop sender.
  * `offerPeer()` makes a fresh connection and returns its complete offer (host candidates only:
  * both pages run in this browser, so loopback ICE connects with no STUN or TURN).
  */
@@ -212,21 +199,6 @@ async function publisher(page: Page): Promise<void> {
   });
 }
 
-export interface StreamServer {
-  calls: StreamCall[];
-  /**
-   * Answers every call first when set (a real stream server behind the mock: the local renderer
-   * pipe in stream-pipe.e2e.ts); null falls through to the defaults below.
-   */
-  handle: ((call: StreamCall) => Promise<Reply | null>) | null;
-  /** What start-stream answers (default: success, publisher pub-1). */
-  start: () => Reply;
-  /** What each heartbeat answers (default: 200 pong). */
-  heartbeat: (call: StreamCall) => Reply;
-  /** What subscribe answers when not the default (the SFU's real offer). */
-  subscribe: (() => Reply) | null;
-}
-
 export interface ClientEventPost {
   url: string;
   authorization: string | undefined;
@@ -235,12 +207,11 @@ export interface ClientEventPost {
 
 export interface Receiver {
   page: Page;
-  stream: StreamServer;
   /** Requests the harness refused (anything not faked here). Must stay empty. */
   blocked: string[];
   /** The receiver's POSTs to /api/v1/client-events (its wide events), in order. */
   events: ClientEventPost[];
-  /** Creates the second page: the SFU behind the mock stream server, or a laptop sender. */
+  /** Creates the second page: a laptop sender. */
   publisherPage: () => Promise<Page>;
   sent: () => Promise<Sent[]>;
   ofType: (type: string) => Promise<Sent[]>;
@@ -251,14 +222,7 @@ export interface Receiver {
   status: () => Promise<{ text: string; overlay: boolean; spinner: boolean }>;
   /** Resolves with the size of the next frame the <video> presents (requestVideoFrameCallback). */
   nextFrame: () => Promise<{ width: number; height: number }>;
-  callsTo: (path: string) => StreamCall[];
 }
-
-const AnswerBody = z.object({
-  sessionDescription: z.object({ type: z.literal("answer"), sdp: z.string() }),
-});
-
-const STREAM_BASES = [STREAM, OTHER_STREAM, DEFAULT_STREAM];
 
 /**
  * Opens the receiver page with `query`, every dependency faked. `clock`: Playwright's virtual clock.
@@ -274,61 +238,12 @@ export async function openReceiver(
 ): Promise<Receiver> {
   const blocked: string[] = [];
   const events: ClientEventPost[] = [];
-  let sfu: Page | null = null;
-  const stream: StreamServer = {
-    calls: [],
-    handle: null,
-    start: () => ({
-      status: 200,
-      json: { status: "success", publisherSessionId: "pub-1", traceId: "t" },
-    }),
-    heartbeat: () => ({ status: 200, json: { ok: true } }),
-    subscribe: null,
-  };
   const live = surfaceOf(webEngine);
   if (!live) throw new Error("the web engine is not the one the runner drives (see e2e.config.ts)");
 
-  async function streamReply(base: string, route: WebRoute): Promise<Reply> {
-    const { url, method, headers, postData } = route.request;
-    const path = url.slice(base.length);
-    const call: StreamCall = {
-      base,
-      path,
-      method,
-      session: headers["x-stream-session-id"],
-      body: postData ? JSON.parse(postData) : undefined,
-    };
-    stream.calls.push(call);
-    const handled = stream.handle ? await stream.handle(call) : null;
-    if (handled) return handled;
-    if (path === "/ice-servers")
-      return { status: 200, json: { iceServers: [], traceId: "t", sessionId: null } };
-    if (path === "/start-stream") return stream.start();
-    if (path === "/heartbeat") return stream.heartbeat(call);
-    if (path === "/subscribe") {
-      if (stream.subscribe) return stream.subscribe();
-      sfu ??= await publisherPage();
-      const sdp = await sfu.evaluate(() => window.offerPeer());
-      return {
-        status: 200,
-        json: {
-          subscriberSessionId: "sub-1",
-          sessionDescription: { type: "offer", sdp },
-          traceId: "t",
-        },
-      };
-    }
-    if (path === "/subscribe/sub-1/answer" && sfu) {
-      const answer = AnswerBody.parse(call.body);
-      await sfu.evaluate((sdp) => window.acceptAnswer(sdp), answer.sessionDescription.sdp);
-      return { status: 200, json: { status: "success", traceId: "t" } };
-    }
-    return { status: 404, json: { error: { code: "not_found", message: path, status: 404 } } };
-  }
-
   await browser.route("**/*", async (route) => {
     const url = route.request.url;
-    // The receiver's wide events (POST /api/v1/client-events on its stream server's API): recorded.
+    // The receiver's wide events (POST /api/v1/client-events on the API it logs to): recorded.
     if (new URL(url).pathname === "/api/v1/client-events") {
       const { method, headers, postData } = route.request;
       if (method === "POST")
@@ -338,11 +253,6 @@ export async function openReceiver(
           body: postData ? JSON.parse(postData) : undefined,
         });
       return route.fulfill({ status: method === "POST" ? 202 : 204, json: { accepted: 1 } });
-    }
-    const base = STREAM_BASES.find((b) => url.startsWith(`${b}/`));
-    if (base) {
-      const reply = await streamReply(base, route);
-      return route.fulfill({ status: reply.status, json: reply.json });
     }
     if (url === CAST_SDK)
       return route.fulfill({ headers: { "content-type": "text/javascript" }, body: CAST_STUB });
@@ -382,7 +292,6 @@ export async function openReceiver(
   const sent = () => page.evaluate(() => window.__cast?.sent ?? []);
   return {
     page,
-    stream,
     blocked,
     events,
     publisherPage,
@@ -413,8 +322,24 @@ export async function openReceiver(
             }),
         ),
       ),
-    callsTo: (path) => stream.calls.filter((c) => c.path === path),
   };
+}
+
+/**
+ * A laptop casts its tab: it offers, the receiver answers over Cast, and the picture plays. Resolves
+ * once the receiver's <video> presents a frame.
+ */
+export async function laptopPlaying(rx: Receiver): Promise<Page> {
+  const laptop = await rx.publisherPage();
+  const sdp = await laptop.evaluate(() => window.offerPeer());
+  await rx.deliver({ type: "PEER_OFFER", sdp, iceServers: [] }, "laptop");
+  const [answer] = await until(async () => {
+    const all = await rx.ofType("PEER_ANSWER");
+    return all.length > 0 && all;
+  }, "PEER_ANSWER");
+  await laptop.evaluate((s) => window.acceptAnswer(s), String(answer.payload.sdp));
+  await rx.nextFrame();
+  return laptop;
 }
 
 type Truthy<T> = Exclude<T, false | 0 | "" | null | undefined>;

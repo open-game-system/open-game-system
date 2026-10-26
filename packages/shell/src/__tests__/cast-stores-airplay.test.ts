@@ -72,7 +72,6 @@ function setup(display: ReturnType<typeof fakeAirplayDisplay>) {
       haptics: { impact: async () => {}, notify: async () => {} },
       signInProviders: [],
       gameStores: castGameStores(chromecasts, {
-        streamServerUrl: "https://stream.test",
         airplay: (ctx) => {
           const backend = createAirplayCastBackend({
             display: display.display,

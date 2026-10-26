@@ -62,7 +62,7 @@ function setup(current: FakeSession | null = null) {
   const sm = fakeSessionManager(current);
   const commands = castCommands();
   const store = createCastStore(commands);
-  const stop = startCastSync(store, sm, commands, "https://stream.example");
+  const stop = startCastSync(store, sm, commands, "https://api.example");
   return { sm, store, stop };
 }
 
@@ -125,7 +125,7 @@ describe("cast sync: the app mirrors the real Google Cast session", () => {
     expect(session.sent).toContainEqual({
       type: "LOAD_VIEW",
       viewUrl: "https://game/tv/AB?stream=1",
-      streamServerUrl: "https://stream.example",
+      apiUrl: "https://api.example",
     });
   });
 
@@ -292,7 +292,7 @@ describe("cast sync: ordering", () => {
     );
     const commands = castCommands();
     const store = createCastStore(commands);
-    const stop = startCastSync(store, sm, commands, "https://stream.example");
+    const stop = startCastSync(store, sm, commands, "https://api.example");
     stop();
     answer(fakeSession());
     await flush();

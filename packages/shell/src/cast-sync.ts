@@ -66,7 +66,8 @@ export function startCastSync(
   store: Store<NativeCastState, NativeCastEvents>,
   sm: SessionManagerLike,
   commands: { bind(sm: SessionManagerLike): void },
-  streamServerUrl: string,
+  /** The OGS API the receiver sends its logs to (LOAD_VIEW's apiUrl). */
+  apiUrl: string,
   trace: CastTrace = noTrace,
   /** What LOAD_VIEW names besides the view (the couch session's id), for the receiver's logs. */
   viewContext: () => { sessionId?: string } = () => ({}),
@@ -84,7 +85,7 @@ export function startCastSync(
     void connectViewChannel(
       session,
       () => store.getSnapshot().viewUrl,
-      streamServerUrl,
+      apiUrl,
       trace,
       viewContext,
     ).then((c) => {

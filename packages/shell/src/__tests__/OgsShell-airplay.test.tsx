@@ -70,7 +70,6 @@ function makeRuntime(display: ReturnType<typeof fakeAirplayDisplay>) {
     gameStores: castGameStores(
       createFakeCastBackend({ mode: "none", loadUrl: "https://fake.test/load", fetch: net.fetch }),
       {
-        streamServerUrl: "https://stream.test",
         airplay: (ctx) =>
           createAirplayCastBackend({ display: display.display, sheet: ctx.airplaySheet }),
       },

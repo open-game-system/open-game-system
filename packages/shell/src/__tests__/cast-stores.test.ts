@@ -63,7 +63,7 @@ describe("castGameStores in the runtime (fake Chromecast, fake OGS API)", () => 
         apnsEnvironment: async () => "production",
         haptics: { impact: async () => {}, notify: async () => {} },
         signInProviders: [],
-        gameStores: castGameStores(backend, { streamServerUrl: "https://stream.test" }),
+        gameStores: castGameStores(backend),
       },
     );
     await runtime.start();

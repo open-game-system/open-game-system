@@ -8,7 +8,6 @@ import { AppState, Platform } from "react-native";
 import { airplayDisplay, airplayNativeLog } from "./airplay-native";
 import { shellAirplay } from "./airplay-shell";
 import { castGameStores } from "./cast-stores";
-import { streamServerUrl } from "./cast-view";
 import { askToNotify } from "./consent-sheet";
 import { createDeviceSource } from "./device";
 import { expoHapticsPlayer } from "./expo-haptics-player";
@@ -80,7 +79,6 @@ export function defaultShellDeps(
     // The Google Cast backend is made when the runtime asks for the stores, not here.
     gameStores: (ctx) => ({
       ...castGameStores(createGoogleCastBackend(), {
-        streamServerUrl: streamServerUrl({}, config.apiBase),
         browserTvStorage: AsyncStorage,
         ...(airplay ? { airplay } : {}),
       })(ctx),

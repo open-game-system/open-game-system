@@ -44,8 +44,8 @@
     }
   ],
 
-  // Streaming renders only on Cloud Run (STREAM_SERVER_URL, a secret; the image builds from
-  // ./container). No Cloudflare container: v3 below deletes the old StreamContainer class.
+  // No cloud renderer (ADR 2026-10-25): TVs render locally. v3 below deleted the old
+  // StreamContainer class; migrations are append-only, so v1 and v3 stay.
   "durable_objects": {
     "bindings": [
       {

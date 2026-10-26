@@ -1,6 +1,9 @@
 # The TV receiver (apps/web/public/receiver.html), proven by e2e/tests/receiver-*.e2e.ts.
 # Supersedes nothing; complements 2026-03-14-cast-receiver.feature with the current
-# LOAD_VIEW / PEER_OFFER protocol and the stops that keep a cloud GPU from billing an empty room.
+# LOAD_VIEW / PEER_OFFER protocol and the stops that end a cast left on in an empty room.
+# 2026-10-25: no cloud renderer (ADR 2026-10-25-local-rendering-only). The host phone will send its
+# off-screen render as a P2P WebRTC stream (spike/phone-p2p-cast); until then LOAD_VIEW shows the
+# not-yet state.
 
 Feature: Cast receiver
 
@@ -14,33 +17,30 @@ Feature: Cast receiver
     And a sender that connects is asked at once
     And once LOAD_VIEW arrives it stops asking
 
-  Scenario: A phone's view plays from the phone's stream server
-    When a phone sends LOAD_VIEW with a viewUrl and a streamServerUrl
-    Then the receiver starts that viewUrl on that stream server with its own stream session
-    And subscribes to the publisher's video and audio and answers the SFU
-    And the video plays and nothing covers it
+  Scenario: A phone's view is not shown yet, and no renderer is asked
+    When a phone sends LOAD_VIEW with a viewUrl and an apiUrl
+    Then the TV shows "This TV can't show games from the OGS app yet" without a spinner
+    And tells the sender that status
+    And the page makes no request to any renderer or stream server
+    And an older app's LOAD_VIEW (streamServerUrl, no apiUrl) is treated the same way
 
-  Scenario: URL parameters override the sender
-    When the receiver is opened with viewUrl (and streamServerUrl, streamUrl or publisherSessionId)
-    Then it starts at once on those and asks no sender
+  Scenario: A phone's view replaces a laptop's picture
+    Given a laptop's picture is playing
+    When a phone sends LOAD_VIEW
+    Then the picture goes and the TV shows the not-yet state
 
   # Owner, 2026-10-05: the old default view (Trivia Jam) opened on a real TV when the phone was slow.
   Scenario: No default view: the TV only shows what a sender asks for
     When no sender says anything for a minute
-    Then it starts no stream
+    Then it shows nothing on its own and calls nothing
     And it still says "Waiting for the game..." and keeps asking for a view
-    But any sender message, even GET_STATE, keeps the default from starting
-
-  Scenario: A failed start shows an error, not a black screen
-    When the stream server fails to start, fails to subscribe, or can't be reached
-    Then the TV shows "Unable to connect to game stream" without a spinner and tells the sender
-    And the heartbeat stops, so the stream server can scale to zero
+    And a GET_STATE probe gets the state (started: false) and nothing starts
 
   # Laptop path (PEER_OFFER)
   Scenario: A laptop streams its tab straight to the TV
     When a laptop sends PEER_OFFER
     Then the receiver answers it (PEER_ANSWER, to that laptop only) and plays its frames
-    And no stream server is called
+    And the page makes no other request
 
   Scenario: A laptop's canvas cast draws the game's HUD on the TV
     When the offer carries an http(s) hudUrl
@@ -57,19 +57,9 @@ Feature: Cast receiver
     Then the picture and the HUD go and the TV says "The laptop stopped casting"
 
   # Stops
-  Scenario: The heartbeat keeps the stream server up while casting
-    Then the receiver pings the stream server every minute with its stream session
-
-  Scenario: The renderer ends an idle or 3-hour stream
-    Given the streamed launcher reports player activity in window.__ogsActivityAt
-    When nobody does anything for 20 minutes (or the stream reaches 3 hours)
-    Then the heartbeat answers 410
-    And the receiver stops pinging, shows "This TV session has ended" and closes
-    But activity before then resets the 20 minutes
-
   Scenario: No phone for 20 minutes
     When the last phone or tablet disconnects and none returns for 20 minutes
-    Then the receiver ends the cast: heartbeat stopped, "This TV session has ended", Cast closed
+    Then the receiver ends the cast: "This TV session has ended", Cast closed
     But a phone that returns in time resets the 20 minutes
 
   Scenario: Three hours at most
@@ -78,14 +68,14 @@ Feature: Cast receiver
 
   # Keep the TV awake (owner, 2026-10-10: Google TV's screensaver came on a few minutes into a game).
   # A WebRTC picture in a plain <video> isn't media playing to the device. e2e/tests/receiver-awake.e2e.ts.
-  Scenario: A playing stream keeps the TV awake
-    When the phone's view or the laptop's picture starts playing
-    Then the receiver takes a screen wake lock (not before anything plays)
+  Scenario: A playing picture keeps the TV awake
+    When the laptop's picture starts playing
+    Then the receiver takes a screen wake lock (not before anything plays; a phone's view plays nothing yet)
     And it logs receiver.keepawake {method: "wakeLock", ok: true}
 
   Scenario: The wake lock is taken again
     When the system drops the wake lock while the page shows, or the page is hidden and shows again
-    Then the receiver takes it again while the stream plays
+    Then the receiver takes it again while the picture plays
     And logs receiver.keepawake {step: "lost"} and receiver.visibility {state} for each change
 
   Scenario: No wake lock: a keep-awake clip
@@ -93,7 +83,7 @@ Feature: Cast receiver
     Then the receiver plays a tiny looping, muted, inline clip (keepawake.mp4, or .webm) out of sight
     And logs the wake lock's failure (warn, with the reason) and receiver.keepawake {method: "video", ok: true}
 
-  Scenario: Nothing keeps the TV awake once the stream stops
-    When the cast ends, the laptop stops, the stream fails, or a new page's start fails
-    Then the wake lock is released and the clip paused, and neither is taken again until a stream plays
+  Scenario: Nothing keeps the TV awake once the picture stops
+    When the cast ends, the laptop stops, or a phone's view replaces the picture
+    Then the wake lock is released and the clip paused, and neither is taken again until a picture plays
     And each release is logged as receiver.keepawake {step: "stop"}
