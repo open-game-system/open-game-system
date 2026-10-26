@@ -37,3 +37,9 @@ test-results/
 **/reports/mutation/
 **/reports/stryker-incremental.json
 .stryker-tmp-*/
+
+# Spike and gameplay videos (large): kept out of git
+recordings/
+spikes/phone-p2p-cast/ios/build/
+spikes/phone-p2p-cast/ios/P2PSpike.xcodeproj/
+spikes/phone-p2p-cast/ios/P2PSpike/Info.plist

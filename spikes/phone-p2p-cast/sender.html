@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Phone TV page (spike)</title>
+<script src="/capture.js"></script>
+<style>
+  html, body { margin: 0; background: #111; color: #ddd; font: 14px system-ui; }
+  canvas { width: 100vw; display: block; }
+  #info { padding: 8px; }
+</style>
+</head>
+<body>
+<canvas id="tv" width="1280" height="720"></canvas>
+<div id="info">The TV page, drawn on the phone (approach a: canvas + Web Audio over WebRTC).</div>
+<script>
+  // A test scene shaped like a game's TV page: motion everywhere, a frame counter, and in the top
+  // row 25 blocks = (Date.now() mod 2^24) in binary + parity, for glass-to-glass latency. Every 2 s a
+  // beep with a white flash, for A/V sync. window.__ogsCastCanvas tells capture.js what to send.
+  const c = document.getElementById("tv");
+  window.__ogsCastCanvas = c;
+  const x = c.getContext("2d");
+  let frames = 0, fpsFrames = 0, fpsAt = performance.now();
+  let ac = null;
+  function audio() {
+    if (ac) return;
+    ac = new AudioContext();
+    const g = ac.createGain(); g.gain.value = 0.0; g.connect(ac.destination);
+    const o = ac.createOscillator(); o.frequency.value = 880; o.connect(g); o.start();
+    // A low hum so the stream always has sound, plus the beep.
+    const hum = ac.createOscillator(); hum.frequency.value = 220; const hg = ac.createGain(); hg.gain.value = 0.04; hum.connect(hg); hg.connect(ac.destination); hum.start();
+    window.__beep = () => { const t = ac.currentTime; g.gain.setValueAtTime(0.3, t); g.gain.setValueAtTime(0, t + 0.12); };
+  }
+  audio();
+  if (ac.state !== "running") document.addEventListener("pointerdown", () => ac.resume(), { once: true });
+  let lastBeep = 0;
+  function draw(t) {
+    frames++; fpsFrames++;
+    if (t - fpsAt > 1000) { window.__ogsPageFps = Math.round((fpsFrames * 1000) / (t - fpsAt)); fpsFrames = 0; fpsAt = t; }
+    const g = x.createLinearGradient(0, 0, 1280, 720);
+    g.addColorStop(0, `hsl(${(t / 40) % 360} 60% 25%)`); g.addColorStop(1, `hsl(${(t / 40 + 120) % 360} 60% 15%)`);
+    x.fillStyle = g; x.fillRect(0, 0, 1280, 720);
+    for (let i = 0; i < 24; i++) {
+      x.fillStyle = `hsl(${i * 15} 80% 60%)`;
+      x.beginPath();
+      x.arc(640 + Math.sin(t / 700 + i) * 520, 380 + Math.cos(t / 900 + i * 1.7) * 250, 26, 0, 7);
+      x.fill();
+    }
+    x.fillStyle = "#fff"; x.font = "bold 64px system-ui"; x.fillText(`frame ${frames}`, 60, 680);
+    // Timestamp blocks.
+    const now = Date.now() % 16777216;
+    let parity = 0;
+    for (let b = 0; b < 25; b++) {
+      const bit = b < 24 ? (now >> (23 - b)) & 1 : parity;
+      if (b < 24) parity ^= bit;
+      x.fillStyle = bit ? "#fff" : "#000";
+      x.fillRect(b * 48, 0, 48, 48);
+    }
+    if (t - lastBeep > 2000) { lastBeep = t; window.__beep?.(); window.__flashUntil = t + 120; }
+    if (t < (window.__flashUntil || 0)) { x.fillStyle = "#fff"; x.fillRect(1080, 520, 160, 160); }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+</script>
+</body>
+</html>

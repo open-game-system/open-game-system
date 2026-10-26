@@ -1,0 +1,26 @@
+name: P2PSpike
+options:
+  bundleIdPrefix: org.opengame.spike
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  P2PSpike:
+    type: application
+    platform: iOS
+    sources: [P2PSpike]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.opengame.spike.p2p
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Streams the TV page to a TV on this Wi-Fi."
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        SWIFT_VERSION: 5.0
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: P2PSpike/Info.plist
+      properties:
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false

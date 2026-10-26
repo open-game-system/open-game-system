@@ -504,6 +504,7 @@
     // stalls lasted 10-40 s), so we watch decoding and ask the laptop over Cast (PEER_KEYFRAME).
     let stallTimer = null;
     let keyframeAsks = 0;
+    const PEER_STATS_MS = Number(new URLSearchParams(location.search).get('statsEvery') || 30000);
     function stopStallWatch() {
       if (stallTimer) clearInterval(stallTimer);
       stallTimer = null;
@@ -513,14 +514,37 @@
       let last = null;
       let stalledSince = null;
       let askedAt = 0;
+      let statsFrom = null;
       stallTimer = setInterval(async () => {
         if (conn !== pc || currentViewUrl !== 'laptop' || !peerReply) return;
         let v = null;
+        let pair = null;
         try {
-          (await conn.getStats()).forEach((r) => { if (r.type === 'inbound-rtp' && r.kind === 'video') v = r; });
+          (await conn.getStats()).forEach((r) => {
+            if (r.type === 'inbound-rtp' && r.kind === 'video') v = r;
+            if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r;
+          });
         } catch (e) { return; }
         if (!v) return;
         const now = Date.now();
+        // Every 30 s, the picture as the TV gets it (receiver.peer.stats): what a phone's stream holds up to.
+        if (!statsFrom) statsFrom = { at: now, frames: v.framesDecoded, bytes: v.bytesReceived, freezes: v.freezeCount || 0, jbDelay: v.jitterBufferDelay || 0, jbCount: v.jitterBufferEmittedCount || 0 };
+        else if (now - statsFrom.at >= PEER_STATS_MS) {
+          const dt = (now - statsFrom.at) / 1000;
+          const jbN = (v.jitterBufferEmittedCount || 0) - statsFrom.jbCount;
+          rxLog('peer.stats', { data: {
+            fps: Math.round(((v.framesDecoded - statsFrom.frames) / dt) * 10) / 10,
+            size: v.frameWidth ? `${v.frameWidth}x${v.frameHeight}` : null,
+            kbps: Math.round(((v.bytesReceived - statsFrom.bytes) * 8) / dt / 1000),
+            jitterMs: v.jitter != null ? Math.round(v.jitter * 1000) : null,
+            jitterBufferMs: jbN > 0 ? Math.round((((v.jitterBufferDelay || 0) - statsFrom.jbDelay) / jbN) * 1000) : null,
+            rttMs: pair && pair.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) : null,
+            freezes: (v.freezeCount || 0) - statsFrom.freezes,
+            lost: v.packetsLost ?? null,
+            decoder: v.decoderImplementation || null,
+          } });
+          statsFrom = { at: now, frames: v.framesDecoded, bytes: v.bytesReceived, freezes: v.freezeCount || 0, jbDelay: v.jitterBufferDelay || 0, jbCount: v.jitterBufferEmittedCount || 0 };
+        }
         if (last && v.packetsReceived > last.packets && v.framesDecoded === last.frames) {
           stalledSince = stalledSince || now;
           if (now - stalledSince >= 1000 && now - askedAt >= 2000) {
