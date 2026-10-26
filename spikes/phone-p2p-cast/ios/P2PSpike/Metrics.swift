@@ -64,8 +64,9 @@ final class Metrics {
         "audioUnderruns": self.streamer.audio.underruns,
         "audioSamples": self.streamer.audio.received,
       ]
-      self.show(String(format: "TV %.0f fps · enc %.0f fps %.1f ms %@ · %.0f kbps · cpu %.0f%% · %@",
-                       Double(c.captured) / dt, dEnc / dt, encodeMs, (s["encoderImplementation"] as? String) ?? "", kbps, Self.appCpu(), thermal))
+      let line = String(format: "TV %.0f fps · enc %.0f fps %.1f ms %@ · %.0f kbps · cpu %.0f%% · %@",
+                       Double(c.captured) / dt, dEnc / dt, encodeMs, (s["encoderImplementation"] as? String) ?? "", kbps, Self.appCpu(), thermal)
+      DispatchQueue.main.async { self.show(line) }
       guard let data = try? JSONSerialization.data(withJSONObject: m), let url = URL(string: "\(self.server)/metrics") else { return }
       var req = URLRequest(url: url)
       req.httpMethod = "POST"
