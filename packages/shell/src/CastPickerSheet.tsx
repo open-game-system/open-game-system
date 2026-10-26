@@ -23,7 +23,7 @@ const CODE_LENGTH = 6;
 
 /**
  * The shell's native TV picker, opened by the game's cast button: the Chromecasts found (and the
- * browser TVs this phone paired), and "Use a browser TV": open the OGS TV page on the TV (or a
+ * browser TVs this phone paired), and "Another screen" (a browser TV): open the OGS TV page on the TV (or a
  * laptop plugged into it), then type the code it shows. testIDs match the OGS app's browser-TV UI.
  */
 export function CastPickerSheet({
@@ -102,7 +102,10 @@ interface Pairing {
   pair: () => void;
 }
 
-/** Nothing (no browser TV offered), the "Use a browser TV" button, or the pairing panel. */
+const ANOTHER_SCREEN = "Another screen";
+const ANOTHER_SCREEN_HINT = "Smart TV browser or laptop: open a link, type a code";
+
+/** Nothing (no browser TV offered), the "Another screen" button, or the pairing panel. */
 function BrowserTv({
   tv,
   onOpen,
@@ -118,11 +121,13 @@ function BrowserTv({
       <Pressable
         testID="browserTvOpen"
         accessibilityRole="button"
-        accessibilityLabel="Use a browser TV"
+        accessibilityLabel={ANOTHER_SCREEN}
+        accessibilityHint={ANOTHER_SCREEN_HINT}
         style={styles.secondary}
         onPress={onOpen}
       >
-        <Text style={styles.secondaryText}>Use a browser TV</Text>
+        <Text style={styles.secondaryText}>{ANOTHER_SCREEN}</Text>
+        <Text style={styles.secondaryHint}>{ANOTHER_SCREEN_HINT}</Text>
       </Pressable>
     );
   }
@@ -133,7 +138,7 @@ function BrowserTvPanel({ tv, pairing }: { tv: BrowserTvState; pairing: Pairing 
   const { code, setCode, busy, canPair, pair } = pairing;
   return (
     <View style={styles.browserTv} testID="browserTv">
-      <Text style={styles.subtitle}>Use a browser TV</Text>
+      <Text style={styles.subtitle}>{ANOTHER_SCREEN}</Text>
       <Text style={styles.body}>
         On the TV (or a laptop plugged into it), open{" "}
         <Text style={styles.address} testID="browserTvAddress">
@@ -208,10 +213,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: "#DADCE0",
   },
   secondaryText: { fontSize: 17, fontWeight: "600", color: "#1F1F1F" },
+  secondaryHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#6B6B6B",
+    marginTop: 2,
+    textAlign: "center",
+  },
   browserTv: { gap: 10 },
   row: { flexDirection: "row", gap: 10, alignItems: "center" },
   input: {

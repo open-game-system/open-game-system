@@ -3,7 +3,7 @@ import type { AddScreenResult } from "./screen-cast";
 
 /**
  * The single-game app's TV picker (the game's cast button opens it through SHOW_CAST_PICKER):
- * every Chromecast found and the phone's paired browser TVs, plus "Use a browser TV" (the TV's
+ * every Chromecast found and the phone's paired browser TVs, plus "Another screen" (a browser TV) (the TV's
  * browser opens the OGS TV launcher and shows a code; the phone types it, as in the OGS app).
  * React-free; CastPickerSheet renders it.
  */
@@ -19,7 +19,7 @@ export interface CastPickerTargets {
 }
 
 export interface BrowserTvState {
-  /** The pairing panel is showing (else only its "Use a browser TV" button). */
+  /** The pairing panel is showing (else only its "Another screen" (a browser TV) button). */
   open: boolean;
   address: string;
   pairing: boolean;

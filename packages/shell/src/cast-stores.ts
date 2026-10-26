@@ -38,7 +38,7 @@ function memoryStorage(): BrowserTvStorage {
 /**
  * The game's `cast` bridge store for a single-game app, on a Cast backend (Google Cast on a
  * device, the fake Chromecast in tests) plus the phone's browser TVs: casting is always available,
- * the game's cast button opens the shell's picker (Chromecasts + "Use a browser TV"), the session
+ * the game's cast button opens the shell's picker (Chromecasts + "Another screen" (a browser TV)), the session
  * follows the TV picked, and the receiver shows the launcher with chrome=none for this app.
  */
 export function castGameStores(
