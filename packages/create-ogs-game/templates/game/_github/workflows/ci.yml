@@ -1,0 +1,58 @@
+# The game: typecheck, unit tests, a whole round over real WebSockets on `wrangler dev`. The app:
+# typecheck. On main, with a CLOUDFLARE_API_TOKEN secret: deploy the preview Worker and play a round
+# against it. (The iOS Simulator walk, app/e2e/sim.sh, needs a Mac: run it locally before a release.)
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: Seam test (wrangler dev)
+        run: |
+          echo "ACTOR_KIT_SECRET=$(openssl rand -hex 32)" > .dev.vars
+          pnpm test:seam
+
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run: { working-directory: app }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm, cache-dependency-path: app/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  preview:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [game, app]
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy the preview Worker
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: pnpm run deploy:preview
+      - name: Play a round against it
+        if: env.CLOUDFLARE_API_TOKEN != ''
+        run: GAME_ORIGIN="$(node -p 'require("./deploys.json").preview')" pnpm smoke

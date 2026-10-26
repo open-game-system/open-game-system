@@ -1,0 +1,41 @@
+{
+  "name": "__OGS_APP_ID__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:client": "esbuild src/client/tv.tsx src/client/phone.tsx --bundle --format=esm --target=es2020,safari15 --jsx=automatic --minify --sourcemap --outdir=public/js",
+    "dev": "wrangler dev --ip 0.0.0.0 --port 8787",
+    "test": "vitest run",
+    "test:seam": "vitest run --config vitest.seam.config.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/client",
+    "deploy": "tsx scripts/deploy.ts",
+    "deploy:preview": "tsx scripts/deploy.ts --env preview",
+    "smoke": "vitest run --config vitest.seam.config.ts"
+  },
+  "dependencies": {
+    "actor-kit": "0.52.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "xstate": "^5.33.3",
+    "xstate-migrate": "^0.0.8",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261025.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.152.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd", "sharp"],
+    "patchedDependencies": {
+      "actor-kit@0.52.6": "patches/actor-kit@0.52.6.patch"
+    }
+  }
+}

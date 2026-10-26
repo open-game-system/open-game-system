@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "lib": ["es2022", "dom", "dom.iterable"], "types": [] },
+  "include": [".", "../game", "../*.ts", "../*.tsx"],
+  "exclude": ["../worker.ts", "../room.server.ts", "../*.test.ts", "./*.test.ts", "../game/*.test.ts"]
+}

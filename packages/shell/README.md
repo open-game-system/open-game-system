@@ -94,7 +94,7 @@ What the game's page sees:
   `{ type: "NOTIFY", kind: "success" | "warning" | "error" }`.
 - **`cast`** (always available, so the game's cast button shows with no Chromecast) and
   `notifications`, as in the OGS app. `SHOW_CAST_PICKER` opens the native TV picker: Chromecasts
-  plus "Use a browser TV" (pair by the code `ogs-tv.pages.dev` shows).
+  plus "Another screen" (a browser TV) (pair by the code `ogs-tv.pages.dev` shows).
 
 testIDs for e2e tools (Maestro, Detox): `ogsShell`, `gameWebView`, `shellLoading`, `poweredByOgs`;
 TV picker `castPicker`, `castPickerDevice-<id>`, `castPickerNoDevices`, `castPickerClose`; browser TV

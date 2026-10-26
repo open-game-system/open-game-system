@@ -43,7 +43,13 @@ describe("CastPickerSheet", () => {
     const { root, props } = render({ devices: [] });
     expect(byId(root, "castPickerNoDevices").length).toBeGreaterThan(0);
     const [open] = pressable(root, "browserTvOpen");
-    expect(open?.props.accessibilityLabel).toBe("Use a browser TV");
+    expect(open?.props.accessibilityLabel).toBe("Another screen");
+    expect(open?.props.accessibilityHint).toBe(
+      "Smart TV browser or laptop: open a link, type a code",
+    );
+    expect(texts(root)).toContain("Another screen");
+    expect(texts(root)).toContain("Smart TV browser or laptop: open a link, type a code");
+    expect(texts(root)).not.toContain("Use a browser TV");
     act(() => open?.props.onPress());
     expect(props.onOpenBrowserTv).toHaveBeenCalled();
   });
@@ -52,6 +58,7 @@ describe("CastPickerSheet", () => {
     const { root, props } = render({ browserTv: { ...closedTv, open: true } });
     expect(pressable(root, "browserTvOpen")).toHaveLength(0);
     expect(byId(root, "browserTv").length).toBeGreaterThan(0);
+    expect(texts(root)).toContain("Another screen");
     const address = root.findAll((n) => n.props.testID === "browserTvAddress");
     expect(address.length).toBeGreaterThan(0);
     expect(texts(root)).toContain("ogs-tv.pages.dev");

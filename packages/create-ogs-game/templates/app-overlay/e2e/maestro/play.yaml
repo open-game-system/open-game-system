@@ -1,0 +1,13 @@
+# One round from the question on: pick a color, see the reveal, then the next round's kites.
+appId: __OGS_BUNDLE_ID__
+---
+- extendedWaitUntil:
+    visible: "Which color had the most?.*"
+    timeout: 20000
+- tapOn: "Sky"
+- extendedWaitUntil:
+    visible: "Got it!|Not this time"
+    timeout: 20000
+- extendedWaitUntil:
+    visible: "Watch the TV!"
+    timeout: 20000

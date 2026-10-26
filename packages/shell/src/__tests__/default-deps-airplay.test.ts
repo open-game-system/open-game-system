@@ -7,6 +7,45 @@ import { castGameStores } from "../cast-stores";
 import { streamServerUrl } from "../cast-view";
 import { defaultShellDeps } from "../default-deps";
 
+/**
+ * The couch opener default-deps hands castGameStores: it must open a real WebSocket to the couch
+ * session's URL, so a game's declared TV page reaches the session as game.start + game.view
+ * (single-cast-view.test.ts covers the messages themselves).
+ */
+const COUCH_URL = "wss://api.test/api/v1/couch/ws?token=t&session=s";
+function expectOpensCouchWebSocket(openCouch: unknown) {
+  const opened: string[] = [];
+  const real = globalThis.WebSocket;
+  class FakeWebSocket {
+    constructor(readonly url: string) {
+      opened.push(url);
+    }
+  }
+  Object.defineProperty(globalThis, "WebSocket", {
+    value: FakeWebSocket,
+    configurable: true,
+    writable: true,
+  });
+  try {
+    if (typeof openCouch !== "function") throw new Error("castGameStores got no openCouch");
+    expect(openCouch(COUCH_URL)).toBeInstanceOf(FakeWebSocket);
+    expect(opened).toEqual([COUCH_URL]);
+  } finally {
+    Object.defineProperty(globalThis, "WebSocket", {
+      value: real,
+      configurable: true,
+      writable: true,
+    });
+  }
+}
+
+/** The options of castGameStores' latest call. */
+function castOptions() {
+  const call = jest.mocked(castGameStores).mock.lastCall;
+  if (!call) throw new Error("castGameStores was not called");
+  return call[1];
+}
+
 const mockDevice: { deviceType: number; deviceName: string | null; modelName: string | null } = {
   deviceType: 1,
   deviceName: "Jon's iPhone",
@@ -85,7 +124,9 @@ describe("defaultShellDeps: airplay", () => {
       streamServerUrl: streamServerUrl({}, config.apiBase),
       browserTvStorage: AsyncStorage,
       airplay: "airplay-factory",
+      openCouch: expect.any(Function),
     });
+    expectOpensCouchWebSocket(castOptions().openCouch);
     expect(shellAirplay).toHaveBeenCalledWith(
       expect.objectContaining({ display: airplayDisplay, nativeLog: airplayNativeLog }),
     );
@@ -98,7 +139,9 @@ describe("defaultShellDeps: airplay", () => {
     expect(castGameStores).toHaveBeenCalledWith("backend", {
       streamServerUrl: streamServerUrl({}, config.apiBase),
       browserTvStorage: AsyncStorage,
+      openCouch: expect.any(Function),
     });
+    expectOpensCouchWebSocket(castOptions().openCouch);
     expect(shellAirplay).not.toHaveBeenCalled();
   });
 

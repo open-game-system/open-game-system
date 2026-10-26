@@ -83,6 +83,8 @@ export function defaultShellDeps(
         streamServerUrl: streamServerUrl({}, config.apiBase),
         browserTvStorage: AsyncStorage,
         ...(airplay ? { airplay } : {}),
+        // The page's declared TV page (a room game's /tv/CODE) goes to the couch session.
+        openCouch: (url: string) => new WebSocket(url),
       })(ctx),
       ...ogsGameStores({ askPlayer: askToNotify })(ctx),
     }),

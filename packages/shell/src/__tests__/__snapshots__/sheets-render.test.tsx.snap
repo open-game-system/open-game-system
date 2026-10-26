@@ -113,7 +113,7 @@ exports[`CastPickerSheet renders a full code enables Pair 1`] = `
             }
           }
         >
-          Use a browser TV
+          Another screen
         </Text>
         <Text
           style={
@@ -390,7 +390,8 @@ exports[`CastPickerSheet renders devices and the browser TV button 1`] = `
         </Text>
       </View>
       <View
-        accessibilityLabel="Use a browser TV"
+        accessibilityHint="Smart TV browser or laptop: open a link, type a code"
+        accessibilityLabel="Another screen"
         accessibilityRole="button"
         accessibilityState={
           {
@@ -429,6 +430,8 @@ exports[`CastPickerSheet renders devices and the browser TV button 1`] = `
             "borderWidth": 1,
             "justifyContent": "center",
             "minHeight": 50,
+            "paddingHorizontal": 16,
+            "paddingVertical": 8,
           }
         }
         testID="browserTvOpen"
@@ -442,7 +445,20 @@ exports[`CastPickerSheet renders devices and the browser TV button 1`] = `
             }
           }
         >
-          Use a browser TV
+          Another screen
+        </Text>
+        <Text
+          style={
+            {
+              "color": "#6B6B6B",
+              "fontSize": 13,
+              "lineHeight": 18,
+              "marginTop": 2,
+              "textAlign": "center",
+            }
+          }
+        >
+          Smart TV browser or laptop: open a link, type a code
         </Text>
       </View>
       <View
@@ -725,7 +741,7 @@ exports[`CastPickerSheet renders the pairing panel: empty, busy with an error 1`
             }
           }
         >
-          Use a browser TV
+          Another screen
         </Text>
         <Text
           style={
@@ -1020,7 +1036,7 @@ exports[`CastPickerSheet renders the pairing panel: empty, busy with an error 2`
             }
           }
         >
-          Use a browser TV
+          Another screen
         </Text>
         <Text
           style={

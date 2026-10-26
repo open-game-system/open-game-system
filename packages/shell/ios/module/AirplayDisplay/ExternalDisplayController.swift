@@ -11,9 +11,16 @@ enum ExternalHost: Equatable {
 
   var bounds: CGRect {
     switch self {
-    case .scene(let scene): return scene.coordinateSpace.bounds
+    case .scene(let scene): return Self.sceneBounds(scene: scene.coordinateSpace.bounds, screen: scene.screen.bounds)
     case .screen(let screen): return screen.bounds
     }
+  }
+
+  /// An external-display scene fills its screen. After the controller picks a TV mode, the screen's
+  /// bounds follow at once while the scene's coordinate space can keep the old 720×480 (seen on the
+  /// Simulator), so the screen's size wins once it has one.
+  static func sceneBounds(scene: CGRect, screen: CGRect) -> CGRect {
+    screen.isEmpty ? scene : screen
   }
 }
 
@@ -244,6 +251,8 @@ final class ExternalDisplayController: NSObject {
           let mode = modes.first(where: { $0.size == size }) else { return }
     log.info("screen.pick_mode", ["w": Double(size.width), "h": Double(size.height), "modes": modes.count])
     screen.currentMode = mode
+    // A mode the app sets may post no modeDidChange: fit the TV window once the change has landed.
+    DispatchQueue.main.async { [weak self] in self?.fitWindowToHost() }
   }
 
   /// Keeps the TV window the size of its display (the WKWebView and idle card autoresize with it).

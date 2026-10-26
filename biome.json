@@ -59,7 +59,9 @@
       "!**/.claude",
       "!**/.stryker-tmp",
       "!**/.nightshift",
-      "!packages/create-ogs-app/template"
+      "!packages/create-ogs-app/template",
+      "!packages/create-ogs-game/templates",
+      "!packages/create-ogs-game/vendor"
     ]
   },
   "overrides": [

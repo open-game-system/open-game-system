@@ -1,0 +1,37 @@
+{
+  "name": "create-ogs-game",
+  "version": "0.1.0",
+  "description": "`pnpm create ogs-game my-game`: a phone-and-TV web game (Cloudflare Worker, one Durable Object per room, actor-kit) plus its own iOS/Android app on the OGS shell (AirPlay and Chromecast), CI and the steps to TestFlight",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-ogs-game": "dist/bin.mjs"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "vendor"
+  ],
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "vendor": "pnpm --dir ../.. --filter \"@open-game-system/shell...\" --filter \"@open-game-system/profile-kit...\" --filter \"@open-game-system/cast-kit-react...\" --filter create-ogs-app run build && node scripts/pack-vendor.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint src test",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=lcov --coverage.reporter=text-summary",
+    "test:mutate": "stryker run"
+  },
+  "dependencies": {
+    "create-ogs-app": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@vitest/coverage-v8": "^4.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

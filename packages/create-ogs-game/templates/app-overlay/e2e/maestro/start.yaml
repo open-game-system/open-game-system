@@ -1,0 +1,9 @@
+# The host starts the game (run after show-on-tv.yaml): the phone says to watch the TV, while the
+# TV flies the kites (e2e/sim.sh screenshots the TV right after this flow).
+appId: __OGS_BUNDLE_ID__
+---
+- tapOn: "Start"
+- extendedWaitUntil:
+    visible: "Watch the TV!"
+    timeout: 15000
+- takeScreenshot: e2e/out/05-phone-watch
