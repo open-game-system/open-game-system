@@ -1,9 +1,10 @@
 # TV Casting
 
-> **Status (2026-10-25):** TVs render locally only; there is no cloud renderer (no stream-kit,
-> no `/api/v1/stream/*`, no GPU). An Apple TV shows the launcher from the phone's AirPlay external
-> display, a browser TV runs it in a tab, a laptop streams its own tab to the Chromecast receiver,
-> and the Chromecast receiver rendering the launcher itself is being built. See
+> **Status (2026-10-25):** the host phone renders every TV; there is no cloud renderer (no
+> stream-kit, no `/api/v1/stream/*`, no GPU) and nothing renders on the Chromecast or in a TV
+> browser. An Apple TV shows the phone's AirPlay external display; a Chromecast and "Another
+> screen" will play the phone's off-screen render as a peer-to-peer WebRTC stream over the LAN
+> (specced on `spike/phone-p2p-cast`). See
 > `docs/adrs/2026-10-25-local-rendering-only.md`. The rest of this spec (server-rendered video via
 > stream-kit) is kept as history and no longer describes the product.
 

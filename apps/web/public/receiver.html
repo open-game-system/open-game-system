@@ -113,12 +113,12 @@
     /**
      * OGS Cast Receiver
      *
-     * Receiver page for Chromecast. There is no cloud renderer (ADR 2026-10-25: TVs render locally).
+     * Receiver page for Chromecast. There is no cloud renderer (ADR 2026-10-25: the host phone renders).
      *
      * Sender messages (urn:x-cast:org.opengame.view):
      *   LOAD_VIEW {viewUrl, apiUrl}          — a phone's TV page; apiUrl is the OGS API this page logs to.
      *     (+ attemptId, sessionId: the phone's cast attempt and couch session, logged as phoneAttemptId / sessionId)
-     *     Rendering the page on this device is not built yet: the TV says so.
+     *     The phone's P2P stream of that page is not built yet (spike/phone-p2p-cast): the TV says so.
      *   PEER_OFFER {sdp, iceServers, hudUrl?} — a laptop streams its picture straight to this TV over
      *                                          WebRTC; we reply PEER_ANSWER {sdp} (or PEER_ERROR, also
      *                                          later if the link fails or no picture arrives in time).
@@ -631,8 +631,8 @@
     let started = false;
     let currentViewUrl = null;
     /**
-     * A phone's TV page (LOAD_VIEW). No cloud renderer (ADR 2026-10-25), and rendering it on this
-     * device is not built yet: the TV says so instead of a black screen. Taking it still stops the
+     * A phone's TV page (LOAD_VIEW). No cloud renderer (ADR 2026-10-25), and the phone's P2P stream
+     * of it is not built yet: the TV says so instead of a black screen. Taking it still stops the
      * REQUEST_VIEW handshake and ends a laptop's picture, as any new view does.
      */
     function showView(viewUrl) {
@@ -648,7 +648,7 @@
     }
 
     /**
-     * What this receiver can show: a phone's page (LOAD_VIEW, not rendered yet), a laptop's tab
+     * What this receiver can show: a phone's page (LOAD_VIEW, not shown yet), a laptop's tab
      * (PEER_OFFER), or a laptop's 3D canvas with the game's HUD page drawn here on top (PEER_OFFER with hudUrl).
      */
     const ACCEPTS = ['view', 'peer', 'peer-canvas'];

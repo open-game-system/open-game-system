@@ -29,7 +29,7 @@ Statuses: **Done** (committed and verified locally) · **Next** · **Later** · 
 
 - **Several households, next:** deploy (API, launcher, opengame.org `/play`, Night Flight); a household setting for the couch label (now the host's name); real pushes need devices registered with Expo; join a room mid-game (Night Flight seats only in the lobby); Trivia Jam as the second multiCouch game.
 
-- **Local rendering only (2026-10-25):** the cloud GPU renderer, stream-kit and `/api/v1/stream` are removed ([ADR](adrs/2026-10-25-local-rendering-only.md)). Chromecast casts from phones need the receiver to render the launcher itself (`feat/cast-local-render`); AirPlay (phone renders) and browser TVs are unaffected.
+- **Local rendering only (2026-10-25):** the cloud GPU renderer, stream-kit and `/api/v1/stream` are removed ([ADR](adrs/2026-10-25-local-rendering-only.md)). The host phone renders every TV: AirPlay unchanged; Chromecast and "Another screen" get a peer-to-peer WebRTC stream from the phone over the LAN (specced on `spike/phone-p2p-cast`). Until then phones can't show games on a Chromecast.
 
 - **Mid-game invites (planned):** the game's `ogs:invite` message and a phone's Invite button show a small QR card in the manifest's `inviteCorner`, never over the focal area. Contract: `specification.md` §8. Rationale: AirConsole's in-game join, without games drawing codes.
 - **Transfer link (planned):** "Play on TV with OGS" on a game's own site -> `opengame.org/play/<appId>?room=<room>`. Rationale: Rocketcrab's transfer link; it reuses the friend-invite link from multi-couch. Several households in one room is already specified: `exec-plans/active/2026-10-05-multi-couch-handoff.md`.

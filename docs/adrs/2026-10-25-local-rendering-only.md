@@ -1,11 +1,14 @@
-# TVs render locally only; the cloud GPU renderer is removed
+# The host phone renders every TV; the cloud GPU renderer is removed
 
 **Date:** 2026-10-25
-**Status:** Accepted (owner, Jon, 2026-10-25)
+**Status:** Accepted (owner, Jon, 2026-10-25; revised the same day: the host phone renders, not
+the Chromecast or a TV browser)
 **Supersedes:** [Streaming renders only on Cloud Run](2026-10-06-streaming-cloud-run-only.md) in
-full, and the "Stream" delivery mode of [TV platforms](2026-10-04-tv-platforms.md) (its "Direct"
-mode stands, and [AirPlay display](2026-10-23-airplay-display.md) already reversed its "no phone
-rendering").
+full; both delivery modes of [TV platforms](2026-10-04-tv-platforms.md) ("Stream" from the cloud
+and "Direct" on the TV's own engine; [AirPlay display](2026-10-23-airplay-display.md) already
+reversed its "no phone rendering"); and the rendering part of
+[Browser screens](2026-10-17-browser-screens.md) (the browser TV plays the phone's stream instead
+of running the launcher). Pairing through the API stands.
 
 ## Context
 
@@ -26,23 +29,34 @@ Forces:
   very large numbers of households, and each extra household must cost close to nothing. A
   per-screen-hour GPU bill grows linearly with play, so it can't be the default path. `maxScale` 1
   also meant one TV at a time per region.
-- **Local rendering now exists.** AirPlay (PR #53): the phone renders the launcher on the Apple
-  TV's external display. Browser TVs run the launcher in a tab. A laptop streams its own tab to the
-  Chromecast receiver peer to peer (PEER_OFFER). The Chromecast receiver rendering the launcher
-  page itself is being built on `feat/cast-local-render`.
+- **TV devices can't render games.** Owner, 2026-10-25: a Chromecast and a TV's browser "are not
+  powerful enough" to run the launcher and the games. The host phone is.
+- **The phone can already drive a TV.** AirPlay (PR #53): the phone renders the TV page on the
+  Apple TV's external display. A laptop already streams its own tab to the Chromecast receiver
+  peer to peer over WebRTC (PEER_OFFER).
 - **Operational weight.** The renderer needed a Docker image with Chrome and a capture extension,
   idle-stop logic in three places (launcher `__ogsActivityAt`, renderer, receiver heartbeat), TURN
   and Realtime secrets in production and every PR preview, readiness scripts, and a cost watch.
 
 ## Decision
 
-TVs are rendered on a device in the room, never in our cloud:
+The TV is always rendered on the host phone. Nothing renders in our cloud, on the Chromecast, or
+in a TV browser:
 
-- **Apple TV / AirPlay TVs:** the phone renders the TV page on the AirPlay external display.
-- **Chromecast:** a custom receiver renders the TV page on the Chromecast (being built). Until it
-  ships, a phone's LOAD_VIEW shows "This TV can't show games from the OGS app yet" and logs
-  `receiver.view.unsupported`; a laptop's PEER_OFFER cast is unchanged.
-- **Browser TVs and laptops:** unchanged (direct, and peer to peer).
+- **Apple TV / AirPlay TVs:** unchanged. The phone renders the TV page on the AirPlay external
+  display.
+- **Chromecast and "Another screen"** (the browser TV, renamed in #57): the phone renders the TV
+  page off screen and sends it as a peer-to-peer WebRTC stream over the LAN; the TV only plays
+  video. This is the old cloud stream's idea (render off screen, stream WebRTC) with the phone as
+  the renderer, so no GPU bill and no SFU. The receiver side is being specced on branch
+  `spike/phone-p2p-cast`.
+- Until that ships, a phone's LOAD_VIEW on the Chromecast receiver shows "This TV can't show games
+  from the OGS app yet" and logs `receiver.view.unsupported`. A laptop's PEER_OFFER cast is
+  unchanged.
+
+Some of what this ADR removes (the receiver's WebRTC video client, pieces of stream-kit) may come
+back in peer-to-peer form for that work. It is deleted here rather than kept dormant; restore from
+`3a579c4d` what the P2P design needs.
 
 Removed (code, tests, CI, docs):
 
@@ -66,8 +80,12 @@ Changed: LOAD_VIEW names the OGS API the receiver logs to as `apiUrl` (the shell
 `config.apiBase`), not a stream server URL. `EXPO_PUBLIC_OGS_STREAM` is gone. An older app's
 LOAD_VIEW (`streamServerUrl`) still works: the receiver logs to the production API.
 
-Not removed here: the cloud resources themselves. Deleting them is the owner's call; the PR lists
-each one and how to shut it down. `cast-kit-core`'s `session.streamSessionId` (always null) stays
+Cloud resources: Jon approved the shutdown and it was done on 2026-10-25 (Cloud Run `stream-gpu`
+in us-east4 and europe-west4, Artifact Registry `stream`, Cloudflare container app
+`codeflare-containers-pr-5`, Worker `opengame-api-pr-5`). Kept on purpose: the GCP project
+`opengame-stream` (it has the Generative Language API enabled and may hold the Gemini key in use),
+and the production `opengame-api` stream secrets and the `STREAM_SERVER_URL` repo variable, until
+this change is deployed. `cast-kit-core`'s `session.streamSessionId` (always null) stays
 for now: it is part of a published package's bridge state, so removing it is a separate, breaking
 change.
 
@@ -86,7 +104,7 @@ As a separate, opt-in product, not as a fallback inside the free path:
   default stays local.
 - **Guard rails from day one**: idle shutdown, a hard lifetime, scale limits, and a test that no
   default path can start it.
-- Candidates: GPU-heavy games a TV or phone can't render, and TVs with no usable web engine.
+- Candidates: GPU-heavy games the host phone can't render.
 
 ## Consequences
 
@@ -94,17 +112,17 @@ As a separate, opt-in product, not as a fallback inside the free path:
 
 - No GPU, SFU or TURN cost per screen; casting cost no longer grows with play.
 - About 17,000 lines of code and tests gone; no Docker image, no renderer secrets in CI.
-- One rendering model to reason about: the TV page runs on a device in the room.
+- One rendering model to reason about: the host phone renders the TV page.
 
 ### Negative
 
-- Until the Chromecast receiver renders locally (`feat/cast-local-render`), a phone can't show
-  games on a Chromecast. Merge this together with, or after, that work.
-- GPU-heavy games can't reach weak TVs.
+- Until the phone-to-TV P2P stream ships (`spike/phone-p2p-cast`), a phone can't show games on a
+  Chromecast. Merge this together with, or after, that work, or accept the gap.
+- The phone does all the TV rendering: battery, heat and its GPU budget limit what a TV page can
+  draw, and it must stay on the LAN with the TV.
 - Phones in the field send `streamServerUrl` until they update; harmless (logs go to production).
 
 ### Neutral
 
-- The `opengame-stream` Cloud Run services, the Cloudflare container app `codeflare-containers-pr-5`,
-  the Realtime app and the TURN key stay provisioned until the owner deletes them.
+- The Realtime SFU app and TURN key were not checked (auth error); they bill only on use.
 - Wrangler migrations `v1` / `v3` (StreamContainer) stay: migrations are append-only.

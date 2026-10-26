@@ -3,7 +3,7 @@
 ## Project
 
 - **Name:** open-game-system
-- **Description:** Platform enabling web games to leverage native mobile capabilities (push notifications, TV casting) through the OGS companion app. TVs render locally; there is no cloud renderer ([ADR](docs/adrs/2026-10-25-local-rendering-only.md)).
+- **Description:** Platform enabling web games to leverage native mobile capabilities (push notifications, TV casting) through the OGS companion app. The host phone renders every TV (AirPlay, or a P2P WebRTC stream to Chromecast and "Another screen"); there is no cloud renderer ([ADR](docs/adrs/2026-10-25-local-rendering-only.md)).
 - **Tech stack:** TypeScript, pnpm workspaces, Turbo, Vitest, Jest, Hono, Cloudflare Workers, Expo/React Native, tsup
 - **Package manager:** pnpm 9.15+
 - **Source layout:**

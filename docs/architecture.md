@@ -355,12 +355,14 @@ Game server
 App settings: `GET /me/push-grants`, `DELETE /me/push-grants/:appId`, `POST /me/push-active/:appId`
 (the game opened in the app; its surfaces become the most recent).
 
-### TV rendering (local only)
+### TV rendering (the host phone)
 
-Every TV renders the launcher on a device in the room: an Apple TV through the phone's AirPlay
-external display, a browser TV in its own tab, a laptop's tab streamed peer to peer to the
-Chromecast receiver, and (being built) the Chromecast receiver itself. There is no cloud renderer:
-no GPU, no SFU, no `/api/v1/stream` routes. ADR
+The host phone renders every TV. An Apple TV shows the phone's AirPlay external display; a
+Chromecast and "Another screen" (the browser TV) get the phone's off-screen render as a
+peer-to-peer WebRTC stream over the LAN (being specced on `spike/phone-p2p-cast`; until then a
+phone's LOAD_VIEW shows a not-yet state on the Chromecast). A laptop already streams its own tab to
+the Chromecast receiver the same way. There is no cloud renderer: no GPU, no SFU, no
+`/api/v1/stream` routes. ADR
 [2026-10-25-local-rendering-only](adrs/2026-10-25-local-rendering-only.md).
 
 ### Client logs (wide events)

@@ -10,7 +10,7 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-03-13 | [Managed Expo workflow](2026-03-13-managed-expo-workflow.md) | Accepted |
 | 2026-03-14 | [JWT device tokens for push notifications](2026-03-14-device-token-jwt.md) | Superseded by 2026-10-07 game push |
 | 2026-03-14 | [Cast-kit must use app-bridge for state sync](2026-03-14-cast-kit-uses-app-bridge.md) | Accepted; rendering/API parts superseded 2026-10-06 |
-| 2026-10-04 | [TV platforms: web launcher where the device can run it, WebRTC stream where it can't; no phone rendering, no HLS (Roku not supported)](2026-10-04-tv-platforms.md) | Accepted; Stream mode superseded 2026-10-25 |
+| 2026-10-04 | [TV platforms: web launcher where the device can run it, WebRTC stream where it can't; no phone rendering, no HLS (Roku not supported)](2026-10-04-tv-platforms.md) | Superseded 2026-10-25 (the host phone renders every TV) |
 | 2026-10-04 | [The OGS game contract: one spec for game developers; games integrate through profile-kit, never cast](2026-10-04-ogs-game-contract.md) | Accepted |
 | 2026-10-05 | [Several households: couches join the game's room](2026-10-05-couches-join-the-games-room.md) | Accepted |
 | 2026-10-06 | [Streaming renders only on Cloud Run; the Cloudflare container is removed](2026-10-06-streaming-cloud-run-only.md) | Superseded by 2026-10-25 local rendering only |
@@ -18,9 +18,9 @@ Named `YYYY-MM-DD-short-description.md` and sorted chronologically.
 | 2026-10-06 | [TV platform coverage estimates (unverified for custom receivers)](2026-10-06-tv-platform-coverage.md) | Accepted (planning input) |
 | 2026-10-07 | [Beta distribution: TestFlight + Firebase App Distribution, EAS Update, and a forced update](2026-10-07-beta-distribution.md) | Accepted |
 | 2026-10-07 | [Game pushes go through OGS to the app or the game's PWA; game links open the app (planned)](2026-10-07-game-push-and-app-links.md) | Accepted (supersedes 2026-03-14 device tokens) |
-| 2026-10-17 | [Browser screens are a cast device, paired through the API](2026-10-17-browser-screens.md) | Accepted |
+| 2026-10-17 | [Browser screens are a cast device, paired through the API](2026-10-17-browser-screens.md) | Accepted; rendering part superseded 2026-10-25 |
 | 2026-10-18 | [`@open-game-system/shell` is extracted from apps/mobile, source-first, with one copy of each native module](2026-10-18-shell-package.md) | Accepted |
 | 2026-10-18 | [Multi-tenant push: OGS sends for each white-label app with that app's own credentials](2026-10-18-multi-tenant-push.md) | Accepted |
 | 2026-10-18 | [The ogs CLI is the developer tool, backed by a public developer API](2026-10-18-ogs-developer-api.md) | Accepted |
 | 2026-10-23 | [An Apple TV is a cast device; the phone renders the TV page on Screen Mirroring's external display](2026-10-23-airplay-display.md) | Accepted |
-| 2026-10-25 | [TVs render locally only; the cloud GPU renderer is removed](2026-10-25-local-rendering-only.md) | Accepted (supersedes 2026-10-06 streaming, Stream mode of 2026-10-04 TV platforms) |
+| 2026-10-25 | [The host phone renders every TV (AirPlay, or a P2P WebRTC stream to Chromecast and "Another screen"); the cloud GPU renderer is removed](2026-10-25-local-rendering-only.md) | Accepted (supersedes 2026-10-06 streaming, 2026-10-04 TV platforms, the rendering part of 2026-10-17 browser screens) |

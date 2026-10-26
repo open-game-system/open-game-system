@@ -1,8 +1,9 @@
 # The TV receiver (apps/web/public/receiver.html), proven by e2e/tests/receiver-*.e2e.ts.
 # Supersedes nothing; complements 2026-03-14-cast-receiver.feature with the current
 # LOAD_VIEW / PEER_OFFER protocol and the stops that end a cast left on in an empty room.
-# 2026-10-25: no cloud renderer (ADR 2026-10-25-local-rendering-only). Rendering a phone's page on
-# the Chromecast itself is being built separately; until then LOAD_VIEW shows the not-yet state.
+# 2026-10-25: no cloud renderer (ADR 2026-10-25-local-rendering-only). The host phone will send its
+# off-screen render as a P2P WebRTC stream (spike/phone-p2p-cast); until then LOAD_VIEW shows the
+# not-yet state.
 
 Feature: Cast receiver
 
@@ -16,7 +17,7 @@ Feature: Cast receiver
     And a sender that connects is asked at once
     And once LOAD_VIEW arrives it stops asking
 
-  Scenario: A phone's view is not rendered yet, and no renderer is asked
+  Scenario: A phone's view is not shown yet, and no renderer is asked
     When a phone sends LOAD_VIEW with a viewUrl and an apiUrl
     Then the TV shows "This TV can't show games from the OGS app yet" without a spinner
     And tells the sender that status

@@ -1,7 +1,7 @@
 // The TV receiver, phone path (acceptance: docs/acceptance/2026-10-04-cast-receiver-e2e.feature):
 // a phone casts, the receiver asks for a view, the phone sends LOAD_VIEW. There is no cloud renderer
-// (ADR 2026-10-25) and rendering the page on the TV is not built yet, so the TV says so and asks no
-// server to render anything. Deterministic: no model, no network.
+// (ADR 2026-10-25) and the phone's P2P stream of the page is not built yet, so the TV says so and
+// asks no server to render anything. Deterministic: no model, no network.
 import { test } from "@e2e-dev/web";
 import { describe, expect } from "e2e";
 import { API, openReceiver, until } from "./receiver-kit";

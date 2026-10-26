@@ -1,8 +1,11 @@
 # Remove the cloud GPU rendering path (2026-10-25)
 
-Owner decision (Jon, 2026-10-25): TVs render locally only. AirPlay (phone renders, PR #53, merged)
-and a Chromecast custom receiver that renders the TV page itself (`feat/cast-local-render`, another
-agent). Cloud rendering may return later as a separate product. ADR:
+Owner decision (Jon, 2026-10-25, revised the same day): the host phone renders every TV. Nothing
+renders in the cloud, on the Chromecast or in a TV browser ("they are not powerful enough").
+AirPlay is unchanged (PR #53). Chromecast and "Another screen" (the browser TV, renamed in #57)
+will receive the phone's off-screen render as a peer-to-peer WebRTC stream over the LAN, specced
+on `spike/phone-p2p-cast`; some code deleted here (the receiver's WebRTC video client, stream-kit
+pieces) may come back in P2P form. Cloud rendering may return later as a separate product. ADR:
 [2026-10-25-local-rendering-only](../../adrs/2026-10-25-local-rendering-only.md).
 
 Branch `chore/remove-cloud-render`, worktree `~/src/ogs-nocloud`, based on `origin/main` 3a579c4d.
@@ -38,9 +41,27 @@ Left on purpose:
 - Historical briefings and exec plans that mention the stream (history).
 - Wrangler migrations `v1`/`v3` for `StreamContainer` (append-only).
 
-## 2. Cloud resources (read-only check, 2026-10-25 ~14:30 PT)
+## 2. Cloud resources
 
-Nothing was deleted. Each item: state, cost, how to shut it down (Jon to approve).
+### Shutdown done (2026-10-25)
+
+Jon approved the shutdown; the coordinator ran it on 2026-10-25. Re-checked read-only afterwards:
+`gcloud run services list` and `gcloud artifacts repositories list` in `opengame-stream` are
+empty, `wrangler containers list` finds none, and the `opengame-api-pr-5` script answers 404.
+
+- Deleted: Cloud Run `stream-gpu` in us-east4 and europe-west4; Artifact Registry `stream`
+  (us-central1, 1.7 GB); Cloudflare container app `codeflare-containers-pr-5`; Worker
+  `opengame-api-pr-5`.
+- Kept on purpose: the GCP project `opengame-stream` (the Generative Language API is enabled
+  there and it may hold the Gemini key in use); the production `opengame-api` stream secrets and
+  the `STREAM_SERVER_URL` repo variable, until this PR is deployed (then delete them with the
+  commands below).
+- Not touched: org secrets used by the preview workflow, the Realtime SFU app and TURN key
+  (usage-billed only), the old `stream-server*` / `container*` Workers (per-request billing).
+
+### Read-only check before the shutdown (2026-10-25 ~14:30 PT)
+
+Each item: state, cost, how to shut it down.
 
 | Resource | State found | Billing | Shut down |
 |---|---|---|---|
@@ -62,5 +83,6 @@ Nothing was deleted. Each item: state, cost, how to shut it down (Jon to approve
 - [x] Code, tests, CI removed (commit 12771eb4)
 - [x] ADR 2026-10-25-local-rendering-only
 - [x] Feedback commands: `pnpm typecheck`, `pnpm lint`, `pnpm test`; receiver e2e (32 tests) green
-- [ ] Draft PR; merge only with Jon's yes, together with or after `feat/cast-local-render`
-- [ ] Jon: approve and run the shutdowns in section 2
+- [x] Draft PR #55; merge only with Jon's yes, together with or after the P2P stream work (`spike/phone-p2p-cast`)
+- [x] Cloud shutdown (section 2), approved by Jon, done 2026-10-25
+- [ ] After deploy: delete the `opengame-api` stream secrets and the `STREAM_SERVER_URL` variable

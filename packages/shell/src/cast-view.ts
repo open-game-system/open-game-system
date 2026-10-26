@@ -5,7 +5,7 @@ import { type CastTrace, noTrace } from "./cast-trace";
  * Tells the OGS cast receiver which page to show on the TV.
  *
  * The receiver (apps/web/public/receiver.html) listens on this namespace for LOAD_VIEW: `viewUrl`
- * is the page, `apiUrl` the OGS API its logs go to. TVs render locally (ADR 2026-10-25).
+ * is the page, `apiUrl` the OGS API its logs go to. There is no cloud renderer (ADR 2026-10-25).
  */
 export const CAST_VIEW_NAMESPACE = "urn:x-cast:org.opengame.view";
 
