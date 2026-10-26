@@ -46,9 +46,11 @@ describe("the docs site build", () => {
   });
 
   it("serves pages that read without JavaScript", () => {
+    // The one script is the Copy markdown button's (2026-10-25); the page reads without it.
     for (const p of PAGES) {
       const html = read(`${p.slug}.html`);
-      expect(html).not.toMatch(/<script/i);
+      const scripts = html.match(/<script[^>]*>[\s\S]*?<\/script>/gi) ?? [];
+      expect(scripts).toEqual(['<script type="module" src="/copy.js"></script>']);
       expect(html).toMatch(/<article>[\s\S]*<h1 id=/);
     }
   });

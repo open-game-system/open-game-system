@@ -41,11 +41,13 @@ export function pageHtml(opts: { page: PageDef; title: string; body: string }): 
 <link rel="alternate" type="text/markdown" href="${mdHref}" title="This page as Markdown">
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
 <link rel="stylesheet" href="/style.css">
+<script type="module" src="/copy.js"></script>
 </head>
 <body>
 <header class="top">
 <a class="brand" href="/"><span class="mark" aria-hidden="true"></span>OGS <span class="for">for game developers</span></a>
-<span class="links"><a class="raw jump" href="#pages">Pages</a><a class="raw" href="${mdHref}">Markdown</a></span>
+<span class="links"><a class="raw jump" href="#pages">Pages</a><button class="raw copy" type="button" data-copy-md="${mdHref}" hidden>Copy markdown</button><a class="raw md" href="${mdHref}">Markdown</a></span>
+<span class="sr-only" id="copy-status" role="status" aria-live="polite"></span>
 </header>
 <div class="layout">
 ${sidebar(page.slug)}

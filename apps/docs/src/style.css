@@ -161,3 +161,12 @@ picture.diagram img { width: 100%; }
   .side .group:first-child { margin-top: 0; }
   .agents { margin: 18px 0 0; }
 }
+
+/* Copy markdown: shown by /copy.js. */
+button.raw { background: none; cursor: pointer; }
+.copy { min-width: 9.5em; text-align: center; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 860px) {
+  .copy:not([hidden]) ~ .md { display: none; }
+  .copy { min-width: 8.5em; }
+}

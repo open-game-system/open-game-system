@@ -90,6 +90,7 @@ export function buildSite(outDir: string = DIST_DIR): BuiltPage[] {
   writeFileSync(resolve(outDir, "404.html"), notFoundHtml());
   writeFileSync(resolve(outDir, "_headers"), HEADERS);
   copyFileSync(resolve(DOCS_ROOT, "src/style.css"), resolve(outDir, "style.css"));
+  copyFileSync(resolve(DOCS_ROOT, "src/copy.js"), resolve(outDir, "copy.js"));
   cpSync(DIAGRAMS_DIR, resolve(outDir, "diagrams"), { recursive: true });
   return built;
 }
