@@ -32,7 +32,7 @@ function servedFile(path: string): string | null {
 describe("the docs site build", () => {
   it("renders every page", () => {
     expect(built.map((b) => b.page.slug)).toEqual(PAGES.map((p) => p.slug));
-    expect(built.length).toBe(16); // 16 since 2026-10-18: Ship your own app (15: ogs init, dev, catalogue; 12: try and push send; 11: the ogs CLI and try-kit; 9 since 2026-10-08: Notifications)
+    expect(built.length).toBe(23); // 23 since 2026-10-25: local rendering (architecture, real TV, shell config, TV performance, debugging, monetization, FAQ) (16 since 2026-10-18: Ship your own app (15: ogs init, dev, catalogue; 12: try and push send; 11: the ogs CLI and try-kit; 9 since 2026-10-08: Notifications))
     for (const b of built) expect(b.title.length).toBeGreaterThan(0);
   });
 
@@ -46,9 +46,11 @@ describe("the docs site build", () => {
   });
 
   it("serves pages that read without JavaScript", () => {
+    // The one script is the Copy markdown button's (2026-10-25); the page reads without it.
     for (const p of PAGES) {
       const html = read(`${p.slug}.html`);
-      expect(html).not.toMatch(/<script/i);
+      const scripts = html.match(/<script[^>]*>[\s\S]*?<\/script>/gi) ?? [];
+      expect(scripts).toEqual(['<script type="module" src="/copy.js"></script>']);
       expect(html).toMatch(/<article>[\s\S]*<h1 id=/);
     }
   });

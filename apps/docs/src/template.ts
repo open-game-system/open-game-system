@@ -1,14 +1,19 @@
-import { htmlPath, PAGES, type PageDef } from "./pages";
+import { GROUPS, htmlPath, PAGES, type PageDef } from "./pages";
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function sidebar(current: string): string {
-  const items = PAGES.map((p) => {
-    const here = p.slug === current ? ' aria-current="page"' : "";
-    return `<li><a href="${htmlPath(p.slug)}"${here}>${esc(p.nav)}</a></li>`;
+  const groups = GROUPS.map((g) => {
+    const items = PAGES.filter((p) => p.group === g)
+      .map((p) => {
+        const here = p.slug === current ? ' aria-current="page"' : "";
+        return `<li><a href="${htmlPath(p.slug)}"${here}>${esc(p.nav)}</a></li>`;
+      })
+      .join("");
+    return `<p class="group">${esc(g)}</p><ol>${items}</ol>`;
   }).join("");
-  return `<nav class="side" aria-label="Pages"><ol>${items}</ol>
+  return `<nav class="side" id="pages" aria-label="Pages">${groups}
 <p class="agents"><strong>For agents</strong><br>Every page as Markdown: add <code>.md</code>.<br><a href="/llms.txt">llms.txt</a> · <a href="/llms-full.txt">llms-full.txt</a></p></nav>`;
 }
 
@@ -36,11 +41,13 @@ export function pageHtml(opts: { page: PageDef; title: string; body: string }): 
 <link rel="alternate" type="text/markdown" href="${mdHref}" title="This page as Markdown">
 <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
 <link rel="stylesheet" href="/style.css">
+<script type="module" src="/copy.js"></script>
 </head>
 <body>
 <header class="top">
 <a class="brand" href="/"><span class="mark" aria-hidden="true"></span>OGS <span class="for">for game developers</span></a>
-<a class="raw" href="${mdHref}">Markdown</a>
+<span class="links"><a class="raw jump" href="#pages">Pages</a><button class="raw copy" type="button" data-copy-md="${mdHref}" hidden>Copy markdown</button><a class="raw md" href="${mdHref}">Markdown</a></span>
+<span class="sr-only" id="copy-status" role="status" aria-live="polite"></span>
 </header>
 <div class="layout">
 ${sidebar(page.slug)}

@@ -1,7 +1,8 @@
+import { existsSync } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
 import { Marked, type Tokens } from "marked";
 import { htmlPath, PAGES } from "./pages";
-import { CONTENT_DIR, REPO_BLOB_URL, REPO_ROOT, SITE_URL } from "./paths";
+import { CONTENT_DIR, DIAGRAMS_DIR, REPO_BLOB_URL, REPO_ROOT, SITE_URL } from "./paths";
 
 /** GitHub-style heading anchor: "5. Rules" → "5-rules", "`ogs:start`" → "ogsstart". */
 export function slugify(text: string): string {
@@ -54,6 +55,10 @@ export function rewriteLinks(markdown: string, sourceFile: string, mode: LinkMod
       (dirname(abs) === CONTENT_DIR
         ? PAGES.find((p) => `${p.slug}.md` === basename(abs))
         : undefined);
+    if (dirname(abs) === DIAGRAMS_DIR) {
+      const served = `/diagrams/${basename(abs)}`;
+      return mode === "html" ? served : `${SITE_URL}${served}`;
+    }
     if (page)
       return mode === "html"
         ? `${htmlPath(page.slug)}${hash}`
@@ -88,9 +93,26 @@ export function renderHtml(markdown: string): string {
         const inner = this.parser.parseInline(token.tokens);
         return `<h${token.depth} id="${id}"><a class="anchor" href="#${id}" aria-hidden="true">#</a>${inner}</h${token.depth}>\n`;
       },
+      image(token: Tokens.Image) {
+        return diagramHtml(token.href, token.text);
+      },
     },
   });
   const html = marked.parse(markdown, { async: false });
   if (typeof html !== "string") throw new Error("docs: marked returned a promise");
   return html;
+}
+
+const attr = (s: string) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+/**
+ * An image. A diagram (`/diagrams/x.svg`) with a `x-narrow.svg` sibling becomes a <picture> that
+ * swaps to the tall version on phones, so its text stays readable at 375 px.
+ */
+export function diagramHtml(src: string, alt: string): string {
+  const img = `<img src="${attr(src)}" alt="${attr(alt)}" loading="lazy" decoding="async">`;
+  const m = /^\/diagrams\/([\w-]+)\.svg$/.exec(src);
+  const narrow = m ? `/diagrams/${m[1]}-narrow.svg` : null;
+  if (!narrow || !existsSync(resolve(DIAGRAMS_DIR, basename(narrow)))) return img;
+  return `<picture class="diagram"><source media="(max-width: 640px)" srcset="${narrow}">${img}</picture>`;
 }

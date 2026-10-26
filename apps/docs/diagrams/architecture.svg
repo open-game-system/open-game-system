@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" role="img" aria-labelledby="title desc">
+<title id="title">OGS architecture: phones, the host phone drawing the TV launcher and your TV page, your room server and the OGS API</title>
+<desc id="desc">The host phone runs your phone page and, in a second WebView, the TV launcher with your TV page; the TV only shows the picture, by AirPlay or WebRTC video. Phones and the TV page talk to your room server, and to the OGS API.</desc>
+<style>
+svg{--bg:#f6f4ef;--paper:#fffdf9;--ink:#1b1a1f;--ink2:#5b5864;--line:#d9d4c8;--accent:#c2410c;--soft:#fdebe1;--cool:#e6eef0;--coolink:#1f5560}
+@media (prefers-color-scheme: dark){svg{--bg:#131217;--paper:#1a1920;--ink:#ece9e2;--ink2:#a9a5b2;--line:#3a3743;--accent:#fb923c;--soft:#33221a;--cool:#17282c;--coolink:#8fd0dc}}
+text{font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.canvas{fill:var(--paper);stroke:var(--line);stroke-width:1}
+.box{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.hot{fill:var(--soft);stroke:var(--accent);stroke-width:1.75}
+.cool{fill:var(--cool);stroke:var(--coolink);stroke-width:1.5}
+.h{font-size:15px;font-weight:700;fill:var(--ink)}
+.h2{font-size:12px;font-weight:700;fill:var(--ink2);letter-spacing:.08em;text-transform:uppercase}
+.t{font-size:13px;fill:var(--ink2)}
+.tk{font-size:13px;fill:var(--ink)}
+.m{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;fill:var(--ink)}
+.ma{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:12.5px;fill:var(--accent);font-weight:600}
+.lbl{font-size:12px;font-weight:600;fill:var(--accent);paint-order:stroke;stroke:var(--paper);stroke-width:6px;stroke-linejoin:round}
+.ln{stroke:var(--ink2);stroke-width:1.6;fill:none}
+.lna{stroke:var(--accent);stroke-width:1.8;fill:none}
+.dash{stroke-dasharray:5 5}
+.life{stroke:var(--line);stroke-width:2;stroke-dasharray:2 6;fill:none}
+.ah{fill:var(--ink2)}
+.aha{fill:var(--accent)}
+</style>
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+<marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="aha" d="M0 0L10 5L0 10z"/></marker>
+</defs>
+<rect class="canvas" x="0.5" y="0.5" width="959" height="599" rx="16"/>
+<text class="h2" x="40" y="44">In the living room</text>
+<text class="h2" x="380" y="44">Your game's servers</text>
+<text class="h2" x="690" y="44">OGS</text>
+<!-- other phones -->
+<rect class="box" x="40" y="60" width="270" height="92" rx="12"/>
+<text class="h" x="60" y="88">Other phones and iPads</text>
+<rect class="hot" x="60" y="100" width="230" height="38" rx="8"/>
+<text class="tk" x="76" y="124">Your phone page (WebView)</text>
+<!-- host phone -->
+<rect class="box" x="40" y="172" width="270" height="250" rx="12"/>
+<text class="h" x="60" y="200">The host phone</text>
+<text class="t" x="60" y="220">OGS app, or your app on the shell</text>
+<rect class="hot" x="60" y="234" width="230" height="38" rx="8"/>
+<text class="tk" x="76" y="258">Your phone page (WebView)</text>
+<rect class="hot" x="60" y="284" width="230" height="122" rx="8"/>
+<text class="tk" x="76" y="308">TV launcher (second WebView)</text>
+<rect class="box" x="76" y="320" width="198" height="40" rx="6"/>
+<text class="tk" x="90" y="345">Your TV page (iframe)</text>
+<text class="t" x="76" y="384">drawn here, by the phone's GPU</text>
+<!-- tv -->
+<rect class="box" x="40" y="480" width="270" height="96" rx="12"/>
+<text class="h" x="60" y="508">The TV</text>
+<text class="t" x="60" y="530">Only shows the picture: Apple TV,</text>
+<text class="t" x="60" y="548">Chromecast, or a browser that</text>
+<text class="t" x="60" y="566">plays video</text>
+<path class="lna" d="M175 422 V480" marker-end="url(#b)"/>
+<text class="lbl" x="187" y="447">AirPlay, or</text>
+<text class="lbl" x="187" y="465">WebRTC video on Wi-Fi</text>
+<!-- room server -->
+<rect class="cool" x="380" y="206" width="240" height="150" rx="12"/>
+<text class="h" x="400" y="236">Your room server</text>
+<text class="t" x="400" y="260">Cloudflare Worker</text>
+<text class="t" x="400" y="278">one Durable Object per room</text>
+<text class="t" x="400" y="296">game state, rules, WebSockets</text>
+<text class="t" x="400" y="332">verifies OGS game tokens</text>
+<!-- api -->
+<rect class="box" x="690" y="60" width="240" height="516" rx="12"/>
+<text class="h" x="710" y="90">OGS API</text>
+<text class="t" x="710" y="110">Cloudflare Workers</text>
+<rect class="box" x="706" y="130" width="208" height="54" rx="8"/>
+<text class="tk" x="720" y="153">Profiles and sign-in</text>
+<text class="t" x="720" y="171">name, avatar, guest or Apple</text>
+<rect class="box" x="706" y="196" width="208" height="54" rx="8"/>
+<text class="tk" x="720" y="219">Catalogue</text>
+<text class="t" x="720" y="237">your manifest and art kit</text>
+<rect class="box" x="706" y="262" width="208" height="72" rx="8"/>
+<text class="tk" x="720" y="285">Couch session</text>
+<text class="t" x="720" y="303">a Durable Object: TV code,</text>
+<text class="t" x="720" y="321">who is on the couch</text>
+<rect class="box" x="706" y="346" width="208" height="54" rx="8"/>
+<text class="tk" x="720" y="369">Game tokens</text>
+<text class="t" x="720" y="387">ES256, JWKS for your server</text>
+<rect class="box" x="706" y="412" width="208" height="54" rx="8"/>
+<text class="tk" x="720" y="435">Push and client log</text>
+<text class="t" x="720" y="453">your API key sends</text>
+<rect class="box" x="706" y="478" width="208" height="54" rx="8"/>
+<text class="tk" x="720" y="501">Screen pairing</text>
+<text class="t" x="720" y="519">"Another screen" codes</text>
+<!-- arrows -->
+<path class="ln" d="M310 92 H690" marker-start="url(#a)" marker-end="url(#a)"/>
+<text class="lbl" x="350" y="86">profile, game token, cast</text>
+<path class="lna" d="M290 119 C350 119 330 230 380 236" marker-start="url(#b)" marker-end="url(#b)"/>
+<path class="lna" d="M290 253 C335 253 340 262 380 262" marker-start="url(#b)" marker-end="url(#b)"/>
+<text class="lbl" x="336" y="200" text-anchor="middle">moves</text>
+<path class="lna" d="M274 340 C340 340 340 322 380 322" marker-start="url(#b)" marker-end="url(#b)"/>
+<text class="lbl" x="336" y="350" text-anchor="middle">state</text>
+<path class="ln dash" d="M620 281 H690" marker-end="url(#a)"/>
+<text class="lbl" x="655" y="273" text-anchor="middle">JWKS</text>
+<path class="ln" d="M310 400 C480 400 520 440 690 440" marker-start="url(#a)" marker-end="url(#a)"/>
+<text class="lbl" x="500" y="408" text-anchor="middle">couch session, game token</text>
+
+</svg>
