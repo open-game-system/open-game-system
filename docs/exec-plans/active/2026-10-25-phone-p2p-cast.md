@@ -215,3 +215,14 @@ Ready to run: `node native-run.mjs --device 8EE95E69-FAB4-5CC0-BE1D-355B7B806E73
    - Check `MediaStreamTrackProcessor` and canvas cost on a real Chromecast with Google TV (CrKey 1.56 is Chrome 114; the API exists from Chrome 94).
    - Fall back to `<video>` where it's missing.
 4. Android: the same design with `WebView` + libwebrtc. Out of scope for this spike.
+
+### Device attempt (2026-10-26, 13:59–14:31): blocked by iOS, not by the pipeline
+
+- 13:59–14:14: launches were refused as "Locked". The phone auto-locks within a minute. `native-run.mjs` now retries the launch for 3 minutes; once running, the app keeps the screen awake.
+- 14:14–14:31: the app launches and its WebViews load the Kite Count pages from the Mac (wrangler logged `GET /tv/…` and `GET /join/…` from the phone). But its native connections to the spike server fail with "The Internet connection appears to be offline" (NSLog at 14:17), and no metrics arrive. That is iOS **Local Network** access being off for P2PSpike: WebKit's networking is allowed, the app's own sockets are not. The Mac's firewall is off.
+- Jon's steps:
+  1. Settings > Privacy & Security > Local Network > P2PSpike **on**.
+  2. Settings > Display & Brightness > Auto-Lock > **Never**.
+  3. Run `spikes/phone-p2p-cast/run-device.sh`.
+- For the shell: a phone-TV backend must ask for Local Network access up front (with a clear reason) and say so on the phone when it's denied. WebViews keep loading, so the failure is otherwise silent.
+

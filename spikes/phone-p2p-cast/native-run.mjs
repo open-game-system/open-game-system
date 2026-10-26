@@ -54,7 +54,14 @@ await host.getByTestId("joinButton").click();
 const appArgs = ["-mode", "native", "-tv", tvUrl, "-controller", `${KITE}/join/${code}`, "-name", "Jon", "-server", SERVER, "-stamp", STAMP, "-codec", arg("codec", "H264"), "-phoneCapture", arg("phoneCapture", "0")];
 await new Promise((r) => setTimeout(r, 2500));
 if (DEVICE) {
-  sh("xcrun", ["devicectl", "device", "process", "launch", "--device", DEVICE, "--terminate-existing", "org.opengame.spike.p2p", "--", ...appArgs]);
+  // A locked phone refuses the launch; retry for 3 minutes (once running, the app keeps it awake).
+  for (let i = 0; ; i++) {
+    const r = spawnSync("xcrun", ["devicectl", "device", "process", "launch", "--device", DEVICE, "--terminate-existing", "org.opengame.spike.p2p", "--", ...appArgs], { encoding: "utf8" });
+    if (r.status === 0) break;
+    if (i >= 36) throw new Error(`launch failed: ${(r.stderr || r.stdout).split("\n").find((l) => /Locked|ERROR/.test(l))}`);
+    if (i === 0) console.log("[run] the iPhone refused the launch (locked?); retrying every 5 s");
+    await new Promise((res) => setTimeout(res, 5000));
+  }
 } else {
   sh("xcrun", ["simctl", "launch", "--terminate-running-process", SIM, "org.opengame.spike.p2p", ...appArgs]);
 }
