@@ -40,7 +40,7 @@ const shell = {
 | `cast` | `{ receiver: "ogs" }` | Which TVs the app can show your game on. See [Casting](#casting) |
 | `liveActivities` | off | iOS Live Activities, **behind a flag** and not on `main` yet. See [Live Activities](#live-activities) |
 | `apiBase` | the production OGS API | Point a test build at a preview API |
-| `tvBase` | `https://ogs-tv.pages.dev` | The TV launcher that TVs load. For test builds |
+| `tvBase` | `https://ogs-tv.pages.dev` | The TV launcher the phone loads for the TV. For test builds |
 
 The plugin never sets your bundle id, Android package or Apple Team ID: those stay in your own
 Expo config.
@@ -51,12 +51,14 @@ Expo config.
 cast: { receiver: "ogs", airplay: true }
 ```
 
-- **`receiver`**: `"ogs"`, the only one: the OGS Cast app on Chromecasts, which draws your TV
-  page on the Chromecast itself ([how](architecture.md#chromecast-the-chromecast-draws-it)).
-  Browser TVs (pair by the code at `ogs-tv.pages.dev`) are always offered too.
+- **`receiver`**: `"ogs"`, the only one: the OGS Cast app on Chromecasts. The phone draws your TV
+  page and streams it to the Chromecast as video
+  ([how](architecture.md#chromecast-and-another-screen-video-over-the-local-network); in
+  development). **Another screen** ("Smart TV browser or laptop: open a link, type a code") is always
+  offered too.
 - **`airplay`**: `true` also offers **Apple TV / AirPlay** on iOS. The user picks Screen Mirroring, and
   your app draws your TV page on the external display iOS gives it, while the phone keeps your
-  controller ([how](architecture.md#apple-tv-and-airplay-tvs-the-host-iphone-draws-it)). It adds a small
+  controller ([how](architecture.md#apple-tv-and-airplay-tvs-the-external-display)). It adds a small
   native module; the next release after turning it on is a store build, not an over-the-air update.
 
 Whichever TV is picked, it shows **only your game** (`chrome=none`): no OGS Home around it, and your
@@ -64,8 +66,6 @@ TV page still gets `ogs:start` with the couch. Draw the cast button yourself wit
 `@open-game-system/cast-kit-react`, and show it only in your own app
 (`navigator.userAgent.includes("OgsShell/comet-catch")`): inside the OGS app, OGS casts once for
 every game.
-
-TODO(feat/cast-local-render): if the Chromecast light tier gets a shell option, add it here.
 
 ## Branding
 

@@ -5,8 +5,8 @@
 
 ## What is true today
 
-- **OGS costs you nothing per hour played.** The TV is drawn by the family's own devices (the host
-  iPhone, the Chromecast, or a TV browser), so there's no cloud rendering bill for you or for OGS.
+- **OGS costs you nothing per hour played.** The TV is drawn by the host's own phone, so there's no
+  cloud rendering bill for you or for OGS.
 - **Your game is yours.** You host it, you own its domain, its players' saves and its room server.
 - **Your own app is yours too.** A game shipped with [the shell](shell-config.md) is published under
   your Apple and Google accounts, with your name and listing.

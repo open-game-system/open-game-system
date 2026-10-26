@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" width="400" height="800" role="img" aria-labelledby="title desc">
-<title id="title">Who renders the TV: the host iPhone for AirPlay, the Chromecast itself, or a browser on the TV</title>
-<desc id="desc">AirPlay: the iPhone draws. Chromecast: the Chromecast draws. Browser TV: the browser draws.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 820" width="400" height="820" role="img" aria-labelledby="title desc">
+<title id="title">Who renders the TV: always the host phone; AirPlay, Chromecast and Another screen only show the picture</title>
+<desc id="desc">The phone draws; the TV only shows the picture.</desc>
 <style>
 svg{--bg:#f6f4ef;--paper:#fffdf9;--ink:#1b1a1f;--ink2:#5b5864;--line:#d9d4c8;--accent:#c2410c;--soft:#fdebe1;--cool:#e6eef0;--coolink:#1f5560}
 @media (prefers-color-scheme: dark){svg{--bg:#131217;--paper:#1a1920;--ink:#ece9e2;--ink2:#a9a5b2;--line:#3a3743;--accent:#fb923c;--soft:#33221a;--cool:#17282c;--coolink:#8fd0dc}}
@@ -27,38 +27,39 @@ text{font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",
 <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
 <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="aha" d="M0 0L10 5L0 10z"/></marker>
 </defs>
-<rect class="canvas" x="0.5" y="0.5" width="399" height="799" rx="16"/>
+<rect class="canvas" x="0.5" y="0.5" width="399" height="819" rx="16"/>
 <text class="h" x="20" y="42">Apple TV, through AirPlay</text>
 <rect class="hot" x="20" y="56" width="360" height="74" rx="10"/>
-<text class="tk" x="36" y="80">The host iPhone draws it</text>
+<text class="tk" x="36" y="80">The host phone draws it</text>
 <text class="t" x="36" y="100">on the external display iOS makes</text>
 <text class="t" x="36" y="118">for Screen Mirroring</text>
 <path class="lna" d="M200 130 V170" marker-end="url(#b)"/>
-<text class="lbl" x="212" y="155">Screen Mirroring (video)</text>
+<text class="lbl" x="212" y="155">Screen Mirroring</text>
 <rect class="box" x="20" y="170" width="360" height="56" rx="10"/>
-<text class="tk" x="36" y="194">Apple TV shows the picture</text>
-<text class="t" x="36" y="213">phone stays in front and awake</text>
+<text class="tk" x="36" y="194">Apple TV shows it</text>
+<text class="t" x="36" y="213">works today</text>
 <text class="h" x="20" y="286">Chromecast</text>
-<rect class="box" x="20" y="300" width="360" height="56" rx="10"/>
-<text class="tk" x="36" y="324">The host phone sends a URL</text>
-<text class="t" x="36" y="343">the TV launcher (LOAD_VIEW)</text>
-<path class="lna" d="M200 356 V396" marker-end="url(#b)"/>
-<text class="lbl" x="212" y="381">Google Cast</text>
-<rect class="hot" x="20" y="396" width="360" height="74" rx="10"/>
-<text class="tk" x="36" y="420">The Chromecast draws it</text>
-<text class="t" x="36" y="440">the OGS receiver runs the launcher;</text>
-<text class="t" x="36" y="458">light tier on weak models</text>
-<text class="h" x="20" y="530">TV or laptop browser</text>
-<rect class="box" x="20" y="544" width="360" height="56" rx="10"/>
-<text class="tk" x="36" y="568">A phone pairs by a code</text>
-<text class="t" x="36" y="587">shown at ogs-tv.pages.dev</text>
-<path class="lna" d="M200 600 V640" marker-end="url(#b)"/>
-<text class="lbl" x="212" y="625">OGS API</text>
-<rect class="hot" x="20" y="640" width="360" height="56" rx="10"/>
-<text class="tk" x="36" y="664">The TV's browser draws it</text>
-<text class="t" x="36" y="683">launcher and your TV page</text>
-<text class="t" x="20" y="740">Highlighted: the device that renders</text>
-<text class="t" x="20" y="758">your TV page. No cloud GPU, no server</text>
-<text class="t" x="20" y="776">video stream on any path.</text>
+<rect class="hot" x="20" y="300" width="360" height="56" rx="10"/>
+<text class="tk" x="36" y="324">The host phone draws it off-screen</text>
+<text class="t" x="36" y="343">and encodes it as video</text>
+<path class="lna dash" d="M200 356 V396" marker-end="url(#b)"/>
+<text class="lbl" x="212" y="381">WebRTC, peer to peer</text>
+<rect class="box" x="20" y="396" width="360" height="74" rx="10"/>
+<text class="tk" x="36" y="420">The Chromecast plays the video</text>
+<text class="t" x="36" y="440">and nothing else</text>
+<text class="ma" x="36" y="460">In development</text>
+<text class="h" x="20" y="530">Another screen</text>
+<rect class="hot" x="20" y="544" width="360" height="56" rx="10"/>
+<text class="tk" x="36" y="568">The host phone draws it off-screen</text>
+<text class="t" x="36" y="587">paired by a link and a code</text>
+<path class="lna dash" d="M200 600 V640" marker-end="url(#b)"/>
+<text class="lbl" x="212" y="625">WebRTC, peer to peer</text>
+<rect class="box" x="20" y="640" width="360" height="74" rx="10"/>
+<text class="tk" x="36" y="664">A TV browser or laptop plays it</text>
+<text class="t" x="36" y="684">and nothing else</text>
+<text class="ma" x="36" y="704">In development</text>
+<text class="t" x="20" y="760">Highlighted: where your TV page runs.</text>
+<text class="t" x="20" y="778">No cloud rendering; nothing renders</text>
+<text class="t" x="20" y="796">on the TV.</text>
 
 </svg>

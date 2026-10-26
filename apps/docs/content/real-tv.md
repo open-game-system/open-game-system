@@ -13,7 +13,8 @@ ends with something you can see.
 
 - A computer with Node 20+ and [pnpm](https://pnpm.io).
 - A free [Cloudflare](https://dash.cloudflare.com/sign-up) account, for your game's Worker.
-- A phone, and one of: a TV or laptop with a web browser, an Apple TV, or a Chromecast.
+- A phone, and one of: a laptop you can plug into the TV, or an Apple TV. (Chromecast and smart TV
+  browsers are coming: the phone will stream to them.)
 - No OGS account and no Apple Developer account for the first four steps.
 
 ## 1. Start a game
@@ -63,7 +64,7 @@ Work through the [Quickstart for agents](quickstart.md); the parts that matter o
 - Silent while parked (`onOgsPause`).
 - Nothing over the middle of the screen, and everything inside the safe area (5% in from each edge).
 - No cast button, room code or join QR when OGS frames you: OGS joins the couch.
-- Hold 60 fps on the device that draws it: read the [TV performance budget](tv-performance.md)
+- Hold its frame rate on the host phone, which draws it: read the [TV performance budget](tv-performance.md)
   before adding the fourth particle system.
 
 ## 4. Deploy
@@ -83,8 +84,8 @@ Pick the TV you have.
 
 | TV | How | What you need |
 |---|---|---|
-| **Any TV with a browser, or a laptop on HDMI** | Open the `ogs dev` harness (step 2) or your deployed TV page full screen on the TV; phones scan the QR codes | Nothing else. Fastest way to see your game big |
-| **Any TV, through the OGS app** | Cast from the OGS app (Chromecast, Apple TV, or a browser TV at `ogs-tv.pages.dev`), then pick your game in Library | Your game in the OGS catalogue: `ogs manifest check`, then `ogs publish` ([catalogue](cli-catalogue.md)). Until it's approved, profiles and game tokens are `null` |
+| **A laptop on HDMI** | Open the `ogs dev` harness (step 2) or your deployed TV page full screen on the laptop; phones scan the QR codes | Nothing else. The fastest way to see your game big, but the laptop draws it, so check performance on a phone too |
+| **Apple TV, through the OGS app** | Cast from the OGS app with Screen Mirroring, then pick your game in Library. Chromecast and Another screen are in development | Your game in the OGS catalogue: `ogs manifest check`, then `ogs publish` ([catalogue](cli-catalogue.md)). Until it's approved, profiles and game tokens are `null` |
 | **Apple TV, from your own app** | `pnpm create ogs-app app` with `cast: { receiver: "ogs", airplay: true }`, run it on your iPhone, then Control Center > Screen Mirroring | An Apple Developer account for a real iPhone ([Ship your own app](ship-your-own-app.md)) |
 
 TODO(feat/shell-starter): if the template ships a dev path to the real launcher before catalogue
@@ -104,6 +105,6 @@ Then say which it is: tests passing, deployed, or verified on a real TV.
 
 ## Next
 
-- [Architecture](architecture.md): what runs where, and how each TV path draws your page.
+- [Architecture](architecture.md): what runs where, and how the phone gets your page to the TV.
 - [Client logs and debugging](debugging.md): when the TV shows nothing.
 - [Ship your own app](ship-your-own-app.md): your game in the App Store.

@@ -52,6 +52,16 @@ describe("the local-rendering pages", () => {
       expect(html).toContain(m);
   });
 
+  it("say the host phone draws every TV, with no render tiers and no browser-TV wording (2026-10-25)", () => {
+    for (const b of built) {
+      expect(b.markdown, b.page.slug).not.toMatch(/light tier|Use a browser TV|Chromecast draws/i);
+    }
+    expect(page("architecture").markdown).toMatch(/always drawn by \*\*the host's phone\*\*/);
+    for (const slug of ["architecture", "tv-performance"])
+      expect(page(slug).markdown, slug).toContain("spike/phone-p2p-cast");
+    expect(page("shell-config").markdown).toContain("Smart TV browser or laptop: open a link, type a code");
+  });
+
   it("answer why OGS doesn't stream from the cloud", () => {
     expect(page("faq").markdown).toMatch(/^## Why not cloud streaming\?$/m);
   });

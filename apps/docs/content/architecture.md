@@ -2,24 +2,25 @@
 
 An OGS game is two web pages and, usually, a small server. Phones play the **phone page**; the TV
 shows the **TV page**, framed by the OGS TV launcher. Both talk to **your room server**, and OGS
-supplies who is playing. Every picture is drawn on a device the family already owns: the host's
-iPhone, the Chromecast, or the TV's own browser. Nothing is rendered in the cloud, so a game costs
-OGS and you nothing per hour played.
+supplies who is playing. The TV picture is always drawn by **the host's phone**: the TV only shows
+it. Nothing is rendered in the cloud and nothing is rendered on the TV, so a game costs OGS and you
+nothing per hour played.
 
-![Architecture: phones run your phone page, the TV launcher frames your TV page, both talk to your room server, and to the OGS API for profiles, the catalogue, the couch session and game tokens](../diagrams/architecture.svg)
+![Architecture: other phones run your phone page; the host phone runs your phone page and, in a second WebView, the TV launcher with your TV page; the TV only shows the picture, sent by AirPlay or WebRTC video; everything talks to your room server and the OGS API](../diagrams/architecture.svg)
 
-Phones and the TV launcher both talk to your room server (game state) and to the OGS API (who is
-playing). Your room server checks OGS game tokens against the API's public key set.
+The host phone runs two WebViews: your phone page, which the host plays, and the TV launcher with
+your TV page, which everyone watches. Both talk to your room server like any other device. The TV
+gets a picture: through AirPlay, or as WebRTC video over the home Wi-Fi.
 
 ## The pieces
 
 | Piece | Where it runs | Who writes it | What it does |
 |---|---|---|---|
 | **Phone page** (`startUrl`) | A WebView in the OGS app, or in your own app built on [the shell](ship-your-own-app.md); also any phone browser | You | The controller. Reads the player's OGS profile with `useOgsProfile()` and sends moves to your room |
-| **TV page** (`tvUrl`, or a room's TV URL) | An iframe inside the OGS TV launcher, 16:9 | You | The shared screen everyone watches. Hears `ogs:start`, `ogs:suspend`, `ogs:resume`; reports its label and room |
-| **TV launcher** (`apps/tv`) | On the TV device: see [where the TV is drawn](#where-the-tv-is-drawn) | OGS | One page for the whole cast. Shows Home, frames each game, keeps one parked game loaded, never recasts |
+| **TV page** (`tvUrl`, or a room's TV URL) | An iframe inside the OGS TV launcher, 16:9, on the host phone | You | The shared screen everyone watches. Hears `ogs:start`, `ogs:suspend`, `ogs:resume`; reports its label and room |
+| **TV launcher** (`apps/tv`) | A second WebView on the host phone: see [where the TV is drawn](#where-the-tv-is-drawn) | OGS | One page for the whole cast. Shows Home, frames each game, keeps one parked game loaded, never recasts |
 | **Your room server** | Your Cloudflare account: a Worker, one Durable Object per room (or any server with WebSockets) | You | The game's state and rules. Verifies game tokens with `verifyOgsToken` before trusting a name |
-| **OGS API** | Cloudflare Workers, run by OGS | OGS | Profiles and sign-in, the catalogue (your manifest), the couch session (a Durable Object with the TV code and who is on the couch), game tokens and their JWKS, push, the client log |
+| **OGS API** | Cloudflare Workers, run by OGS | OGS | Profiles and sign-in, the catalogue (your manifest), the couch session (a Durable Object with the TV code and who is on the couch), game tokens and their JWKS, screen pairing, push, the client log |
 
 OGS doesn't host your game. You deploy the two pages and the room server yourself; OGS frames
 them and tells them who's playing. The [game contract](contract.md) has every field and message.
@@ -28,32 +29,30 @@ them and tells them who's playing. The [game contract](contract.md) has every fi
 
 A room is a small, stateful thing that every device in it talks to at once. A Durable Object gives
 you exactly one instance per room id, with WebSockets that hibernate between messages and storage
-that survives a restart. The reference games use `actor-kit`
-on top of it: one XState machine per room, with each role's view projected from the server state.
-Any server that speaks WebSockets works; OGS never talks to your room.
+that survives a restart. The reference games use `actor-kit` on top of it: one XState machine per
+room, with each role's view projected from the server state. Any server that speaks WebSockets
+works; OGS never talks to your room.
 
 ## Where the TV is drawn
 
-The TV launcher is a web page, so anything with a capable web engine can draw it. OGS uses three,
-and the host phone picks one in its TV picker:
+Always on the host phone. TVs and streaming sticks aren't powerful enough to run a game's TV page
+well, and a cloud GPU per household costs money every hour, so the phone in the host's hand does
+it. What changes between TVs is only how the picture gets there:
 
-![Who renders the TV: for AirPlay the host iPhone draws the TV page and Screen Mirroring sends the picture; for a Chromecast the phone sends a URL and the Chromecast draws it; a browser TV pairs by a code and draws it itself](../diagrams/tv-paths.svg)
+![Who renders the TV: always the host phone. AirPlay: it draws on the external display iOS makes for Screen Mirroring. Chromecast and Another screen: it draws off-screen and streams WebRTC video peer to peer on the Wi-Fi, and the receiver only plays it](../diagrams/tv-paths.svg)
 
-On every path the TV loads the **same launcher URL** with a launcher token for this couch session,
-and the launcher frames your TV page the same way. Your page gets the same messages on all three.
+On every path the phone loads the **same launcher URL** with a launcher token for this couch
+session, and the launcher frames your TV page the same way. Your page gets the same messages on
+all of them, and runs on the same hardware: the host's phone.
 
-### Apple TV and AirPlay TVs: the host iPhone draws it
+### Apple TV and AirPlay TVs: the external display
 
 iOS gives an app a second screen when the user picks **Control Center > Screen Mirroring** and an
 Apple TV. The OGS app (and your own app with `cast: { airplay: true }`) puts a second, full-screen
 WebView on that screen and loads the launcher in it. The phone keeps its own UI, your phone page,
-so the same phone is both the controller and the renderer. Screen Mirroring carries the picture and
+so the same phone is both a controller and the renderer. Screen Mirroring carries the picture and
 the sound to the TV.
 
-What that means for you:
-
-- **Your TV page runs on the phone's GPU**, next to your phone page. Budget for it: see
-  [TV performance budget](tv-performance.md).
 - **The app has to stay in front.** iOS stops drawing a backgrounded app; the TV then shows "Open
   <app> to keep the TV going" until it comes back. The phone stays awake while it casts.
 - **There is no "start mirroring" API.** Picking "Apple TV / AirPlay" in the TV picker opens short
@@ -64,29 +63,29 @@ What that means for you:
 
 Decision record: [ADR 2026-10-23, AirPlay display](../../../docs/adrs/2026-10-23-airplay-display.md).
 
-### Chromecast: the Chromecast draws it
+### Chromecast and Another screen: video over the local network
 
-The host phone sends the launcher URL to the OGS Cast receiver (a custom receiver app, id
-`807AD5E9`), and the Chromecast loads and draws the launcher and your TV page itself. Chromecasts
-range from capable to weak, so the receiver has a **light tier** for the weak models.
+> **In development.** A feasibility spike is running on branch `spike/phone-p2p-cast`. What
+> follows is the design; details may change. TODO(spike/phone-p2p-cast): confirm resolution, frame
+> rate, latency and how audio travels once the spike reports.
 
-> **Waiting on `feat/cast-local-render`.** The Chromecast's local renderer is being built now.
-> TODO(feat/cast-local-render): which models get the light tier, how it is chosen, and whether your
-> TV page is told (a URL parameter or a field on `ogs:start`). Until it lands, design for the
-> [light-tier budget](tv-performance.md#chromecast-light-tier) and don't rely on a signal.
+The phone draws the launcher and your TV page in a WebView nobody sees on the phone, encodes it as
+video, and streams it **peer to peer over the home network with WebRTC**. The other end only plays
+video:
 
-### Browser TVs: the TV's browser draws it
+- **Chromecast:** the OGS Cast receiver (app id `807AD5E9`) receives the stream and plays it.
+- **Another screen:** a smart TV's browser or a laptop. In the TV picker, **Another screen** ("Smart
+  TV browser or laptop: open a link, type a code"): open the link on that screen, then type the code it shows into the
+  phone, and the page there plays the stream. A paired screen stays in the picker.
 
-Any TV or laptop with a modern browser can open `https://ogs-tv.pages.dev`, which shows a code. The
-host types the code in the TV picker ("Use a browser TV"), and the OGS API hands that screen the
-launcher for the couch. A paired browser TV stays in the picker. It's also the easiest way to put
-your game on a real TV while you develop: see [Real TV in an afternoon](real-tv.md).
+As with AirPlay, the phone does the work, so the [TV performance budget](tv-performance.md) is the
+phone's: rendering, encoding and battery.
 
 ### Your own app: no launcher chrome
 
 Cast from your own app (built on the shell) and the TV shows **only your game**: the launcher runs
 with `chrome=none&app=<appId>`, frames your TV page full screen with no OGS Home around it, and
-still sends `ogs:start` with the couch. The same three paths apply.
+still sends `ogs:start` with the couch. The same paths apply.
 
 ## The launcher protocol
 

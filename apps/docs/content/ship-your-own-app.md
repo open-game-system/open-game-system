@@ -15,7 +15,7 @@ profiles with native sign-in, push links, haptics and an offline screen.
 | | How |
 |---|---|
 | **Your game, live from the web** | The app opens your phone page (`gameUrl`). Deploy the web game and every installed app has it, with no store release. |
-| **Play on TV** | A Chromecast, an Apple TV through Screen Mirroring (`cast.airplay`, iOS), or any TV with a browser (paired by a code). A cast button **you** draw with `cast-kit-react`; the app runs the native picker and session. The TV shows your manifest's `tvUrl` full screen with no OGS launcher around it, and your TV page still gets `ogs:start` with the couch. |
+| **Play on TV** | An Apple TV through Screen Mirroring (`cast.airplay`, iOS), a Chromecast, or **Another screen** (a smart TV browser or laptop, paired by a code). The phone draws the TV page in every case; Chromecast and Another screen get it as streamed video (in development). A cast button **you** draw with `cast-kit-react`; the app runs the native picker and session. The TV shows your manifest's `tvUrl` full screen with no OGS launcher around it, and your TV page still gets `ogs:start` with the couch. |
 | **Who is playing** | `useOgsProfile()` (profile-kit), as in the OGS app. Players start as a guest with a real OGS profile; **Sign in with Apple** (Google on Android) is a native sheet in the app, never in your page. One OGS account works in every OGS-powered app. |
 | **Push links** | Your server sends with your game's API key, as on [Notifications](notifications.md). OGS delivers to your app with **your** APNs key and FCM service account. A tap opens the page you name. |
 | **Links** | `https://<your domain>/…` (with the link files below), `https://opengame.org/play/<appId>/…` and your app's own scheme, `<appId>://<path>`, open the app at that page of your game. |
@@ -132,7 +132,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 ```
 
 Two optional settings are for test builds: `apiBase` (the OGS API) and `tvBase` (the OGS TV
-launcher the Chromecast loads) point the app at a preview deploy; left out, the app uses production.
+launcher the phone loads for the TV) point the app at a preview deploy; left out, the app uses production.
 
 The plugin adds Google Cast (with the local network permission iOS asks for), push, Sign in with
 Apple, the link entitlements and intent filters, and the splash screen, and passes the settings to
@@ -146,9 +146,9 @@ On the game side, copy what you need from `examples/`:
   for a room. Show it **only in your own app**: inside the OGS app, OGS casts once for every game
   ([Rules, no cast button](rules.md#1-no-cast-button)). In your app the button always shows, even
   with no Chromecast on the Wi-Fi (`deviceCount` is then 0): its `showPicker()` opens the app's
-  native picker, which lists the Chromecasts found and **Use a browser TV**: open the OGS TV page
-  (`ogs-tv.pages.dev`) in the TV's or a laptop's browser and type the code it shows. A paired
-  browser TV stays in the list (`type: "browser"`).
+  native picker, which lists the Chromecasts found and **Another screen** ("Smart TV browser or
+  laptop: open a link, type a code"): open the link in the TV's or a laptop's browser and type the
+  code it shows. A paired screen stays in the list (`type: "browser"`).
 - **Your own app or not** (`examples/web/in-own-app.ts`): the app's WebView adds
   `OgsShell/<appId>` to the user agent, so `navigator.userAgent.includes("OgsShell/rocket-crew")` is
   true only in your own app: not in a plain browser, and not inside the OGS app (whose WebView also
@@ -265,7 +265,7 @@ The shell's native screens have testIDs and labels an e2e tool (Maestro, Detox) 
 | Screen | testID (label) |
 |---|---|
 | TV picker | `castPicker`; each TV `castPickerDevice-<id>` (its name); `castPickerNoDevices`; `castPickerClose` ("Not now") |
-| Browser TV | `browserTvOpen` ("Use a browser TV"), `browserTv`, `browserTvAddress` (the TV page's address), `browserTvCode` ("Code on the TV"), `browserTvPair` ("Pair"), `browserTvPairing`, `browserTvError` |
+| Another screen | `browserTvOpen` ("Another screen"), `browserTv`, `browserTvAddress` (the TV page's address), `browserTvCode` ("Code on the TV"), `browserTvPair` ("Pair"), `browserTvPairing`, `browserTvError` |
 | Sign-in sheet | `signInSheet`, `signInApple`, `signInGoogle`, `signInNotNow`, `signInError` |
 | Offline | `gameErrorScreen`, `gameRetryButton` |
 

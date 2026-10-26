@@ -14,7 +14,7 @@ and build, the couch session, and a few scalar fields. They're kept per app laun
 |---|---|---|
 | OGS app (`mobile`) | `cast.*`, `airplay.*`, `native.*`, `app.*` errors | Which TV was picked, each step of the cast, the external display coming and going, WebView loads and failures |
 | Your own app (`shell`, with your `appId`) | `airplay.*`, `native.*` | The same AirPlay steps, from your app. Logged when `cast.airplay` is on |
-| Cast receiver (`receiver`) | `receiver.*` | What the Chromecast was asked to show and what it loaded |
+| Cast receiver (`receiver`) | `receiver.*` | What the Chromecast was asked to play, and how the stream went (streaming is in development) |
 
 Nothing secret is logged: tokens and JWTs are redacted, secret-named fields dropped, emails
 scrubbed, and URLs logged as host and path only.
@@ -39,9 +39,8 @@ family's TV is one search away. Never log the game token itself.
 | Surface | How to inspect it |
 |---|---|
 | TV page, on your computer | `ogs dev` ([page](cli-dev.md)): your TV page framed as the launcher frames it, with every message in and out listed |
-| TV page, on a browser TV | It's a browser: on a laptop, open DevTools. Pair it at `https://ogs-tv.pages.dev` |
 | TV page, on an Apple TV | It runs in a WebView on the host iPhone. The client log's `native.tv_webview.*` events say whether it loaded and why not. Reproduce layout problems in the iOS Simulator (**I/O > External Displays**) |
-| TV page, on a Chromecast | The `receiver.*` events. TODO(feat/cast-local-render): how to remote-debug the local receiver, and which `receiver.*` events report your TV page's load and frame rate |
+| TV page, streamed to a Chromecast or Another screen | It runs on the host phone, as for AirPlay; the TV only plays video. In development: TODO(spike/phone-p2p-cast): the events that report the stream (resolution, frame rate, dropped frames) |
 | Phone page, in the OGS app | Safari > Develop > your iPhone > the game's page (the OGS app's game WebView is inspectable) |
 | Phone page, in your own app | Not inspectable yet. Run it in `ogs dev` (fake app bridge) or a plain browser, where profile-kit returns `null` |
 | Your room server | `wrangler tail` on your Worker, and your own wide events |

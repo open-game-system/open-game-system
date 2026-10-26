@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 800" width="400" height="800" role="img" aria-labelledby="title desc">
-<title id="title">OGS architecture: phones, the TV launcher with your TV page, your room server and the OGS API</title>
-<desc id="desc">Phones run your phone page and the TV launcher frames your TV page; both talk to your own room server, and to the OGS API.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 880" width="400" height="880" role="img" aria-labelledby="title desc">
+<title id="title">OGS architecture: phones, the host phone drawing the TV launcher and your TV page, your room server and the OGS API</title>
+<desc id="desc">The host phone draws the TV; the TV only shows the picture.</desc>
 <style>
 svg{--bg:#f6f4ef;--paper:#fffdf9;--ink:#1b1a1f;--ink2:#5b5864;--line:#d9d4c8;--accent:#c2410c;--soft:#fdebe1;--cool:#e6eef0;--coolink:#1f5560}
 @media (prefers-color-scheme: dark){svg{--bg:#131217;--paper:#1a1920;--ink:#ece9e2;--ink2:#a9a5b2;--line:#3a3743;--accent:#fb923c;--soft:#33221a;--cool:#17282c;--coolink:#8fd0dc}}
@@ -27,39 +27,40 @@ text{font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",
 <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
 <marker id="b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="aha" d="M0 0L10 5L0 10z"/></marker>
 </defs>
-<rect class="canvas" x="0.5" y="0.5" width="399" height="799" rx="16"/>
-<rect class="box" x="20" y="20" width="340" height="116" rx="12"/>
-<text class="h" x="36" y="48">Phones and iPads</text>
-<text class="t" x="36" y="70">OGS app, or your app on the shell</text>
-<rect class="hot" x="36" y="84" width="308" height="38" rx="8"/>
-<text class="tk" x="50" y="108">Your phone page (WebView)</text>
-<rect class="cool" x="20" y="196" width="340" height="104" rx="12"/>
-<text class="h" x="36" y="224">Your room server</text>
-<text class="t" x="36" y="246">Cloudflare Worker, a Durable Object</text>
-<text class="t" x="36" y="264">per room: state, rules, WebSockets;</text>
-<text class="t" x="36" y="282">verifies OGS game tokens (JWKS)</text>
-<rect class="box" x="20" y="360" width="340" height="190" rx="12"/>
-<text class="h" x="36" y="388">The TV</text>
-<text class="t" x="36" y="410">OGS TV launcher (one page per cast)</text>
-<rect class="hot" x="36" y="424" width="308" height="50" rx="8"/>
-<text class="tk" x="50" y="446">Your TV page</text>
-<text class="t" x="50" y="464">in an iframe, 16:9</text>
-<text class="t" x="36" y="500">Drawn by the host iPhone (AirPlay),</text>
-<text class="t" x="36" y="520">the Chromecast, or a TV browser</text>
-<rect class="box" x="20" y="610" width="340" height="170" rx="12"/>
-<text class="h" x="36" y="638">OGS API</text>
-<text class="tk" x="36" y="664">Profiles and sign-in</text>
-<text class="tk" x="36" y="686">Catalogue (manifest, art kit)</text>
-<text class="tk" x="36" y="708">Couch session: TV code, players</text>
-<text class="tk" x="36" y="730">Game tokens (ES256) and JWKS</text>
-<text class="tk" x="36" y="752">Push and client log</text>
-<path class="lna" d="M200 136 V196" marker-start="url(#b)" marker-end="url(#b)"/>
-<text class="lbl" x="212" y="171">moves</text>
-<path class="lna" d="M200 300 V360" marker-start="url(#b)" marker-end="url(#b)"/>
-<text class="lbl" x="212" y="335">state to draw</text>
-<path class="ln" d="M380 136 V610" marker-start="url(#a)" marker-end="url(#a)"/>
-<path class="ln" d="M110 550 V610" marker-start="url(#a)" marker-end="url(#a)"/>
-<text class="lbl" x="122" y="585">couch session</text>
-<text class="lbl" x="372" y="171" text-anchor="end">profile, token</text>
+<rect class="canvas" x="0.5" y="0.5" width="399" height="879" rx="16"/>
+<rect class="box" x="20" y="20" width="340" height="76" rx="12"/>
+<text class="h" x="36" y="46">Other phones and iPads</text>
+<text class="t" x="36" y="70">Your phone page (WebView)</text>
+<rect class="cool" x="20" y="140" width="340" height="92" rx="12"/>
+<text class="h" x="36" y="166">Your room server</text>
+<text class="t" x="36" y="188">Cloudflare Worker, a Durable Object</text>
+<text class="t" x="36" y="206">per room; verifies OGS game tokens</text>
+<rect class="box" x="20" y="276" width="340" height="226" rx="12"/>
+<text class="h" x="36" y="302">The host phone</text>
+<rect class="hot" x="36" y="316" width="308" height="38" rx="8"/>
+<text class="tk" x="50" y="340">Your phone page (WebView)</text>
+<rect class="hot" x="36" y="366" width="308" height="120" rx="8"/>
+<text class="tk" x="50" y="390">TV launcher (second WebView)</text>
+<rect class="box" x="50" y="402" width="280" height="40" rx="6"/>
+<text class="tk" x="64" y="427">Your TV page (iframe)</text>
+<text class="t" x="50" y="470">drawn here, by the phone's GPU</text>
+<rect class="box" x="20" y="562" width="340" height="76" rx="12"/>
+<text class="h" x="36" y="588">The TV</text>
+<text class="t" x="36" y="610">only shows the picture</text>
+<rect class="box" x="20" y="690" width="340" height="170" rx="12"/>
+<text class="h" x="36" y="716">OGS API</text>
+<text class="tk" x="36" y="742">Profiles and sign-in</text>
+<text class="tk" x="36" y="764">Catalogue (manifest, art kit)</text>
+<text class="tk" x="36" y="786">Couch session: TV code, players</text>
+<text class="tk" x="36" y="808">Game tokens (ES256) and JWKS</text>
+<text class="tk" x="36" y="830">Push, client log, screen pairing</text>
+<path class="lna" d="M190 96 V140" marker-start="url(#b)" marker-end="url(#b)"/>
+<text class="lbl" x="202" y="123">moves</text>
+<path class="lna" d="M190 232 V276" marker-start="url(#b)" marker-end="url(#b)"/>
+<text class="lbl" x="202" y="259">moves, state to draw</text>
+<path class="lna" d="M190 502 V562" marker-end="url(#b)"/>
+<text class="lbl" x="202" y="536">AirPlay, or WebRTC on Wi-Fi</text>
+<path class="ln" d="M380 58 V690" marker-start="url(#a)" marker-end="url(#a)"/>
+<text class="lbl" x="372" y="668" text-anchor="end">every phone: profile, tokens, couch</text>
 
 </svg>
