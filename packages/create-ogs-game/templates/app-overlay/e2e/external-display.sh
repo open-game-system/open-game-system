@@ -1,25 +1,18 @@
 #!/usr/bin/env bash
-# Turns the Simulator's external display (I/O > External Displays) on or off for one device window,
-# by clicking the Simulator menu through System Events (needs Accessibility permission for the
-# terminal app). simctl has no command for it (Xcode 26.4).
+# Turns the Simulator's external display (it stands in for an Apple TV with Screen Mirroring) on at
+# a size, or off, for one simulator:
 #   e2e/external-display.sh "<simulator name>" "1920×1080 (1080p)"   # or "Disabled"
-# (From Crak & Bam's app; the shell has the same as packages/shell/scripts/airplay-sim.sh.)
+# Every simulator has a TVOut screen (`simctl io <udid> enumerate`); `simctl io screenConfig` powers it
+# and sets its geometry, so this needs no Simulator window, no menu and no Accessibility permission
+# (found 2026-11-15 on Xcode 26.4; the I/O › External Displays menu click is no longer needed).
 set -euo pipefail
 device="${1:?simulator name}"; size="${2:-1920×1080 (1080p)}"
-osascript <<OSA
-tell application "Simulator" to activate
-tell application "System Events" to tell process "Simulator"
-  set frontmost to true
-  repeat with w in windows
-    if name of w starts with "$device " then perform action "AXRaise" of w
-  end repeat
-  delay 0.5
-  set target to menu item "$size" of menu 1 of menu item "External Displays" of menu 1 of menu bar item "I/O" of menu bar 1
-  -- Clicking the size that is already on re-creates the display under a running app: skip it.
-  set mark to ""
-  try
-    set mark to value of attribute "AXMenuItemMarkChar" of target
-  end try
-  if mark is missing value or mark is "" then click target
-end tell
-OSA
+udid="$(xcrun simctl list devices | grep "$device (" | grep -oE '[0-9A-F-]{36}' | head -1)"
+[ -n "$udid" ] || { echo "no simulator named $device" >&2; exit 1; }
+if [ "$size" = "Disabled" ]; then
+  xcrun simctl io "$udid" screenConfig --display=TVOut power off
+  exit 0
+fi
+geometry="$(printf '%s' "$size" | grep -oE '^[0-9]+' )x$(printf '%s' "$size" | grep -oE '×[0-9]+' | tr -d '×')"
+xcrun simctl io "$udid" screenConfig --display=TVOut power on
+xcrun simctl io "$udid" screenConfig --display=TVOut geometry "$geometry"

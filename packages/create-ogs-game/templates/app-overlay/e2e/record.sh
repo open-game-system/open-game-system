@@ -13,8 +13,8 @@ font="/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 ms() { python3 -c 'import time; print(int(time.time()*1000))'; }
 
 # Off then on: after a simulator reboot the menu can show 1080p checked with no display attached.
-"$here/external-display.sh" "$dev" "Disabled" >/dev/null; sleep 1
-"$here/external-display.sh" "$dev" "1920×1080 (1080p)" >/dev/null; sleep 2
+"$here/external-display.sh" "$dev" "Disabled" >/dev/null
+"$here/external-display.sh" "$dev" "1920×1080 (1080p)" >/dev/null; sleep 1
 # One host recording at a time (simctl): the TV is a real video, the phone a fast screenshot loop.
 xcrun simctl io "$udid" recordVideo --codec=h264 --force --display=external "$raw/tv.mov" 2>"$raw/tv.log" &
 tv_pid=$!
@@ -80,7 +80,7 @@ n=0; prev=""; while read -r at name; do
   if [ -n "$prev" ]; then
     read -r pat pname <<<"$prev"; n=$((n+1))
     dur=$(python3 -c "print(max(1,($at-$pat)/1000))")
-    ffmpeg -y -loglevel error -ss "$(python3 -c "print($pat/1000)")" -t "$dur" -i "$raw/side.mp4" -c:v libx264 -pix_fmt yuv420p "$rec/clips/$(printf %02d $n)-$pname.mp4"
+    ffmpeg -nostdin -y -loglevel error -ss "$(python3 -c "print($pat/1000)")" -t "$dur" -i "$raw/side.mp4" -c:v libx264 -pix_fmt yuv420p "$rec/clips/$(printf %02d $n)-$pname.mp4"
   fi
   prev="$at $name"
 done < "$marks"

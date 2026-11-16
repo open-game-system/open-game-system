@@ -7,8 +7,8 @@
 #   5. screenshots of the phone and of the TV (the external display) in e2e/out/, timings in
 #      e2e/out/timings.txt.
 # Needs: macOS with Xcode and CocoaPods, Maestro (~/.maestro/bin/maestro), a deploy of the game
-# (../deploys.json, or GAME_ORIGIN), and Accessibility access for the terminal (the external display
-# is a Simulator menu: e2e/external-display.sh). SKIP_BUILD=1 reuses the last build.
+# (../deploys.json, or GAME_ORIGIN). The external display is the simulator's TVOut screen, turned on
+# with simctl (e2e/external-display.sh; no Accessibility permission). SKIP_BUILD=1 reuses the last build.
 set -euo pipefail
 # CocoaPods fails on a non-UTF-8 locale (Unicode Normalization not appropriate for ASCII-8BIT).
 export LANG="${LANG:-en_US.UTF-8}" LC_ALL="${LC_ALL:-en_US.UTF-8}"
