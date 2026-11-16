@@ -44,8 +44,8 @@ a Mac with Xcode, CocoaPods and [Maestro](https://maestro.mobile.dev) for the si
    Metro), turns on the Simulator's external display (it stands in for an Apple TV with Screen
    Mirroring), and Maestro walks name → lobby → **Show on TV** → **Apple TV / AirPlay** → Start.
    Screenshots of the phone and the TV land in `app/e2e/out/`, with each step's time in
-   `timings.txt`. The external display is a Simulator menu, clicked through System Events: give
-   your terminal Accessibility access (System Settings → Privacy & Security → Accessibility).
+   `timings.txt`. The external display is the simulator's TVOut screen, turned on with
+   `xcrun simctl io <udid> screenConfig` (no Simulator menu, no Accessibility permission).
    Then `pnpm e2e:record` films the phone and the TV side by side (framed, labelled, a title card
    with the run's timings) into `recordings/<time>/`, plus one short clip per milestone.
 6. **On your real TV**: `pnpm ios --device` (needs your Team ID in `app/app.config.ts`), open the
